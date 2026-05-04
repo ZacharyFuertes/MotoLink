@@ -8,7 +8,6 @@ import {
   User,
   Loader2,
   AlertCircle,
-  Database,
   RefreshCw,
   LogIn,
 } from "lucide-react";
