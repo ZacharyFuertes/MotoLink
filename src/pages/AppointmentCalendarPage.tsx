@@ -309,11 +309,11 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 pb-6 border-b border-[#222]">
             <div>
-              <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase mb-1">
+              <div className="flex items-center gap-3 text-[#d63a2f] text-[11px] font-bold tracking-[0.2em] uppercase mb-2">
                 <div className="w-6 h-[1px] bg-[#d63a2f]" />{" "}
                 {isOwner ? "SHOP APPOINTMENTS" : "MY APPOINTMENTS"}
               </div>
-              <h1 className="font-display text-3xl sm:text-4xl text-white uppercase tracking-wide">
+              <h1 className="font-display text-4xl sm:text-5xl text-white uppercase tracking-wide">
                 APPOINTMENTS LIST
               </h1>
             </div>
@@ -321,7 +321,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             {canBookAppointments && (
               <button
                 onClick={() => setShowBookingForm(true)}
-                className="mt-4 sm:mt-0 px-6 py-3 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold tracking-[0.2em] text-[10px] uppercase transition border border-[#d63a2f]"
+                className="mt-4 sm:mt-0 px-8 py-4 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold tracking-[0.2em] text-[11px] uppercase transition border border-[#d63a2f]"
               >
                 + NEW APPOINTMENT
               </button>
@@ -348,29 +348,29 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           )}
 
           <div className="mb-12">
-            <h2 className="text-[#6b6b6b] text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+            <h2 className="text-[#6b6b6b] text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
               ACTIVE & UPCOMING
             </h2>
             {upcomingAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 border border-[#222] bg-[#111]">
-                <Clock className="w-12 h-12 text-[#333] mb-4" strokeWidth={1} />
-                <p className="text-[#6b6b6b] text-[10px] tracking-widest uppercase font-bold">
+              <div className="flex flex-col items-center justify-center py-20 border border-[#222] bg-[#111]">
+                <Clock className="w-16 h-16 text-[#333] mb-5" strokeWidth={1} />
+                <p className="text-[#6b6b6b] text-[11px] tracking-widest uppercase font-bold">
                   NO ACTIVE APPOINTMENTS
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-6">
                 <AnimatePresence>
                   {upcomingAppointments.map((apt) => (
                     <motion.div
                       key={apt.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-[#111111] border border-[#222] hover:border-[#333] transition flex flex-col p-5"
+                      className="bg-[#111111] border border-[#222] hover:border-[#333] transition flex flex-col p-7"
                     >
-                      <div className="flex items-start justify-between mb-4 pb-4 border-b border-[#222]">
+                      <div className="flex items-start justify-between mb-5 pb-5 border-b border-[#222]">
                         <div>
-                          <p className="font-display text-xl text-white uppercase flex items-center gap-2">
+                          <p className="font-display text-2xl text-white uppercase flex items-center gap-3">
                             {new Date(apt.scheduled_date).toLocaleDateString(
                               "en-PH",
                               {
@@ -379,22 +379,22 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                                 year: "numeric",
                               },
                             )}
-                            <span className="text-[#d63a2f] px-2">•</span>
+                            <span className="text-[#d63a2f] px-3">•</span>
                             {apt.scheduled_time}
                           </p>
-                          <p className="text-[#6b6b6b] text-[10px] font-bold tracking-[0.2em] uppercase mt-1">
+                          <p className="text-[#6b6b6b] text-[11px] font-bold tracking-[0.2em] uppercase mt-2">
                             {apt.service_type}
                           </p>
                         </div>
                         {canUpdateStatus ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             {apt.status === "ready_for_finalization" &&
                               isOwner && (
                                 <button
                                   onClick={() =>
                                     handleStatusChange(apt.id, "completed")
                                   }
-                                  className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[9px] font-black uppercase tracking-widest transition shadow-lg shadow-green-900/20"
+                                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-green-900/20"
                                 >
                                   Finalize Revenue
                                 </button>
@@ -407,7 +407,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                                   e.target.value as AppointmentStatus,
                                 )
                               }
-                              className={`text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 border appearance-none outline-none transition cursor-pointer text-center ${statusConfig[apt.status].color}`}
+                              className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 border appearance-none outline-none transition cursor-pointer text-center ${statusConfig[apt.status].color}`}
                             >
                               {Object.entries(statusConfig).map(
                                 ([status, config]) => {
@@ -431,19 +431,19 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                           </div>
                         ) : (
                           <span
-                            className={`text-[9px] font-bold tracking-widest uppercase px-3 py-1.5 border ${statusConfig[apt.status].color}`}
+                            className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 border ${statusConfig[apt.status].color}`}
                           >
                             {statusConfig[apt.status].label}
                           </span>
                         )}
                       </div>
-                      <div className="flex-1 space-y-2 mb-2">
+                      <div className="flex-1 space-y-3 mb-3">
                         {(apt as any).customer?.name && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-[#555] text-[10px] font-bold uppercase tracking-widest min-w-[70px]">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                               CLIENT:
                             </span>
-                            <span className="text-[#ccc] text-xs font-medium">
+                            <span className="text-[#ccc] text-sm font-medium">
                               {(apt as any).customer.name}{" "}
                               {(apt as any).customer.phone
                                 ? `- ${(apt as any).customer.phone}`
@@ -451,20 +451,20 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                             </span>
                           </div>
                         )}
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#555] text-[10px] font-bold uppercase tracking-widest min-w-[70px]">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                             VEHICLE:
                           </span>
-                          <span className="text-[#ccc] text-xs font-medium">
+                          <span className="text-[#ccc] text-sm font-medium">
                             {apt.description?.split(" - ")[0] || "Unknown"}
                           </span>
                         </div>
                         {apt.notes && (
-                          <div className="flex items-start gap-2 mt-2 pt-2 border-t border-[#1a1a1a]">
-                            <span className="text-[#555] text-[10px] font-bold uppercase tracking-widest min-w-[70px]">
+                          <div className="flex items-start gap-3 mt-3 pt-3 border-t border-[#1a1a1a]">
+                            <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                               NOTES:
                             </span>
-                            <span className="text-[#888] text-xs font-light">
+                            <span className="text-[#888] text-sm font-light">
                               {apt.notes}
                             </span>
                           </div>
@@ -479,31 +479,31 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
           {pastAppointments.length > 0 && (
             <div>
-              <h2 className="text-[#6b6b6b] text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+              <h2 className="text-[#6b6b6b] text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
                 PAST & COMPLETED
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pastAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="bg-[#0a0a0a] border border-[#222] p-4 opacity-75 hover:opacity-100 transition"
+                    className="bg-[#0a0a0a] border border-[#222] p-6 opacity-75 hover:opacity-100 transition"
                   >
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="font-display text-white uppercase text-sm">
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="font-display text-white uppercase text-base">
                         {new Date(apt.scheduled_date).toLocaleDateString(
                           "en-PH",
                           { month: "short", day: "numeric", year: "numeric" },
                         )}
                       </p>
-                      <span className="text-[#555] text-[9px] font-bold uppercase tracking-widest border border-[#222] px-2 py-1">
+                      <span className="text-[#555] text-[10px] font-bold uppercase tracking-widest border border-[#222] px-3 py-1.5">
                         {statusConfig[apt.status].label}
                       </span>
                     </div>
-                    <p className="text-[#888] text-xs mb-1 font-bold">
+                    <p className="text-[#888] text-sm mb-2 font-bold">
                       {apt.service_type}
                     </p>
                     {(apt as any).customer?.name && (
-                      <p className="text-[#666] text-xs">
+                      <p className="text-[#666] text-sm">
                         {(apt as any).customer.name}
                       </p>
                     )}
