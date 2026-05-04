@@ -101,7 +101,7 @@ const AddMechanicModal: React.FC<AddMechanicModalProps> = ({ isOpen, onClose }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] rounded-none w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+      <div className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] rounded-none w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-start p-6 sm:px-10 py-6 border-b border-[#222] bg-[#111111]">
           <div className="flex items-center gap-6">
@@ -227,13 +227,13 @@ const AddMechanicModal: React.FC<AddMechanicModalProps> = ({ isOpen, onClose }) 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {mechanics.map((mech) => (
                     <div key={mech.id} className="flex items-center justify-between p-5 bg-[#111] border border-[#222] gap-4 transition hover:border-[#333]">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#0a0a0a] border border-[#333] flex items-center justify-center">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="w-12 h-12 shrink-0 bg-[#0a0a0a] border border-[#333] flex items-center justify-center">
                           <span className="font-display text-xl text-[#6b6b6b]">{mech.name.substring(0, 1).toUpperCase()}</span>
                         </div>
-                        <div>
-                          <p className="font-display text-xl text-white tracking-wide uppercase leading-none mb-1">{mech.name}</p>
-                          <p className="text-[#6b6b6b] text-xs font-light">{mech.email}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display text-xl sm:text-2xl text-white tracking-wide uppercase leading-none mb-1 truncate">{mech.name}</p>
+                          <p className="text-[#6b6b6b] text-xs sm:text-sm font-light truncate">{mech.email}</p>
                         </div>
                       </div>
                       <span className="px-3 py-1.5 bg-[#221515] border border-[#d63a2f] text-[#d63a2f] text-[10px] font-bold uppercase tracking-widest shrink-0">

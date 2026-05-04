@@ -202,6 +202,30 @@ export interface Notification {
   created_at: string;
 }
 
+// Email Notification (stored in `notifications` DB table)
+export type NotificationDeliveryType = "email" | "sms";
+export type NotificationStatus = "sent" | "failed" | "skipped";
+
+export interface EmailNotification {
+  id: string;
+  recipient_id?: string;
+  appointment_id: string;
+  type: NotificationDeliveryType;
+  subject: string;
+  message: string;
+  status: NotificationStatus;
+  created_at: string;
+  sent_at?: string;
+}
+
+// Customer notification opt-in/opt-out preferences
+export interface CustomerNotificationSettings {
+  id?: string;
+  user_id: string;
+  email_notifications_enabled: boolean;
+  updated_at?: string;
+}
+
 // Form Types
 export interface AppointmentFormData {
   customer_name: string;

@@ -14,6 +14,7 @@ import {
   Settings,
   Hammer,
   Sparkles,
+  Package,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -39,6 +40,7 @@ interface Part {
   unit_price: number;
   quantity_in_stock: number;
   category?: string;
+  image_url?: string;
 }
 
 interface SelectedPart {
@@ -280,7 +282,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setLoadingParts(true);
       const { data, error } = await supabase
         .from("parts")
-        .select("id, name, sku, unit_price, quantity_in_stock, category")
+        .select("id, name, sku, unit_price, quantity_in_stock, category, image_url")
         .eq("shop_id", defaultShopId)
         .gt("quantity_in_stock", 0)
         .order("name", { ascending: true });
@@ -883,9 +885,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                       : "border-[#333] bg-[#111111] hover:border-[#555]"
                                   }`}
                                 >
-                                  <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-start gap-4 mb-3">
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-[#0a0a0a] border border-[#222] overflow-hidden flex items-center justify-center">
+                                      {part.image_url ? (
+                                        <img src={part.image_url} alt={part.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <Package size={24} className="text-[#333]" />
+                                      )}
+                                    </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-bold text-white text-sm mb-1">
+                                      <p className="font-bold text-white text-sm mb-1 truncate">
                                         {part.name}
                                       </p>
                                       <p className="text-[#6b6b6b] text-xs">
@@ -902,7 +911,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                       </p>
                                     </div>
                                     <p
-                                      className={`font-mono font-bold text-sm ml-4 ${
+                                      className={`font-mono font-bold text-sm ml-4 text-right shrink-0 ${
                                         selectedPart
                                           ? "text-[#d63a2f]"
                                           : "text-[#555]"
@@ -922,10 +931,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                                 p.id === part.id
                                                   ? {
                                                       ...p,
-                                                      quantity: Math.max(
-                                                        1,
-                                                        p.quantity - 1,
-                                                      ),
+                                                      quantity: p.quantity - 1,
                                                     }
                                                   : p,
                                               )

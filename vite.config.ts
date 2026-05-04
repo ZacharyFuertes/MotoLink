@@ -9,6 +9,13 @@ export default defineConfig({
     hmr: {
       host: 'localhost',
       protocol: 'ws'
+    },
+    proxy: {
+      '/api/sendgrid': {
+        target: 'https://api.sendgrid.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/sendgrid/, '')
+      }
     }
   }
 })

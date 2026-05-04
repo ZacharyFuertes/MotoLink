@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
+    "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.98.0",
     "@tanstack/react-table": "^8.13.2",
     "axios": "^1.6.5",

@@ -6,11 +6,13 @@ import {
   UserCircle,
   Car,
   Home,
+  Bell,
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import AccessDenied from "../components/AccessDenied";
+import NotificationPreferencesModal from "../components/NotificationPreferencesModal";
 
 interface VehicleData {
   id: string;
@@ -32,6 +34,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigate }) => {
   const [totalSpent, setTotalSpent] = useState(0);
   const [memberSince, setMemberSince] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
   useEffect(() => {
     const fetchPortalData = async () => {
@@ -130,14 +133,26 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigate }) => {
             </h1>
             <p className="text-slate-400">Welcome, {user?.name || "Customer"}</p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            onClick={() => onNavigate && onNavigate("dashboard")}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:border-slate-600 transition"
-          >
-            <Home size={16} />
-            <span>Home</span>
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setShowNotifModal(true)}
+              id="notification-settings-btn"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-blue-600/40 rounded-lg text-blue-400 hover:text-blue-300 hover:border-blue-500 transition"
+              title="Notification Settings"
+            >
+              <Bell size={16} />
+              <span className="text-sm font-medium">Notifications</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => onNavigate && onNavigate("dashboard")}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:border-slate-600 transition"
+            >
+              <Home size={16} />
+              <span>Home</span>
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -264,6 +279,12 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigate }) => {
           )}
         </motion.div>
       </div>
+
+      {/* Notification preferences modal */}
+      <NotificationPreferencesModal
+        isOpen={showNotifModal}
+        onClose={() => setShowNotifModal(false)}
+      />
     </div>
   );
 };

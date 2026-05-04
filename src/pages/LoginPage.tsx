@@ -51,6 +51,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
+  // Refs so the loginAttempted useEffect can read signup context
+  const wasSignupRef = React.useRef(false);
+  const notifPrefRef = React.useRef(true);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -136,6 +139,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           return;
         }
 
+        // Capture these before async call so the useEffect can read them
+        wasSignupRef.current = true;
+        notifPrefRef.current = true; // Email notifications default to ON
+
         await signup(
           formData.email,
           formData.password,
@@ -209,6 +216,31 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       setLoading(false);
       setLoginAttempted(false);
       return;
+    }
+
+    // If this was a fresh signup, save the notification preference
+    if (wasSignupRef.current && user.id) {
+      wasSignupRef.current = false;
+      supabase
+        .from("customer_notification_settings")
+        .upsert(
+          {
+            user_id: user.id,
+            email_notifications_enabled: notifPrefRef.current,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        )
+        .then(({ error }) => {
+          if (error)
+            console.warn("Could not save notification preference:", error.message);
+          else
+            console.log(
+              `📧 Notification preference saved: email=${
+                notifPrefRef.current ? "enabled" : "disabled"
+              }`
+            );
+        });
     }
 
     // Role is correct, login succeeded
@@ -575,6 +607,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                       </div>
                     </motion.div>
                   )}
+
+
                 </motion.div>
               </AnimatePresence>
 

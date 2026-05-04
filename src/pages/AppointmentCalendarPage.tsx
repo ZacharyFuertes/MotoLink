@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Info, Wrench } from "lucide-react";
+import { Clock, Info, Wrench, CheckCircle, XCircle, Mail } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { Appointment, AppointmentStatus } from "../types";
+import { sendServiceCompletionEmail } from "../services/notificationService";
 
 interface Mechanic {
   id: string;
@@ -55,6 +56,20 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const [loadingMechanics, setLoadingMechanics] = useState(false);
   const [saving, setSaving] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
+
+  // ── Toast notification state ────────────────────────────────────────────
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+
+  const showToast = useCallback(
+    (message: string, type: "success" | "error" | "info" = "success") => {
+      setToast({ message, type });
+      setTimeout(() => setToast(null), 4500);
+    },
+    []
+  );
 
   const [formData, setFormData] = useState({
     customer_name: "",
@@ -164,10 +179,12 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         // Handle stock deduction when finalizing (completed)
         if (newStatus === "completed" && appointment.status !== "completed") {
           const parts = appointment.parts || [];
+          const resolvedParts: { name: string; quantity: number; unit_price: number }[] = [];
+
           for (const part of parts) {
             const { data: partData } = await supabase
               .from("parts")
-              .select("quantity_in_stock")
+              .select("name, quantity_in_stock, unit_price")
               .eq("id", part.part_id)
               .single();
 
@@ -183,7 +200,82 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", part.part_id);
+
+              resolvedParts.push({
+                name: partData.name,
+                quantity: part.quantity,
+                unit_price: partData.unit_price,
+              });
             }
+          }
+
+          // ── Fire service-completion email ────────────────────────────────
+          // Fetch customer email (joins may not include it, so fetch directly)
+          let customerEmail = "";
+          let vehicleMake = "";
+          let vehicleModel = "";
+          let vehicleYear: string | number | undefined;
+
+          if (appointment.customer_id) {
+            const { data: customerRow } = await supabase
+              .from("users")
+              .select("name, email")
+              .eq("id", appointment.customer_id)
+              .maybeSingle();
+
+            if (customerRow?.email) {
+              customerEmail = customerRow.email;
+            }
+          }
+
+          if (appointment.vehicle_id) {
+            const { data: vehicleRow } = await supabase
+              .from("vehicles")
+              .select("make, model, year")
+              .eq("id", appointment.vehicle_id)
+              .maybeSingle();
+
+            if (vehicleRow) {
+              vehicleMake = vehicleRow.make || "";
+              vehicleModel = vehicleRow.model || "";
+              vehicleYear = vehicleRow.year;
+            }
+          }
+
+          // Fallback: parse vehicle from description if DB fetch failed
+          if (!vehicleMake && appointment.description) {
+            vehicleMake = appointment.description.split(" - ")[0] || "";
+          }
+
+          if (customerEmail) {
+            // Fire-and-forget so UI isn't blocked
+            sendServiceCompletionEmail({
+              appointmentId: appointment.id,
+              customerName: (appointment as any).customer?.name || customerEmail,
+              customerEmail,
+              vehicleMake,
+              vehicleModel,
+              vehicleYear,
+              serviceType: appointment.service_type,
+              scheduledDate: appointment.scheduled_date,
+              partsUsed: resolvedParts,
+              totalAmount: appointment.total_amount,
+              completionNotes: appointment.notes,
+            })
+              .then((result) => {
+                if (result.skipped) {
+                  showToast("Email skipped – customer opted out of notifications.", "info");
+                } else if (result.success) {
+                  showToast(`✅ Service completion email sent to ${customerEmail}`);
+                } else {
+                  showToast(`⚠️ Email delivery failed: ${result.error}`, "error");
+                }
+              })
+              .catch(() =>
+                showToast("⚠️ Could not send notification email.", "error")
+              );
+          } else {
+            showToast("No customer email on file – notification skipped.", "info");
           }
         }
 
@@ -281,6 +373,30 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
+      {/* ── Toast notification ─────────────────────────────────── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: -16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-lg shadow-2xl border text-sm font-semibold max-w-sm ${
+              toast.type === "success"
+                ? "bg-emerald-900/95 border-emerald-700 text-emerald-300"
+                : toast.type === "error"
+                  ? "bg-red-900/95 border-red-700 text-red-300"
+                  : "bg-slate-800/95 border-slate-600 text-slate-300"
+            }`}
+          >
+            {toast.type === "success" && <CheckCircle className="w-5 h-5 flex-shrink-0 text-emerald-400" />}
+            {toast.type === "error" && <XCircle className="w-5 h-5 flex-shrink-0 text-red-400" />}
+            {toast.type === "info" && <Mail className="w-5 h-5 flex-shrink-0 text-slate-400" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <section className="relative w-full pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-800 to-transparent">
         <div className="max-w-6xl mx-auto">
           <motion.div
