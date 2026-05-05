@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/sendgrid/:path*",
+      "destination": "https://api.sendgrid.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
