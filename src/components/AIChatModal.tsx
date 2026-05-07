@@ -10,10 +10,12 @@ import {
   AlertCircle,
   RefreshCw,
   LogIn,
+  Wrench,
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
+import { checkPartCompatibility } from "../utils/vehicleCompatibility";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -253,6 +255,41 @@ You are a helpful, professional, and friendly shop assistant.
 - Always recommend visiting or calling the shop for complex issues.
 - If data lists are empty, honestly say so and ask the customer to contact the shop.
 ${customer ? `- Address the customer by their first name (${customer.name.split(" ")[0]}) to personalize the experience.` : ""}
+
+=== SERVICES INFORMATION ===
+When a customer asks "What services do you offer?" or similar questions:
+1. Display ALL services from the SHOP SERVICES section above with their descriptions
+2. Format each service clearly with:
+   • Service name in BOLD or uppercase
+   • Complete description (if available)
+   • Price in PHP
+3. Group services by category if descriptions indicate different types
+4. For each service, briefly explain what it includes or covers
+5. If a service has no description, still list it with the price and suggest they call for details
+
+EXAMPLE RESPONSE FORMAT:
+• SERVICE NAME — PHP 1,500
+  Description: [full description from database]
+  
+• ANOTHER SERVICE — PHP 2,000
+  Description: [full description from database]
+
+=== VEHICLE COMPATIBILITY ASSISTANCE ===
+When a customer asks if a specific part can be added to or is suitable for their vehicle (e.g., "Can brake pads work on my Honda City?"):
+1. Use the customer's registered vehicles to check compatibility
+2. For part compatibility questions:
+   - Universal parts (oils, filters, batteries, coolant, wipers, bulbs): ✅ work on ALL vehicles
+   - Suspension, brakes, tires: ✅ work on virtually all vehicles (but verify specifications like size)
+   - Electrical parts: Check if motorcycle vs. car (motorcycle parts won't work on cars and vice versa)
+   - Exhaust parts: Most are adaptable but need correct mounting/connection
+3. ALWAYS recommend verifying exact specifications in the vehicle manual or visiting the shop
+4. If unsure, suggest the customer visit or call for verification
+
+EXAMPLE CUSTOMER QUESTIONS TO HANDLE:
+- "Is this brake fluid good for my Yamaha Mio?" → ✅ Yes, universal fluid works on all vehicles
+- "Can I use this battery on my motorcycle?" → ✅ Yes, but verify amp-hours match
+- "Will motorcycle suspension fit my Toyota?" → ❌ No, it's vehicle-type specific
+
 - IMPORTANT: At the END of EVERY response, always suggest 2-3 short follow-up questions the customer might want to ask next. Format them as a brief list like:
   "You might also want to ask:
   • [suggestion 1]
@@ -647,7 +684,6 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     "What services do you offer?",
                     "Available Mechanics and Schedules?",
                     "Check brake pads in stock",
-                    "How to book an appointment?",
                     "Available parts for my motorcycle?",
                   ]
               ).map((chip) => (
