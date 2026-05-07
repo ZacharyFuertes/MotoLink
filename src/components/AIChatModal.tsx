@@ -10,12 +10,10 @@ import {
   AlertCircle,
   RefreshCw,
   LogIn,
-  Wrench,
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
-import { checkPartCompatibility } from "../utils/vehicleCompatibility";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

@@ -19,12 +19,9 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
-  Bookmark,
-  Wrench,
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
-import { checkPartCompatibility } from "../utils/vehicleCompatibility";
 
 /* ------------------------------------------------------------------ */
 /*  TYPES                                                              */

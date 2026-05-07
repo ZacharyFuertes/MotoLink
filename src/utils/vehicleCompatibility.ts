@@ -27,7 +27,6 @@ export const checkPartCompatibility = (
   vehicleModel: string,
 ): PartCompatibility => {
   const make = vehicleMake?.toLowerCase().trim() || "";
-  const model = vehicleModel?.toLowerCase().trim() || "";
   const category = partCategory?.toLowerCase().trim() || "";
 
   // Universal compatible parts (work on virtually all vehicles)
