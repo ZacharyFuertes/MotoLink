@@ -34,11 +34,7 @@ import LoginChoicePage from "./pages/LoginChoicePage";
 import UpdatePartsPage from "./pages/UpdatePartsPage";
 
 // Landing page imports (original)
-import Navbar from "./components/Navbar";
-import HeroSlideshow from "./components/HeroSlideshow";
-import ServicesGrid from "./components/ServicesGrid";
-import AboutUs from "./components/AboutUs";
-import Footer from "./components/Footer";
+import MotolinkLanding from "./pages/MotolinkLanding";
 import BookAppointmentModal from "./components/BookAppointmentModal";
 import ViewAppointmentsModal from "./components/ViewAppointmentsModal";
 import BrowsePartsModal from "./components/BrowsePartsModal";
@@ -46,6 +42,7 @@ import ReceiptModal from "./components/ReceiptModal";
 import CustomerPortalModal from "./components/CustomerPortalModal";
 import CustomerSettingsModal from "./components/CustomerSettingsModal";
 import ServiceHistoryModal from "./components/ServiceHistoryModal";
+import { ShopSearchResult } from "./types/shop";
 
 type PageType = AppPage;
 
@@ -76,6 +73,14 @@ const AppContent: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [selectedShopId, setSelectedShopId] = useState<string | undefined>(
+    () => localStorage.getItem("motolink_selected_shop_id") || undefined,
+  );
+
+  const selectShop = (shop: ShopSearchResult) => {
+    localStorage.setItem("motolink_selected_shop_id", shop.id);
+    setSelectedShopId(shop.id);
+  };
 
   /**
    * Wrapper around setCurrentPage that persists to localStorage
@@ -174,12 +179,6 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, user?.role, currentPage]);
 
-  // Handle going back to landing page (resets to default state)
-  const handleBackToLanding = () => {
-    localStorage.removeItem("moto_last_page");
-    navigateTo("landing");
-  };
-
   // If auth loading, show a spinner placeholder
   if (isLoading) {
     return (
@@ -200,10 +199,9 @@ const AppContent: React.FC = () => {
       // Customers go to the splash/landing page
       // Mechanics/owners go to their default dashboard via the role validation useEffect
       navigateTo("landing");
-    };
-
-    const handleOpenSignup = () => {
-      setCurrentLoginType("customer-signup");
+      if (localStorage.getItem("motolink_selected_shop_id")) {
+        setShowBookingModal(true);
+      }
     };
 
     const handleOpenLogin = () => {
@@ -214,33 +212,14 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
         {currentLoginType === "landing" ? (
-          <>
-            <Navbar
-              onBookAppointment={handleOpenLogin}
-              onBrowseParts={() => setShowPartsModal(true)}
-              onJoinSignIn={handleOpenLogin}
-              onSignUp={handleOpenSignup}
-              onViewAccount={handleOpenLogin}
-              onAIChat={() => setShowAIChat(true)}
-            />
-            <HeroSlideshow
-              onBookNow={handleOpenLogin}
-              onShopNow={() => setShowPartsModal(true)}
-            />
-            <ServicesGrid />
-            <AboutUs />
-            <Footer />
-            <BrowsePartsModal
-              isOpen={showPartsModal}
-              onClose={() => setShowPartsModal(false)}
-              onLoginRedirect={handleOpenLogin}
-            />
-            <AIChatModal
-              isOpen={showAIChat}
-              onClose={() => setShowAIChat(false)}
-              userRole={user?.role}
-            />
-          </>
+          <MotolinkLanding
+            isAuthenticated={false}
+            onLoginRequired={(shop) => {
+              if (shop) selectShop(shop);
+              handleOpenLogin();
+            }}
+            onBook={() => handleOpenLogin()}
+          />
         ) : currentLoginType === "choice" ? (
           <LoginChoicePage
             onChooseCustomer={() => setCurrentLoginType("customer")}
@@ -297,27 +276,18 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
-        <Navbar
-          onBookAppointment={() => setShowBookingModal(true)}
-          onShowAppointments={() => setShowAppointmentsModal(true)}
-          onBrowseParts={() => setShowPartsModal(true)}
-          onJoinSignIn={() => handleBackToLanding()}
-          onSignUp={() => handleBackToLanding()}
-          onViewAccount={() => setShowAccountModal(true)}
-          onSettings={() => setShowSettingsModal(true)}
-          onServiceHistory={() => setShowHistoryModal(true)}
-          onAIChat={() => setShowAIChat(true)}
+        <MotolinkLanding
+          isAuthenticated={true}
+          onLoginRequired={() => {}}
+          onBook={(shop) => {
+            selectShop(shop);
+            setShowBookingModal(true);
+          }}
         />
-        <HeroSlideshow
-          onBookNow={() => setShowBookingModal(true)}
-          onShopNow={() => setShowPartsModal(true)}
-        />
-        <ServicesGrid />
-        <AboutUs />
-        <Footer />
         <BookAppointmentModal
           isOpen={showBookingModal}
           onClose={() => setShowBookingModal(false)}
+          shopId={selectedShopId}
           onAppointmentBooked={(appointmentData) => {
             setSelectedReceipt(appointmentData);
             setShowReceiptModal(true);

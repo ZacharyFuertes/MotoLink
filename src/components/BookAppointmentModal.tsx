@@ -54,6 +54,7 @@ interface BookAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAppointmentBooked?: (appointmentData: any) => void;
+  shopId?: string;
 }
 
 const SERVICE_TYPES = [
@@ -114,6 +115,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   isOpen,
   onClose,
   onAppointmentBooked,
+  shopId,
 }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -147,7 +149,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       fetchServices();
       checkActiveAppointment();
     }
-  }, [isOpen]);
+  }, [isOpen, shopId]);
 
   useEffect(() => {
     if (defaultShopId) {
@@ -184,10 +186,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const fetchMechanics = async () => {
     try {
       setLoadingMechanics(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("users")
         .select("id, name, email, role, shop_id")
         .in("role", ["mechanic", "owner"]);
+      if (shopId) query = query.eq("shop_id", shopId);
+      const { data, error } = await query;
       if (error) throw error;
 
       const mechanicsList = (data || []).filter(
@@ -198,7 +202,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       const owner = (data || []).find(
         (u: any) => u.role === "owner" && u.shop_id,
       );
-      if (owner) {
+      if (shopId) {
+        setDefaultShopId(shopId);
+      } else if (owner) {
         setDefaultShopId(owner.shop_id);
       } else if (mechanicsList.length > 0 && mechanicsList[0].shop_id) {
         setDefaultShopId(mechanicsList[0].shop_id);
@@ -356,7 +362,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       }
 
       // Determine shop_id
-      let shopIdToUse = defaultShopId;
+      let shopIdToUse = shopId || defaultShopId;
       if (selectedMechanic) {
         const mech = mechanics.find((m) => m.id === selectedMechanic);
         if (mech && mech.shop_id) shopIdToUse = mech.shop_id;

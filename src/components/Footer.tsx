@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Facebook, Instagram, Twitter, Linkedin, Mail, MapPin, Phone } from 'lucide-react'
+import motolinkLogo from '../pictures/public/motolink.png'
 
 /**
  * Footer Component
@@ -45,8 +46,8 @@ const Footer: React.FC = () => {
   ]
 
   const navLinks = [
-    { label: 'Shop', href: '#products' },
-    { label: 'About', href: '#' },
+    { label: 'Browse Shops', href: '#shops' },
+    { label: 'Map', href: '#map' },
     { label: 'Contact', href: '#' },
     { label: 'FAQ', href: '#' },
     { label: 'Shipping', href: '#' },
@@ -86,13 +87,13 @@ const Footer: React.FC = () => {
           {/* Brand Section */}
           <motion.div variants={itemVariants}>
             <h3 className="text-2xl font-display font-bold text-white mb-4">
-              MOTO<span className="text-moto-accent">SHOP</span>
+              <span className="flex items-center gap-2"><img src={motolinkLogo} alt="Motolink" className="h-8 w-8 rounded object-contain" />MOTOLINK</span>
             </h3>
             <p className="text-gray-400 mb-6 text-sm leading-relaxed">
-              Premium motorcycle parts, maintenance, at expert service para sa mga riders ng Pilipinas.
+              Discover trusted partner shops for motorcycle and automotive care across your area.
             </p>
             <p className="text-gray-500 text-xs">
-              Gear Up. Ride Out. © {currentYear} MotoShop PH
+              Find. Connect. Ride confidently. © {currentYear} Motolink Autoshop Clientele
             </p>
           </motion.div>
 
@@ -119,7 +120,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3 text-sm text-gray-400">
               <li className="flex items-start gap-3 hover:text-moto-accent transition-colors">
                 <MapPin size={18} className="mt-0.5 flex-shrink-0" />
-                <span>Manila, Philippines<br />Available in Metro Manila & Nearby Provinces</span>
+                <span>Metro Manila, Philippines<br />Connecting nearby independent shops</span>
               </li>
               <li className="flex items-center gap-3 hover:text-moto-accent transition-colors cursor-pointer">
                 <Phone size={18} />
@@ -127,7 +128,7 @@ const Footer: React.FC = () => {
               </li>
               <li className="flex items-center gap-3 hover:text-moto-accent transition-colors">
                 <Mail size={18} />
-                <a href="mailto:hello@motoshop.ph">hello@motoshop.ph</a>
+                <a href="mailto:hello@motolink.ph">hello@motolink.ph</a>
               </li>
             </ul>
           </motion.div>

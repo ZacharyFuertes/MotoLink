@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Users, Wrench, Building2, ChevronRight, Home } from "lucide-react";
+import motolinkLogo from "../pictures/public/motolink.png";
 
 interface LoginChoicePageProps {
   onChooseCustomer: () => void;
@@ -37,15 +38,15 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
         {/* Header */}
         <div className="text-center mb-12">
           <motion.img
-            src="/logo.png"
-            alt="JBMS Autoshop Logo"
+            src={motolinkLogo}
+            alt="Motolink Autoshop Clientele logo"
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1 }}
             className="w-16 h-16 mx-auto mb-4 object-contain"
           />
-          <h1 className="text-4xl font-bold text-white mb-2">JBMS AUTOSHOP</h1>
-          <p className="text-slate-400">Select your login type</p>
+          <h1 className="text-4xl font-bold text-white mb-2">MOTOLINK AUTOSHOP CLIENTELE</h1>
+          <p className="text-slate-400">Select your portal</p>
         </div>
 
         {/* Login Options */}
