@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
           {/* Brand Section */}
           <motion.div variants={itemVariants}>
             <h3 className="text-2xl font-display font-bold text-white mb-4">
-              <span className="flex items-center gap-2"><img src={motolinkLogo} alt="Motolink" className="h-8 w-8 rounded object-contain" />MOTOLINK</span>
+              <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-16 w-48 object-contain object-left" />
             </h3>
             <p className="text-gray-400 mb-6 text-sm leading-relaxed">
               Discover trusted partner shops for motorcycle and automotive care across your area.
