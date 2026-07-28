@@ -1,4 +1,4 @@
-import motolinkLogo from "../pictures/public/motolink.png";
+import motolinkLogo from "../pictures/public/Motolink.svg";
 import jbmsLogo from "../pictures/public/logo.png";
 import { Shop } from "../types/shop";
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Users, Wrench, Building2, ChevronRight, Home } from "lucide-react";
-import motolinkLogo from "../pictures/public/motolink.png";
+import motolinkLogo from "../pictures/public/Motolink.svg";
 
 interface LoginChoicePageProps {
   onChooseCustomer: () => void;
