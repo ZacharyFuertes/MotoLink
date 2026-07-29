@@ -205,7 +205,6 @@ const Navbar: React.FC<NavbarProps> = ({
                   whileTap={{ scale: 0.97 }}
                 >
                   {iconData && <NavItemIcon path={iconData.path} />}
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#e63946] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
                   {item.label}
                 </motion.button>
               );
