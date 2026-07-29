@@ -3,6 +3,11 @@ import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
 import { useEffect, useRef } from "react";
 
+// Logos for gallery shops
+import jbmsLogo from "../pictures/public/jbms.png";
+import pworksImg from "../pictures/public/pworks.jpg";
+import kecImg from "../pictures/public/kec.jpg";
+
 declare const L: any;
 
 interface ShopMapProps {
@@ -52,12 +57,49 @@ const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect
       }).addTo(map);
     }
 
-    shops.forEach((shop) => {
-      if (typeof shop.latitude === "number" && typeof shop.longitude === "number") {
-        const marker = Leaflet.marker([shop.latitude, shop.longitude]).addTo(map);
-        marker.bindPopup(`<strong>${shop.name}</strong><br/>${shop.address || ''}`);
-        marker.on("click", () => onSelect(shop));
-      }
+    // Official shops gallery (replace previous dynamic markers - old markers were inaccurate)
+    const galleryShops: any[] = [
+      {
+        name: "JBMS(JOEYBOY MOTORCYCLE SHOP)",
+        address: "45 BERMAI E Bank Rd, Floodway, Cainta, 1900 Rizal",
+        specialty: "Performance Upgrades, Tires, Diagnosis",
+        schedule: "8AM - 7:30PM Thursday-Tuesday Closed on Wednesday",
+        latitude: 14.571037739334859,
+        longitude: 121.10532811794205,
+        logo: jbmsLogo,
+      },
+      {
+        name: "P. Works Racing Team",
+        address: "Bermai, 45 Block 14, San Andres, Cainta, 1900 Rizal",
+        specialty: "Breaks, Oil change, Engine Diagnosis",
+        schedule: "10AM - 12AM Monday - Sunday",
+        latitude: 14.570643764819646,
+        longitude: 121.10608002456877,
+        logo: pworksImg,
+      },
+      {
+        name: "KEC MOTORSHOP 1ST Branch",
+        address: "Riverside Bermai, Block 29, Floodway, Cainta, 1900 Rizal",
+        specialty: "Performance upgrades, Air filters, Body Remodeling",
+        schedule: "10AM - 10PM Tuesday - Sunday",
+        latitude: 14.567558632334102,
+        longitude: 121.10776869651845,
+        logo: kecImg,
+      },
+    ];
+
+    galleryShops.forEach((shop) => {
+      const icon = Leaflet.icon({
+        iconUrl: shop.logo,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -36],
+      });
+
+      const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
+      const popupContent = `<div style="min-width:200px"><strong>${shop.name}</strong><br/>${shop.address || ''}<br/><small><strong>Specialty:</strong> ${shop.specialty || ''}</small><br/><small><strong>Schedule:</strong> ${shop.schedule || ''}</small></div>`;
+      marker.bindPopup(popupContent);
+      marker.on("click", () => onSelect(shop));
     });
 
     return () => { map.remove(); };
