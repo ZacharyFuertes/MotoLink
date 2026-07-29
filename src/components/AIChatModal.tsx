@@ -233,7 +233,7 @@ Recent Appointments:
 ${apptList}`;
   }
 
-  return `You are MotoMech AI, the 24/7 virtual assistant for JSBM MotoShop.
+  return `You are Motolink AI, the 24/7 virtual assistant for Motolink.
 Today is ${today}. Live shop data loaded at ${ctx.loadedAt}.
 
 === SHOP SERVICES ===
@@ -413,7 +413,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
         try {
           const systemPrompt = shopCtx
             ? buildSystemPrompt(shopCtx, customerCtx)
-            : `You are MotoMech AI for JSBM MotoShop. Today is ${new Date().toLocaleDateString("en-PH")}. The database is loading. Advise customers to wait a moment or call the shop.`;
+            : `You are Motolink AI for Motolink. Today is ${new Date().toLocaleDateString("en-PH")}. The database is loading. Advise customers to wait a moment or call the shop.`;
           const history = newMessages
             .filter((m) => m.id !== "initial")
             .map((m) => ({
@@ -500,7 +500,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                   <div className="w-6 h-[1px] bg-[#d63a2f]" /> AI ASSISTANT
                 </div>
                 <h2 className="font-display text-4xl sm:text-5xl text-white uppercase leading-none tracking-wide">
-                  MOTOMECH AI
+                  MOTOLINK AI
                 </h2>
                 <div className="flex items-center gap-3 mt-1">
                   {ctxLoading ? (
