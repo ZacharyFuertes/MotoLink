@@ -1,5 +1,5 @@
 import motolinkLogo from "../pictures/public/motolink.svg";
-import jbmsLogo from "../pictures/public/logo.png";
+import jbmsLogo from "../pictures/public/jbms.png";
 import { Shop } from "../types/shop";
 
 export const demoShops: Shop[] = [
