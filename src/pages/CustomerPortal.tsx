@@ -146,7 +146,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = ({ onNavigate }) => {
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.05 }}
-              onClick={() => onNavigate && onNavigate("dashboard")}
+              onClick={() => onNavigate && onNavigate(user?.role === "admin" ? "admin-dashboard" : "dashboard")}
               className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:text-white hover:border-slate-600 transition"
             >
               <Home size={16} />

@@ -17,23 +17,23 @@ const statusConfig: Record<
   { color: string; label: string }
 > = {
   pending: {
-    color: "bg-[#221515] border-[#d63a2f]/50 text-[#d63a2f]",
+    color: "bg-red-50 border-red-200 text-red-700",
     label: "Pending",
   },
   confirmed: {
-    color: "bg-[#112211] border-green-500/50 text-green-500",
+    color: "bg-emerald-50 border-emerald-200 text-emerald-700",
     label: "Confirmed",
   },
   ready_for_finalization: {
-    color: "bg-[#1f1a2e] border-purple-500/50 text-purple-400",
+    color: "bg-purple-50 border-purple-200 text-purple-700",
     label: "Needs Finalization",
   },
   completed: {
-    color: "bg-[#111] border-[#333] text-[#888]",
+    color: "bg-gray-50 border-gray-200 text-gray-500",
     label: "Completed",
   },
   cancelled: {
-    color: "bg-[#111] border-[#333] text-[#888]",
+    color: "bg-gray-50 border-gray-200 text-gray-500",
     label: "Cancelled",
   },
 };
@@ -141,7 +141,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   };
 
   const getFilteredAppointments = (): Appointment[] => {
-    if (user?.role === "owner") return appointments;
+    if (user?.role === "owner" || user?.role === "admin") return appointments;
     if (user?.role === "mechanic")
       return appointments.filter((apt) => apt.mechanic_id === user.id);
     if (user?.role === "customer")
@@ -155,14 +155,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     appointmentId: string,
     newStatus: AppointmentStatus,
   ) => {
-    if (user?.role === "owner" || user?.role === "mechanic") {
+    if (user?.role === "owner" || user?.role === "admin" || user?.role === "mechanic") {
       try {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
 
         // Workflow Enforcements
         if (newStatus === "completed") {
-          if (user.role !== "owner") {
+          if (user.role !== "owner" && user.role !== "admin") {
             alert(
               "Only administrators can finalize appointments for the dashboard.",
             );
@@ -355,7 +355,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     }
   };
 
-  const isOwner = user?.role === "owner";
+  const isOwner = user?.role === "owner" || user?.role === "admin";
   const isMechanic = user?.role === "mechanic";
   const isCustomer = user?.role === "customer";
   const canBookAppointments = isCustomer;
@@ -372,7 +372,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="bg-transparent">
       {/* ── Toast notification ─────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
@@ -407,7 +407,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           >
             <div className="flex items-center gap-3 mb-4">
               <Clock className="w-8 h-8 text-moto-accent" />
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white">
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900">
                 {isOwner ? "Customer" : "Your"}{" "}
                 <span className="text-moto-accent">Appointments</span>
               </h1>
@@ -421,15 +421,15 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         </div>
       </section>
 
-      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-[#0a0a0a]">
+      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 pb-6 border-b border-[#222]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 pb-6 border-b border-gray-200">
             <div>
-              <div className="flex items-center gap-3 text-[#d63a2f] text-[11px] font-bold tracking-[0.2em] uppercase mb-2">
-                <div className="w-6 h-[1px] bg-[#d63a2f]" />{" "}
+              <div className="flex items-center gap-3 text-indigo-600 text-[11px] font-bold tracking-[0.2em] uppercase mb-2">
+                <div className="w-6 h-[1px] bg-indigo-600" />{" "}
                 {isOwner ? "SHOP APPOINTMENTS" : "MY APPOINTMENTS"}
               </div>
-              <h1 className="font-display text-4xl sm:text-5xl text-white uppercase tracking-wide">
+              <h1 className="font-display text-4xl sm:text-5xl text-gray-900 uppercase tracking-wide">
                 APPOINTMENTS LIST
               </h1>
             </div>
@@ -437,7 +437,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             {canBookAppointments && (
               <button
                 onClick={() => setShowBookingForm(true)}
-                className="mt-4 sm:mt-0 px-8 py-4 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold tracking-[0.2em] text-[11px] uppercase transition border border-[#d63a2f]"
+                className="mt-4 sm:mt-0 px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-gray-900 font-bold tracking-[0.2em] text-[11px] uppercase transition border border-indigo-600"
               >
                 + NEW APPOINTMENT
               </button>
@@ -448,14 +448,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 bg-[#221515] border border-[#d63a2f]/30 p-4 flex items-start gap-4"
+              className="mb-8 bg-red-50 border border-[#d63a2f]/30 p-4 flex items-start gap-4"
             >
-              <Info className="w-5 h-5 text-[#d63a2f] flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-bold text-[#d63a2f] tracking-[0.2em] text-[10px] uppercase mb-1">
+                <h3 className="font-bold text-indigo-600 tracking-[0.2em] text-[10px] uppercase mb-1">
                   Mechanic View
                 </h3>
-                <p className="text-[#888] text-xs font-light">
+                <p className="text-gray-500 text-xs font-light">
                   You can only see appointments assigned to you. Update
                   assignment status to track service progress.
                 </p>
@@ -464,13 +464,13 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           )}
 
           <div className="mb-12">
-            <h2 className="text-[#6b6b6b] text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
+            <h2 className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
               ACTIVE & UPCOMING
             </h2>
             {upcomingAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 border border-[#222] bg-[#111]">
+              <div className="flex flex-col items-center justify-center py-20 border border-gray-200 bg-white">
                 <Clock className="w-16 h-16 text-[#333] mb-5" strokeWidth={1} />
-                <p className="text-[#6b6b6b] text-[11px] tracking-widest uppercase font-bold">
+                <p className="text-gray-500 text-[11px] tracking-widest uppercase font-bold">
                   NO ACTIVE APPOINTMENTS
                 </p>
               </div>
@@ -482,11 +482,11 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                       key={apt.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-[#111111] border border-[#222] hover:border-[#333] transition flex flex-col p-7"
+                      className="bg-white border border-gray-200 hover:border-gray-300 transition flex flex-col p-7"
                     >
-                      <div className="flex items-start justify-between mb-5 pb-5 border-b border-[#222]">
+                      <div className="flex items-start justify-between mb-5 pb-5 border-b border-gray-200">
                         <div>
-                          <p className="font-display text-2xl text-white uppercase flex items-center gap-3">
+                          <p className="font-display text-2xl text-gray-900 uppercase flex items-center gap-3">
                             {new Date(apt.scheduled_date).toLocaleDateString(
                               "en-PH",
                               {
@@ -495,10 +495,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                                 year: "numeric",
                               },
                             )}
-                            <span className="text-[#d63a2f] px-3">•</span>
+                            <span className="text-indigo-600 px-3">•</span>
                             {apt.scheduled_time}
                           </p>
-                          <p className="text-[#6b6b6b] text-[11px] font-bold tracking-[0.2em] uppercase mt-2">
+                          <p className="text-gray-500 text-[11px] font-bold tracking-[0.2em] uppercase mt-2">
                             {apt.service_type}
                           </p>
                         </div>
@@ -510,7 +510,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                                   onClick={() =>
                                     handleStatusChange(apt.id, "completed")
                                   }
-                                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-green-900/20"
+                                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-gray-900 text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-green-900/20"
                                 >
                                   Finalize Revenue
                                 </button>
@@ -536,7 +536,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                                     <option
                                       key={status}
                                       value={status}
-                                      className="bg-[#111] text-white"
+                                      className="bg-white text-gray-900"
                                     >
                                       {config.label}
                                     </option>
@@ -556,7 +556,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                       <div className="flex-1 space-y-3 mb-3">
                         {(apt as any).customer?.name && (
                           <div className="flex items-center gap-3">
-                            <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
+                            <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                               CLIENT:
                             </span>
                             <span className="text-[#ccc] text-sm font-medium">
@@ -568,7 +568,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                           </div>
                         )}
                         <div className="flex items-center gap-3">
-                          <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
+                          <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                             VEHICLE:
                           </span>
                           <span className="text-[#ccc] text-sm font-medium">
@@ -577,10 +577,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                         </div>
                         {apt.notes && (
                           <div className="flex items-start gap-3 mt-3 pt-3 border-t border-[#1a1a1a]">
-                            <span className="text-[#555] text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
+                            <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
                               NOTES:
                             </span>
-                            <span className="text-[#888] text-sm font-light">
+                            <span className="text-gray-500 text-sm font-light">
                               {apt.notes}
                             </span>
                           </div>
@@ -595,27 +595,27 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
           {pastAppointments.length > 0 && (
             <div>
-              <h2 className="text-[#6b6b6b] text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
+              <h2 className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
                 PAST & COMPLETED
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pastAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="bg-[#0a0a0a] border border-[#222] p-6 opacity-75 hover:opacity-100 transition"
+                    className="bg-white border border-gray-200 p-6 opacity-75 hover:opacity-100 transition"
                   >
                     <div className="flex justify-between items-center mb-3">
-                      <p className="font-display text-white uppercase text-base">
+                      <p className="font-display text-gray-900 uppercase text-base">
                         {new Date(apt.scheduled_date).toLocaleDateString(
                           "en-PH",
                           { month: "short", day: "numeric", year: "numeric" },
                         )}
                       </p>
-                      <span className="text-[#555] text-[10px] font-bold uppercase tracking-widest border border-[#222] px-3 py-1.5">
+                      <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest border border-gray-200 px-3 py-1.5">
                         {statusConfig[apt.status].label}
                       </span>
                     </div>
-                    <p className="text-[#888] text-sm mb-2 font-bold">
+                    <p className="text-gray-500 text-sm mb-2 font-bold">
                       {apt.service_type}
                     </p>
                     {(apt as any).customer?.name && (
@@ -646,15 +646,15 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-[#0a0a0a] rounded-none border border-[#222] border-t-2 border-t-[#d63a2f] w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-white rounded-none border border-gray-200 border-t-2 border-t-[#d63a2f] w-full max-w-md shadow-2xl overflow-hidden"
             >
-              <div className="px-6 py-5 border-b border-[#222] bg-[#111111] flex items-center justify-between">
-                <h3 className="text-xl font-display font-bold text-white uppercase tracking-wide">
+              <div className="px-6 py-5 border-b border-gray-200 bg-white flex items-center justify-between">
+                <h3 className="text-xl font-display font-bold text-gray-900 uppercase tracking-wide">
                   Book Appointment
                 </h3>
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="text-[#6b6b6b] hover:text-white transition"
+                  className="text-gray-500 hover:text-gray-900 transition"
                 >
                   &times;
                 </button>
@@ -664,7 +664,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full bg-[#111] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
+                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
                 />
                 <input
                   type="text"
@@ -673,7 +673,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, customer_name: e.target.value })
                   }
-                  className="w-full bg-[#111] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-[#555]"
+                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
                 />
                 <input
                   type="tel"
@@ -682,7 +682,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, customer_phone: e.target.value })
                   }
-                  className="w-full bg-[#111] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-[#555]"
+                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
                 />
                 <input
                   type="text"
@@ -691,14 +691,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, vehicle_make: e.target.value })
                   }
-                  className="w-full bg-[#111] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-[#555]"
+                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
                 />
                 <select
                   value={formData.service_type}
                   onChange={(e) =>
                     setFormData({ ...formData, service_type: e.target.value })
                   }
-                  className="w-full bg-[#111] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
+                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
                 >
                   <option>Oil Change</option>
                   <option>Brake Service</option>
@@ -707,17 +707,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   <option>General Maintenance</option>
                   <option>Custom Work</option>
                 </select>
-                <div className="bg-[#111] p-4 border border-[#333]">
-                  <label className="flex items-center gap-2 text-white font-bold mb-3 uppercase text-[10px] tracking-widest">
-                    <Wrench className="w-3 h-3 text-[#d63a2f]" /> Assign
+                <div className="bg-white p-4 border border-gray-300">
+                  <label className="flex items-center gap-2 text-gray-900 font-bold mb-3 uppercase text-[10px] tracking-widest">
+                    <Wrench className="w-3 h-3 text-indigo-600" /> Assign
                     Mechanic
                   </label>
                   {loadingMechanics ? (
-                    <p className="text-[#6b6b6b] text-xs uppercase tracking-widest">
+                    <p className="text-gray-500 text-xs uppercase tracking-widest">
                       Loading mechanics...
                     </p>
                   ) : mechanics.length === 0 ? (
-                    <p className="text-[#6b6b6b] text-xs uppercase tracking-widest">
+                    <p className="text-gray-500 text-xs uppercase tracking-widest">
                       No mechanics available
                     </p>
                   ) : (
@@ -729,7 +729,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                           mechanic_id: e.target.value,
                         })
                       }
-                      className="w-full bg-[#1a1a1a] text-white px-3 py-2 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
+                      className="w-full bg-gray-50 text-gray-900 px-3 py-2 border border-gray-300 focus:border-[#d63a2f] focus:outline-none transition rounded-none uppercase text-xs tracking-widest font-bold"
                     >
                       <option value="">Select a mechanic (optional)</option>
                       {mechanics.map((mechanic) => (
@@ -741,17 +741,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   )}
                 </div>
               </div>
-              <div className="px-6 py-5 border-t border-[#222] bg-[#111111] flex gap-3">
+              <div className="px-6 py-5 border-t border-gray-200 bg-white flex gap-3">
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="flex-1 bg-transparent hover:bg-[#222] text-[#6b6b6b] hover:text-white font-bold py-3 uppercase tracking-widest text-[10px] border border-[#333] transition"
+                  className="flex-1 bg-transparent hover:bg-[#222] text-gray-500 hover:text-gray-900 font-bold py-3 uppercase tracking-widest text-[10px] border border-gray-300 transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleBookAppointment}
                   disabled={saving}
-                  className="flex-1 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold py-3 uppercase tracking-widest text-[10px] transition disabled:opacity-50"
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-gray-900 font-bold py-3 uppercase tracking-widest text-[10px] transition disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Book Now"}
                 </button>

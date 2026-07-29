@@ -13,7 +13,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  if (!user || user.role !== "owner") {
+  if (!user || (user.role !== "owner" && user.role !== "admin")) {
     return <AccessDenied requestedPage="settings" onNavigate={onNavigate} />;
   }
 

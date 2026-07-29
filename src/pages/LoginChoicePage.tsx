@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Users, Wrench, Building2, ChevronRight, Home } from "lucide-react";
-import motolinkLogo from "../pictures/public/motolink.png";
+import motolinkLogo from "../pictures/public/motolink.svg";
 
 interface LoginChoicePageProps {
   onChooseCustomer: () => void;
@@ -43,7 +43,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1 }}
-            className="w-16 h-16 mx-auto mb-4 object-contain"
+            className="h-20 w-60 object-contain mx-auto mb-4 sm:w-72"
           />
           <h1 className="text-4xl font-bold text-white mb-2">MOTOLINK AUTOSHOP CLIENTELE</h1>
           <p className="text-slate-400">Select your portal</p>

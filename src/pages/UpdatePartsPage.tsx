@@ -292,7 +292,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
         {/* Top Bar */}
         <div className="px-6 py-5 border-b border-[#2a2a2a] bg-[#1a1a1a] flex items-center gap-4 flex-shrink-0">
           <button
-            onClick={() => onNavigate && onNavigate("dashboard")}
+            onClick={() => onNavigate && onNavigate(user?.role === "admin" ? "admin-dashboard" : "dashboard")}
             className="w-10 h-10 bg-[#0f0f0f] border border-[#333] hover:border-[#ef4444] flex items-center justify-center transition text-slate-400 hover:text-[#ef4444] rounded-md"
           >
             <ArrowLeft size={18} />

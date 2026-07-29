@@ -351,12 +351,29 @@ CREATE POLICY "Shop owners can view shop members"
     shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
   );
 
+-- ADMIN RLS: Helper function
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ADMIN: Can view all users
+CREATE POLICY "Admin can view all users"
+  ON public.users FOR SELECT USING (public.is_admin());
+
 -- SHOPS (public read for active, owner full access)
 CREATE POLICY "Anyone can browse active shops"
   ON public.shops FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Shop owners can manage own shop"
   ON public.shops FOR ALL USING (owner_id = auth.uid());
+
+CREATE POLICY "Admin can view all shops"
+  ON public.shops FOR SELECT USING (public.is_admin());
 
 -- CUSTOMERS
 CREATE POLICY "Users can view own customer profile"
@@ -388,6 +405,9 @@ CREATE POLICY "Shop owners can manage own parts"
     shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
   );
 
+CREATE POLICY "Admin can view all parts"
+  ON public.parts FOR SELECT USING (public.is_admin());
+
 -- PRODUCTS
 CREATE POLICY "Anyone can browse products"
   ON public.products FOR SELECT USING (true);
@@ -396,6 +416,9 @@ CREATE POLICY "Shop owners can manage own products"
   ON public.products FOR ALL USING (
     shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
   );
+
+CREATE POLICY "Admin can view all products"
+  ON public.products FOR SELECT USING (public.is_admin());
 
 -- FEATURED PRODUCTS
 CREATE POLICY "Anyone can view active featured products"
@@ -428,6 +451,9 @@ CREATE POLICY "Shop owners can manage shop appointments"
   ON public.appointments FOR ALL USING (
     shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
   );
+
+CREATE POLICY "Admin can view all appointments"
+  ON public.appointments FOR SELECT USING (public.is_admin());
 
 -- JOB ORDERS
 CREATE POLICY "Shop members can view job orders"

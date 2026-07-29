@@ -160,7 +160,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="inline-block p-4 bg-moto-accent/20 rounded-full mb-4">
+          <div className="inline-block p-4 bg-indigo-100 rounded-full mb-4">
             <div className="animate-spin">
               <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full" />
             </div>
@@ -179,7 +179,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Customer List</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Customer List</h1>
         <p className="text-gray-400">
           Manage and view all your customers and their information
         </p>
@@ -191,15 +191,15 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-700/50 rounded-lg p-6"
+          className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-lg p-6"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm mb-1">Total Customers</p>
-              <p className="text-3xl font-bold text-white">{totalCustomers}</p>
+              <p className="text-3xl font-bold text-gray-900">{totalCustomers}</p>
             </div>
-            <div className="p-3 bg-blue-900/50 rounded-lg">
-              <AlertCircle className="text-blue-400" size={24} />
+            <div className="p-3 bg-indigo-100 rounded-lg">
+              <AlertCircle className="text-indigo-600" size={24} />
             </div>
           </div>
         </motion.div>
@@ -208,20 +208,20 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-green-900/40 to-green-800/20 border border-green-700/50 rounded-lg p-6"
+          className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-lg p-6"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm mb-1">Total Revenue</p>
-              <p className="text-3xl font-bold text-green-400">
+              <p className="text-3xl font-bold text-emerald-600">
                 ₱
                 {totalSpent.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                 })}
               </p>
             </div>
-            <div className="p-3 bg-green-900/50 rounded-lg">
-              <TrendingUp className="text-green-400" size={24} />
+            <div className="p-3 bg-emerald-100 rounded-lg">
+              <TrendingUp className="text-emerald-600" size={24} />
             </div>
           </div>
         </motion.div>
@@ -230,12 +230,12 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-orange-900/40 to-orange-800/20 border border-orange-700/50 rounded-lg p-6"
+          className="bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 rounded-lg p-6"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm mb-1">Avg per Customer</p>
-              <p className="text-3xl font-bold text-orange-400">
+              <p className="text-3xl font-bold text-amber-600">
                 ₱
                 {totalCustomers > 0
                   ? (totalSpent / totalCustomers).toLocaleString("en-US", {
@@ -244,8 +244,8 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                   : "0"}
               </p>
             </div>
-            <div className="p-3 bg-orange-900/50 rounded-lg">
-              <Calendar className="text-orange-400" size={24} />
+            <div className="p-3 bg-amber-100 rounded-lg">
+              <Calendar className="text-amber-600" size={24} />
             </div>
           </div>
         </motion.div>
@@ -264,7 +264,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           placeholder="Search by name, email, or phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-moto-gray border border-moto-gray-light/50 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-moto-accent transition-colors"
+          className="w-full pl-12 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-moto-accent transition-colors"
         />
       </motion.div>
 
@@ -273,7 +273,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg text-red-300"
+          className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-300"
         >
           {error}
         </motion.div>
@@ -284,13 +284,13 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-moto-darker border border-moto-gray-light/20 rounded-lg overflow-hidden"
+        className="bg-white border border-gray-200 rounded-lg overflow-hidden"
       >
         {filteredCustomers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-moto-gray-light/20 bg-moto-gray/50">
+                <tr className="border-b border-gray-200 bg-gray-50">
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">
                     Name
                   </th>
@@ -314,17 +314,17 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-moto-gray-light/20">
+              <tbody className="divide-y divide-gray-100">
                 {filteredCustomers.map((customer, idx) => (
                   <motion.tr
                     key={customer.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.05 * idx }}
-                    className="hover:bg-moto-gray/50 transition-colors"
+                    className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <p className="font-medium text-white">{customer.name}</p>
+                      <p className="font-medium text-gray-900">{customer.name}</p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 text-gray-400">
@@ -357,7 +357,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="font-semibold text-green-400">
+                      <p className="font-semibold text-emerald-600">
                         ₱
                         {(customer.total_spent || 0).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
@@ -372,7 +372,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => setDeleteConfirm(customer)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded transition-colors"
                       >
                         <Trash2 size={16} />
                         Delete
@@ -420,13 +420,13 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-slate-800 rounded-lg border border-slate-700 max-w-md w-full p-6"
+              className="bg-white rounded-lg border border-gray-200 max-w-md w-full p-6"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">Delete Customer</h3>
+                <h3 className="text-lg font-bold text-gray-900">Delete Customer</h3>
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="text-slate-400 hover:text-white transition"
+                  className="text-gray-500 hover:text-gray-900 transition"
                 >
                   <X size={24} />
                 </button>
@@ -435,7 +435,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
               <div className="mb-6">
                 <p className="text-gray-300 mb-2">
                   Are you sure you want to delete{" "}
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-gray-900">
                     {deleteConfirm.name}
                   </span>
                   ?
@@ -456,7 +456,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                   placeholder="Type CONFIRM to delete"
                   value={confirmationInput}
                   onChange={(e) => setConfirmationInput(e.target.value)}
-                  className="w-full bg-slate-700 text-white px-4 py-2 rounded border border-slate-600 focus:border-red-500 focus:outline-none mb-4"
+                  className="w-full bg-gray-100 text-gray-900 px-4 py-2 rounded border border-gray-300 focus:border-red-500 focus:outline-none mb-4"
                 />
               </div>
 
@@ -467,7 +467,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                     setConfirmationInput("");
                   }}
                   disabled={deleting}
-                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -476,7 +476,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                   disabled={
                     deleting || confirmationInput !== "CONFIRM"
                   }
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-gray-900 rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {deleting ? (
                     <>

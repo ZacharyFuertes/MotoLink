@@ -46,6 +46,13 @@ const SystemNavbar: React.FC<NavbarProps> = ({
   // Define all available menu items with role requirements
   const allMenuItems: MenuItem[] = [
     {
+      id: "admin-dashboard",
+      label: "Platform Dashboard",
+      icon: BarChart3,
+      requiredRole: ["admin"],
+      tooltip: "Platform-wide analytics & overview",
+    },
+    {
       id: "dashboard",
       label: t("nav.dashboard"),
       icon: BarChart3,
@@ -77,7 +84,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       id: "appointments",
       label: "Appointments",
       icon: Calendar,
-      requiredRole: ["owner", "mechanic", "customer"],
+      requiredRole: ["owner", "mechanic", "customer", "admin"],
     },
 
     {
@@ -91,8 +98,8 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       id: "customers",
       label: "Customers",
       icon: Users,
-      requiredRole: ["owner"],
-      tooltip: "Owner only",
+      requiredRole: ["owner", "admin"],
+      tooltip: "Manage customers",
     },
 
     {

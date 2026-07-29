@@ -3,6 +3,9 @@ import { UserRole } from "../types";
 export type AppPage =
   | "landing"
   | "dashboard"
+  | "admin-dashboard"
+  | "admin-shops"
+  | "admin-users"
   | "inventory"
   | "update-parts"
   | "appointments"
@@ -24,6 +27,18 @@ export const rolePagesMapping: Record<UserRole, AppPage[]> = {
   ],
   owner: [
     "dashboard",
+    "inventory",
+    "update-parts",
+    "appointments",
+    "customers",
+    "services",
+    "mechanic-availability",
+    "settings",
+  ],
+  admin: [
+    "admin-dashboard",
+    "admin-shops",
+    "admin-users",
     "inventory",
     "update-parts",
     "appointments",

@@ -12,11 +12,12 @@ interface MotolinkLandingProps {
   isAuthenticated: boolean;
   onLoginRequired: (shop?: ShopSearchResult) => void;
   onBook: (shop: ShopSearchResult) => void;
+  onLogout?: () => void;
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates>();
   const [specialty, setSpecialty] = useState("");
@@ -31,7 +32,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook }: MotolinkL
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
 
   return <div className="min-h-screen bg-[#f6f0e4] text-slate-900">
-    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} />
+    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} onLogout={onLogout} />
     <main>
       <section className="relative overflow-hidden bg-slate-950 px-4 pb-24 pt-36 text-white sm:px-6 lg:px-8"><div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(14,165,233,.3),transparent_34%),radial-gradient(circle_at_15%_70%,rgba(16,185,129,.18),transparent_30%)]" /><div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.2fr_.8fr] lg:items-center"><div><p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-sm font-medium text-slate-200"><Navigation size={15} /> Your trusted local service network</p><h1 className="max-w-3xl text-5xl font-black tracking-tight sm:text-6xl">Find the right shop for every ride.</h1><p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Motolink connects you with nearby, specialized auto and motorcycle shops—from quick oil changes to complex electrical and engine work.</p><div className="mt-8 flex flex-wrap gap-3"><button onClick={() => { requestLocation(); scrollTo("map"); }} className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 hover:bg-slate-200">Find a shop near you <ArrowRight size={18} /></button><button onClick={() => scrollTo("shops")} className="rounded-xl border border-white/25 px-5 py-3 font-semibold text-white hover:bg-white/10">Browse partner shops</button></div></div><div className="rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur"><MapPinned size={36} className="text-sky-300" /><h2 className="mt-5 text-2xl font-bold">Service that fits your need</h2><ul className="mt-5 space-y-3 text-slate-200">{["Compare specialties and shop hours", "Sort nearby options by approximate distance", "Connect securely when you are ready"].map((item) => <li key={item} className="flex gap-3"><CheckCircle2 size={19} className="mt-0.5 text-emerald-300" />{item}</li>)}</ul></div></div></section>
       <section id="map" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold uppercase tracking-widest text-sky-700">Discover nearby</p><h2 className="mt-2 text-3xl font-bold">Explore shops on the map</h2><p className="mt-2 text-slate-600">Browse freely. Login is only required when you connect or book.</p></div><button onClick={requestLocation} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500"><Navigation size={16} /> Use my location</button></div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} locationGranted={Boolean(location)} onRequestLocation={requestLocation} onSelect={setSelectedShop} /></div></div></section>

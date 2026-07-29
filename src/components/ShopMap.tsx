@@ -1,4 +1,4 @@
-import { LocateFixed, MapPin } from "lucide-react";
+import { LocateFixed } from "lucide-react";
 import { ShopSearchResult } from "../types/shop";
 import { useEffect, useRef } from "react";
 
@@ -41,6 +41,7 @@ const ShopMap = ({ shops, locationGranted, onRequestLocation, onSelect }: ShopMa
       if (typeof shop.latitude === 'number' && typeof shop.longitude === 'number') {
         const marker = Leaflet.marker([shop.latitude, shop.longitude]).addTo(map);
         marker.bindPopup(`<strong>${shop.name}</strong><br/>${shop.address || ''}`);
+        marker.on("click", () => onSelect(shop));
       }
     });
 

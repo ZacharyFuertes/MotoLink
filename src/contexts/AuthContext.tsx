@@ -316,16 +316,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // RBAC Permission Methods
-  const canManageInventory = (): boolean => user?.role === "owner";
+  const canManageInventory = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canViewInventory = (): boolean =>
-    user?.role === "owner" || user?.role === "mechanic";
-  const canManageAppointments = (): boolean => user?.role === "owner";
+    user?.role === "owner" || user?.role === "mechanic" || user?.role === "admin";
+  const canManageAppointments = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canViewOwnAppointments = (): boolean =>
     user?.role === "mechanic" || user?.role === "customer";
-  const canManageUsers = (): boolean => user?.role === "owner";
-  const canViewReports = (): boolean => user?.role === "owner";
+  const canManageUsers = (): boolean => user?.role === "owner" || user?.role === "admin";
+  const canViewReports = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canAccessAdminDashboard = (): boolean =>
-    user?.role === "owner" || user?.role === "mechanic";
+    user?.role === "owner" || user?.role === "mechanic" || user?.role === "admin";
   const canRecordServiceProgress = (): boolean => user?.role === "mechanic";
   const canAccessCustomerPortal = (): boolean => user?.role === "customer";
 

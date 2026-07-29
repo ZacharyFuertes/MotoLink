@@ -15,7 +15,7 @@ import AIChatModal from "./components/AIChatModal";
 import AdminChatbot from "./components/AdminChatbot";
 import DatabaseStatus from "./components/DatabaseStatus";
 import AccessDenied from "./components/AccessDenied";
-import Dashboard from "./pages/Dashboard";
+import AdminPlatformDashboard from "./pages/AdminPlatformDashboard";
 import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
 
@@ -55,7 +55,7 @@ type LoginType =
   | "owner";
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, logout } = useAuth();
 
   // Initialize currentPage from localStorage, falling back to landing
   const [currentPage, setCurrentPage] = useState<AppPage>(() => {
@@ -134,7 +134,7 @@ const AppContent: React.FC = () => {
     }
 
     if (!user?.role) {
-      navigateTo("dashboard");
+      navigateTo("landing");
       return;
     }
 
@@ -156,6 +156,14 @@ const AppContent: React.FC = () => {
       setCurrentLoginType("landing");
     }
   }, [isAuthenticated]);
+
+  // Clear stale "dashboard" page for admin on mount
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "admin" && currentPage === "dashboard") {
+      localStorage.removeItem("moto_last_page");
+      navigateTo("admin-dashboard");
+    }
+  }, [isAuthenticated, user?.role, currentPage]);
 
   // Ensure the current page is valid for the current role whenever auth / role / page changes
   useEffect(() => {
@@ -283,6 +291,12 @@ const AppContent: React.FC = () => {
             selectShop(shop);
             setShowBookingModal(true);
           }}
+          onLogout={() => {
+            logout().catch((error) => {
+              console.error("Logout failed:", error);
+              window.location.href = "/";
+            });
+          }}
         />
         <BookAppointmentModal
           isOpen={showBookingModal}
@@ -332,26 +346,103 @@ const AppContent: React.FC = () => {
   const allowedPages = getPagesByRole(user?.role);
   const defaultPage = getDefaultPageByRole(user?.role);
 
+  const isAdminRole = user?.role === "admin";
+  const adminLayoutPages = [
+    "admin-dashboard",
+    "inventory",
+    "update-parts",
+    "appointments",
+    "customers",
+    "services",
+    "mechanic-availability",
+    "settings",
+  ];
+  const isAdminLayout = isAdminRole && adminLayoutPages.includes(currentPage);
+
   // If user tries to access unauthorized page, show AccessDenied
   if (user && !allowedPages.includes(currentPage)) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f]">
-        <SystemNavbar
-          currentPage={defaultPage}
-          onNavigate={(page: string) => handlePageChange(page as AppPage)}
-          onAIChat={() => setShowAIChat(true)}
-        />
-        <main className="pt-20 px-4 sm:px-6 lg:px-8 pb-12">
-          <AccessDenied
-            requestedPage={currentPage}
+      <div className="min-h-screen bg-[#f5f5f5]">
+        {isAdminRole ? (
+          <AdminPlatformDashboard
             onNavigate={(page: string) => handlePageChange(page as AppPage)}
+            currentPage={currentPage}
           />
-        </main>
-        <AIChatModal
-          isOpen={showAIChat}
-          onClose={() => setShowAIChat(false)}
-          userRole={user?.role}
-        />
+        ) : (
+          <>
+            <SystemNavbar
+              currentPage={defaultPage}
+              onNavigate={(page: string) => handlePageChange(page as AppPage)}
+              onAIChat={() => setShowAIChat(true)}
+            />
+            <main className="pt-20 px-4 sm:px-6 lg:px-8 pb-12">
+              <AccessDenied
+                requestedPage={currentPage}
+                onNavigate={(page: string) => handlePageChange(page as AppPage)}
+              />
+            </main>
+            <AIChatModal
+              isOpen={showAIChat}
+              onClose={() => setShowAIChat(false)}
+              userRole={user?.role}
+            />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // Admin layout: sidebar persists across all admin pages
+  if (isAdminLayout) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f5]">
+        <DatabaseStatus />
+        <AdminPlatformDashboard
+          onNavigate={(page: string) => handlePageChange(page as PageType)}
+          currentPage={currentPage}
+        >
+          {currentPage === "inventory" && (
+            <InventoryPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "update-parts" && (
+            <UpdatePartsPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "appointments" && (
+            <AppointmentCalendarPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "customers" && (
+            <CustomersListPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "services" && (
+            <AdminServicesPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "mechanic-availability" && (
+            <AdminMechanicAvailability
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "settings" && (
+            <SettingsPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+        </AdminPlatformDashboard>
+        {user?.role === "admin" && (
+          <AdminChatbot
+            isOpen={showAIChat}
+            onClose={() => setShowAIChat(false)}
+          />
+        )}
       </div>
     );
   }
@@ -359,7 +450,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
       <DatabaseStatus />
-      {/* Hide SystemNavbar for mechanic-dashboard as it has its own sidebar */}
       {currentPage !== "mechanic-dashboard" && (
         <SystemNavbar
           currentPage={currentPage}
@@ -377,63 +467,19 @@ const AppContent: React.FC = () => {
               : "pt-20 px-4 sm:px-6 lg:px-8 pb-12"
         }
       >
-        {currentPage === "dashboard" && (
-          <Dashboard
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "inventory" && (
-          <InventoryPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "update-parts" && (
-          <UpdatePartsPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "appointments" && (
-          <AppointmentCalendarPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "customers" && (
-          <CustomersListPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-
         {currentPage === "mechanic-portal" && (
           <MechanicPortal
             onNavigate={(page: string) => handlePageChange(page as PageType)}
           />
         )}
         {currentPage === "mechanic-dashboard" && <MechanicDashboard />}
-        {currentPage === "mechanic-availability" && (
-          <AdminMechanicAvailability
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "services" && (
-          <AdminServicesPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-
         {currentPage === "browse-parts" && (
           <BrowsePartsPage
             onNavigate={(page: string) => handlePageChange(page as PageType)}
           />
         )}
-
-        {currentPage === "settings" && (
-          <SettingsPage
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
       </main>
 
-      {/* Contextual AI Support — Admin gets the business-intelligence chatbot */}
       {user?.role === "owner" ? (
         <AdminChatbot
           isOpen={showAIChat}

@@ -355,9 +355,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
 
   // ── Shared input class for the brutalist theme ──
   const inputClass =
-    "w-full bg-[#0a0a0a] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none";
+    "w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-indigo-600 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none";
   const labelClass =
-    "block text-[10px] font-bold text-[#6b6b6b] mb-2 uppercase tracking-[0.2em]";
+    "block text-xs font-semibold text-gray-500 mb-2";
 
   // ── Reusable form fields component ──
   const renderFormFields = () => (
@@ -370,12 +370,12 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-full h-44 object-cover border border-[#333] mb-2"
+              className="w-full h-44 object-cover border border-gray-300 mb-2"
             />
           ) : (
-            <div className="w-full h-44 bg-[#0a0a0a] border border-[#222] flex flex-col items-center justify-center mb-2 gap-2">
+            <div className="w-full h-44 bg-[#f5f5f5] border border-gray-200 flex flex-col items-center justify-center mb-2 gap-2">
               <Upload className="w-8 h-8 text-[#333]" />
-              <span className="text-[9px] text-[#555] font-bold tracking-widest uppercase">
+              <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">
                 UPLOAD IMAGE
               </span>
             </div>
@@ -386,7 +386,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onChange={handleImageChange}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
-          <p className="text-[9px] text-[#555] tracking-widest uppercase font-bold">
+          <p className="text-[9px] text-gray-400 tracking-widest uppercase font-bold">
             Click or drag to upload
           </p>
         </div>
@@ -506,15 +506,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] p-6 sm:p-8">
+    <div className="min-h-screen bg-[#f5f5f5] p-6 sm:p-8">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
-        onClick={() => onNavigate && onNavigate("dashboard")}
-        className="mb-8 flex items-center gap-3 text-[#d63a2f] hover:text-white transition-colors group"
+        onClick={() => onNavigate && onNavigate(user?.role === "admin" ? "admin-dashboard" : "dashboard")}
+        className="mb-8 flex items-center gap-3 text-indigo-600 hover:text-gray-900 transition-colors group"
       >
-        <div className="w-10 h-10 bg-[#111] border border-[#333] group-hover:border-[#d63a2f] flex items-center justify-center transition">
+        <div className="w-10 h-10 bg-white border border-gray-300 group-hover:border-indigo-600 flex items-center justify-center transition">
           <ArrowLeft size={18} strokeWidth={1.5} />
         </div>
         <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Back to Dashboard</span>
@@ -525,14 +525,14 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 bg-[#221515] border border-[#d63a2f]/30 p-5 flex items-start gap-4"
+          className="mb-6 bg-red-50 border border-indigo-600/30 p-5 flex items-start gap-4"
         >
-          <Lock className="w-5 h-5 text-[#d63a2f] flex-shrink-0 mt-0.5" />
+          <Lock className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-[10px] font-bold text-[#d63a2f] mb-1 tracking-[0.2em] uppercase">
+            <h3 className="text-[10px] font-bold text-indigo-600 mb-1 tracking-[0.2em] uppercase">
               Read-Only Access
             </h3>
-            <p className="text-[#888] text-xs font-light">
+            <p className="text-gray-500 text-xs font-light">
               You are viewing inventory in read-only mode. Only shop owners can
               add, edit, or delete parts.
             </p>
@@ -551,17 +551,17 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
       >
         <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-6">
-            <div className="w-14 h-14 bg-[#d63a2f] flex items-center justify-center shrink-0">
-              <Package size={28} className="text-white" strokeWidth={1.5} />
+            <div className="w-14 h-14 bg-indigo-600 flex items-center justify-center shrink-0">
+              <Package size={28} className="text-gray-900" strokeWidth={1.5} />
             </div>
             <div>
-              <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5">
-                <div className="w-6 h-[1px] bg-[#d63a2f]" /> MANAGEMENT
+              <div className="flex items-center gap-3 text-indigo-600 text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5">
+                <div className="w-6 h-[1px] bg-indigo-600" /> MANAGEMENT
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-wide leading-none">
+              <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase tracking-wide leading-none">
                 {t("inventory.title")}
               </h1>
-              <p className="text-[#6b6b6b] text-xs font-light tracking-wide mt-1">
+              <p className="text-gray-500 text-xs font-light tracking-wide mt-1">
                 {isOwner ? "Manage" : "View"} {filteredParts.length} /{" "}
                 {parts.length} parts in inventory
               </p>
@@ -570,7 +570,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
           <div className="flex gap-3">
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-transparent border border-[#333] hover:border-[#555] text-[#6b6b6b] hover:text-white px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase"
+              className="flex items-center gap-2 bg-transparent border border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-900 px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase"
             >
               <Download className="w-4 h-4" />
               Export CSV
@@ -582,7 +582,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   resetForm();
                   setShowAddForm(true);
                 }}
-                className="flex items-center gap-2 bg-[#d63a2f] hover:bg-[#b82e25] text-white px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase border border-[#d63a2f]"
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-gray-900 px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase border border-indigo-600"
                 title="Add new part"
               >
                 <Plus className="w-5 h-5" />
@@ -593,9 +593,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-[#111] p-4 border border-[#222]">
+        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 border border-gray-200 rounded-xl">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder={t("inventory.search")}
@@ -603,7 +603,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               onChange={(e) =>
                 setFilters({ ...filters, searchTerm: e.target.value })
               }
-              className="w-full bg-[#0a0a0a] text-white pl-12 pr-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none"
+              className="w-full bg-[#f5f5f5] text-gray-900 pl-12 pr-4 py-3 border border-gray-300 focus:border-indigo-600 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none"
             />
           </div>
 
@@ -612,7 +612,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onChange={(e) =>
               setFilters({ ...filters, category: e.target.value || undefined })
             }
-            className="bg-[#0a0a0a] text-white px-4 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none"
+            className="bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-indigo-600 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none"
           >
             <option value="">{t("inventory.category")} - All</option>
             {categories.map((cat) => (
@@ -624,16 +624,16 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
 
           {/* Sort By */}
           <div className="relative flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-[#555] absolute left-3 pointer-events-none" />
+            <ArrowUpDown className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
             <select
               value={filters.sortBy}
               onChange={(e) =>
                 setFilters({ ...filters, sortBy: e.target.value as SortOption })
               }
-              className={`bg-[#0a0a0a] text-white pl-9 pr-4 py-3 border focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none ${
+              className={`bg-[#f5f5f5] text-gray-900 pl-9 pr-4 py-3 border focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-none ${
                 filters.sortBy === "popularity"
-                  ? "border-[#d63a2f] text-[#d63a2f]"
-                  : "border-[#333] focus:border-[#d63a2f]"
+                  ? "border-indigo-600 text-indigo-600"
+                  : "border-gray-300 focus:border-indigo-600"
               }`}
             >
               <option value="name">Name A-Z</option>
@@ -650,8 +650,8 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             }
             className={`px-5 py-3 text-[9px] font-bold uppercase tracking-widest transition-all border ${
               filters.showLowStock
-                ? "bg-[#221515] text-[#d63a2f] border-[#d63a2f]"
-                : "text-[#6b6b6b] border-[#222] hover:bg-[#111] hover:text-[#888]"
+                ? "bg-red-50 text-indigo-600 border-indigo-600"
+                : "text-gray-500 border-gray-200 hover:bg-white hover:text-gray-600"
             }`}
           >
             {t("inventory.low_stock")}
@@ -671,10 +671,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.04 }}
-                className="group bg-[#111] border border-[#222] hover:border-[#333] transition flex flex-col"
+                className="group bg-white border border-gray-200 hover:border-gray-300 transition flex flex-col"
               >
                 {/* Image */}
-                <div className="relative aspect-[4/3] bg-[#0a0a0a] border-b border-[#222] overflow-hidden">
+                <div className="relative aspect-[4/3] bg-[#f5f5f5] border-b border-gray-200 overflow-hidden">
                   {part.image_url ? (
                     <img
                       src={part.image_url}
@@ -689,11 +689,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   {/* Badges */}
                   <div className="absolute top-3 right-3 flex flex-col gap-1.5">
                     {isLowStock && (
-                      <span className="bg-[#221515] border border-[#d63a2f] text-[#d63a2f] text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase flex items-center gap-1">
+                      <span className="bg-red-50 border border-indigo-600 text-indigo-600 text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase flex items-center gap-1">
                         <AlertCircle size={10} /> LOW STOCK
                       </span>
                     )}
-                    <span className="bg-[#111] border border-[#333] text-[#6b6b6b] text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase">
+                    <span className="bg-white border border-gray-300 text-gray-500 text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase">
                       {part.category}
                     </span>
                   </div>
@@ -703,10 +703,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                 <div className="p-5 flex flex-col flex-1">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-black text-white uppercase leading-tight tracking-wide group-hover:text-[#d63a2f] transition-colors truncate">
+                      <h3 className="text-base font-black text-gray-900 uppercase leading-tight tracking-wide group-hover:text-red-600 transition-colors truncate">
                         {part.name}
                       </h3>
-                      <p className="text-[9px] text-[#555] mt-1 font-bold tracking-widest uppercase">
+                      <p className="text-[9px] text-gray-400 mt-1 font-bold tracking-widest uppercase">
                         SKU: {part.sku}
                       </p>
                     </div>
@@ -719,23 +719,23 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   )}
 
                   {/* Stock Bar */}
-                  <div className="bg-[#0a0a0a] border border-[#222] p-3 mb-4">
+                  <div className="bg-[#f5f5f5] border border-gray-200 p-3 mb-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] text-[#555] font-bold tracking-widest uppercase">
+                      <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">
                         {t("inventory.stock")}
                       </span>
                       <span
                         className={`text-xs font-black ${
-                          isLowStock ? "text-[#d63a2f]" : "text-[#4ade80]"
+                          isLowStock ? "text-indigo-600" : "text-emerald-600"
                         }`}
                       >
                         {part.quantity_in_stock}
                       </span>
                     </div>
-                    <div className="w-full bg-[#222] h-1">
+                    <div className="w-full bg-gray-100 h-1">
                       <div
                         className={`h-1 transition-all ${
-                          isLowStock ? "bg-[#d63a2f]" : "bg-[#4ade80]"
+                          isLowStock ? "bg-indigo-600" : "bg-emerald-600"
                         }`}
                         style={{
                           width: `${Math.min((part.quantity_in_stock / Math.max(part.reorder_level * 3, 1)) * 100, 100)}%`,
@@ -746,7 +746,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
 
                   {/* Price & Actions */}
                   <div className="flex items-center justify-between mt-auto">
-                    <span className="text-2xl font-black text-[#d63a2f]">
+                    <span className="text-2xl font-black text-indigo-600">
                       ₱{part.unit_price.toLocaleString()}
                     </span>
                     {/* CRUD Buttons - Only visible to Owners (TODO: implemented — mechanics see nothing, pure read-only) */}
@@ -754,7 +754,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => openEditForm(part)}
-                          className="w-9 h-9 flex items-center justify-center border border-[#333] text-[#6b6b6b] hover:border-[#d63a2f] hover:text-[#d63a2f] hover:bg-[#221515] transition"
+                          className="w-9 h-9 flex items-center justify-center border border-gray-300 text-gray-500 hover:border-indigo-600 hover:text-red-600 hover:bg-red-50 transition"
                           title="Edit part"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -764,7 +764,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                             setSelectedPart(part);
                             setShowDeleteConfirm(true);
                           }}
-                          className="w-9 h-9 flex items-center justify-center border border-[#333] text-[#6b6b6b] hover:border-[#d63a2f] hover:text-[#d63a2f] hover:bg-[#221515] transition"
+                          className="w-9 h-9 flex items-center justify-center border border-gray-300 text-gray-500 hover:border-indigo-600 hover:text-red-600 hover:bg-red-50 transition"
                           title="Delete part"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -784,10 +784,10 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center py-20 border border-[#222] bg-[#111] mt-6"
+          className="flex flex-col items-center justify-center py-20 border border-gray-200 bg-white mt-6"
         >
           <Package className="w-16 h-16 text-[#333] mb-4" strokeWidth={1} />
-          <p className="text-[#6b6b6b] text-[10px] tracking-widest uppercase font-bold">
+          <p className="text-gray-500 text-[10px] tracking-widest uppercase font-bold">
             No parts found matching your filters
           </p>
         </motion.div>
@@ -809,26 +809,26 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-indigo-600 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-8 py-6 border-b border-[#222] bg-[#111] flex-shrink-0">
+              <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-[#d63a2f] flex items-center justify-center shrink-0">
-                    <Plus size={24} className="text-white" strokeWidth={1.5} />
+                  <div className="w-12 h-12 bg-indigo-600 flex items-center justify-center shrink-0">
+                    <Plus size={24} className="text-gray-900" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase">
-                      <div className="w-6 h-[1px] bg-[#d63a2f]" /> NEW ENTRY
+                    <div className="flex items-center gap-3 text-indigo-600 text-[10px] font-bold tracking-[0.2em] uppercase">
+                      <div className="w-6 h-[1px] bg-indigo-600" /> NEW ENTRY
                     </div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-wide leading-none">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wide leading-none">
                       Add Part
                     </h2>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white"
+                  className="p-2 border border-gray-300 hover:bg-gray-100 transition text-gray-500 hover:text-gray-900"
                 >
                   <X size={20} strokeWidth={1} />
                 </button>
@@ -838,11 +838,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               <form onSubmit={handleAddPart} className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
                 {renderFormFields()}
 
-                <div className="flex gap-3 pt-4 border-t border-[#222]">
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-[#d63a2f] disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-gray-900 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-indigo-600 disabled:opacity-50"
                   >
                     <Save size={16} />
                     {saving ? "SAVING..." : "SAVE PART"}
@@ -850,7 +850,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="flex-1 bg-transparent border border-[#333] text-[#6b6b6b] hover:text-white hover:border-[#555] font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
+                    className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
                   >
                     Cancel
                   </button>
@@ -877,26 +877,26 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-indigo-600 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-8 py-6 border-b border-[#222] bg-[#111] flex-shrink-0">
+              <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-[#d63a2f] flex items-center justify-center shrink-0">
-                    <Edit2 size={22} className="text-white" strokeWidth={1.5} />
+                  <div className="w-12 h-12 bg-indigo-600 flex items-center justify-center shrink-0">
+                    <Edit2 size={22} className="text-gray-900" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase">
-                      <div className="w-6 h-[1px] bg-[#d63a2f]" /> EDIT ENTRY
+                    <div className="flex items-center gap-3 text-indigo-600 text-[10px] font-bold tracking-[0.2em] uppercase">
+                      <div className="w-6 h-[1px] bg-indigo-600" /> EDIT ENTRY
                     </div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-wide leading-none truncate max-w-[300px]">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wide leading-none truncate max-w-[300px]">
                       {selectedPart.name}
                     </h2>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowEditForm(false)}
-                  className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white"
+                  className="p-2 border border-gray-300 hover:bg-gray-100 transition text-gray-500 hover:text-gray-900"
                 >
                   <X size={20} strokeWidth={1} />
                 </button>
@@ -906,11 +906,11 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               <form onSubmit={handleEditPart} className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
                 {renderFormFields()}
 
-                <div className="flex gap-3 pt-4 border-t border-[#222]">
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-[#d63a2f] disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-gray-900 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-indigo-600 disabled:opacity-50"
                   >
                     <Save size={16} />
                     {saving ? "UPDATING..." : "UPDATE PART"}
@@ -918,7 +918,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   <button
                     type="button"
                     onClick={() => setShowEditForm(false)}
-                    className="flex-1 bg-transparent border border-[#333] text-[#6b6b6b] hover:text-white hover:border-[#555] font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
+                    className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
                   >
                     Cancel
                   </button>
@@ -945,44 +945,44 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
               exit={{ scale: 0.95, opacity: 0, y: 30 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] max-w-md w-full shadow-2xl"
+              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-indigo-600 max-w-md w-full shadow-2xl"
             >
               {/* Header */}
-              <div className="px-8 py-6 border-b border-[#222] bg-[#111]">
-                <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase mb-2">
-                  <div className="w-6 h-[1px] bg-[#d63a2f]" /> CONFIRM DELETE
+              <div className="px-8 py-6 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-3 text-indigo-600 text-[10px] font-bold tracking-[0.2em] uppercase mb-2">
+                  <div className="w-6 h-[1px] bg-indigo-600" /> CONFIRM DELETE
                 </div>
-                <h3 className="text-xl font-black text-white uppercase tracking-wide">
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-wide">
                   Delete Part?
                 </h3>
               </div>
 
               {/* Body */}
               <div className="px-8 py-6">
-                <p className="text-[#888] text-sm font-light mb-2">
+                <p className="text-gray-500 text-sm font-light mb-2">
                   Are you sure you want to delete:
                 </p>
-                <p className="text-white font-black text-lg uppercase tracking-wide mb-6">
+                <p className="text-gray-900 font-black text-lg uppercase tracking-wide mb-6">
                   {selectedPart.name}
                 </p>
-                <p className="text-[#555] text-xs font-light">
+                <p className="text-gray-400 text-xs font-light">
                   This action cannot be undone. The part and its image will be permanently removed.
                 </p>
               </div>
 
               {/* Footer */}
-              <div className="flex gap-3 px-8 py-6 border-t border-[#222]">
+              <div className="flex gap-3 px-8 py-6 border-t border-gray-200">
                 <button
                   onClick={handleDeletePart}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-[#d63a2f] disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-gray-900 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-indigo-600 disabled:opacity-50"
                 >
                   <Trash2 size={16} />
                   {saving ? "DELETING..." : "DELETE"}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 bg-transparent border border-[#333] text-[#6b6b6b] hover:text-white hover:border-[#555] font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
+                  className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
                 >
                   Cancel
                 </button>
