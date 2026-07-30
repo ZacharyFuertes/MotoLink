@@ -374,40 +374,12 @@ CREATE INDEX idx_approval_queue_shop_id ON shop_approval_queue(shop_id);
 COMMENT ON TABLE shop_approval_queue IS 'Workflow for approving new shops';
 
 -- ============================================================================
--- CUSTOMERS
--- ============================================================================
-
-CREATE TABLE customers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  
-  phone TEXT,
-  address TEXT,
-  city TEXT,
-  
-  -- Profile Info
-  preferred_shops JSONB DEFAULT '[]',
-  preferred_mechanics JSONB DEFAULT '[]',
-  
-  -- Stats
-  total_spent DECIMAL(12, 2) DEFAULT 0,
-  total_bookings INTEGER DEFAULT 0,
-  average_rating DECIMAL(3, 2) DEFAULT 0.0,
-  
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_customers_user_id ON customers(user_id);
-COMMENT ON TABLE customers IS 'Customer profiles linked to users';
-
--- ============================================================================
 -- CUSTOMER VEHICLES
 -- ============================================================================
 
 CREATE TABLE customer_vehicles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   
   vehicle_type TEXT NOT NULL CHECK (vehicle_type IN ('motorcycle', 'auto')),
   make TEXT NOT NULL,
@@ -484,7 +456,7 @@ COMMENT ON TABLE parts IS 'Parts/inventory managed by each shop';
 CREATE TABLE bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   mechanic_id UUID REFERENCES shop_mechanics(id) ON DELETE SET NULL,
   
   -- Service Details
@@ -582,7 +554,7 @@ CREATE TABLE job_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
   booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   mechanic_id UUID REFERENCES shop_mechanics(id) ON DELETE SET NULL,
   
   -- Job Details
@@ -621,7 +593,7 @@ COMMENT ON TABLE job_orders IS 'Job orders for mechanics with tracking';
 CREATE TABLE shop_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
   
   -- Ratings (1-5 scale)
@@ -682,9 +654,9 @@ COMMENT ON TABLE review_photos IS 'Photos attached to customer reviews';
 CREATE TABLE mechanic_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   mechanic_id UUID NOT NULL REFERENCES shop_mechanics(id) ON DELETE CASCADE,
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
-  
+
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   comment TEXT,
   is_verified_purchase BOOLEAN DEFAULT false,
@@ -701,11 +673,11 @@ COMMENT ON TABLE mechanic_reviews IS 'Customer reviews for individual mechanics'
 
 CREATE TABLE shop_favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-  
+
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  
+
   UNIQUE(customer_id, shop_id)
 );
 
@@ -714,11 +686,11 @@ COMMENT ON TABLE shop_favorites IS 'Shops saved by customers for quick access';
 
 CREATE TABLE service_favorites (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   service_id UUID NOT NULL REFERENCES shop_services(id) ON DELETE CASCADE,
-  
+
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  
+
   UNIQUE(customer_id, service_id)
 );
 
@@ -893,7 +865,6 @@ ALTER TABLE shop_blackout_dates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mechanic_availability_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shop_gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shop_approval_queue ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
@@ -997,30 +968,18 @@ CREATE POLICY "Public can view visible reviews" ON shop_reviews
 
 CREATE POLICY "Customers can view own reviews" ON shop_reviews
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM customers 
-      WHERE customers.id = shop_reviews.customer_id 
-      AND customers.user_id = auth.uid()
-    )
+    auth.uid() = customer_id
   );
 
 CREATE POLICY "Customers can create reviews" ON shop_reviews
   FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM customers 
-      WHERE customers.id = customer_id 
-      AND customers.user_id = auth.uid()
-    )
+    auth.uid() = customer_id
   );
 
 -- ===== BOOKINGS =====
 CREATE POLICY "Customers can view own bookings" ON bookings
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM customers 
-      WHERE customers.id = bookings.customer_id 
-      AND customers.user_id = auth.uid()
-    )
+    auth.uid() = customer_id
   );
 
 CREATE POLICY "Shop staff can view shop bookings" ON bookings
@@ -1034,11 +993,7 @@ CREATE POLICY "Shop staff can view shop bookings" ON bookings
 
 CREATE POLICY "Customers can create bookings" ON bookings
   FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM customers 
-      WHERE customers.id = customer_id 
-      AND customers.user_id = auth.uid()
-    )
+    auth.uid() = customer_id
   );
 
 -- ===== NOTIFICATIONS =====

@@ -88,11 +88,13 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
   const fetchTodaySales = async () => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
+      const query = supabase
         .from("part_sales")
         .select("quantity_sold, sale_price")
         .gte("created_at", `${today}T00:00:00`)
         .lte("created_at", `${today}T23:59:59`);
+      if (user?.shop_id) query.eq("shop_id", user.shop_id);
+      const { data, error } = await query;
 
       if (error) {
         // Table may not exist yet

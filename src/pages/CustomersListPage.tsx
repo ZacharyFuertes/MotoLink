@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Customer {
   id: string;
@@ -30,6 +31,7 @@ interface CustomersListPageProps {
 }
 
 const CustomersListPage: React.FC<CustomersListPageProps> = () => {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,34 +47,46 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         setLoading(true);
         setError(null);
 
-        // 1. Fetch ONLY users with role = 'customer'
-        const { data: userData, error: fetchError } = await supabase
+        // 1. Fetch ONLY users with role = 'customer' for this shop
+        let customerQuery = supabase
           .from("users")
           .select("*")
           .eq("role", "customer")
           .order("created_at", { ascending: false });
 
+        if (user?.shop_id) {
+          customerQuery = customerQuery.eq("shop_id", user.shop_id);
+        }
+
+        const { data: userData, error: fetchError } = await customerQuery;
+
         if (fetchError) throw fetchError;
 
         const baseCustomers = userData || [];
 
-        // 2. Fetch all completed appointments
-        const { data: appointments } = await supabase
+        // 2. Fetch completed appointments for this shop
+        let aptQuery = supabase
           .from("appointments")
           .select("customer_id, total_amount, estimated_price")
           .eq("status", "completed");
+        if (user?.shop_id) aptQuery = aptQuery.eq("shop_id", user.shop_id);
+        const { data: appointments } = await aptQuery;
 
-        // 3. Fetch all completed job orders
-        const { data: jobOrders } = await supabase
+        // 3. Fetch completed job orders for this shop
+        let joQuery = supabase
           .from("job_orders")
           .select("customer_id, total_cost")
           .eq("status", "completed");
+        if (user?.shop_id) joQuery = joQuery.eq("shop_id", user.shop_id);
+        const { data: jobOrders } = await joQuery;
 
-        // 4. Fetch all fulfilled/confirmed reservations (part sales)
-        const { data: reservations } = await supabase
+        // 4. Fetch fulfilled/confirmed reservations for this shop
+        let resQuery = supabase
           .from("reservations")
-          .select("customer_id, quantity, parts(unit_price)")
+          .select("customer_id, quantity, parts!inner(unit_price)")
           .in("status", ["confirmed", "fulfilled"]);
+        if (user?.shop_id) resQuery = resQuery.eq("parts.shop_id", user.shop_id);
+        const { data: reservations } = await resQuery;
 
         // Create a map for fast lookup
         const spendingMap: Record<string, number> = {};

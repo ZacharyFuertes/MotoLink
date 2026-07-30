@@ -196,7 +196,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
             </div>
             <div className="flex flex-col">
               <h1 className="text-lg lg:text-xl font-display font-black text-white uppercase tracking-wide leading-none mb-1">
-                JBMS MOTOSHOP
+                MotoLink
               </h1>
               <p className="text-[9px] text-[#d63a2f] font-bold tracking-[0.2em] uppercase leading-none">
                 {user?.role === "customer"

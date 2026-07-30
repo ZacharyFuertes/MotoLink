@@ -1,4 +1,3 @@
-import { demoShops } from "../data/demoShops";
 import { Shop, ShopSearchResult } from "../types/shop";
 import { supabase } from "./supabaseClient";
 
@@ -24,7 +23,7 @@ export const getPublicShops = async (): Promise<Shop[]> => {
     .eq("is_active", true)
     .order("name");
 
-  if (error || !data?.length) return demoShops;
+  if (error || !data?.length) return [];
 
   return data.map((shop) => ({
     ...shop,

@@ -132,54 +132,7 @@ const FeaturedSection: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Create appointment object
-    const newAppointment = {
-      id: Date.now().toString(),
-      name: appointmentData.name,
-      email: appointmentData.email,
-      phone: appointmentData.phone,
-      date: appointmentData.date,
-      service: appointmentData.service,
-      status: "pending" as const,
-      createdAt: new Date().toLocaleString(),
-    };
-
-    // ✅ FIX: Wrap localStorage parsing in try-catch to handle corrupted data
-    try {
-      const existing = localStorage.getItem("motoshop_appointments");
-      const appointments = existing ? JSON.parse(existing) : [];
-
-      // Add new appointment
-      appointments.push(newAppointment);
-
-      // Save to localStorage
-      localStorage.setItem(
-        "motoshop_appointments",
-        JSON.stringify(appointments),
-      );
-
-      console.log("Appointment booked:", newAppointment);
-      alert("✅ Appointment confirmed! Check your email for details.");
-      setAppointmentData({
-        name: "",
-        email: "",
-        phone: "",
-        date: "",
-        service: "General Maintenance",
-      });
-    } catch (err) {
-      console.error("Error saving appointment:", err);
-      // If localStorage data is corrupted, clear it and start fresh
-      localStorage.removeItem("motoshop_appointments");
-      localStorage.setItem(
-        "motoshop_appointments",
-        JSON.stringify([newAppointment]),
-      );
-      alert(
-        "⚠️ There was an issue with saved data, but your appointment has been saved.",
-      );
-    }
+    alert("Please use the Book Appointment button to schedule through our system.");
   };
 
   const containerVariants = {

@@ -50,10 +50,6 @@ CREATE POLICY "Admin can view all invoices" ON public.invoices FOR SELECT USING 
 DROP POLICY IF EXISTS "Admin can view all reservations" ON public.reservations;
 CREATE POLICY "Admin can view all reservations" ON public.reservations FOR SELECT USING (public.is_admin());
 
--- CUSTOMERS: Admin can view all customer profiles
-DROP POLICY IF EXISTS "Admin can view all customer profiles" ON public.customers;
-CREATE POLICY "Admin can view all customer profiles" ON public.customers FOR SELECT USING (public.is_admin());
-
 -- VEHICLES: Admin can view all vehicles
 DROP POLICY IF EXISTS "Admin can view all vehicles" ON public.vehicles;
 CREATE POLICY "Admin can view all vehicles" ON public.vehicles FOR SELECT USING (public.is_admin());

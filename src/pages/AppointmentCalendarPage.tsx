@@ -84,10 +84,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     fetchAbortRef.current = new AbortController();
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("appointments")
         .select(`*, customer:users!customer_id (name, phone)`)
         .order("scheduled_date", { ascending: true });
+
+      if (user?.shop_id && user.role === "owner") {
+        query = query.eq("shop_id", user.shop_id);
+      }
+
+      const { data, error } = await query;
 
       if (fetchAbortRef.current?.signal.aborted) return;
       if (error) throw error;
@@ -126,10 +132,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const fetchMechanics = async () => {
     try {
       setLoadingMechanics(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from("users")
         .select("id, name, email")
         .eq("role", "mechanic");
+
+      if (user?.shop_id) {
+        query = query.eq("shop_id", user.shop_id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setMechanics(data || []);
     } catch (err) {

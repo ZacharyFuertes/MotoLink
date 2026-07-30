@@ -48,45 +48,6 @@ export const testDatabaseConnection = async () => {
   }
 };
 
-/**
- * Get all users from database
- */
-export const getUsers = async () => {
-  const { data, error } = await supabase.from("users").select("*");
-
-  if (error) {
-    console.error("Error fetching users:", error);
-    return [];
-  }
-  return data || [];
-};
-
-/**
- * Get all parts (inventory) from database
- */
-export const getParts = async () => {
-  const { data, error } = await supabase.from("parts").select("*");
-
-  if (error) {
-    console.error("Error fetching parts:", error);
-    return [];
-  }
-  return data || [];
-};
-
-/**
- * Get all appointments from database
- */
-export const getAppointments = async () => {
-  const { data, error } = await supabase.from("appointments").select("*");
-
-  if (error) {
-    console.error("Error fetching appointments:", error);
-    return [];
-  }
-  return data || [];
-};
-
 export default supabase;
 
 /*

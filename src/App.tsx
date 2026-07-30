@@ -15,6 +15,7 @@ import AIChatModal from "./components/AIChatModal";
 import AdminChatbot from "./components/AdminChatbot";
 import DatabaseStatus from "./components/DatabaseStatus";
 import AccessDenied from "./components/AccessDenied";
+import Dashboard from "./pages/Dashboard";
 import AdminPlatformDashboard from "./pages/AdminPlatformDashboard";
 import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
@@ -467,6 +468,11 @@ const AppContent: React.FC = () => {
               : "pt-20 px-4 sm:px-6 lg:px-8 pb-12"
         }
       >
+        {currentPage === "dashboard" && (
+          <Dashboard
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
         {currentPage === "mechanic-portal" && (
           <MechanicPortal
             onNavigate={(page: string) => handlePageChange(page as PageType)}

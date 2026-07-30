@@ -21,9 +21,19 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+  });
+  const [signupData, setSignupData] = useState({
+    email: "",
+    name: "",
+    shop_name: "",
+    shop_description: "",
+    shop_address: "",
+    shop_city: "",
+    shop_phone: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +64,64 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
       }
 
       console.log("🔥 Setting Error State to:", errorMessage);
+      setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: formData.password,
+      });
+      if (authError) throw authError;
+      if (!authData?.user?.id) throw new Error("Signup failed");
+
+      // Create the shop
+      const { data: shopData, error: shopError } = await supabase
+        .from("shops")
+        .insert({
+          name: signupData.shop_name,
+          description: signupData.shop_description || null,
+          address: signupData.shop_address || null,
+          city: signupData.shop_city || null,
+          phone: signupData.shop_phone || null,
+          email: signupData.email,
+          owner_id: authData.user.id,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (shopError) throw shopError;
+
+      // Create the user profile with shop_id
+      const { error: profileError } = await supabase.from("users").insert({
+        id: authData.user.id,
+        email: signupData.email,
+        name: signupData.name,
+        role: "owner",
+        phone: signupData.shop_phone || null,
+        shop_id: shopData.id,
+      });
+      if (profileError) throw profileError;
+
+      // Log the new owner in
+      await login(signupData.email, formData.password);
+      setLoginAttempted(true);
+    } catch (err) {
+      let errorMessage = "Registration failed. Please try again.";
+      if (err instanceof Error) {
+        if (err.message.includes("User already registered")) {
+          errorMessage = "This email is already registered.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
       setError(errorMessage);
       setLoading(false);
     }
@@ -183,68 +251,57 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
                 transition={{ duration: 0.25 }}
               >
                 <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-                  Welcome back
+                  {isSignup ? "Open Your Shop" : "Welcome back"}
                 </h1>
                 <p className="text-slate-400 text-sm">
-                  Sign in to your account
+                  {isSignup ? "Register your shop on MotoLink" : "Sign in to your account"}
                 </p>
               </motion.div>
             </motion.div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-              >
-                <div className="relative">
-                  <Mail size={18} className={iconClass} />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Email"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-              </motion.div>
+            {isSignup ? (
+              <form onSubmit={handleSignup} className="space-y-4">
+                <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="Email" required className={inputClass} />
+                <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Password" required className={inputClass} />
+                <input type="text" value={signupData.name} onChange={(e) => setSignupData({ ...signupData, name: e.target.value })} placeholder="Your Name" required className={inputClass} />
+                <input type="text" value={signupData.shop_name} onChange={(e) => setSignupData({ ...signupData, shop_name: e.target.value })} placeholder="Shop Name" required className={inputClass} />
+                <input type="text" value={signupData.shop_description} onChange={(e) => setSignupData({ ...signupData, shop_description: e.target.value })} placeholder="Shop Description (optional)" className={inputClass} />
+                <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address (optional)" className={inputClass} />
+                <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City (optional)" className={inputClass} />
+                <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {loading && <Loader size={18} className="animate-spin" />}
+                  Register Shop
+                </motion.button>
+              </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+                  <div className="relative">
+                    <Mail size={18} className={iconClass} />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required className={inputClass} />
+                  </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                  <div className="relative">
+                    <Lock size={18} className={iconClass} />
+                    <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
+                  </div>
+                </motion.div>
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {loading && <Loader size={18} className="animate-spin" />}
+                  Sign In
+                </motion.button>
+              </form>
+            )}
 
-              {/* Password */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <div className="relative">
-                  <Lock size={18} className={iconClass} />
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Password"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-              </motion.div>
-
-              {/* Submit Button */}
-              <motion.button
-                type="submit"
-                disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading && <Loader size={18} className="animate-spin" />}
-                Sign In
-              </motion.button>
-            </form>
+            {/* Toggle between login / signup */}
+            <div className="mt-6 text-center">
+              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); }} className="text-slate-400 hover:text-white text-sm transition-colors">
+                {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>

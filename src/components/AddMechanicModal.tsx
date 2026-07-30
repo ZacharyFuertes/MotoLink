@@ -3,29 +3,33 @@ import { X, Mail, Plus, User, KeyRound, CheckCircle2, AlertCircle } from "lucide
 import { supabase } from "../services/supabaseClient";
 
 // Inline replacements for deleted staffService
-const getMechanics = async () => {
-  const { data, error } = await supabase
+const getMechanics = async (shopId?: string) => {
+  let query = supabase
     .from("users")
     .select("*")
     .eq("role", "mechanic")
     .order("name");
+  if (shopId) query = query.eq("shop_id", shopId);
+  const { data, error } = await query;
   if (error) throw error;
   return data || [];
 };
 
-const createMechanicAccount = async (name: string, email: string, password: string) => {
+const createMechanicAccount = async (name: string, email: string, password: string, shopId?: string) => {
   // Sign up the mechanic via Supabase auth
   const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
   if (authError) throw authError;
   if (!authData.user) throw new Error("Failed to create auth user");
 
-  // Insert into users table
-  const { error: insertError } = await supabase.from("users").insert({
+  // Insert into users table with shop association
+  const insertData: any = {
     id: authData.user.id,
     email,
     name,
     role: "mechanic",
-  });
+  };
+  if (shopId) insertData.shop_id = shopId;
+  const { error: insertError } = await supabase.from("users").insert(insertData);
   if (insertError) throw insertError;
   return authData.user;
 };
@@ -60,7 +64,7 @@ const AddMechanicModal: React.FC<AddMechanicModalProps> = ({ isOpen, onClose }) 
   const loadMechanics = async () => {
     setLoading(true);
     try {
-      const data = await getMechanics();
+      const data = await getMechanics(user?.shop_id);
       setMechanics(data);
     } catch (err) {
       console.error(err);
@@ -82,7 +86,7 @@ const AddMechanicModal: React.FC<AddMechanicModalProps> = ({ isOpen, onClose }) 
     setLoading(true);
     
     try {
-      await createMechanicAccount(formData.name, formData.email, formData.password);
+      await createMechanicAccount(formData.name, formData.email, formData.password, user?.shop_id);
       setStatusMsg({ text: "Mechanic account created successfully!", type: "success" });
       setFormData({ name: "", email: "", password: "" });
       loadMechanics();

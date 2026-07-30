@@ -39,8 +39,8 @@ interface ShopContext {
 }
 
 interface CustomerContext {
-  id: string; // customers.id
-  userId: string; // users.id
+  id: string;
+  userId: string;
   name: string;
   email: string;
   phone: string | null;
@@ -60,23 +60,39 @@ interface CustomerContext {
 
 // ─── Supabase Fetchers ──────────────────────────────────────────────────────────
 
-async function fetchShopContext(): Promise<ShopContext> {
+async function fetchShopContext(shopId?: string): Promise<ShopContext> {
   const [servicesRes, partsRes, mechanicsRes, availRes] =
     await Promise.allSettled([
-      supabase
-        .from("products")
-        .select("name, description, unit_price, category")
-        .order("unit_price"),
-      supabase
-        .from("parts")
-        .select("name, category, quantity_in_stock, unit_price")
-        .gt("quantity_in_stock", 0)
-        .order("category"),
-      supabase.from("users").select("id, name, phone").eq("role", "mechanic"),
-      supabase
-        .from("mechanic_availability")
-        .select("mechanic_id, day_of_week, start_time, end_time, is_available")
-        .eq("is_available", true),
+      (() => {
+        let q = supabase
+          .from("products")
+          .select("name, description, unit_price, category")
+          .order("unit_price");
+        if (shopId) q = q.eq("shop_id", shopId);
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from("parts")
+          .select("name, category, quantity_in_stock, unit_price")
+          .gt("quantity_in_stock", 0)
+          .order("category");
+        if (shopId) q = q.eq("shop_id", shopId);
+        return q;
+      })(),
+      (() => {
+        let q = supabase.from("users").select("id, name, phone").eq("role", "mechanic");
+        if (shopId) q = q.eq("shop_id", shopId);
+        return q;
+      })(),
+      (() => {
+        let q = supabase
+          .from("mechanic_availability")
+          .select("mechanic_id, day_of_week, start_time, end_time, is_available")
+          .eq("is_available", true);
+        if (shopId) q = q.eq("shop_id", shopId);
+        return q;
+      })(),
     ]);
 
   return {
@@ -97,43 +113,32 @@ async function fetchCustomerContext(
   userId: string,
 ): Promise<CustomerContext | null> {
   try {
-    // Get user info
     const { data: userData } = await supabase
       .from("users")
-      .select("id, name, email, phone")
+      .select("id, name, email, phone, address")
       .eq("id", userId)
       .single();
     if (!userData) return null;
 
-    // Get customer record
-    const { data: customerData } = await supabase
-      .from("customers")
-      .select("id, phone, address")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!customerData) return null;
-
-    // Get vehicles
     const { data: vehicles } = await supabase
       .from("vehicles")
       .select("id, make, model, year")
-      .eq("customer_id", customerData.id);
+      .eq("customer_id", userId);
 
-    // Get recent appointments
     const { data: appointments } = await supabase
       .from("appointments")
       .select("service_type, status, scheduled_date")
-      .eq("customer_id", customerData.id)
+      .eq("customer_id", userId)
       .order("scheduled_date", { ascending: false })
       .limit(5);
 
     return {
-      id: customerData.id,
+      id: userData.id,
       userId: userData.id,
       name: userData.name,
       email: userData.email ?? "",
-      phone: customerData.phone ?? userData.phone ?? null,
-      address: customerData.address ?? null,
+      phone: userData.phone ?? null,
+      address: userData.address ?? null,
       vehicles: vehicles ?? [],
       recentAppointments: appointments ?? [],
     };
@@ -343,7 +348,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     setCtxLoading(true);
     try {
       const [shop, customer] = await Promise.all([
-        fetchShopContext(),
+        fetchShopContext(user?.shop_id),
         isAuthenticated && user?.id && user.role === "customer"
           ? fetchCustomerContext(user.id)
           : Promise.resolve(null),

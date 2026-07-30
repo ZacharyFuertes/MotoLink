@@ -62,11 +62,17 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     try {
       setLoading(true)
 
-      // Fetch all mechanics
-      const { data: mechanicsData, error: mechanicsError } = await supabase
+      // Fetch mechanics for this shop
+      let mechQuery = supabase
         .from('users')
         .select('id, name, email')
         .eq('role', 'mechanic')
+
+      if (user?.shop_id) {
+        mechQuery = mechQuery.eq('shop_id', user.shop_id)
+      }
+
+      const { data: mechanicsData, error: mechanicsError } = await mechQuery
 
       if (mechanicsError) throw mechanicsError
 
