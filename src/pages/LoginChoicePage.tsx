@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Users, Wrench, Store, ShieldCheck, Lock, ChevronRight, Home } from "lucide-react";
-import motolinkLogo from "../pictures/public/motolink.svg";
+import motolinkLogo from "../pictures/public/motolink-new-logo.svg";
 
 interface LoginChoicePageProps {
   onChooseCustomer: () => void;
@@ -31,11 +31,11 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
       onClick={onBack}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 hover:text-white transition"
+      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-900 rounded-xl text-white shadow-sm transition"
       whileHover={{ scale: 1.05, x: -4 }}
     >
       <Home size={18} />
-      <span className="hidden sm:inline text-sm font-medium">Home</span>
+      <span className="hidden sm:inline text-sm font-semibold">Home</span>
     </motion.button>
 
     <motion.div
@@ -44,15 +44,16 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
       className="w-full max-w-4xl"
     >
       <div className="text-center mb-12">
-        <motion.img
-          src={motolinkLogo}
-          alt="Motolink Autoshop Clientele logo"
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="h-20 w-60 object-contain mx-auto mb-4 sm:w-72"
-        />
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">MOTOLINK AUTOSHOP CLIENTELE</h1>
+        <div className="mx-auto mb-6 flex h-32 w-[36rem] max-w-full items-center justify-center overflow-hidden">
+          <motion.img
+            src={motolinkLogo}
+            alt="Motolink Autoshop Clientele logo"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="h-full w-auto object-contain"
+          />
+        </div>
         <p className="text-slate-500">Select your portal</p>
       </div>
 

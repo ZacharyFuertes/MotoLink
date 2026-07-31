@@ -268,10 +268,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           onClick={onHome}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:text-slate-900 shadow-sm transition-all z-30"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-all z-30"
           whileHover={{ scale: 1.05, x: 4 }}
         >
-          <span className="hidden sm:inline text-sm font-medium">Home</span>
+          <span className="hidden sm:inline text-sm font-semibold">Home</span>
           <Home size={18} />
         </motion.button>
       )}

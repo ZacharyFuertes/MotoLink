@@ -69,14 +69,14 @@ const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)]">
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-100/70 via-white/50 to-emerald-100/60" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-100/70 via-white/50 to-slate-200/60" />
       <div className="relative flex h-full min-h-[360px] flex-col justify-between">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-slate-900">Interactive map</p>
             <p className="text-xs text-slate-500">Your location unlocks a live 2km radius view.</p>
           </div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onRequestLocation} className="flex items-center gap-2 rounded-xl bg-[#fffdf7] px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-[#f6f0e4]">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onRequestLocation} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100">
             <LocateFixed size={16} /> {locationGranted ? "Location enabled" : "Use my location"}
           </motion.button>
         </div>
@@ -93,7 +93,7 @@ const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect
             </div>
           )}
         </div>
-        <p className="rounded-xl bg-[#fffdf7]/85 p-3 text-xs text-slate-600 backdrop-blur">
+        <p className="rounded-xl bg-white/85 p-3 text-xs text-slate-600 backdrop-blur">
           {locationGranted ? "Shops are ordered by approximate distance from your location within a 2km service radius." : "Enable location to unlock the map view and distance sorting."}
         </p>
       </div>

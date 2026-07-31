@@ -9,7 +9,7 @@ interface ShopCardProps {
 }
 
 const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => (
-  <article className="rounded-2xl border border-[#e6dbc8] bg-[#fffdf7] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+  <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
     <div className="flex items-start gap-4">
       <img src={shop.logo_url || "/logo.png"} alt={`${shop.name} logo`} className="h-14 w-14 rounded-xl border border-slate-100 object-contain p-1" />
       <div className="min-w-0 flex-1">

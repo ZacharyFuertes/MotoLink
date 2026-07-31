@@ -119,7 +119,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
       <button
         onClick={prevSlide}
         onMouseEnter={() => setIsAutoPlay(false)}
-        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-moto-dark/80 sm:bg-moto-dark/60 hover:bg-moto-accent-orange text-white transition-all duration-300 opacity-0 group-hover:opacity-100 backdrop-blur-none sm:backdrop-blur-sm"
+        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-slate-900/80 sm:bg-slate-900/60 hover:bg-slate-700 text-white transition-all duration-300 opacity-0 group-hover:opacity-100 backdrop-blur-none sm:backdrop-blur-sm"
       >
         <ChevronLeft size={28} />
       </button>
@@ -127,7 +127,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
       <button
         onClick={nextSlide}
         onMouseEnter={() => setIsAutoPlay(false)}
-        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-moto-dark/80 sm:bg-moto-dark/60 hover:bg-moto-accent-orange text-white transition-all duration-300 opacity-0 group-hover:opacity-100 backdrop-blur-none sm:backdrop-blur-sm"
+        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-40 p-3 rounded-full bg-slate-900/80 sm:bg-slate-900/60 hover:bg-slate-700 text-white transition-all duration-300 opacity-0 group-hover:opacity-100 backdrop-blur-none sm:backdrop-blur-sm"
       >
         <ChevronRight size={28} />
       </button>
@@ -143,7 +143,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
             }}
             className={`h-3 rounded-full transition-all duration-300 ${
               idx === current
-                ? "w-12 bg-moto-accent-orange"
+                ? "w-12 bg-slate-900"
                 : "w-3 bg-white/40 hover:bg-white/60"
             }`}
             whileHover={{ scale: 1.2 }}
@@ -154,7 +154,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({
       {/* Auto-play indicator */}
       <div className="absolute top-24 right-8 z-40 text-sm text-gray-400 flex items-center gap-2">
         <div
-          className={`w-2 h-2 rounded-full ${isAutoPlay ? "bg-moto-accent-neon animate-pulse" : "bg-gray-600"}`}
+          className={`w-2 h-2 rounded-full ${isAutoPlay ? "bg-slate-400 animate-pulse" : "bg-slate-600"}`}
         />
       </div>
       

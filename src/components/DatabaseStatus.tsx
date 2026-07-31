@@ -47,6 +47,8 @@ export const DatabaseStatus: React.FC = () => {
     };
   }, []);
 
+  if (!import.meta.env.DEV) return null;
+
   const getColor = () => {
     switch (status) {
       case "connected":
