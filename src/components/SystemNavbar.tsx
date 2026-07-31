@@ -14,10 +14,12 @@ import {
   Clock,
   MessageSquare,
   ShoppingBag,
+  AlertTriangle,
+  Store,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { AppPage, getPagesByRole } from "../utils/roleAccess";
+import { AppPage, getPagesByRole, getRoleLabel } from "../utils/roleAccess";
 
 interface NavbarProps {
   currentPage: string;
@@ -117,11 +119,25 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       tooltip: "Owner only",
     },
     {
+      id: "shop-settings",
+      label: "Shop Profile",
+      icon: Store,
+      requiredRole: ["owner"],
+      tooltip: "Edit your shop's public details",
+    },
+    {
       id: "mechanic-availability",
       label: "Manage Mechanics",
       icon: Clock,
       requiredRole: ["owner"],
       tooltip: "Set mechanic availability",
+    },
+    {
+      id: "low-stock",
+      label: "Low Stock",
+      icon: AlertTriangle,
+      requiredRole: ["owner", "admin"],
+      tooltip: "Parts at or below reorder level",
     },
     {
       id: "browse-parts",
@@ -289,7 +305,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                     {user.name}
                   </p>
                   <p className="text-[#6b6b6b] text-[8px] uppercase font-bold tracking-widest leading-none">
-                    {user.role}
+                    {getRoleLabel(user.role)}
                   </p>
                 </div>
               </div>

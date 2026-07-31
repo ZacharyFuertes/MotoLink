@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import AccessDenied from "../components/AccessDenied";
 import AddMechanicModal from "../components/AddMechanicModal";
-import { Users } from "lucide-react";
+import { Users, Store } from "lucide-react";
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -17,15 +17,21 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     return <AccessDenied requestedPage="settings" onNavigate={onNavigate} />;
   }
 
+  const handleOpenShopSettings = () => {
+    if (onNavigate) onNavigate("shop-settings");
+  };
+
   return (
-    <div className="min-h-screen bg-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-[#f5f5f5] p-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-5xl mx-auto"
       >
-        <h1 className="text-4xl font-bold text-white mb-1">System Settings</h1>
-        <p className="text-slate-400 mb-10">
+        <h1 className="text-2xl font-bold text-slate-800 mb-1">
+          System Settings
+        </h1>
+        <p className="text-slate-500 mb-10">
           Owner-only system configuration and monitoring.
         </p>
 
@@ -33,17 +39,37 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
           <motion.div
             whileHover={{ y: -4 }}
-            className="bg-slate-800 p-6 rounded-xl border border-slate-700 hover:border-blue-500/60 cursor-pointer transition-colors"
+            className="bg-white p-6 rounded-xl border border-slate-200 hover:border-violet-500/60 cursor-pointer transition-colors shadow-sm"
             onClick={() => setShowInviteModal(true)}
           >
-            <div className="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center mb-4">
               <Users size={24} />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Staff Management</h3>
-            <p className="text-slate-400 text-sm">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">
+              Staff Management
+            </h3>
+            <p className="text-slate-500 text-sm">
               Invite mechanics to join the system and manage their access.
             </p>
           </motion.div>
+
+          {user.role === "owner" && (
+            <motion.div
+              whileHover={{ y: -4 }}
+              className="bg-white p-6 rounded-xl border border-slate-200 hover:border-violet-500/60 cursor-pointer transition-colors shadow-sm"
+              onClick={handleOpenShopSettings}
+            >
+              <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center mb-4">
+                <Store size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                Shop Profile
+              </h3>
+              <p className="text-slate-500 text-sm">
+                Edit the details customers see on the MotoLink landing page.
+              </p>
+            </motion.div>
+          )}
         </div>
       </motion.div>
 

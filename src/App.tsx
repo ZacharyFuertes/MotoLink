@@ -17,6 +17,7 @@ import DatabaseStatus from "./components/DatabaseStatus";
 import AccessDenied from "./components/AccessDenied";
 import Dashboard from "./pages/Dashboard";
 import AdminPlatformDashboard from "./pages/AdminPlatformDashboard";
+import OwnerPlatformDashboard from "./pages/OwnerPlatformDashboard";
 import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
 
@@ -25,12 +26,15 @@ import MechanicPortal from "./pages/MechanicPortal";
 import MechanicDashboard from "./pages/MechanicDashboard";
 import AdminServicesPage from "./pages/AdminServicesPage";
 import BrowsePartsPage from "./pages/BrowsePartsPage";
+import LowStockPage from "./pages/LowStockPage";
 
 import SettingsPage from "./pages/SettingsPage";
+import ShopSettingsPage from "./pages/ShopSettingsPage";
 import AdminMechanicAvailability from "./pages/AdminMechanicAvailability";
 import LoginPage from "./pages/LoginPage";
 import MechanicLoginPage from "./pages/MechanicLoginPage";
-import OwnerLoginPage from "./pages/OwnerLoginPage";
+import ShopOwnerLoginPage from "./pages/ShopOwnerLoginPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import LoginChoicePage from "./pages/LoginChoicePage";
 import UpdatePartsPage from "./pages/UpdatePartsPage";
 
@@ -43,6 +47,7 @@ import ReceiptModal from "./components/ReceiptModal";
 import CustomerPortalModal from "./components/CustomerPortalModal";
 import CustomerSettingsModal from "./components/CustomerSettingsModal";
 import ServiceHistoryModal from "./components/ServiceHistoryModal";
+import ShopDetailPage from "./pages/ShopDetailPage";
 import { ShopSearchResult } from "./types/shop";
 
 type PageType = AppPage;
@@ -53,7 +58,9 @@ type LoginType =
   | "customer"
   | "customer-signup"
   | "mechanic"
-  | "owner";
+  | "owner"
+  | "admin"
+  | "owner-signup";
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isLoading, logout } = useAuth();
@@ -77,10 +84,19 @@ const AppContent: React.FC = () => {
   const [selectedShopId, setSelectedShopId] = useState<string | undefined>(
     () => localStorage.getItem("motolink_selected_shop_id") || undefined,
   );
+  const [viewingShopId, setViewingShopId] = useState<string | null>(null);
 
   const selectShop = (shop: ShopSearchResult) => {
     localStorage.setItem("motolink_selected_shop_id", shop.id);
     setSelectedShopId(shop.id);
+  };
+
+  const openShopDetail = (shop: ShopSearchResult) => {
+    setViewingShopId(shop.id);
+  };
+
+  const closeShopDetail = () => {
+    setViewingShopId(null);
   };
 
   /**
@@ -205,11 +221,17 @@ const AppContent: React.FC = () => {
   // If not authenticated, show landing page or login
   if (!isAuthenticated) {
     const handleLoginSuccess = () => {
-      // Customers go to the splash/landing page
-      // Mechanics/owners go to their default dashboard via the role validation useEffect
-      navigateTo("landing");
-      if (localStorage.getItem("motolink_selected_shop_id")) {
-        setShowBookingModal(true);
+      // Role-based destination: owners/mechanics go straight to their own
+      // dashboard; customers go to the splash/landing page
+      if (user?.role === "owner") {
+        navigateTo("dashboard");
+      } else if (user?.role === "mechanic") {
+        navigateTo("mechanic-dashboard");
+      } else {
+        navigateTo("landing");
+        if (localStorage.getItem("motolink_selected_shop_id")) {
+          setShowBookingModal(true);
+        }
       }
     };
 
@@ -220,7 +242,18 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
-        {currentLoginType === "landing" ? (
+        {viewingShopId ? (
+          <ShopDetailPage
+            shopId={viewingShopId}
+            onBack={closeShopDetail}
+            onConnect={(shopId) => {
+              localStorage.setItem("motolink_selected_shop_id", shopId);
+              setSelectedShopId(shopId);
+              closeShopDetail();
+              handleOpenLogin();
+            }}
+          />
+        ) : currentLoginType === "landing" ? (
           <MotolinkLanding
             isAuthenticated={false}
             onLoginRequired={(shop) => {
@@ -228,12 +261,15 @@ const AppContent: React.FC = () => {
               handleOpenLogin();
             }}
             onBook={() => handleOpenLogin()}
+            onViewShop={openShopDetail}
           />
         ) : currentLoginType === "choice" ? (
           <LoginChoicePage
             onChooseCustomer={() => setCurrentLoginType("customer")}
             onChooseMechanic={() => setCurrentLoginType("mechanic")}
             onChooseOwner={() => setCurrentLoginType("owner")}
+            onChooseRegister={() => setCurrentLoginType("owner-signup")}
+            onChooseAdmin={() => setCurrentLoginType("admin")}
             onBack={() => setCurrentLoginType("landing")}
           />
         ) : currentLoginType === "customer-signup" ? (
@@ -255,8 +291,21 @@ const AppContent: React.FC = () => {
             onBack={() => setCurrentLoginType("choice")}
             onHome={() => setCurrentLoginType("landing")}
           />
+        ) : currentLoginType === "admin" ? (
+          <AdminLoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onBack={() => setCurrentLoginType("choice")}
+            onHome={() => setCurrentLoginType("landing")}
+          />
+        ) : currentLoginType === "owner-signup" ? (
+          <ShopOwnerLoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onBack={() => setCurrentLoginType("choice")}
+            onHome={() => setCurrentLoginType("landing")}
+            initialIsSignup={true}
+          />
         ) : (
-          <OwnerLoginPage
+          <ShopOwnerLoginPage
             onLoginSuccess={handleLoginSuccess}
             onBack={() => setCurrentLoginType("choice")}
             onHome={() => setCurrentLoginType("landing")}
@@ -285,61 +334,76 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
-        <MotolinkLanding
-          isAuthenticated={true}
-          onLoginRequired={() => {}}
-          onBook={(shop) => {
-            selectShop(shop);
-            setShowBookingModal(true);
-          }}
-          onLogout={() => {
-            logout().catch((error) => {
-              console.error("Logout failed:", error);
-              window.location.href = "/";
-            });
-          }}
-        />
-        <BookAppointmentModal
-          isOpen={showBookingModal}
-          onClose={() => setShowBookingModal(false)}
-          shopId={selectedShopId}
-          onAppointmentBooked={(appointmentData) => {
-            setSelectedReceipt(appointmentData);
-            setShowReceiptModal(true);
-            setShowBookingModal(false);
-          }}
-        />
-        <ViewAppointmentsModal
-          isOpen={showAppointmentsModal}
-          onClose={() => setShowAppointmentsModal(false)}
-        />
-        <BrowsePartsModal
-          isOpen={showPartsModal}
-          onClose={() => setShowPartsModal(false)}
-          onLoginRedirect={() => {}}
-        />
-        <ReceiptModal
-          isOpen={showReceiptModal}
-          onClose={() => setShowReceiptModal(false)}
-          receipt={selectedReceipt}
-        />
-        <CustomerPortalModal
-          isOpen={showAccountModal}
-          onClose={() => setShowAccountModal(false)}
-        />
-        <CustomerSettingsModal
-          isOpen={showSettingsModal}
-          onClose={() => setShowSettingsModal(false)}
-        />
-        <ServiceHistoryModal
-          isOpen={showHistoryModal}
-          onClose={() => setShowHistoryModal(false)}
-        />
-        <AIChatModal
-          isOpen={showAIChat}
-          onClose={() => setShowAIChat(false)}
-          userRole={user?.role}
-        />
+        {viewingShopId ? (
+          <ShopDetailPage
+            shopId={viewingShopId}
+            onBack={closeShopDetail}
+            onConnect={(shopId) => {
+              selectShop({ id: shopId } as ShopSearchResult);
+              closeShopDetail();
+              setShowBookingModal(true);
+            }}
+          />
+        ) : (
+          <>
+            <MotolinkLanding
+              isAuthenticated={true}
+              onLoginRequired={() => {}}
+              onBook={(shop) => {
+                selectShop(shop);
+                setShowBookingModal(true);
+              }}
+              onLogout={() => {
+                logout().catch((error) => {
+                  console.error("Logout failed:", error);
+                  window.location.href = "/";
+                });
+              }}
+              onViewShop={openShopDetail}
+            />
+            <BookAppointmentModal
+              isOpen={showBookingModal}
+              onClose={() => setShowBookingModal(false)}
+              shopId={selectedShopId}
+              onAppointmentBooked={(appointmentData) => {
+                setSelectedReceipt(appointmentData);
+                setShowReceiptModal(true);
+                setShowBookingModal(false);
+              }}
+            />
+            <ViewAppointmentsModal
+              isOpen={showAppointmentsModal}
+              onClose={() => setShowAppointmentsModal(false)}
+            />
+            <BrowsePartsModal
+              isOpen={showPartsModal}
+              onClose={() => setShowPartsModal(false)}
+              onLoginRedirect={() => {}}
+            />
+            <ReceiptModal
+              isOpen={showReceiptModal}
+              onClose={() => setShowReceiptModal(false)}
+              receipt={selectedReceipt}
+            />
+            <CustomerPortalModal
+              isOpen={showAccountModal}
+              onClose={() => setShowAccountModal(false)}
+            />
+            <CustomerSettingsModal
+              isOpen={showSettingsModal}
+              onClose={() => setShowSettingsModal(false)}
+            />
+            <ServiceHistoryModal
+              isOpen={showHistoryModal}
+              onClose={() => setShowHistoryModal(false)}
+            />
+            <AIChatModal
+              isOpen={showAIChat}
+              onClose={() => setShowAIChat(false)}
+              userRole={user?.role}
+            />
+          </>
+        )}
       </div>
     );
   }
@@ -356,19 +420,50 @@ const AppContent: React.FC = () => {
     "customers",
     "services",
     "mechanic-availability",
+    "low-stock",
     "settings",
   ];
   const isAdminLayout = isAdminRole && adminLayoutPages.includes(currentPage);
 
+  const ownerLayoutPages = [
+    "dashboard",
+    "shop-settings",
+    "inventory",
+    "update-parts",
+    "appointments",
+    "customers",
+    "services",
+    "mechanic-availability",
+    "low-stock",
+    "settings",
+  ];
+  const isOwnerLayout =
+    user?.role === "owner" && ownerLayoutPages.includes(currentPage);
+
   // If user tries to access unauthorized page, show AccessDenied
   if (user && !allowedPages.includes(currentPage)) {
+    const deniedContent = (
+      <AccessDenied
+        requestedPage={currentPage}
+        onNavigate={(page: string) => handlePageChange(page as AppPage)}
+      />
+    );
     return (
       <div className="min-h-screen bg-[#f5f5f5]">
         {isAdminRole ? (
           <AdminPlatformDashboard
             onNavigate={(page: string) => handlePageChange(page as AppPage)}
             currentPage={currentPage}
-          />
+          >
+            {deniedContent}
+          </AdminPlatformDashboard>
+        ) : user?.role === "owner" ? (
+          <OwnerPlatformDashboard
+            onNavigate={(page: string) => handlePageChange(page as AppPage)}
+            currentPage={currentPage}
+          >
+            {deniedContent}
+          </OwnerPlatformDashboard>
         ) : (
           <>
             <SystemNavbar
@@ -377,10 +472,7 @@ const AppContent: React.FC = () => {
               onAIChat={() => setShowAIChat(true)}
             />
             <main className="pt-20 px-4 sm:px-6 lg:px-8 pb-12">
-              <AccessDenied
-                requestedPage={currentPage}
-                onNavigate={(page: string) => handlePageChange(page as AppPage)}
-              />
+              {deniedContent}
             </main>
             <AIChatModal
               isOpen={showAIChat}
@@ -432,6 +524,11 @@ const AppContent: React.FC = () => {
               onNavigate={(page: string) => handlePageChange(page as PageType)}
             />
           )}
+          {currentPage === "low-stock" && (
+            <LowStockPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
           {currentPage === "settings" && (
             <SettingsPage
               onNavigate={(page: string) => handlePageChange(page as PageType)}
@@ -439,6 +536,71 @@ const AppContent: React.FC = () => {
           )}
         </AdminPlatformDashboard>
         {user?.role === "admin" && (
+          <AdminChatbot
+            isOpen={showAIChat}
+            onClose={() => setShowAIChat(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Owner layout: sidebar persists across all owner pages
+  if (isOwnerLayout) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f5]">
+        <DatabaseStatus />
+        <OwnerPlatformDashboard
+          onNavigate={(page: string) => handlePageChange(page as PageType)}
+          currentPage={currentPage}
+        >
+          {currentPage === "shop-settings" && (
+            <ShopSettingsPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "inventory" && (
+            <InventoryPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "update-parts" && (
+            <UpdatePartsPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "appointments" && (
+            <AppointmentCalendarPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "customers" && (
+            <CustomersListPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "services" && (
+            <AdminServicesPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "mechanic-availability" && (
+            <AdminMechanicAvailability
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "low-stock" && (
+            <LowStockPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+          {currentPage === "settings" && (
+            <SettingsPage
+              onNavigate={(page: string) => handlePageChange(page as PageType)}
+            />
+          )}
+        </OwnerPlatformDashboard>
+        {user?.role === "owner" && (
           <AdminChatbot
             isOpen={showAIChat}
             onClose={() => setShowAIChat(false)}
@@ -481,6 +643,51 @@ const AppContent: React.FC = () => {
         {currentPage === "mechanic-dashboard" && <MechanicDashboard />}
         {currentPage === "browse-parts" && (
           <BrowsePartsPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "low-stock" && (
+          <LowStockPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "inventory" && (
+          <InventoryPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "update-parts" && (
+          <UpdatePartsPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "appointments" && (
+          <AppointmentCalendarPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "customers" && (
+          <CustomersListPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "services" && (
+          <AdminServicesPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "mechanic-availability" && (
+          <AdminMechanicAvailability
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "settings" && (
+          <SettingsPage
+            onNavigate={(page: string) => handlePageChange(page as PageType)}
+          />
+        )}
+        {currentPage === "shop-settings" && (
+          <ShopSettingsPage
             onNavigate={(page: string) => handlePageChange(page as PageType)}
           />
         )}

@@ -35,6 +35,7 @@ import {
   Package,
   ClipboardList,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -114,6 +115,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     { id: "appointments", label: "Appointments", icon: Calendar },
     { id: "customers", label: "Customers", icon: Users },
     { id: "services", label: "Services", icon: Wrench },
+    { id: "low-stock", label: "Low Stock", icon: AlertTriangle },
     { id: "mechanic-availability", label: "Mechanic Schedule", icon: Clock },
     { id: "settings", label: "Settings", icon: Settings },
   ];

@@ -15,7 +15,7 @@ interface Availability {
   id: string
   mechanic_id: string
   mechanic_name: string
-  day_of_week: string
+  day_of_week: number | string
   start_time: string
   end_time: string
   is_available: boolean
@@ -78,13 +78,18 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
       setMechanics(mechanicsData || [])
 
-      // Fetch availability (table may not exist yet — gracefully handle 404)
+      // Fetch availability for this shop's mechanics (table may not exist yet — gracefully handle 404)
       let availabilityData: any[] = []
       try {
-        const { data, error: availabilityError } = await supabase
+        const mechanicIds = (mechanicsData || []).map((m: any) => m.id)
+        let availQuery = supabase
           .from('mechanic_availability')
           .select('*')
           .order('day_of_week', { ascending: true })
+        if (mechanicIds.length > 0) {
+          availQuery = availQuery.in('mechanic_id', mechanicIds)
+        }
+        const { data, error: availabilityError } = await availQuery
 
         if (availabilityError && availabilityError.code !== 'PGRST116') {
           console.warn('Could not fetch mechanic_availability:', availabilityError.message)
@@ -124,10 +129,11 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
         .insert([
           {
             mechanic_id: formData.mechanic_id,
-            day_of_week: formData.day_of_week,
+            day_of_week: daysOfWeek.indexOf(formData.day_of_week),
             start_time: formData.start_time,
             end_time: formData.end_time,
             is_available: true,
+            shop_id: user?.shop_id || null,
           },
         ])
         .select()
@@ -475,7 +481,9 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                     <div>
                       <h3 className="text-gray-900 font-bold uppercase tracking-widest text-sm flex items-center gap-2 mb-1">
                         <Calendar className="w-4 h-4 text-indigo-600" />
-                        {slot.day_of_week}
+                        {typeof slot.day_of_week === "number"
+                          ? daysOfWeek[slot.day_of_week] || slot.day_of_week
+                          : slot.day_of_week}
                       </h3>
                       <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest">
                         Mechanic: <span className="text-gray-700">{slot.mechanic_name}</span>

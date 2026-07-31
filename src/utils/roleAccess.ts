@@ -16,7 +16,9 @@ export type AppPage =
   | "mechanic-dashboard"
   | "mechanic-availability"
   | "services"
-  | "settings";
+  | "low-stock"
+  | "settings"
+  | "shop-settings";
 
 // Role-based mapping (central source of truth for allowed pages per role)
 export const rolePagesMapping: Record<UserRole, AppPage[]> = {
@@ -33,7 +35,9 @@ export const rolePagesMapping: Record<UserRole, AppPage[]> = {
     "customers",
     "services",
     "mechanic-availability",
+    "low-stock",
     "settings",
+    "shop-settings",
   ],
   admin: [
     "admin-dashboard",
@@ -45,6 +49,7 @@ export const rolePagesMapping: Record<UserRole, AppPage[]> = {
     "customers",
     "services",
     "mechanic-availability",
+    "low-stock",
     "settings",
   ],
 };
@@ -62,4 +67,19 @@ export const getDefaultPageByRole = (role?: string): AppPage => {
 export const isPageAllowedForRole = (page: AppPage, role?: string): boolean => {
   const allowed = getPagesByRole(role);
   return allowed.includes(page);
+};
+
+export const getRoleLabel = (role?: string): string => {
+  switch (role) {
+    case "owner":
+      return "Shop Owner";
+    case "admin":
+      return "Platform Admin";
+    case "mechanic":
+      return "Mechanic";
+    case "customer":
+      return "Customer";
+    default:
+      return role || "";
+  }
 };

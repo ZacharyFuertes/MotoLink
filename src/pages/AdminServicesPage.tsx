@@ -27,12 +27,16 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
   useEffect(() => {
     fetchServices();
-  }, []);
+  }, [user?.shop_id, user?.role]);
 
   const fetchServices = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from("services_pricing").select("*").order("price", { ascending: true });
+      let query = supabase.from("services_pricing").select("*");
+      if (user?.role === "owner" && user?.shop_id) {
+        query = query.eq("shop_id", user.shop_id);
+      }
+      const { data, error } = await query.order("price", { ascending: true });
       if (error) {
         console.warn("Could not fetch services, table might not exist yet.", error);
         return;
@@ -66,16 +70,24 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
   const handleSave = async () => {
     if (!editForm.label || editForm.price === undefined) return;
-    
+
+    const isNew = editingId === "new";
+    const payload: Record<string, unknown> = {
+      label: editForm.label,
+      description: editForm.description,
+      icon: editForm.icon,
+      price: Number(editForm.price),
+      is_active: editForm.is_active,
+    };
+    if (user?.role === "owner" && user?.shop_id) {
+      payload.shop_id = user.shop_id;
+    }
+    if (!isNew) payload.id = editForm.id;
+
     try {
-      const { error } = await supabase.from("services_pricing").upsert({
-        id: editForm.id,
-        label: editForm.label,
-        description: editForm.description,
-        icon: editForm.icon,
-        price: Number(editForm.price),
-        is_active: editForm.is_active,
-      });
+      const { error } = await supabase
+        .from("services_pricing")
+        .upsert(payload);
 
       if (error) throw error;
       
@@ -92,7 +104,11 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this service?")) return;
     try {
-      const { error } = await supabase.from("services_pricing").delete().eq("id", id);
+      let query = supabase.from("services_pricing").delete().eq("id", id);
+      if (user?.role === "owner" && user?.shop_id) {
+        query = query.eq("shop_id", user.shop_id);
+      }
+      const { error } = await query;
       if (error) throw error;
       fetchServices();
     } catch (err) {
