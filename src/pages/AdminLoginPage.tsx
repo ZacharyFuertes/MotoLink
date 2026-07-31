@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  Mail,
-  Lock,
-  Loader,
-  ArrowLeft,
-  Home,
-} from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import mechanicIcon from "../pictures/icons/mechanic.png";
+import adminIcon from "../pictures/icons/admin.png";
 import ErrorModal from "../components/ErrorModal";
 
-interface MechanicLoginPageProps {
+interface AdminLoginPageProps {
   onLoginSuccess: () => void;
   onBack: () => void;
   onHome?: () => void;
 }
 
-const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
+const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   onLoginSuccess,
   onBack,
   onHome,
@@ -59,24 +53,27 @@ const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
         }
       }
 
+      console.log("🔥 Setting Error State to:", errorMessage);
       setError(errorMessage);
       setLoading(false);
     }
   };
 
-  // Poll for user role after login completes
+  // Check role after login completes
   useEffect(() => {
     if (!loginAttempted || isLoading || !user) {
       return;
     }
 
-    if (user.role !== "mechanic") {
+    if (user.role !== "admin") {
       let portalURL = "";
 
       if (user.role === "customer") {
         portalURL = "Your account is registered as a Customer. Please use the Customer Portal to login.";
+      } else if (user.role === "mechanic") {
+        portalURL = "Your account is registered as a Mechanic. Please use the Mechanic Portal to login.";
       } else if (user.role === "owner") {
-        portalURL = "Your account is registered as Admin/Owner. Please use the Admin Portal to login.";
+        portalURL = "Your account is registered as a Shop Owner. Please use the Shop Owner Portal to login.";
       }
 
       setError(`❌ Wrong Portal! ${portalURL}`);
@@ -103,7 +100,7 @@ const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
       {/* Error Modal Component */}
       <ErrorModal
         isOpen={!!error}
-        title="Mechanic Login Failed"
+        title="Admin Login Failed"
         message={error}
         onClose={() => setError("")}
         onTryAgain={() => {
@@ -157,8 +154,8 @@ const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
             >
               <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5 bg-slate-100">
                 <img
-                  src={mechanicIcon}
-                  alt="Mechanic Icon"
+                  src={adminIcon}
+                  alt="Admin Icon"
                   className="w-10 h-10 object-contain brightness-0 opacity-60"
                 />
               </div>
@@ -172,61 +169,26 @@ const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
                   Welcome back
                 </h1>
                 <p className="text-slate-500 text-sm">
-                  Sign in to your account
+                  Sign in to the MotoLink Admin Console
                 </p>
               </motion.div>
             </motion.div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                 <div className="relative">
                   <Mail size={18} className={iconClass} />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Email"
-                    required
-                    className={inputClass}
-                  />
+                  <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Email" required className={inputClass} />
                 </div>
               </motion.div>
-
-              {/* Password */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 <div className="relative">
                   <Lock size={18} className={iconClass} />
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Password"
-                    required
-                    className={inputClass}
-                  />
+                  <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                 </div>
               </motion.div>
-
-              {/* Submit Button */}
-              <motion.button
-                type="submit"
-                disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading && <Loader size={18} className="animate-spin" />}
                 Sign In
               </motion.button>
@@ -238,4 +200,4 @@ const MechanicLoginPage: React.FC<MechanicLoginPageProps> = ({
   );
 };
 
-export default MechanicLoginPage;
+export default AdminLoginPage;

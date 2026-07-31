@@ -60,11 +60,24 @@ export const DatabaseStatus: React.FC = () => {
     }
   };
 
+  const getLabel = () => {
+    switch (status) {
+      case "connected":
+        return "System online";
+      case "testing":
+        return "Checking connection…";
+      case "error":
+        return "Connection error";
+      default:
+        return "Checking connection…";
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="fixed top-6 right-6 z-50"
+      className="fixed top-6 right-6 z-50 flex items-center gap-2 bg-white/90 backdrop-blur border border-slate-200 rounded-full px-3 py-1.5 shadow-sm"
     >
       {status === "testing" ? (
         <motion.div
@@ -85,6 +98,9 @@ export const DatabaseStatus: React.FC = () => {
           style={{ backgroundColor: getColor() }}
         />
       )}
+      <span className="text-[11px] text-slate-500 font-medium">
+        {getLabel()}
+      </span>
     </motion.div>
   );
 };

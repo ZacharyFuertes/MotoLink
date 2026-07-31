@@ -1,27 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, Home, Store } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import adminIcon from "../pictures/icons/admin.png";
+import { getRoleLabel } from "../utils/roleAccess";
 import ErrorModal from "../components/ErrorModal";
 
-interface OwnerLoginPageProps {
+interface ShopOwnerLoginPageProps {
   onLoginSuccess: () => void;
   onBack: () => void;
   onHome?: () => void;
+  initialIsSignup?: boolean;
 }
 
-const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
+const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
   onHome,
+  initialIsSignup = false,
 }) => {
-  const { login, user, isLoading } = useAuth();
+  const { login, user, isLoading, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [isSignup, setIsSignup] = useState(false);
+  const [isSignup, setIsSignup] = useState(initialIsSignup);
+  const roleCheckedRef = useRef(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -49,6 +52,8 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
 
     try {
       await login(formData.email, formData.password);
+      await refreshUser();
+      roleCheckedRef.current = false;
       setLoginAttempted(true);
     } catch (err) {
       let errorMessage = "Authentication failed. Please try again.";
@@ -82,36 +87,71 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
       if (authError) throw authError;
       if (!authData?.user?.id) throw new Error("Signup failed");
 
-      // Create the shop
+      if (!authData.session) {
+        throw new Error(
+          "Account created — please check your email to confirm your address, then sign in with the Shop Owner portal.",
+        );
+      }
+
+      // Create the user profile FIRST so the shops.owner_id FK (→ users.id)
+      // is satisfied when the shop is inserted below. Creating the shop before
+      // the users row causes a 409 FK violation whenever the auth listener's
+      // async profile-create loses the race (it usually does) — which left
+      // accounts stuck at role 'customer'. shop_id is intentionally omitted
+      // here because users.shop_id → shops.id must exist first.
+      const { error: profileError } = await supabase
+        .from("users")
+        .upsert(
+          {
+            id: authData.user.id,
+            email: signupData.email,
+            name: signupData.name,
+            role: "owner",
+            phone: signupData.shop_phone || null,
+          },
+          { onConflict: "id" },
+        );
+      if (profileError) throw profileError;
+
+      // Create the shop (owner_id FK now resolves to the users row above)
       const { data: shopData, error: shopError } = await supabase
         .from("shops")
         .insert({
           name: signupData.shop_name,
+          slug: `${signupData.shop_name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`,
           description: signupData.shop_description || null,
-          address: signupData.shop_address || null,
-          city: signupData.shop_city || null,
+          address: signupData.shop_address || "",
+          city: signupData.shop_city || "",
           phone: signupData.shop_phone || null,
           email: signupData.email,
           owner_id: authData.user.id,
           is_active: true,
         })
         .select("id")
-        .single();
+        .maybeSingle();
       if (shopError) throw shopError;
+      if (!shopData?.id) {
+        throw new Error(
+          "Could not create the shop. The RLS INSERT policy for shops may not be applied — run the migration in Supabase.",
+        );
+      }
 
-      // Create the user profile with shop_id
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user.id,
-        email: signupData.email,
-        name: signupData.name,
-        role: "owner",
-        phone: signupData.shop_phone || null,
-        shop_id: shopData.id,
-      });
-      if (profileError) throw profileError;
+      // Link the owner to their shop (belt-and-suspenders: forces the role too
+      // regardless of what any parallel auth flow may have written)
+      const { error: roleFixError } = await supabase
+        .from("users")
+        .update({ role: "owner", shop_id: shopData.id })
+        .eq("id", authData.user.id);
+      if (roleFixError) throw roleFixError;
 
       // Log the new owner in
       await login(signupData.email, formData.password);
+      await refreshUser();
+      roleCheckedRef.current = false;
       setLoginAttempted(true);
     } catch (err) {
       let errorMessage = "Registration failed. Please try again.";
@@ -133,13 +173,48 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
       return;
     }
 
-    if (user.role !== "owner" && user.role !== "admin") {
+    if (user.role !== "owner" && !roleCheckedRef.current) {
+      // The role may be stale (the auth listener can race the signup inserts).
+      // Re-fetch the profile once before judging the portal.
+      roleCheckedRef.current = true;
+      refreshUser()
+        .then((fresh) => {
+          if (fresh && fresh.role === "owner") {
+            setLoading(false);
+            setLoginAttempted(false);
+            onLoginSuccess();
+            return;
+          }
+          if (fresh) {
+            setError(
+              `❌ Wrong Portal! Your account is registered as ${getRoleLabel(fresh.role)}. Please use the correct portal to login.`,
+            );
+            supabase.auth.signOut();
+          } else {
+            setError(
+              "❌ Wrong Portal! We couldn't verify this account's role. Please try again.",
+            );
+          }
+          setLoading(false);
+          setLoginAttempted(false);
+        })
+        .catch(() => {
+          setError("❌ Wrong Portal! We couldn't verify this account's role. Please try again.");
+          setLoading(false);
+          setLoginAttempted(false);
+        });
+      return;
+    }
+
+    if (user.role !== "owner") {
       let portalURL = "";
 
       if (user.role === "customer") {
         portalURL = "Your account is registered as a Customer. Please use the Customer Portal to login.";
       } else if (user.role === "mechanic") {
         portalURL = "Your account is registered as a Mechanic. Please use the Mechanic Portal to login.";
+      } else if (user.role === "admin") {
+        portalURL = "Your account is registered as a Platform Admin. Please use the Admin Portal to login.";
       }
 
       setError(`❌ Wrong Portal! ${portalURL}`);
@@ -157,22 +232,16 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-red-500/70 focus:bg-slate-800/80 transition-all duration-300 text-sm";
+    "w-full pl-11 pr-4 py-3.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 transition-all duration-300 text-sm";
 
-  const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500";
+  const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center p-4">
-      {/* Background decorative elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-red-500/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-red-500/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       {/* Error Modal Component */}
       <ErrorModal
         isOpen={!!error}
-        title="Admin Login Failed"
+        title="Shop Owner Login Failed"
         message={error}
         onClose={() => setError("")}
         onTryAgain={() => {
@@ -186,7 +255,7 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
         onClick={onBack}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 backdrop-blur-sm rounded-xl text-slate-300 hover:text-white transition-all z-30"
+        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:text-slate-900 shadow-sm transition-all z-30"
         whileHover={{ scale: 1.05, x: -4 }}
       >
         <ArrowLeft size={18} />
@@ -199,7 +268,7 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
           onClick={onHome}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="fixed top-6 right-6 flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 backdrop-blur-sm rounded-xl text-slate-300 hover:text-white transition-all z-30"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:text-slate-900 shadow-sm transition-all z-30"
           whileHover={{ scale: 1.05, x: 4 }}
         >
           <span className="hidden sm:inline text-sm font-medium">Home</span>
@@ -214,20 +283,7 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
-        <div
-          className="rounded-2xl border border-slate-700/50 shadow-2xl overflow-hidden"
-          style={{
-            background:
-              "linear-gradient(145deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.98) 100%)",
-            backdropFilter: "blur(20px)",
-          }}
-        >
-          {/* Card inner glow */}
-          <div className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none"
-            style={{
-              background: "radial-gradient(ellipse at top, rgba(239,68,68,0.08) 0%, transparent 60%)",
-            }}
-          />
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
           <div className="relative p-8 sm:p-10">
             {/* Logo */}
@@ -237,12 +293,8 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5 shadow-lg bg-gradient-to-br from-red-600 to-red-400 shadow-red-500/20">
-                <img
-                  src={adminIcon}
-                  alt="Admin Icon"
-                  className="w-10 h-10 object-contain brightness-0 invert drop-shadow-md"
-                />
+              <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5 bg-slate-100">
+                <Store className="w-10 h-10 text-slate-500" />
               </div>
 
               <motion.div
@@ -250,11 +302,11 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-                  {isSignup ? "Open Your Shop" : "Welcome back"}
+                <h1 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">
+                  {isSignup ? "Open your shop" : "Welcome back"}
                 </h1>
-                <p className="text-slate-400 text-sm">
-                  {isSignup ? "Register your shop on MotoLink" : "Sign in to your account"}
+                <p className="text-slate-500 text-sm">
+                  {isSignup ? "Register your shop on MotoLink" : "Sign in to your shop account"}
                 </p>
               </motion.div>
             </motion.div>
@@ -270,7 +322,7 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
                 <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address (optional)" className={inputClass} />
                 <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City (optional)" className={inputClass} />
                 <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Register Shop
                 </motion.button>
@@ -289,7 +341,7 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
                     <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                   </div>
                 </motion.div>
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-lg bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>
@@ -309,4 +361,4 @@ const OwnerLoginPage: React.FC<OwnerLoginPageProps> = ({
   );
 };
 
-export default OwnerLoginPage;
+export default ShopOwnerLoginPage;

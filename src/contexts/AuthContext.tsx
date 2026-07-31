@@ -37,7 +37,7 @@ interface AuthContextType {
   canAccessAdminDashboard: () => boolean;
   canRecordServiceProgress: () => boolean;
   canAccessCustomerPortal: () => boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,7 +66,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
    * Fetch and set user profile from database
    * Runs in background without blocking UI
    */
-  const setUserProfileFromSession = async (userId: string, email?: string) => {
+  const setUserProfileFromSession = async (
+    userId: string,
+    email?: string,
+  ): Promise<User | null> => {
     try {
       const { data: userData, error } = await supabase
         .from("users")
@@ -77,32 +80,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (userData) {
         console.log("✅ [Auth] User profile loaded");
         setUser(userData as User);
-        return;
+        return userData as User;
       }
 
       // User doesn't exist in DB - create profile
       if (error?.code === "PGRST116") {
         console.log("📝 [Auth] Creating user profile");
-        const { data: newUser } = await supabase
+        // Use upsert with ignoreDuplicates so this never clobbers a profile
+        // created by the registration flow (e.g. owner signup) that raced this fetch.
+        // .maybeSingle() returns null instead of a 406 when the row already
+        // exists (0 rows returned by the ignored insert).
+        const { data: newUser, error: insertError } = await supabase
           .from("users")
-          .insert({
-            id: userId,
-            email: email || "unknown",
-            name: email?.split("@")[0] || "User",
-            role: "customer",
-          })
+          .upsert(
+            {
+              id: userId,
+              email: email || "unknown",
+              name: email?.split("@")[0] || "User",
+              role: "customer",
+            },
+            { onConflict: "id", ignoreDuplicates: true },
+          )
           .select()
-          .single();
+          .maybeSingle();
+
+        if (insertError) {
+          console.error("❌ [Auth] Error creating user profile:", insertError);
+          return null;
+        }
 
         if (newUser) {
           console.log("✅ [Auth] User profile created");
           setUser(newUser as User);
+          return newUser as User;
         }
       } else if (error) {
         console.error("❌ [Auth] Error fetching user profile:", error);
       }
+      return null;
     } catch (err) {
       console.error("❌ [Auth] Error setting user profile:", err);
+      return null;
     }
   };
 
@@ -216,6 +234,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       // ✅ FIX: Reset login attempts counter on successful login
       loginAttemptsRef.current = { count: 0, firstAttemptTime: Date.now() };
 
+      // Await the profile fetch so that when login() resolves, `user` reflects
+      // the real role from the DB (not a stale value from an earlier race)
+      await setUserProfileFromSession(data.user.id, data.user.email);
+
       console.log("✅ [Auth] Login successful");
     } catch (err) {
       console.error("❌ [Auth] Login error:", err);
@@ -273,19 +295,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (error) throw error;
       if (!data?.user?.id) throw new Error("Signup failed");
 
-      // Create user profile
-      const { error: profileError } = await supabase.from("users").insert({
-        id: data.user.id,
-        email,
-        name,
-        role,
-        phone: phone || null,
-        address: address || null,
-        shop_id:
-          role === "customer"
-            ? null
-            : crypto.randomUUID?.() || Date.now().toString(),
-      });
+      // Create user profile (upsert: the auth listener may have already created
+      // it during the signUp event — overwrite is fine since role is 'customer' here)
+      const { error: profileError } = await supabase
+        .from("users")
+        .upsert(
+          {
+            id: data.user.id,
+            email,
+            name,
+            role,
+            phone: phone || null,
+            address: address || null,
+            shop_id: null,
+          },
+          { onConflict: "id" },
+        );
 
       if (profileError) throw profileError;
 
@@ -329,10 +354,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const canRecordServiceProgress = (): boolean => user?.role === "mechanic";
   const canAccessCustomerPortal = (): boolean => user?.role === "customer";
 
-  const refreshUser = async () => {
+  const refreshUser = async (): Promise<User | null> => {
     if (user?.id) {
-      await setUserProfileFromSession(user.id, user.email);
+      return await setUserProfileFromSession(user.id, user.email);
     }
+    return null;
   };
 
   const value: AuthContextType = {
