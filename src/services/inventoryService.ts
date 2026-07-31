@@ -27,7 +27,8 @@ export const inventoryService = {
   },
 
   /**
-   * Get low stock parts
+   * Get low stock parts (quantity at or below reorder level)
+   * PostgREST cannot compare two columns, so fetch and filter client-side.
    */
   async getLowStockParts(shopId: string): Promise<Part[]> {
     try {
@@ -35,11 +36,12 @@ export const inventoryService = {
         .from('parts')
         .select('*')
         .eq('shop_id', shopId)
-        .lte('quantity_in_stock', 'reorder_level')
         .order('quantity_in_stock', { ascending: true })
 
       if (error) throw error
-      return data || []
+      return (data || []).filter(
+        (p) => p.quantity_in_stock <= (p.reorder_level || 0),
+      )
     } catch (err) {
       console.error('Error fetching low stock parts:', err)
       return []

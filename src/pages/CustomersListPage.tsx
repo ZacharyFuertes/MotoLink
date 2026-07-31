@@ -10,10 +10,16 @@ import {
   AlertCircle,
   Trash2,
   X,
+  Package,
+  CheckCircle,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  reservationService,
+  Reservation,
+} from "../services/reservationService";
 
 interface Customer {
   id: string;
@@ -40,6 +46,35 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState("");
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [updatingReservation, setUpdatingReservation] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!user?.shop_id) return;
+    reservationService.getShopReservations(user.shop_id).then(setReservations);
+  }, [user?.shop_id]);
+
+  const handleReservationAction = async (
+    reservation: Reservation,
+    action: "confirm" | "fulfill" | "cancel",
+  ) => {
+    setUpdatingReservation(reservation.id);
+    let ok = false;
+    if (action === "confirm") {
+      ok = await reservationService.updateStatus(reservation.id, "confirmed");
+    } else if (action === "fulfill") {
+      ok = await reservationService.fulfillReservation(reservation);
+    } else {
+      ok = await reservationService.updateStatus(reservation.id, "cancelled");
+    }
+    setUpdatingReservation(null);
+    if (ok && user?.shop_id) {
+      const updated = await reservationService.getShopReservations(user.shop_id);
+      setReservations(updated);
+    }
+  };
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -264,6 +299,101 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Pending Reservations */}
+      {reservations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-8"
+        >
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Package size={18} className="text-indigo-600" /> Part
+              Reservations
+            </h2>
+            <span className="text-xs text-gray-500">
+              {reservations.filter((r) => r.status === "pending").length} pending
+            </span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {reservations.map((reservation) => (
+              <div
+                key={reservation.id}
+                className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900">
+                    {reservation.parts?.name || "Part"}
+                    <span className="ml-2 text-sm text-gray-500">
+                      × {reservation.quantity}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {reservation.customer?.name || "Customer"} ·{" "}
+                    {reservation.customer?.email}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                      reservation.status === "fulfilled"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : reservation.status === "confirmed"
+                          ? "bg-blue-50 text-blue-700"
+                          : reservation.status === "cancelled"
+                            ? "bg-red-50 text-red-700"
+                            : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {reservation.status}
+                  </span>
+                  {reservation.status === "pending" && (
+                    <button
+                      onClick={() =>
+                        handleReservationAction(reservation, "confirm")
+                      }
+                      disabled={updatingReservation === reservation.id}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition disabled:opacity-50"
+                    >
+                      Confirm
+                    </button>
+                  )}
+                  {(reservation.status === "pending" ||
+                    reservation.status === "confirmed") && (
+                    <>
+                      <button
+                        onClick={() =>
+                          handleReservationAction(reservation, "fulfill")
+                        }
+                        disabled={
+                          updatingReservation === reservation.id ||
+                          (reservation.parts
+                            ? reservation.parts.quantity_in_stock <
+                              reservation.quantity
+                            : true)
+                        }
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50"
+                      >
+                        <CheckCircle size={14} /> Fulfill
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleReservationAction(reservation, "cancel")
+                        }
+                        disabled={updatingReservation === reservation.id}
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Search Bar */}
       <motion.div

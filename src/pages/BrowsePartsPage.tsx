@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Zap, Package, Eye, ArrowLeft, CheckCircle, Box, X } from "lucide-react";
+import { Search, Zap, Package, Eye, ArrowLeft, CheckCircle, Box, X, Minus, Plus, ShoppingCart } from "lucide-react";
 
 import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  reservationService,
+  Reservation,
+} from "../services/reservationService";
 
 interface Part {
   id: string;
@@ -28,14 +33,50 @@ interface BrowsePartsPageProps {
 
 const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) => {
 
+  const { user } = useAuth();
   const [parts, setParts] = useState<Part[]>([]);
   const [filteredParts, setFilteredParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
+  const [reserveQty, setReserveQty] = useState(1);
+  const [reserveMsg, setReserveMsg] = useState("");
+  const [reserving, setReserving] = useState(false);
+  const [myReservations, setMyReservations] = useState<Reservation[]>([]);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
   const fetchedRef = React.useRef(false);
+
+  const isCustomer = user?.role === "customer";
+
+  useEffect(() => {
+    if (!isCustomer) return;
+    reservationService.getMyReservations(user.id).then(setMyReservations);
+  }, [isCustomer, user?.id]);
+
+  const handleReserve = async () => {
+    if (!selectedPart || !user) return;
+    const qty = Math.max(1, reserveQty);
+    if (qty > getStock(selectedPart)) {
+      setReserveMsg(`Only ${getStock(selectedPart)} in stock.`);
+      return;
+    }
+    setReserving(true);
+    setReserveMsg("");
+    const created = await reservationService.createReservation(
+      user.id,
+      selectedPart.id,
+      qty,
+    );
+    setReserving(false);
+    if (created) {
+      setReserveMsg(`Reserved ${qty} × ${selectedPart.name}.`);
+      const updated = await reservationService.getMyReservations(user.id);
+      setMyReservations(updated);
+    } else {
+      setReserveMsg("Failed to reserve. Please try again.");
+    }
+  };
 
   const categories = [
     { id: "all", label: "All Parts" },
@@ -230,6 +271,53 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
           </motion.div>
         </div>
       </section>
+
+      {/* My Reservations (customers) */}
+      {isCustomer && myReservations.length > 0 && (
+        <section className="px-4 sm:px-6 lg:px-8 pb-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="rounded-xl border border-slate-600 bg-slate-800/60 p-5">
+              <p className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-widest mb-4">
+                <ShoppingCart size={16} className="text-moto-accent" /> My
+                Reservations
+              </p>
+              <div className="space-y-3">
+                {myReservations.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 bg-slate-700/50 rounded-lg px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-bold truncate">
+                        {r.parts?.name || "Part"}
+                      </p>
+                      <p className="text-slate-400 text-xs">
+                        Qty: {r.quantity} ·{" "}
+                        {r.parts
+                          ? `₱${(Number(r.parts.unit_price) * r.quantity).toLocaleString()}`
+                          : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                        r.status === "fulfilled"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : r.status === "confirmed"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : r.status === "cancelled"
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-amber-500/20 text-amber-400"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Parts Grid (Gallery — view only) */}
       <section className="px-4 sm:px-6 lg:px-8 py-12">
@@ -454,11 +542,62 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
                       </div>
                     )}
 
-                    {/* Gallery-only note */}
+                    {/* Gallery / Reservation actions */}
                     <div className="mt-6 pt-4 border-t border-slate-700">
-                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-widest text-center">
-                        Visit our shop for purchases &amp; inquiries
-                      </p>
+                      {isCustomer ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                              Quantity
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  setReserveQty((q) => Math.max(1, q - 1))
+                                }
+                                className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition"
+                              >
+                                <Minus size={16} />
+                              </button>
+                              <span className="text-white font-bold w-8 text-center">
+                                {reserveQty}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setReserveQty((q) =>
+                                    Math.min(getStock(selectedPart), q + 1),
+                                  )
+                                }
+                                disabled={
+                                  reserveQty >= getStock(selectedPart)
+                                }
+                                className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white transition disabled:opacity-40"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleReserve}
+                            disabled={
+                              reserving ||
+                              !isInStock(selectedPart)
+                            }
+                            className="w-full flex items-center justify-center gap-2 bg-moto-accent hover:bg-moto-accent/90 text-white py-3 rounded-lg font-bold text-sm uppercase tracking-widest transition disabled:opacity-50"
+                          >
+                            <ShoppingCart size={16} /> Reserve Part
+                          </button>
+                          {reserveMsg && (
+                            <p className="text-center text-sm text-moto-accent">
+                              {reserveMsg}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 font-semibold uppercase tracking-widest text-center">
+                          Visit our shop for purchases &amp; inquiries
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

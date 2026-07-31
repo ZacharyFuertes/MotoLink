@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { DollarSign, Calendar, Users, Package, AlertTriangle, ArrowRight } from "lucide-react";
+import { DollarSign, Calendar, Users, Package, AlertTriangle, ArrowRight, TrendingUp, Wrench } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { inventoryService } from "../services/inventoryService";
@@ -17,6 +26,14 @@ interface DashboardMetrics {
   totalProducts: number;
 }
 
+interface MechanicProductivity {
+  id: string;
+  name: string;
+  completed: number;
+  laborHours: number;
+  revenue: number;
+}
+
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -28,6 +45,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   });
   const [recentAppointments, setRecentAppointments] = useState<any[]>([]);
   const [lowStockParts, setLowStockParts] = useState<any[]>([]);
+  const [revenueTrend, setRevenueTrend] = useState<
+    { date: string; revenue: number }[]
+  >([]);
+  const [mechanicProductivity, setMechanicProductivity] = useState<
+    MechanicProductivity[]
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,6 +63,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setLoading(true);
     try {
       const today = new Date().toISOString().split("T")[0];
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString();
 
       const [
         todaySalesRes,
@@ -48,6 +73,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         lowStockRes,
         productsRes,
         recentAptRes,
+        trendSalesRes,
+        trendJobsRes,
+        mechanicJobsRes,
       ] = await Promise.allSettled([
         supabase
           .from("part_sales")
@@ -77,6 +105,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           .in("status", ["pending", "confirmed"])
           .order("scheduled_date", { ascending: true })
           .limit(10),
+        supabase
+          .from("part_sales")
+          .select("sale_price, created_at")
+          .eq("shop_id", user.shop_id)
+          .gte("created_at", thirtyDaysAgo),
+        supabase
+          .from("job_orders")
+          .select("total_cost, completed_at")
+          .eq("shop_id", user.shop_id)
+          .eq("status", "completed")
+          .gte("completed_at", thirtyDaysAgo),
+        supabase
+          .from("job_orders")
+          .select("mechanic_id, total_cost, labor_hours, completed_at")
+          .eq("shop_id", user.shop_id)
+          .eq("status", "completed"),
       ]);
 
       const todayRevenue = todaySalesRes.status === "fulfilled"
@@ -95,6 +139,67 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       const recentAppts = recentAptRes.status === "fulfilled"
         ? (recentAptRes.value.data || [])
         : [];
+
+      // 30-day revenue trend (part_sales + completed job orders)
+      const dailyMap: Record<string, number> = {};
+      const todayDate = new Date();
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(todayDate);
+        d.setDate(d.getDate() - i);
+        dailyMap[d.toISOString().split("T")[0]] = 0;
+      }
+      if (trendSalesRes.status === "fulfilled") {
+        (trendSalesRes.value.data || []).forEach((s: any) => {
+          const key = new Date(s.created_at).toISOString().split("T")[0];
+          if (key in dailyMap) dailyMap[key] += Number(s.sale_price || 0);
+        });
+      }
+      if (trendJobsRes.status === "fulfilled") {
+        (trendJobsRes.value.data || []).forEach((j: any) => {
+          const key = new Date(j.completed_at).toISOString().split("T")[0];
+          if (key in dailyMap) dailyMap[key] += Number(j.total_cost || 0);
+        });
+      }
+      setRevenueTrend(
+        Object.entries(dailyMap).map(([date, revenue]) => ({
+          date: date.slice(5),
+          revenue: Math.round(revenue * 100) / 100,
+        })),
+      );
+
+      // Per-mechanic productivity from completed job orders
+      if (mechanicJobsRes.status === "fulfilled") {
+        const jobs = mechanicJobsRes.value.data || [];
+        const grouped: Record<string, MechanicProductivity> = {};
+        jobs.forEach((j: any) => {
+          const mechId = j.mechanic_id || "unassigned";
+          if (!grouped[mechId]) {
+            grouped[mechId] = {
+              id: mechId,
+              name: mechId === "unassigned" ? "Unassigned" : "",
+              completed: 0,
+              laborHours: 0,
+              revenue: 0,
+            };
+          }
+          grouped[mechId].completed += 1;
+          grouped[mechId].laborHours += Number(j.labor_hours || 0);
+          grouped[mechId].revenue += Number(j.total_cost || 0);
+        });
+        const mechIds = Object.keys(grouped).filter((id) => id !== "unassigned");
+        if (mechIds.length > 0) {
+          const { data: mechRows } = await supabase
+            .from("users")
+            .select("id, name")
+            .in("id", mechIds);
+          (mechRows || []).forEach((m: any) => {
+            if (grouped[m.id]) grouped[m.id].name = m.name;
+          });
+        }
+        setMechanicProductivity(
+          Object.values(grouped).sort((a, b) => b.revenue - a.revenue),
+        );
+      }
 
       setMetrics({
         todayRevenue,
@@ -243,6 +348,118 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <span className="text-xs font-medium px-2 py-1 rounded-full bg-rose-50 text-rose-700">
                       {part.quantity_in_stock} / {part.reorder_level}
                     </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* 30-day revenue trend + mechanic productivity */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={18} className="text-emerald-600" />
+              <h2 className="text-lg font-semibold text-slate-800">
+                Revenue — Last 30 Days
+              </h2>
+            </div>
+            {revenueTrend.length === 0 ? (
+              <p className="text-slate-400 text-sm">
+                No sales recorded in the last 30 days.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={revenueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    interval={4}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value: any) => [
+                      `₱${Number(value).toLocaleString()}`,
+                      "Revenue",
+                    ]}
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Wrench size={18} className="text-blue-600" />
+              <h2 className="text-lg font-semibold text-slate-800">
+                Mechanic Productivity
+              </h2>
+            </div>
+            {mechanicProductivity.length === 0 ? (
+              <p className="text-slate-400 text-sm">
+                No completed job orders yet.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {mechanicProductivity.map((mech) => (
+                  <div key={mech.id}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-medium text-slate-700">
+                        {mech.name}
+                      </p>
+                      <span className="text-xs text-slate-500">
+                        {mech.completed} job{mech.completed === 1 ? "" : "s"} ·{" "}
+                        {mech.laborHours.toFixed(1)} hrs
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full bg-blue-500"
+                          style={{
+                            width: `${
+                              mechanicProductivity.length > 1
+                                ? (mech.revenue /
+                                    Math.max(
+                                      ...mechanicProductivity.map(
+                                        (m) => m.revenue,
+                                      ),
+                                    )) *
+                                  100
+                                : 100
+                            }%`,
+                          }}
+                        />
+                      </div>
+                      <span className="ml-3 text-sm font-semibold text-slate-700">
+                        ₱{mech.revenue.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
