@@ -140,7 +140,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             <img
-              src={shop.logo_url || "/logo.png"}
+              src={shop.logo_url || "/favicon.svg"}
               alt={`${shop.name} logo`}
               className="h-20 w-20 rounded-xl border border-slate-100 object-contain p-1 bg-white"
             />
