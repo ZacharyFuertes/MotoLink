@@ -31,6 +31,57 @@ export const getPublicShops = async (): Promise<Shop[]> => {
   })) as Shop[];
 };
 
+export const getShopById = async (shopId: string): Promise<Shop | null> => {
+  const { data, error } = await supabase
+    .from("shops")
+    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
+    .eq("id", shopId)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    ...data,
+    specialties: Array.isArray(data.specialties) ? data.specialties : [],
+  } as Shop;
+};
+
+export const updateShop = async (
+  shopId: string,
+  updates: Partial<
+    Pick<
+      Shop,
+      | "name"
+      | "slug"
+      | "logo_url"
+      | "description"
+      | "address"
+      | "city"
+      | "latitude"
+      | "longitude"
+      | "phone"
+      | "email"
+      | "specialties"
+      | "operating_hours"
+      | "is_active"
+    >
+  >,
+): Promise<Shop | null> => {
+  const { data, error } = await supabase
+    .from("shops")
+    .update(updates)
+    .eq("id", shopId)
+    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    ...data,
+    specialties: Array.isArray(data.specialties) ? data.specialties : [],
+  } as Shop;
+};
+
 export const sortByDistance = (
   shops: Shop[],
   location?: GeolocationCoordinates,

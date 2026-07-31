@@ -5,9 +5,10 @@ interface ShopCardProps {
   shop: ShopSearchResult;
   onSelect: (shop: ShopSearchResult) => void;
   onConnect: (shop: ShopSearchResult) => void;
+  onViewShop?: (shop: ShopSearchResult) => void;
 }
 
-const ShopCard = ({ shop, onSelect, onConnect }: ShopCardProps) => (
+const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => (
   <article className="rounded-2xl border border-[#e6dbc8] bg-[#fffdf7] p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
     <div className="flex items-start gap-4">
       <img src={shop.logo_url || "/logo.png"} alt={`${shop.name} logo`} className="h-14 w-14 rounded-xl border border-slate-100 object-contain p-1" />
@@ -30,7 +31,7 @@ const ShopCard = ({ shop, onSelect, onConnect }: ShopCardProps) => (
       {shop.distanceKm !== undefined && <span className="font-semibold text-slate-700">{shop.distanceKm.toFixed(1)} km away</span>}
     </div>
     <div className="mt-5 flex gap-3">
-      <button onClick={() => onSelect(shop)} className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500">View shop</button>
+      <button onClick={() => (onViewShop ? onViewShop(shop) : onSelect(shop))} className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500">View shop</button>
       <button onClick={() => onConnect(shop)} className="flex-1 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700">Connect</button>
     </div>
   </article>

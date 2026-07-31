@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, CheckCircle2, MapPinned, Navigation, Search } from "lucide-react";
+import { Bot, Navigation, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import AIChatModal from "../components/AIChatModal";
@@ -16,11 +16,12 @@ interface MotolinkLandingProps {
   onLoginRequired: (shop?: ShopSearchResult) => void;
   onBook: (shop: ShopSearchResult) => void;
   onLogout?: () => void;
+  onViewShop?: (shop: ShopSearchResult) => void;
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, onViewShop }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates>();
   const [specialty, setSpecialty] = useState("");
@@ -66,7 +67,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout }:
       {/* Top hero slideshow (original heroslide images) */}
       <HeroSlideshow />
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-bold uppercase tracking-widest text-sky-700">Discover nearby</p><h2 className="mt-2 text-3xl font-bold">Explore shops on the map</h2><p className="mt-2 text-slate-600">Browse freely. Login is only required when you connect or book.</p></div><button onClick={requestLocation} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500"><Navigation size={16} /> Use my location</button></div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} /></div>{locationMessage ? <p className="mt-3 text-sm text-slate-600">{locationMessage}</p> : null}</div></motion.section>
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-[#fff9ed] px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8"><p className="text-sm font-bold uppercase tracking-widest text-sky-700">Partner network</p><h2 className="mt-2 text-3xl font-bold">Explore Partner Shops</h2><p className="mt-2 text-slate-600">{results.length} shop{results.length === 1 ? "" : "s"} matching your search.</p></div>{results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} /> : <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-600"><Search className="mx-auto mb-3" />No shops match these filters. Try a broader search.</div>}</div></motion.section>
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-[#fff9ed] px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8"><p className="text-sm font-bold uppercase tracking-widest text-sky-700">Partner network</p><h2 className="mt-2 text-3xl font-bold">Explore Partner Shops</h2><p className="mt-2 text-slate-600">{results.length} shop{results.length === 1 ? "" : "s"} matching your search.</p></div>{results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-600"><Search className="mx-auto mb-3" />No shops match these filters. Try a broader search.</div>}</div></motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} className="scroll-mt-20 bg-[#111111] px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8 text-center"><p className="text-sm font-bold uppercase tracking-widest text-sky-300">Why choose</p><h2 className="mt-2 text-4xl font-black uppercase tracking-tight text-white">MOTOLINK</h2><p className="mt-3 text-slate-400 max-w-2xl mx-auto">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p></div><div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { title: "Modern diagnostic tools", description: "Fast, precise fault detection using modern shop technology." },

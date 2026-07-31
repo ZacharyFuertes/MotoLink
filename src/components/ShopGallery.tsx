@@ -7,9 +7,10 @@ interface ShopGalleryProps {
   shops: ShopSearchResult[];
   onSelect: (shop: ShopSearchResult) => void;
   onConnect: (shop: ShopSearchResult) => void;
+  onViewShop?: (shop: ShopSearchResult) => void;
 }
 
-const ShopGallery = ({ shops, onSelect, onConnect }: ShopGalleryProps) => {
+const ShopGallery = ({ shops, onSelect, onConnect, onViewShop }: ShopGalleryProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const galleryShops = useMemo(() => {
@@ -55,7 +56,7 @@ const ShopGallery = ({ shops, onSelect, onConnect }: ShopGalleryProps) => {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.35 }}
             >
-              <ShopCard shop={activeShop} onSelect={onSelect} onConnect={onConnect} />
+              <ShopCard shop={activeShop} onSelect={onSelect} onConnect={onConnect} onViewShop={onViewShop} />
             </motion.div>
           ) : null}
         </AnimatePresence>

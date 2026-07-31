@@ -54,7 +54,7 @@ const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect
       }).addTo(map);
     }
 
-    // Use the shops passed via props (updated demoShops) and place default Leaflet markers.
+    // Place default Leaflet markers for the shops passed via props.
     shops.forEach((shop) => {
       if (typeof shop.latitude === "number" && typeof shop.longitude === "number") {
         const marker = Leaflet.marker([shop.latitude, shop.longitude]).addTo(map);
