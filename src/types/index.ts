@@ -50,7 +50,7 @@ export interface Part {
 export type AppointmentStatus =
   | "pending"
   | "confirmed"
-  | "ready_for_finalization"
+  | "in_progress"
   | "completed"
   | "cancelled";
 
@@ -86,10 +86,11 @@ export interface JobOrder {
   mechanic_id: string;
   shop_id: string;
   vehicle_id: string;
-  status: "draft" | "in_progress" | "completed" | "cancelled";
+  status: "draft" | "in_progress" | "completed" | "cancelled" | "pending" | "billed";
   parts_used: JobOrderPart[];
   labor_hours: number;
   labor_rate: number;
+  total_cost?: number;
   notes?: string;
   created_at: string;
   completed_at?: string;

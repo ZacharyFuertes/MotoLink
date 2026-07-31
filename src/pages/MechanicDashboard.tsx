@@ -154,7 +154,7 @@ const MechanicDashboard: React.FC = () => {
           (a) => a.status === "pending",
         );
         const readyAppts = formattedAppts.filter(
-          (a) => a.status === "ready_for_finalization",
+          (a) => a.status === "in_progress",
         );
         const completedAppts = formattedAppts.filter(
           (a) => a.status === "completed",
@@ -218,7 +218,7 @@ const MechanicDashboard: React.FC = () => {
           const completedOnDate = formattedAppts.filter((appt) => {
             if (
               appt.status !== "completed" &&
-              appt.status !== "ready_for_finalization"
+              appt.status !== "in_progress"
             )
               return false;
             const updatedDate = new Date(appt.updated_at || appt.date);
@@ -617,7 +617,7 @@ const MechanicDashboard: React.FC = () => {
                                 ? "border-yellow-600/30 shadow-[4px_0_0_#d97706]"
                                 : appt.status === "confirmed"
                                   ? "border-blue-600/30 shadow-[4px_0_0_#2563eb]"
-                                  : appt.status === "ready_for_finalization"
+                                  : appt.status === "in_progress"
                                     ? "border-purple-600/30 shadow-[4px_0_0_#9333ea]"
                                     : "border-slate-600"
                             }`}
@@ -676,7 +676,7 @@ const MechanicDashboard: React.FC = () => {
                                           : appt.status === "confirmed"
                                             ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
                                             : appt.status ===
-                                                "ready_for_finalization"
+                                                "in_progress"
                                               ? "bg-purple-600/20 text-purple-400 border border-purple-600/30"
                                               : "bg-yellow-600/20 text-yellow-400 border border-yellow-600/30"
                                       }`}
@@ -723,7 +723,7 @@ const MechanicDashboard: React.FC = () => {
                                       onClick={() =>
                                         updateAppointmentStatus(
                                           appt.id,
-                                          "ready_for_finalization",
+                                          "in_progress",
                                         )
                                       }
                                       disabled={statusUpdating === appt.id}
@@ -735,7 +735,7 @@ const MechanicDashboard: React.FC = () => {
                                     </button>
                                   )}
 
-                                  {appt.status === "ready_for_finalization" && (
+                                  {appt.status === "in_progress" && (
                                     <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg text-center flex items-center justify-center gap-3">
                                       <Clock className="w-4 h-4 text-purple-400 animate-spin" />
                                       <p className="text-purple-400 text-[10px] font-bold uppercase tracking-wider">

@@ -5,6 +5,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { Appointment, AppointmentStatus } from "../types";
 import { sendServiceCompletionEmail } from "../services/notificationService";
+import { jobOrderService } from "../services/jobOrderService";
+import { invoiceService } from "../services/invoiceService";
+import JobOrderModal from "../components/JobOrderModal";
 
 interface Mechanic {
   id: string;
@@ -24,9 +27,9 @@ const statusConfig: Record<
     color: "bg-emerald-50 border-emerald-200 text-emerald-700",
     label: "Confirmed",
   },
-  ready_for_finalization: {
+  in_progress: {
     color: "bg-purple-50 border-purple-200 text-purple-700",
-    label: "Needs Finalization",
+    label: "In Progress",
   },
   completed: {
     color: "bg-gray-50 border-gray-200 text-gray-500",
@@ -56,6 +59,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const [loadingMechanics, setLoadingMechanics] = useState(false);
   const [saving, setSaving] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
+
+  const [jobOrderAppointment, setJobOrderAppointment] =
+    useState<Appointment | null>(null);
 
   // ── Toast notification state ────────────────────────────────────────────
   const [toast, setToast] = useState<{
@@ -172,6 +178,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
 
+        // Job order handoff: create a job order once work is confirmed or started
+        if (
+          (newStatus === "confirmed" || newStatus === "in_progress") &&
+          appointment.status !== "completed" &&
+          appointment.shop_id &&
+          appointment.customer_id
+        ) {
+          await jobOrderService.ensureJobOrderForAppointment(appointment);
+        }
+
         // Workflow Enforcements
         if (newStatus === "completed") {
           if (user.role !== "owner" && user.role !== "admin") {
@@ -180,7 +196,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             );
             return;
           }
-          if (appointment.status !== "ready_for_finalization") {
+          if (appointment.status !== "in_progress") {
             alert(
               "The mechanic must mark the work as complete before you can finalize it.",
             );
@@ -291,6 +307,35 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           }
         }
 
+        // Complete the linked job order (stock is already deducted above)
+        if (newStatus === "completed" && appointment.status !== "completed") {
+          const jobOrder =
+            await jobOrderService.ensureJobOrderForAppointment(appointment);
+          if (jobOrder) {
+            await supabase
+              .from("job_orders")
+              .update({
+                status: "completed",
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", jobOrder.id);
+
+            // Generate invoice from the completed job order
+            const invoice = await invoiceService.createInvoiceForJobOrder({
+              ...jobOrder,
+              status: "completed",
+            });
+            if (invoice) {
+              showToast(
+                `Invoice ₱${Number(invoice.total_amount).toLocaleString()} generated.`,
+              );
+            } else {
+              showToast("Invoice generation failed.", "error");
+            }
+          }
+        }
+
         const { error } = await supabase
           .from("appointments")
           .update({ status: newStatus, updated_at: new Date().toISOString() })
@@ -377,7 +422,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     (a) =>
       a.status === "pending" ||
       a.status === "confirmed" ||
-      a.status === "ready_for_finalization",
+      a.status === "in_progress",
   );
   const pastAppointments = filteredAppointments.filter(
     (a) => a.status === "completed" || a.status === "cancelled",
@@ -516,7 +561,15 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                         </div>
                         {canUpdateStatus ? (
                           <div className="flex items-center gap-3">
-                            {apt.status === "ready_for_finalization" &&
+                            {isOwner && (
+                              <button
+                                onClick={() => setJobOrderAppointment(apt)}
+                                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest transition"
+                              >
+                                Job Order
+                              </button>
+                            )}
+                            {apt.status === "in_progress" &&
                               isOwner && (
                                 <button
                                   onClick={() =>
@@ -772,6 +825,12 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <JobOrderModal
+        isOpen={Boolean(jobOrderAppointment)}
+        appointment={jobOrderAppointment}
+        onClose={() => setJobOrderAppointment(null)}
+      />
     </div>
   );
 };

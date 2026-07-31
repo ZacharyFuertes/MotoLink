@@ -132,6 +132,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [dynamicServices, setDynamicServices] = useState<any[]>(SERVICE_TYPES);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [mechanicAvailability, setMechanicAvailability] = useState<any[]>([]);
   const [loadingMechanics, setLoadingMechanics] = useState(false);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -171,6 +172,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSuccess(false);
         setErrorMsg("");
         setBookedSlots([]);
+        setMechanicAvailability([]);
         setSelectedParts([]);
       }, 300);
     }
@@ -180,6 +182,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   useEffect(() => {
     if (selectedDate) {
       fetchBookedSlots();
+      fetchMechanicAvailability();
     }
   }, [selectedDate, selectedMechanic]);
 
@@ -251,10 +254,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   };
 
   const fetchServices = async () => {
+    if (!defaultShopId) return;
     try {
       const { data, error } = await supabase
         .from("services_pricing")
         .select("*")
+        .eq("shop_id", defaultShopId)
         .eq("is_active", true);
       if (error) return; // Silent fallback to defaults
       if (data && data.length > 0) {
@@ -322,6 +327,31 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
+  const fetchMechanicAvailability = async () => {
+    setMechanicAvailability([]);
+    if (!selectedMechanic || !selectedDate) return;
+    try {
+      // day_of_week convention: Monday=0 ... Sunday=6
+      const dayIdx = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
+      const { data, error } = await supabase
+        .from("mechanic_availability")
+        .select("day_of_week, start_time, end_time, is_available")
+        .eq("mechanic_id", selectedMechanic)
+        .eq("day_of_week", dayIdx);
+      if (error) throw error;
+      setMechanicAvailability(data || []);
+    } catch {
+      setMechanicAvailability([]);
+    }
+  };
+
+  const isSlotAvailable = (time: string) => {
+    const schedule = mechanicAvailability.find((a) => a.is_available);
+    // No schedule set for this day — treat as open (backwards compatible)
+    if (!schedule) return true;
+    return time >= schedule.start_time && time <= schedule.end_time;
+  };
+
   const canGoNext = () => {
     switch (currentStep) {
       case 0:
@@ -367,7 +397,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         const mech = mechanics.find((m) => m.id === selectedMechanic);
         if (mech && mech.shop_id) shopIdToUse = mech.shop_id;
       }
-      if (!shopIdToUse) shopIdToUse = "default-shop-id";
+      if (!shopIdToUse) {
+        setErrorMsg(
+          "Unable to determine your shop. Please close and reopen the booking form.",
+        );
+        setSubmitting(false);
+        return;
+      }
 
       // Create a single appointment with all selected services
       const serviceLabels = selectedServices
@@ -819,7 +855,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
                         {TIME_SLOTS.map((time) => {
                           const isActive = selectedTime === time;
-                          const isBooked = bookedSlots.includes(time);
+                          const isBooked =
+                            bookedSlots.includes(time) ||
+                            !isSlotAvailable(time);
                           return (
                             <button
                               key={time}
@@ -845,7 +883,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           );
                         })}
                       </div>
-                      {bookedSlots.length > 0 && (
+                      {(bookedSlots.length > 0 ||
+                        mechanicAvailability.some((a) => a.is_available)) && (
                         <p className="text-[10px] tracking-[0.1em] text-[#444444] mt-4 flex items-center gap-2 uppercase">
                           <AlertTriangle size={12} /> Times with strikethrough
                           are unavailable
