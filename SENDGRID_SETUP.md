@@ -133,7 +133,7 @@ CREATE POLICY "Users can manage own notification settings"
 
 1. **Open** the app and log in as an **owner**
 2. Navigate to **Appointments**
-3. Find an appointment with status `Needs Finalization` (ready_for_finalization)
+3. Find an appointment with status `In Progress` (in_progress)
 4. Click **"Finalize Revenue"** — this triggers the email
 5. A **toast notification** appears in the top-right corner confirming delivery
 6. Check **SendGrid Activity Feed**: [https://app.sendgrid.com/email_activity](https://app.sendgrid.com/email_activity)

@@ -70,7 +70,8 @@ CREATE TABLE services_pricing (
   description TEXT,
   icon        TEXT,
   price       NUMERIC(10,2) NOT NULL DEFAULT 0,
-  is_active   BOOLEAN NOT NULL DEFAULT true
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  shop_id     UUID REFERENCES shops(id) ON DELETE CASCADE
 );
 
 -- ============================================================================
@@ -223,6 +224,7 @@ CREATE TABLE mechanic_availability (
   start_time      TIME NOT NULL,
   end_time        TIME NOT NULL,
   is_available    BOOLEAN NOT NULL DEFAULT true,
+  shop_id         UUID REFERENCES shops(id) ON DELETE CASCADE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -268,6 +270,9 @@ CREATE INDEX idx_shops_active_city ON shops(is_active, city);
 -- Vehicles
 CREATE INDEX idx_vehicles_customer_id ON vehicles(customer_id);
 
+-- Services Pricing
+CREATE INDEX idx_services_pricing_shop ON services_pricing(shop_id);
+
 -- Parts
 CREATE INDEX idx_parts_shop_id ON parts(shop_id);
 CREATE INDEX idx_parts_category ON parts(category);
@@ -309,6 +314,7 @@ CREATE INDEX idx_reservations_status ON reservations(status);
 -- Mechanic Availability
 CREATE INDEX idx_mechanic_avail_user ON mechanic_availability(mechanic_id);
 CREATE UNIQUE INDEX idx_mechanic_avail_unique ON mechanic_availability(mechanic_id, day_of_week, start_time);
+CREATE INDEX idx_mechanic_avail_shop ON mechanic_availability(shop_id);
 
 -- Notifications
 CREATE INDEX idx_notifications_recipient ON notifications(recipient_id);
