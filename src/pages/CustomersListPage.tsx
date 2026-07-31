@@ -120,7 +120,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           .from("reservations")
           .select("customer_id, quantity, parts!inner(unit_price)")
           .in("status", ["confirmed", "fulfilled"]);
-        if (user?.shop_id) resQuery = resQuery.eq("parts.shop_id", user.shop_id);
+        if (user?.shop_id) resQuery = resQuery.eq("shop_id", user.shop_id);
         const { data: reservations } = await resQuery;
 
         // Create a map for fast lookup

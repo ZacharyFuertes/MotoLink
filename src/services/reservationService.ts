@@ -10,6 +10,7 @@ export interface Reservation {
   id: string;
   customer_id: string;
   part_id: string;
+  shop_id?: string | null;
   status: ReservationStatus;
   quantity: number;
   created_at: string;
@@ -37,11 +38,14 @@ export interface Reservation {
 export const reservationService = {
   /**
    * Create a reservation for a part (customers only).
+   * shopId is the part's shop — stored on the reservation so owners can
+   * query their own shop's reservations directly (instead of a parts join).
    */
   async createReservation(
     customerId: string,
     partId: string,
     quantity: number,
+    shopId?: string | null,
   ): Promise<Reservation | null> {
     const { data, error } = await supabase
       .from("reservations")
@@ -51,6 +55,7 @@ export const reservationService = {
           part_id: partId,
           quantity,
           status: "pending",
+          shop_id: shopId || null,
         },
       ])
       .select()
@@ -78,7 +83,9 @@ export const reservationService = {
   },
 
   /**
-   * Fetch reservations for a shop's parts (owner/admin view).
+   * Fetch reservations for a shop (owner/admin view).
+   * Scoped by reservations.shop_id — the shop column added in the
+   * 20260731_owner_data_isolation migration.
    */
   async getShopReservations(shopId: string): Promise<Reservation[]> {
     const { data, error } = await supabase
@@ -86,7 +93,7 @@ export const reservationService = {
       .select(
         "*, parts(id, name, unit_price, quantity_in_stock, shop_id), customer:users(id, name, email, phone)",
       )
-      .eq("parts.shop_id", shopId)
+      .eq("shop_id", shopId)
       .order("created_at", { ascending: false });
 
     if (error || !data) return [];

@@ -22,6 +22,7 @@ interface Part {
   inStock?: boolean;
   quantity?: number;
   quantity_in_stock?: number;
+  shop_id?: string;
   description?: string;
   sku?: string;
 }
@@ -67,6 +68,7 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
       user.id,
       selectedPart.id,
       qty,
+      selectedPart.shop_id,
     );
     setReserving(false);
     if (created) {

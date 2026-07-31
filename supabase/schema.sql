@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS public.reservations (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   part_id         UUID NOT NULL REFERENCES public.parts(id) ON DELETE CASCADE,
+  shop_id         UUID REFERENCES public.shops(id) ON DELETE CASCADE,
   status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
                     'pending', 'confirmed', 'fulfilled', 'cancelled'
                   )),
@@ -265,6 +266,7 @@ CREATE TABLE IF NOT EXISTS public.reservations (
 CREATE INDEX IF NOT EXISTS idx_reservations_customer ON public.reservations(customer_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_part ON public.reservations(part_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_status ON public.reservations(status);
+CREATE INDEX IF NOT EXISTS idx_reservations_shop ON public.reservations(shop_id);
 
 -- ============================================================================
 -- PHASE 5: MECHANIC AVAILABILITY
@@ -397,9 +399,17 @@ CREATE POLICY "Users can view own vehicles"
 CREATE POLICY "Users can manage own vehicles"
   ON public.vehicles FOR ALL USING (auth.uid() = customer_id);
 
--- SERVICES PRICING (public read)
+-- SERVICES PRICING (public read + owner manages own shop's rows)
 CREATE POLICY "Anyone can view active services"
   ON public.services_pricing FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Shop owners can manage own services"
+  ON public.services_pricing FOR ALL USING (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  )
+  WITH CHECK (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  );
 
 -- PARTS
 CREATE POLICY "Anyone can browse parts"
@@ -521,6 +531,16 @@ CREATE POLICY "Customers can view own reservations"
 
 CREATE POLICY "Customers can create own reservations"
   ON public.reservations FOR INSERT WITH CHECK (auth.uid() = customer_id);
+
+CREATE POLICY "Shop owners can view own reservations"
+  ON public.reservations FOR SELECT USING (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  );
+
+CREATE POLICY "Shop owners can update own reservations"
+  ON public.reservations FOR UPDATE USING (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  );
 
 -- MECHANIC AVAILABILITY
 CREATE POLICY "Anyone can view mechanic availability"

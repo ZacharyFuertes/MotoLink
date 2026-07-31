@@ -226,8 +226,7 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes (2814 modules)
 - **STILL NEEDS MANUAL BROWSER TEST:** register a new shop → expect role `owner` + straight to the owner dashboard, no 406 in console
 
-### TASK: THE REAL BUG — FK race on shop registration (owner still ends up customer)
-- **User reported registration still fails with an error and accounts end up `customer`.** DB query showed both real attempts (`beloy123@gmail.com`, `jbmshop@gmail.com`) had `role=customer` AND `shop_id` empty; the `shops` table had NO shop owned by either → the shop INSERT itself was failing
+### TASK: THE REAL BUG — FK race on shop registration (owner still ends up customer)- **User reported registration still fails with an error and accounts end up `customer`.** DB query showed both real attempts (`beloy123@gmail.com`, `jbmshop@gmail.com`) had `role=customer` AND `shop_id` empty; the `shops` table had NO shop owned by either → the shop INSERT itself was failing
 - **Reproduced via REST with a fresh signup token:** shop insert → **409 `23503` "Key is not present in table users" (shops_owner_id_fkey)**. The app created the SHOP BEFORE the `users` row existed. `shops.owner_id → users(id)` is a hard FK; the signup handler only upserted the owner profile AFTER the shop insert, and the auth listener's async profile-create usually loses that race → shop insert 409 → "Registration failed" → account left as `customer`
 - **Why my earlier isolated test passed:** the diagnostic happened to insert the `users` row FIRST, then shop → 201. It never reproduced the app's real interleaving
 - **Fix (`ShopOwnerLoginPage.tsx` handleSignup — REORDERED):** (1) signUp → (2) `users` upsert `role:"owner"` WITHOUT `shop_id` (omitted because `users.shop_id → shops.id` must exist first) → (3) `shops` insert (FK now resolves) → (4) `users` update `{ role: "owner", shop_id: shop.id }` → (5) `login()` + `refreshUser()`
@@ -237,6 +236,17 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes
 - **STILL NEEDS MANUAL BROWSER TEST:** register a new shop → expect role `owner` + straight to the owner dashboard
 
+### TASK: Per-shop data isolation audit + owner_data_isolation migration
+- **Audit result:** owner dashboard client queries were ALREADY scoped by `.eq("shop_id", user.shop_id)` in Dashboard/UpdateParts/Inventory/LowStock/AdminServices/AdminProducts/AppointmentCalendar/CustomersList/AdminMechanicAvailability. Most tables already have owner RLS policies (`shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid())`).
+- **2 real DB-layer leaks found (why owners didn't get truly separate data):**
+  1. **`services_pricing` had NO owner RLS policy** — only "Anyone can view active services" + admin manage. Owner add/edit/delete of their shop's services was blocked at the DB level (the app scoped client-side but RLS rejected writes).
+  2. **`reservations` had NO `shop_id` column and NO owner RLS policy** — owner reads were attempted via a `parts.shop_id` join, which RLS blocked (only customer + admin policies existed). Owners literally couldn't see/act on their shop's reservations.
+- **Fix — `supabase/migrations/20260731_owner_data_isolation.sql`:** adds `reservations.shop_id` (FK → shops, ON DELETE CASCADE) + backfills from `parts.shop_id`; owner SELECT + UPDATE policies on `reservations`; owner FOR ALL policy on `services_pricing`; keeps customer INSERT policy on reservations.
+- **Code changes:** `reservationService.ts` — `Reservation` gains `shop_id`; `createReservation(..., shopId?)` stores the part's shop; `getShopReservations` scopes by `reservations.shop_id` (not the join). `BrowsePartsPage.tsx` passes `selectedPart.shop_id` + local `Part` interface gains `shop_id`. `CustomersListPage.tsx` reservation spend query scopes `.eq("shop_id", user.shop_id)` instead of `.eq("parts.shop_id", ...)`.
+- **`schema.sql` synced** with the new column/index + owner policies.
+- **USER MUST RUN** `20260731_owner_data_isolation.sql` in Supabase SQL Editor (direct Postgres unreachable — IPv6-only host). Verified live BEFORE migration: `reservations` columns are `id, customer_id, part_id, status, quantity, created_at, updated_at` (no shop_id yet).
+- **Verify:** `npx tsc --noEmit` clean + `npm run build` passes.
+
 ---
 
 ## CURRENT STATE
@@ -245,6 +255,7 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - **Code:** multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built
 - **Owner portal:** owners register → `role: owner` (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 `shops_owner_id_fkey`); redirected straight to the new violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no `SystemNavbar`
 - **DB:** 20260731 migration CONFIRMED applied live (REST-verified: users/shops INSERT 201, owner-role upsert 200); RLS INSERT policies working; autoconfirm working; `services_pricing`/`mechanic_availability` confirmed to have `shop_id` live; `appointments` + `job_orders` tables confirmed empty
+- **Owner data isolation:** audit done — all owner queries scoped by `shop_id`; `20260731_owner_data_isolation.sql` (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor)
 - **Git:** not pushed since prior push = commit `75183d0`
 - **Docs:** `MEMORY.md` updated with full batch history (below)
 
@@ -258,6 +269,7 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 4. **Reservations scoping:** `reservations` table has NO shop_id column — scoped via `parts.shop_id` join; consider a shop_id column if direct scoping needed
 5. **Seed data:** no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
 6. **~~Owner signup still needs user action~~** — 20260731 migration CONFIRMED applied live + autoconfirm working; no further user action needed
+6b. **NEW — run `supabase/migrations/20260731_owner_data_isolation.sql`** in Supabase SQL Editor (reservations.shop_id + owner RLS for reservations/services) — REQUIRED before owner reservations/services CRUD works
 7. **Existing wrong-role users:** `beloy123@gmail.com` + `jbmshop@gmail.com` were created as `customer` by the FK-race bug (no shop either) — fix in DB (`UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>'`) or re-register
 
 ---
