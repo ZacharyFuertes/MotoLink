@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS public.shops (
   description     TEXT NOT NULL DEFAULT '',
   address         TEXT NOT NULL,
   city            TEXT NOT NULL,
-  latitude        DOUBLE PRECISION NOT NULL CHECK (latitude BETWEEN -90 AND 90),
-  longitude       DOUBLE PRECISION NOT NULL CHECK (longitude BETWEEN -180 AND 180),
+  latitude        DOUBLE PRECISION CHECK (latitude BETWEEN -90 AND 90),
+  longitude       DOUBLE PRECISION CHECK (longitude BETWEEN -180 AND 180),
   phone           TEXT,
   email           TEXT,
   specialties     TEXT[] NOT NULL DEFAULT '{}',
@@ -92,8 +92,11 @@ CREATE TABLE IF NOT EXISTS public.services_pricing (
   description TEXT,
   icon        TEXT,
   price       NUMERIC(10,2) NOT NULL DEFAULT 0,
-  is_active   BOOLEAN NOT NULL DEFAULT true
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  shop_id     UUID REFERENCES public.shops(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_services_pricing_shop ON public.services_pricing(shop_id);
 
 -- 6. PARTS (inventory per shop)
 CREATE TABLE IF NOT EXISTS public.parts (
@@ -275,11 +278,13 @@ CREATE TABLE IF NOT EXISTS public.mechanic_availability (
   start_time      TIME NOT NULL,
   end_time        TIME NOT NULL,
   is_available    BOOLEAN NOT NULL DEFAULT true,
+  shop_id         UUID REFERENCES public.shops(id) ON DELETE CASCADE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_mechanic_avail_user ON public.mechanic_availability(mechanic_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mechanic_avail_unique ON public.mechanic_availability(mechanic_id, day_of_week, start_time);
+CREATE INDEX IF NOT EXISTS idx_mechanic_avail_shop ON public.mechanic_availability(shop_id);
 
 -- ============================================================================
 -- PHASE 6: NOTIFICATIONS
