@@ -157,8 +157,8 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] p-6 flex items-center justify-center">
-        <div className="text-white text-center">
+      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
+        <div className="text-slate-900 text-center">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p>Loading your appointments...</p>
         </div>
@@ -168,12 +168,12 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] p-6">
+      <div className="min-h-screen bg-[#f5f5f5] p-6">
         <motion.button
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => onNavigate && onNavigate("appointments")}
-          className="mb-6 flex items-center gap-2 text-moto-accent hover:text-white transition-colors"
+          className="mb-6 flex items-center gap-2 text-slate-900 hover:text-slate-700 transition-colors"
         >
           <ArrowLeft size={20} />
           <span>Back</span>
@@ -187,13 +187,13 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] p-6">
+    <div className="min-h-screen bg-[#f5f5f5] p-6">
       {/* Back Button */}
       <motion.button
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={() => onNavigate && onNavigate("appointments")}
-        className="mb-6 flex items-center gap-2 text-moto-accent hover:text-white transition-colors"
+        className="mb-6 flex items-center gap-2 text-slate-900 hover:text-slate-700 transition-colors"
       >
         <ArrowLeft size={20} />
         <span>Back</span>
@@ -205,7 +205,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-white mb-2">My Appointments</h1>
+        <h1 className="text-4xl font-bold text-slate-900 mb-2">My Appointments</h1>
         <p className="text-slate-400">
           View and manage your assigned service appointments
         </p>
@@ -216,12 +216,12 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-slate-800 rounded-lg p-6 border border-slate-700"
+          className="bg-white rounded-xl p-6 border border-slate-200"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-slate-400 text-sm mb-1">Upcoming</p>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-3xl font-bold text-slate-900">
                 {upcomingAppointments.length}
               </p>
             </div>
@@ -235,7 +235,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-slate-800 rounded-lg p-6 border border-slate-700"
+          className="bg-white rounded-xl p-6 border border-slate-200"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -256,7 +256,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h2 className="text-2xl font-bold text-white mb-4">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">
             Upcoming Appointments
           </h2>
           <div className="space-y-4">
@@ -266,31 +266,31 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-slate-600 transition"
+                className="bg-white rounded-xl p-6 border border-slate-200 hover:border-slate-300 transition"
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <Calendar className="w-5 h-5 text-blue-400" />
-                      <span className="text-lg font-semibold text-white">
+                      <span className="text-lg font-semibold text-slate-900">
                         {new Date(apt.scheduled_date).toLocaleDateString()} at{" "}
                         {apt.scheduled_time}
                       </span>
                     </div>
 
-                    <div className="bg-slate-700/50 rounded p-4 mb-4">
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
                       <p className="text-slate-400 text-sm mb-2">
                         Service Type
                       </p>
-                      <p className="text-white font-semibold">
+                      <p className="text-slate-900 font-semibold">
                         {apt.service_type}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-slate-700/50 rounded p-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-slate-400 text-sm mb-2">Customer</p>
-                        <p className="text-white font-semibold">
+                        <p className="text-slate-900 font-semibold">
                           {apt.customer[0]?.name}
                         </p>
                         <p className="text-slate-400 text-sm">
@@ -298,9 +298,9 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
                         </p>
                       </div>
 
-                      <div className="bg-slate-700/50 rounded p-4">
+                      <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-slate-400 text-sm mb-2">Vehicle</p>
-                        <p className="text-white font-semibold">
+                        <p className="text-slate-900 font-semibold">
                           {apt.vehicles[0]?.make} {apt.vehicles[0]?.model}
                         </p>
 
@@ -340,7 +340,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="text-2xl font-bold text-white mb-4">
+          <h2 className="text-2xl font-bold text-slate-900 mb-4">
             Past Appointments
           </h2>
           <div className="space-y-4">
@@ -350,7 +350,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-slate-800/50 rounded-lg p-4 border border-slate-700"
+                className="bg-white rounded-xl p-4 border border-slate-200"
               >
                 <div className="flex items-start justify-between">
                   <div>
@@ -358,7 +358,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
                       {new Date(apt.scheduled_date).toLocaleDateString()} at{" "}
                       {apt.scheduled_time}
                     </p>
-                    <p className="text-white font-semibold mt-1">
+                    <p className="text-slate-900 font-semibold mt-1">
                       {apt.service_type}
                     </p>
                     <p className="text-slate-400 text-sm mt-1">
@@ -382,7 +382,7 @@ const MechanicPortal: React.FC<MechanicPortalProps> = ({ onNavigate }) => {
       {appointments.length === 0 && (
         <div className="text-center py-16">
           <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">
+          <h3 className="text-xl font-semibold text-slate-900 mb-2">
             No Appointments
           </h3>
           <p className="text-slate-400">

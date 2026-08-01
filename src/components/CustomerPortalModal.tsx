@@ -129,22 +129,22 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-[#0a0a0a] rounded-none border border-[#222] border-t-2 border-t-[#d63a2f] w-full sm:max-w-[900px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl flex flex-col"
+          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[900px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-xl flex flex-col"
         >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-[#222] flex-shrink-0 bg-[#111111]">
+          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-[#d63a2f] flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
                 <UserCircle size={28} className="text-white" strokeWidth={1.5} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-[#d63a2f]" /> DASHBOARD
+                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
+                  <div className="w-6 h-[1px] bg-slate-900" /> DASHBOARD
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl text-white uppercase leading-none tracking-wide">
+                <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
                   MY ACCOUNT
                 </h2>
-                <p className="text-[#6b6b6b] text-xs font-light tracking-wide hidden sm:block">
+                <p className="text-slate-500 text-xs font-light tracking-wide hidden sm:block">
                   Welcome, {user?.name || "Customer"}
                 </p>
               </div>
@@ -153,27 +153,27 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white shrink-0"
+                className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
                 title="Refresh"
               >
                 <RefreshCw size={20} className={refreshing ? "animate-spin" : ""} strokeWidth={1} />
               </button>
-              <button onClick={onClose} className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white shrink-0">
+              <button onClick={onClose} className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0">
                 <X size={20} strokeWidth={1} />
               </button>
             </div>
           </div>
 
           {/* ── Content ── */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-[#0a0a0a]">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-white">
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-3 border-[#d63a2f] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border border-[#222]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 border border-slate-200">
                   {STATS.map((stat, i) => {
                     const Icon = stat.icon;
                     return (
@@ -182,13 +182,13 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        className="bg-[#111111] p-5 sm:p-6 border-b sm:border-b-0 sm:border-r border-[#222] last:border-b-0 sm:last:border-r-0"
+                        className="bg-slate-50 p-5 sm:p-6 border-b sm:border-b-0 sm:border-r border-slate-200 last:border-b-0 sm:last:border-r-0"
                       >
                         <div className="flex items-center gap-3 mb-4">
-                          <Icon size={14} className="text-[#d63a2f]" />
-                          <span className="text-[#555] text-[10px] font-bold tracking-widest uppercase">{stat.label}</span>
+                          <Icon size={14} className="text-slate-900" />
+                          <span className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">{stat.label}</span>
                         </div>
-                        <p className="font-display text-3xl sm:text-4xl text-white leading-none">{stat.value}</p>
+                        <p className="font-display text-3xl sm:text-4xl text-slate-900 leading-none">{stat.value}</p>
                       </motion.div>
                     );
                   })}
@@ -199,20 +199,20 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="bg-[#111111] border border-[#222] p-6 sm:p-10 rounded-none"
+                  className="bg-slate-50 border border-slate-200 p-6 sm:p-10 rounded-xl"
                 >
-                  <h3 className="text-[10px] font-bold text-[#6b6b6b] uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-                    <UserCircle size={14} className="text-[#d63a2f]" /> ACCOUNT INFORMATION
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                    <UserCircle size={14} className="text-slate-900" /> ACCOUNT INFORMATION
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     {ACCOUNT_FIELDS.map((field) => {
                       const Icon = field.icon;
                       return (
-                        <div key={field.label} className="flex flex-col gap-2 border-l border-[#222] pl-4">
-                          <div className="flex items-center gap-2 text-[#555] text-[10px] font-bold tracking-widest uppercase mb-1">
+                        <div key={field.label} className="flex flex-col gap-2 border-l border-slate-200 pl-4">
+                          <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold tracking-widest uppercase mb-1">
                             <Icon size={12} /> {field.label}
                           </div>
-                          <p className={`font-display text-lg sm:text-xl text-white leading-tight uppercase ${field.capitalize ? "capitalize" : ""}`}>
+                          <p className={`font-display text-lg sm:text-xl text-slate-900 leading-tight uppercase ${field.capitalize ? "capitalize" : ""}`}>
                             {field.value}
                           </p>
                         </div>
@@ -226,17 +226,17 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
-                  className="bg-[#111111] border border-[#222] p-6 sm:p-10 rounded-none"
+                  className="bg-slate-50 border border-slate-200 p-6 sm:p-10 rounded-xl"
                 >
-                  <h3 className="text-[10px] font-bold text-[#6b6b6b] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                    <Car size={14} className="text-[#d63a2f]" /> YOUR VEHICLES
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                    <Car size={14} className="text-slate-900" /> YOUR VEHICLES
                   </h3>
 
                   {vehicles.length === 0 ? (
-                    <div className="text-center py-12 border border-[#222] bg-[#0a0a0a]">
-                      <Car className="w-12 h-12 text-[#333] mx-auto mb-4" strokeWidth={1} />
-                      <p className="text-[#6b6b6b] text-[10px] font-bold tracking-widest uppercase mb-2">NO VEHICLES REGISTERED YET.</p>
-                      <p className="text-[#444] text-[10px] font-bold tracking-widest uppercase">ADD VEHICLES IN SETTINGS</p>
+                    <div className="text-center py-12 border border-slate-200 bg-white">
+                      <Car className="w-12 h-12 text-slate-400 mx-auto mb-4" strokeWidth={1} />
+                      <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mb-2">NO VEHICLES REGISTERED YET.</p>
+                      <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">ADD VEHICLES IN SETTINGS</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -246,17 +246,17 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.3 + i * 0.05 }}
-                          className="bg-[#0a0a0a] border border-[#222] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                          className="bg-white border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
                           <div className="flex items-start sm:items-center gap-4">
-                            <div className="w-14 h-14 bg-[#111] border border-[#333] flex items-center justify-center shrink-0">
-                              <Car size={20} className="text-[#6b6b6b]" strokeWidth={1} />
+                            <div className="w-14 h-14 bg-slate-100 border border-slate-300 flex items-center justify-center shrink-0">
+                              <Car size={20} className="text-slate-500" strokeWidth={1} />
                             </div>
                             <div>
-                              <p className="font-display text-xl text-white uppercase tracking-wide leading-none mb-2">
+                              <p className="font-display text-xl text-slate-900 uppercase tracking-wide leading-none mb-2">
                                 {vehicle.make} {vehicle.model}
                               </p>
-                              <p className="text-[#6b6b6b] text-[10px] font-bold tracking-widest uppercase">
+                              <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">
                                 {vehicle.year || "N/A"}
                                 {vehicle.engine_number && ` • ENGINE: ${vehicle.engine_number}`}
                               </p>

@@ -209,7 +209,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="inline-block p-4 bg-indigo-100 rounded-full mb-4">
+          <div className="inline-block p-4 bg-slate-100 rounded-full mb-4">
             <div className="animate-spin">
               <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full" />
             </div>
@@ -240,15 +240,15 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200 rounded-lg p-6"
+          className="bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200 rounded-lg p-6"
         >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm mb-1">Total Customers</p>
               <p className="text-3xl font-bold text-gray-900">{totalCustomers}</p>
             </div>
-            <div className="p-3 bg-indigo-100 rounded-lg">
-              <AlertCircle className="text-indigo-600" size={24} />
+            <div className="p-3 bg-slate-100 rounded-lg">
+              <AlertCircle className="text-slate-900" size={24} />
             </div>
           </div>
         </motion.div>
@@ -309,7 +309,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         >
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Package size={18} className="text-indigo-600" /> Part
+              <Package size={18} className="text-slate-900" /> Part
               Reservations
             </h2>
             <span className="text-xs text-gray-500">

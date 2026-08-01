@@ -342,7 +342,7 @@ const MechanicDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900">
+      <div className="flex items-center justify-center h-screen bg-[#f5f5f5]">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 border-opacity-50"></div>
       </div>
     );
@@ -357,31 +357,31 @@ const MechanicDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-900">
+    <div className="flex min-h-screen bg-[#f5f5f5]">
       {/* Left Sidebar */}
-      <div className="w-56 bg-gradient-to-b from-slate-800 to-slate-900 text-white fixed h-screen left-0 top-0 flex flex-col overflow-y-auto border-r border-slate-700">
+      <div className="w-56 bg-white fixed h-screen left-0 top-0 flex flex-col overflow-y-auto border-r border-slate-200">
         {/* Logo Section */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-slate-200">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h2 className="text-sm font-black text-white">MOTOLINK</h2>
+              <h2 className="text-sm font-black text-slate-900">MOTOLINK</h2>
               <p className="text-xs text-slate-400">Mechanic Dashboard</p>
             </div>
           </div>
         </div>
 
         {/* User Profile Section */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-slate-200">
           <div className="flex flex-col items-center text-center">
             <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center mb-2">
               <span className="text-white font-bold text-xl">
                 {user?.name?.[0] || "M"}
               </span>
             </div>
-            <h3 className="font-bold text-sm text-white">
+            <h3 className="font-bold text-sm text-slate-900">
               {user?.name || "Mechanic"}
             </h3>
             <p className="text-slate-400 text-xs mt-1 break-all">
@@ -402,7 +402,7 @@ const MechanicDashboard: React.FC = () => {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition text-sm font-semibold ${
                   isActive
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-600/50"
-                    : "text-slate-300 hover:text-white hover:bg-slate-700"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
                 whileHover={{ x: 4 }}
               >
@@ -414,10 +414,10 @@ const MechanicDashboard: React.FC = () => {
         </nav>
 
         {/* Language Toggle */}
-        <div className="p-3 border-t border-slate-700">
+        <div className="p-3 border-t border-slate-200">
           <motion.button
             onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg transition"
             whileHover={{ scale: 1.05 }}
             title={
               language === "en" ? "Switch to Tagalog" : "Switch to English"
@@ -431,7 +431,7 @@ const MechanicDashboard: React.FC = () => {
         </div>
 
         {/* Logout Button */}
-        <div className="p-3 border-t border-slate-700">
+        <div className="p-3 border-t border-slate-200">
           <motion.button
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 transition font-semibold rounded-lg border border-red-600/30"
@@ -445,7 +445,7 @@ const MechanicDashboard: React.FC = () => {
 
       {/* Main Content */}
       <div className="ml-56 w-full">
-        <div className="min-h-screen bg-slate-900 p-8 custom-scrollbar h-screen overflow-y-auto">
+        <div className="min-h-screen bg-[#f5f5f5] p-8 custom-scrollbar h-screen overflow-y-auto">
           <div className="max-w-7xl mx-auto">
             {/* Dashboard Tab Content */}
             {activeTab === "dashboard" && (
@@ -456,7 +456,7 @@ const MechanicDashboard: React.FC = () => {
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <h1 className="text-5xl font-black text-white mb-2">
+                  <h1 className="text-5xl font-black text-slate-900 mb-2">
                     MY <span className="text-blue-500">PERFORMANCE</span>
                   </h1>
                   <p className="text-slate-400 text-lg">
@@ -510,12 +510,12 @@ const MechanicDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                   {/* Performance Trend */}
                   <motion.div
-                    className="bg-slate-800/50 border border-slate-700 rounded-lg p-6"
+                    className="bg-white border border-slate-200 rounded-xl p-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <h2 className="text-white font-black text-lg mb-6 uppercase tracking-wide">
+                    <h2 className="text-slate-900 font-black text-lg mb-6 uppercase tracking-wide">
                       Last 7 Days Performance
                     </h2>
                     <ResponsiveContainer width="100%" height={300}>
@@ -552,12 +552,12 @@ const MechanicDashboard: React.FC = () => {
 
                   {/* Customer Ratings */}
                   <motion.div
-                    className="bg-slate-800/50 border border-slate-700 rounded-lg p-6"
+                    className="bg-white border border-slate-200 rounded-xl p-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    <h2 className="text-white font-black text-lg mb-6 uppercase tracking-wide">
+                    <h2 className="text-slate-900 font-black text-lg mb-6 uppercase tracking-wide">
                       Customer Ratings
                     </h2>
                     <ResponsiveContainer width="100%" height={300}>
@@ -583,19 +583,19 @@ const MechanicDashboard: React.FC = () => {
             {/* Jobs Tab Content */}
             {activeTab === "jobs" && (
               <motion.div
-                className="bg-slate-800/50 border border-slate-700 rounded-lg p-8"
+                className="bg-white border border-slate-200 rounded-xl p-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 {/* Jobs Tab Content */}
                 {activeTab === "jobs" && (
                   <motion.div
-                    className="bg-slate-800/50 border border-slate-700 rounded-lg p-8"
+                    className="bg-white border border-slate-200 rounded-xl p-8"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
                     <div className="flex items-center justify-between mb-8">
-                      <h2 className="text-white font-black text-3xl">
+                      <h2 className="text-slate-900 font-black text-3xl">
                         ASSIGNED TASKS
                       </h2>
                       <div className="bg-blue-600/20 text-blue-400 px-4 py-1 rounded-full text-xs font-bold border border-blue-600/30">
@@ -612,20 +612,20 @@ const MechanicDashboard: React.FC = () => {
                         {appointments.map((appt) => (
                           <div
                             key={appt.id}
-                            className={`bg-slate-700/50 rounded-lg p-6 border transition-all ${
+                            className={`bg-white rounded-xl p-6 border transition-all ${
                               appt.status === "pending"
                                 ? "border-yellow-600/30 shadow-[4px_0_0_#d97706]"
                                 : appt.status === "confirmed"
                                   ? "border-blue-600/30 shadow-[4px_0_0_#2563eb]"
                                   : appt.status === "in_progress"
                                     ? "border-purple-600/30 shadow-[4px_0_0_#9333ea]"
-                                    : "border-slate-600"
+                                    : "border-slate-200"
                             }`}
                           >
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               {/* Task details */}
                               <div className="md:col-span-2">
-                                <h3 className="text-white font-bold text-lg uppercase tracking-tight">
+                                <h3 className="text-slate-900 font-bold text-lg uppercase tracking-tight">
                                   {(appt as any).title}
                                 </h3>
                                 <p className="text-slate-500 text-xs mb-4">
@@ -641,7 +641,7 @@ const MechanicDashboard: React.FC = () => {
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">
                                       Customer
                                     </p>
-                                    <p className="text-white text-sm font-semibold">
+                                    <p className="text-slate-900 text-sm font-semibold">
                                       {(appt as any).customer_name}
                                     </p>
                                     <p className="text-slate-500 text-xs">
@@ -652,7 +652,7 @@ const MechanicDashboard: React.FC = () => {
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">
                                       Vehicle
                                     </p>
-                                    <p className="text-white text-sm font-semibold">
+                                    <p className="text-slate-900 text-sm font-semibold">
                                       {(appt as any).vehicle_make}{" "}
                                       {(appt as any).vehicle_model}
                                     </p>
@@ -736,7 +736,7 @@ const MechanicDashboard: React.FC = () => {
                                   )}
 
                                   {appt.status === "in_progress" && (
-                                    <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg text-center flex items-center justify-center gap-3">
+                                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg text-center flex items-center justify-center gap-3">
                                       <Clock className="w-4 h-4 text-purple-400 animate-spin" />
                                       <p className="text-purple-400 text-[10px] font-bold uppercase tracking-wider">
                                         WAITING FOR OWNER FINALIZATION
@@ -767,11 +767,11 @@ const MechanicDashboard: React.FC = () => {
             {/* Appointments Tab Content */}
             {activeTab === "appointments" && (
               <motion.div
-                className="bg-slate-800/50 border border-slate-700 rounded-lg p-8"
+                className="bg-white border border-slate-200 rounded-xl p-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <h2 className="text-white font-black text-3xl mb-6">
+                <h2 className="text-slate-900 font-black text-3xl mb-6">
                   MY APPOINTMENTS
                 </h2>
                 {appointments.length === 0 ? (
@@ -783,11 +783,11 @@ const MechanicDashboard: React.FC = () => {
                     {appointments.map((appt) => (
                       <div
                         key={appt.id}
-                        className="bg-slate-700/50 rounded-lg p-6 border border-slate-600"
+                        className="bg-white rounded-xl p-6 border border-slate-200"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="text-white font-bold text-lg">
+                            <h3 className="text-slate-900 font-bold text-lg">
                               {appt.customer_name}
                             </h3>
                             <p className="text-slate-400 text-sm">
@@ -828,16 +828,16 @@ const MechanicDashboard: React.FC = () => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-white font-black text-4xl uppercase tracking-tight">
+                    <h2 className="text-slate-900 font-black text-4xl uppercase tracking-tight">
                       SHOP INVENTORY
                     </h2>
                     <p className="text-slate-400 mt-1">
                       Real-time view of available parts and supplies
                     </p>
                   </div>
-                  <div className="bg-slate-800/50 border border-slate-700 px-4 py-2 rounded-lg flex items-center gap-3">
+                  <div className="bg-white border border-slate-200 px-4 py-2 rounded-lg flex items-center gap-3">
                     <Package className="text-blue-500 w-5 h-5" />
-                    <span className="text-white font-bold tracking-widest uppercase text-xs">
+                    <span className="text-slate-900 font-bold tracking-widest uppercase text-xs">
                       {inventory.length} Categories Loaded
                     </span>
                   </div>
@@ -850,9 +850,9 @@ const MechanicDashboard: React.FC = () => {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden group hover:border-blue-500/50 transition-all shadow-lg flex flex-col"
+                      className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:border-blue-500/50 transition-all shadow-lg flex flex-col"
                     >
-                      <div className="h-44 bg-slate-900 relative overflow-hidden shrink-0">
+                      <div className="h-44 bg-slate-100 relative overflow-hidden shrink-0">
                         {item.image_url ? (
                           <img
                             src={item.image_url}
@@ -869,7 +869,7 @@ const MechanicDashboard: React.FC = () => {
                             LOW STOCK
                           </div>
                         )}
-                        <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm px-2 py-1 rounded text-[9px] text-blue-400 font-bold uppercase tracking-widest border border-slate-700">
+                        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[9px] text-blue-600 font-bold uppercase tracking-widest border border-slate-200">
                           {item.category || "General"}
                         </div>
                       </div>
@@ -877,14 +877,14 @@ const MechanicDashboard: React.FC = () => {
                       <div className="p-5 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1 min-w-0 pr-2">
-                            <h3 className="text-white font-bold text-lg uppercase leading-tight group-hover:text-blue-400 transition-colors truncate">
+                            <h3 className="text-slate-900 font-bold text-lg uppercase leading-tight group-hover:text-blue-600 transition-colors truncate">
                               {item.name}
                             </h3>
                             <p className="text-slate-500 text-[10px] font-bold tracking-widest mt-1">
                               SKU: {item.sku}
                             </p>
                           </div>
-                          <span className="text-blue-400 font-bold shrink-0">
+                          <span className="text-blue-600 font-bold shrink-0">
                             ₱{item.unit_price?.toLocaleString()}
                           </span>
                         </div>
@@ -900,7 +900,7 @@ const MechanicDashboard: React.FC = () => {
                               {item.quantity_in_stock}
                             </span>
                           </div>
-                          <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{
@@ -916,7 +916,7 @@ const MechanicDashboard: React.FC = () => {
                 </div>
 
                 {inventory.length === 0 && (
-                  <div className="text-center py-20 bg-slate-800/20 border border-slate-700/50 rounded-2xl">
+                  <div className="text-center py-20 bg-white border border-slate-200 rounded-2xl">
                     <Package
                       className="w-16 h-16 text-slate-700 mx-auto mb-4"
                       strokeWidth={1}
@@ -936,12 +936,12 @@ const MechanicDashboard: React.FC = () => {
             {/* Profile Tab Content */}
             {activeTab === "profile" && (
               <motion.div
-                className="bg-slate-800/50 border border-slate-700 rounded-lg p-8 max-w-2xl mx-auto"
+                className="bg-white border border-slate-200 rounded-xl p-8 max-w-2xl mx-auto"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 <div className="mb-8">
-                  <h2 className="text-white font-black text-3xl mb-2 flex items-center gap-3">
+                  <h2 className="text-slate-900 font-black text-3xl mb-2 flex items-center gap-3">
                     <User className="text-blue-500 w-8 h-8" /> MY PROFILE
                   </h2>
                   <p className="text-slate-400 text-sm">
@@ -978,8 +978,8 @@ const MechanicDashboard: React.FC = () => {
                     readOnly
                   />
 
-                  <div className="space-y-4 bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-                    <h3 className="text-white font-semibold flex items-center gap-2 mb-2">
+                  <div className="space-y-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
                       <User size={18} className="text-slate-400" /> Personal
                       Information
                     </h3>
@@ -995,13 +995,13 @@ const MechanicDashboard: React.FC = () => {
                         value={phoneInput}
                         onChange={(e) => setPhoneInput(e.target.value)}
                         placeholder="+63 900 000 0000"
-                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-4 bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-                    <h3 className="text-white font-semibold flex items-center gap-2 mb-2">
+                  <div className="space-y-4 bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <h3 className="text-slate-900 font-semibold flex items-center gap-2 mb-2">
                       <KeyRound size={18} className="text-slate-400" /> Security
                     </h3>
                     <p className="text-xs text-slate-500 mb-4">
@@ -1020,7 +1020,7 @@ const MechanicDashboard: React.FC = () => {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
                       />
                     </div>
 
@@ -1035,7 +1035,7 @@ const MechanicDashboard: React.FC = () => {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+                        className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
                       />
                     </div>
                   </div>

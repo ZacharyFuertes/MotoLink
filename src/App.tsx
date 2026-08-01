@@ -207,7 +207,7 @@ const AppContent: React.FC = () => {
   // If auth loading, show a spinner placeholder
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] text-slate-900">
         <div className="text-center">
           <p className="text-xl font-semibold mb-2">
             Checking authentication and role permissions...
@@ -240,7 +240,7 @@ const AppContent: React.FC = () => {
     };
 
     return (
-      <div className="min-h-screen bg-moto-dark overflow-x-hidden">
+      <div className="min-h-screen bg-white overflow-x-hidden">
         <DatabaseStatus />
         {viewingShopId ? (
           <ShopDetailPage
@@ -318,7 +318,7 @@ const AppContent: React.FC = () => {
   // While user object is authenticated but role is not yet resolved, show loader
   if (isAuthenticated && !user?.role) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] text-slate-900">
         <div className="text-center">
           <p className="text-xl font-semibold mb-2">
             Loading role permissions...
@@ -332,7 +332,7 @@ const AppContent: React.FC = () => {
   // Render dashboard system or landing page if user navigates back
   if (currentPage === "landing") {
     return (
-      <div className="min-h-screen bg-moto-dark overflow-x-hidden">
+      <div className="min-h-screen bg-white overflow-x-hidden">
         <DatabaseStatus />
         {viewingShopId ? (
           <ShopDetailPage
@@ -611,7 +611,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#f5f5f5]">
       <DatabaseStatus />
       {currentPage !== "mechanic-dashboard" && (
         <SystemNavbar

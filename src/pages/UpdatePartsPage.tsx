@@ -278,9 +278,9 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#ef4444] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-slate-400 text-xs font-bold tracking-widest uppercase">Loading inventory...</p>
         </div>
       </div>
@@ -288,57 +288,57 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] bg-[#0f0f0f] flex flex-col lg:flex-row">
+    <div className="h-[calc(100vh-80px)] bg-[#f5f5f5] flex flex-col lg:flex-row">
       {/* ═══════ LEFT: Product Grid (70-75%) ═══════ */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <div className="px-6 py-5 border-b border-[#2a2a2a] bg-[#1a1a1a] flex items-center gap-4 flex-shrink-0">
+        <div className="px-6 py-5 border-b border-slate-200 bg-white flex items-center gap-4 flex-shrink-0">
           <button
             onClick={() => onNavigate && onNavigate(user?.role === "admin" ? "admin-dashboard" : "dashboard")}
-            className="w-10 h-10 bg-[#0f0f0f] border border-[#333] hover:border-[#ef4444] flex items-center justify-center transition text-slate-400 hover:text-[#ef4444] rounded-md"
+            className="w-10 h-10 bg-white border border-slate-300 hover:border-slate-500 flex items-center justify-center transition text-slate-500 hover:text-slate-900 rounded-md"
           >
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1">
-            <div className="flex items-center gap-3 text-[#ef4444] text-[10px] font-bold tracking-[0.2em] uppercase mb-1">
-              <div className="w-6 h-[1px] bg-[#ef4444]" /> POINT OF SALE
+            <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase mb-1">
+              <div className="w-6 h-[1px] bg-slate-900" /> POINT OF SALE
             </div>
-            <h1 className="text-2xl font-black text-white uppercase tracking-wide leading-none">
+            <h1 className="text-2xl font-black text-slate-900 uppercase tracking-wide leading-none">
               Update Parts
             </h1>
           </div>
 
           {/* Today's sales summary */}
           <div className="hidden md:flex items-center gap-6">
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md shadow-inner">
-              <TrendingUp size={16} className="text-emerald-400" />
-              <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400">Today:</span>
-              <span className="text-sm font-black text-emerald-400">₱{todaySales.revenue.toLocaleString()}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-md shadow-sm">
+              <TrendingUp size={16} className="text-emerald-600" />
+              <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Today:</span>
+              <span className="text-sm font-black text-emerald-600">₱{todaySales.revenue.toLocaleString()}</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-[#0f0f0f] border border-[#2a2a2a] rounded-md shadow-inner">
-              <ShoppingBag size={16} className="text-[#ef4444]" />
-              <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400">Items Sold:</span>
-              <span className="text-sm font-black text-white">{todaySales.count}</span>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-md shadow-sm">
+              <ShoppingBag size={16} className="text-slate-900" />
+              <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">Items Sold:</span>
+              <span className="text-sm font-black text-slate-900">{todaySales.count}</span>
             </div>
           </div>
         </div>
 
         {/* Search & Filters */}
-        <div className="px-6 py-4 border-b border-[#2a2a2a] bg-[#0f0f0f] flex flex-wrap gap-3 items-center flex-shrink-0">
+        <div className="px-6 py-4 border-b border-slate-200 bg-white flex flex-wrap gap-3 items-center flex-shrink-0">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="SEARCH PARTS..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1a1a1a] text-white pl-10 pr-4 py-3 border border-[#333] focus:border-[#ef4444] focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-md shadow-sm"
+              className="w-full bg-white text-slate-900 pl-10 pr-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl shadow-sm"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="bg-[#1a1a1a] text-white px-4 py-3 border border-[#333] focus:border-[#ef4444] focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-md shadow-sm cursor-pointer"
+            className="bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl shadow-sm cursor-pointer"
           >
             <option value="all">All Categories</option>
             {categories.map((cat) => (
@@ -349,7 +349,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
           </select>
           <button
             onClick={fetchParts}
-            className="p-3 bg-[#1a1a1a] border border-[#333] rounded-md hover:border-[#ef4444] text-slate-400 hover:text-[#ef4444] transition shadow-sm"
+            className="p-3 bg-white border border-slate-300 rounded-xl hover:border-slate-500 text-slate-500 hover:text-slate-900 transition shadow-sm"
             title="Refresh"
           >
             <RefreshCw size={18} />
@@ -357,11 +357,11 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[#0f0f0f]">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#f5f5f5]">
           {filteredParts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 border-2 border-dashed border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
-              <Package className="w-16 h-16 text-[#333] mb-4" strokeWidth={1} />
-              <p className="text-slate-400 text-sm tracking-widest uppercase font-bold">
+            <div className="flex flex-col items-center justify-center h-full py-20 border-2 border-dashed border-slate-300 bg-white rounded-xl">
+              <Package className="w-16 h-16 text-slate-300 mb-4" strokeWidth={1} />
+              <p className="text-slate-500 text-sm tracking-widest uppercase font-bold">
                 No parts found
               </p>
             </div>
@@ -376,14 +376,14 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                   <motion.div
                     key={part.id}
                     whileHover={{ y: -4 }}
-                    className={`group bg-[#1a1a1a] border rounded-xl overflow-hidden transition flex flex-col h-full ${
+                    className={`group bg-white border rounded-xl overflow-hidden transition flex flex-col h-full shadow-sm ${
                       inCart
-                        ? "border-[#ef4444] shadow-[0_4px_20px_rgba(239,68,68,0.15)]"
-                        : "border-[#2a2a2a] hover:border-[#444] shadow-lg"
+                        ? "border-slate-900 ring-1 ring-slate-900"
+                        : "border-slate-200 hover:border-slate-400"
                     }`}
                   >
                     {/* Image */}
-                    <div className="relative aspect-square bg-[#0f0f0f] border-b border-[#2a2a2a] overflow-hidden">
+                    <div className="relative aspect-square bg-slate-100 border-b border-slate-200 overflow-hidden">
                       {part.image_url ? (
                         <img
                           src={part.image_url}
@@ -392,24 +392,24 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Zap className="w-12 h-12 text-[#2a2a2a]" />
+                          <Zap className="w-12 h-12 text-slate-300" />
                         </div>
                       )}
 
                       {/* Stock Status Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                         {inStock && !isLow && (
-                          <span className="bg-emerald-500/90 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm shadow-md">
+                          <span className="bg-emerald-600 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm shadow-md">
                             IN STOCK
                           </span>
                         )}
                         {isLow && (
-                          <span className="bg-amber-500/90 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm flex items-center gap-1 shadow-md">
+                          <span className="bg-amber-500 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm flex items-center gap-1 shadow-md">
                             <AlertCircle size={10} /> LOW STOCK
                           </span>
                         )}
                         {!inStock && (
-                          <span className="bg-rose-600/90 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm shadow-md">
+                          <span className="bg-rose-600 backdrop-blur text-white text-[9px] font-black px-2.5 py-1 tracking-widest uppercase rounded-sm shadow-md">
                             SOLD OUT
                           </span>
                         )}
@@ -417,7 +417,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
 
                       {/* Cart indicator */}
                       {inCart && (
-                        <div className="absolute top-3 right-3 bg-[#ef4444] text-white text-xs font-black w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-[#1a1a1a]">
+                        <div className="absolute top-3 right-3 bg-slate-900 text-white text-xs font-black w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
                           {inCart.quantity}
                         </div>
                       )}
@@ -426,17 +426,17 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                     {/* Info */}
                     <div className="p-4 flex flex-col flex-1">
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">{part.category}</p>
-                      <h3 className="text-sm font-bold text-white uppercase leading-snug mb-3 line-clamp-2 group-hover:text-[#ef4444] transition-colors">
+                      <h3 className="text-sm font-bold text-slate-900 uppercase leading-snug mb-3 line-clamp-2 group-hover:text-slate-700 transition-colors">
                         {part.name}
                       </h3>
                       
                       <div className="mt-auto">
                         <div className="flex items-end justify-between mb-4">
-                          <span className="text-xl font-black text-white">
-                            <span className="text-[#ef4444]">₱</span>{part.unit_price.toLocaleString()}
+                          <span className="text-xl font-black text-slate-900">
+                            <span className="text-slate-900">₱</span>{part.unit_price.toLocaleString()}
                           </span>
                           <span className={`text-[10px] font-bold tracking-widest ${
-                            !inStock ? "text-rose-500" : isLow ? "text-amber-500" : "text-emerald-400"
+                            !inStock ? "text-rose-600" : isLow ? "text-amber-600" : "text-emerald-600"
                           }`}>
                             {part.quantity_in_stock} PCS
                           </span>
@@ -450,8 +450,8 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                             disabled={!inStock}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest transition rounded-md border ${
                               inStock
-                                ? "bg-[#ef4444] border-[#ef4444] text-white hover:bg-rose-600 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]"
-                                : "bg-[#1a1a1a] border-[#333] text-slate-600 cursor-not-allowed"
+                                ? "bg-slate-900 border-slate-900 text-white hover:bg-slate-800"
+                                : "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                             }`}
                           >
                             <ShoppingBag size={14} />
@@ -465,7 +465,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                               setAdjustQty(0);
                               setAdjustType("add");
                             }}
-                            className="w-10 flex items-center justify-center border border-[#333] rounded-md bg-[#1a1a1a] text-slate-400 hover:border-emerald-400 hover:text-emerald-400 transition hover:shadow-[0_0_10px_rgba(52,211,153,0.2)]"
+                            className="w-10 flex items-center justify-center border border-slate-300 rounded-md bg-white text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition"
                             title="Adjust store stock"
                           >
                             <Hash size={14} />
@@ -475,7 +475,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                           {inStock && (
                             <button
                               onClick={() => handleMarkSoldOut(part)}
-                              className="w-10 flex items-center justify-center border border-[#333] rounded-md bg-[#1a1a1a] text-slate-400 hover:border-amber-500 hover:text-amber-500 transition hover:shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                              className="w-10 flex items-center justify-center border border-slate-300 rounded-md bg-white text-slate-500 hover:border-amber-500 hover:text-amber-600 transition"
                               title="Mark as Sold Out"
                             >
                               <XCircle size={14} />
@@ -493,26 +493,26 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
       </div>
 
       {/* ═══════ RIGHT: Cart / Checkout Panel (25-30%) ═══════ */}
-      <div className="w-full lg:w-[400px] xl:w-[450px] border-l border-[#2a2a2a] bg-[#121212] flex flex-col flex-shrink-0 shadow-2xl relative z-10">
+      <div className="w-full lg:w-[400px] xl:w-[450px] border-l border-slate-200 bg-white flex flex-col flex-shrink-0 shadow-xl relative z-10">
         {/* Cart Header */}
-        <div className="px-6 py-6 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+        <div className="px-6 py-6 border-b border-slate-200 bg-white">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-3">
-              <ShoppingBag size={20} className="text-[#ef4444]" />
-              <h2 className="text-xl font-black text-white uppercase tracking-wide">
+              <ShoppingBag size={20} className="text-slate-900" />
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-wide">
                 Current Sale
               </h2>
             </div>
             {cart.length > 0 && (
               <button
                 onClick={() => setCart([])}
-                className="text-[10px] font-bold tracking-widest uppercase text-slate-500 hover:text-white transition bg-[#2a2a2a] px-3 py-1.5 rounded-full"
+                className="text-[10px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition bg-slate-100 px-3 py-1.5 rounded-full"
               >
                 Clear All
               </button>
             )}
           </div>
-          <p className="text-[11px] text-emerald-400 font-bold tracking-widest uppercase mt-2">
+          <p className="text-[11px] text-emerald-600 font-bold tracking-widest uppercase mt-2">
             {cartItemCount} item{cartItemCount !== 1 ? "s" : ""} selected
           </p>
         </div>
@@ -521,10 +521,10 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
         <div className="flex-1 overflow-y-auto px-5 py-5 custom-scrollbar">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center opacity-70">
-              <div className="w-20 h-20 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-5 border border-[#2a2a2a]">
-                <ShoppingBag className="w-8 h-8 text-slate-600" />
+              <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-5 border border-slate-200">
+                <ShoppingBag className="w-8 h-8 text-slate-400" />
               </div>
-              <p className="text-white text-sm font-bold tracking-widest uppercase mb-2">
+              <p className="text-slate-900 text-sm font-bold tracking-widest uppercase mb-2">
                 Cart is empty
               </p>
               <p className="text-slate-500 text-[10px] tracking-widest uppercase max-w-[200px] leading-relaxed">
@@ -540,36 +540,36 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="flex flex-col gap-3 p-4 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-sm"
+                    className="flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-lg shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-white uppercase truncate mb-1">
+                        <h4 className="text-sm font-bold text-slate-900 uppercase truncate mb-1">
                           {item.part_name}
                         </h4>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-widest">
+                        <p className="text-[10px] text-slate-500 font-bold tracking-widest">
                           ₱{item.unit_price.toLocaleString()} each
                         </p>
                       </div>
                       <button
                         onClick={() => deleteFromCart(item.part_id)}
-                        className="text-slate-500 hover:text-rose-500 transition p-1 bg-[#222] rounded-md hover:bg-rose-500/10"
+                        className="text-slate-500 hover:text-rose-600 transition p-1 bg-slate-100 rounded-md hover:bg-rose-50"
                         title="Remove completely"
                       >
                         <X size={14} />
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-[#2a2a2a] pt-3 mt-1">
+                    <div className="flex items-center justify-between border-t border-slate-200 pt-3 mt-1">
                       {/* Qty controls */}
-                      <div className="flex items-center bg-[#222] rounded-md border border-[#333] p-0.5">
+                      <div className="flex items-center bg-slate-100 rounded-md border border-slate-200 p-0.5">
                         <button
                           onClick={() => removeFromCart(item.part_id)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-400 transition hover:bg-[#111] rounded"
+                          className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-rose-600 transition hover:bg-slate-200 rounded"
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="w-8 text-center text-sm font-black text-white bg-[#1a1a1a]">
+                        <span className="w-8 text-center text-sm font-black text-slate-900 bg-white">
                           {item.quantity}
                         </span>
                         <button
@@ -577,15 +577,15 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                             const part = parts.find((p) => p.id === item.part_id);
                             if (part) addToCart(part);
                           }}
-                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition hover:bg-[#111] rounded"
+                          className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-emerald-600 transition hover:bg-slate-200 rounded"
                         >
                           <Plus size={14} />
                         </button>
                       </div>
 
                       {/* Item total */}
-                      <span className="text-base font-black text-white">
-                        <span className="text-[#ef4444] text-xs">₱</span>{item.total.toLocaleString()}
+                      <span className="text-base font-black text-slate-900">
+                        <span className="text-slate-900 text-xs">₱</span>{item.total.toLocaleString()}
                       </span>
                     </div>
                   </motion.div>
@@ -596,14 +596,14 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
         </div>
 
         {/* Cart Footer / Checkout */}
-        <div className="border-t border-[#2a2a2a] bg-[#1a1a1a] px-6 py-6 flex-shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.2)]">
+        <div className="border-t border-slate-200 bg-white px-6 py-6 flex-shrink-0">
           {/* Totals */}
           <div className="flex items-end justify-between mb-6">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
               Total Amount
             </span>
-            <span className="text-3xl font-black text-white leading-none">
-              <span className="text-[#ef4444] text-xl mr-1">₱</span>{cartTotal.toLocaleString()}
+            <span className="text-3xl font-black text-slate-900 leading-none">
+              <span className="text-slate-900 text-xl mr-1">₱</span>{cartTotal.toLocaleString()}
             </span>
           </div>
 
@@ -611,12 +611,12 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
           <button
             onClick={handleCheckout}
             disabled={cart.length === 0 || processingCheckout}
-            className={`w-full flex items-center justify-center gap-3 py-4 font-black text-[12px] tracking-[0.2em] uppercase transition rounded-md border-2 shadow-lg ${
+            className={`w-full flex items-center justify-center gap-3 py-4 font-black text-[12px] tracking-[0.2em] uppercase transition rounded-xl border-2 shadow-lg ${
               cart.length === 0
-                ? "bg-[#222] border-[#333] text-slate-500 cursor-not-allowed"
+                ? "bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed"
                 : processingCheckout
-                  ? "bg-[#ef4444] border-[#ef4444] text-white opacity-70"
-                  : "bg-[#ef4444] border-[#ef4444] text-white hover:bg-rose-600 hover:shadow-[0_4px_20px_rgba(239,68,68,0.3)] hover:-translate-y-0.5"
+                  ? "bg-slate-900 border-slate-900 text-white opacity-70"
+                  : "bg-slate-900 border-slate-900 text-white hover:bg-slate-800 hover:-translate-y-0.5"
             }`}
           >
             {processingCheckout ? (
@@ -639,7 +639,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                 initial={{ opacity: 0, y: -10, height: 0 }}
                 animate={{ opacity: 1, y: 0, height: "auto" }}
                 exit={{ opacity: 0, y: -10, height: 0 }}
-                className="mt-4 flex items-center justify-center gap-2 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold tracking-widest uppercase rounded-md"
+                className="mt-4 flex items-center justify-center gap-2 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold tracking-widest uppercase rounded-xl"
               >
                 <CheckCircle size={14} />
                 Sale recorded successfully!
@@ -656,7 +656,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setAdjustPart(null)}
           >
             <motion.div
@@ -665,22 +665,22 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#121212] border border-[#2a2a2a] border-t-4 border-t-[#ef4444] rounded-xl max-w-sm w-full shadow-2xl overflow-hidden"
+              className="bg-white border border-slate-200 border-t-4 border-t-slate-900 rounded-2xl max-w-sm w-full shadow-xl overflow-hidden"
             >
               {/* Header */}
-              <div className="px-6 py-5 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+              <div className="px-6 py-5 border-b border-slate-200 bg-slate-50">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-[#ef4444] text-[10px] font-bold tracking-[0.2em] uppercase mb-1">
-                      <div className="w-4 h-[1px] bg-[#ef4444]" /> ADJUST STOCK
+                    <div className="flex items-center gap-2 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase mb-1">
+                      <div className="w-4 h-[1px] bg-slate-900" /> ADJUST STOCK
                     </div>
-                    <h3 className="text-base font-black text-white uppercase tracking-wide line-clamp-2 max-w-[250px]">
+                    <h3 className="text-base font-black text-slate-900 uppercase tracking-wide line-clamp-2 max-w-[250px]">
                       {adjustPart.name}
                     </h3>
                   </div>
                   <button
                     onClick={() => setAdjustPart(null)}
-                    className="p-2 border border-[#333] hover:bg-[#222] rounded-md transition text-slate-400 hover:text-white"
+                    className="p-2 border border-slate-300 hover:bg-slate-100 rounded-md transition text-slate-500 hover:text-slate-900"
                   >
                     <X size={16} />
                   </button>
@@ -688,13 +688,13 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
               </div>
 
               {/* Body */}
-              <div className="px-6 py-6 space-y-5 bg-[#0f0f0f]">
+              <div className="px-6 py-6 space-y-5 bg-white">
                 {/* Current stock */}
-                <div className="flex items-center justify-between py-3 px-5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
-                  <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">
+                <div className="flex items-center justify-between py-3 px-5 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
                     Current Stock
                   </span>
-                  <span className="text-2xl font-black text-white">
+                  <span className="text-2xl font-black text-slate-900">
                     {adjustPart.quantity_in_stock}
                   </span>
                 </div>
@@ -703,20 +703,20 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setAdjustType("add")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black tracking-widest uppercase transition rounded-md border ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black tracking-widest uppercase transition rounded-xl border ${
                       adjustType === "add"
-                        ? "bg-emerald-500/10 border-emerald-500 text-emerald-400"
-                        : "bg-[#1a1a1a] border-[#333] text-slate-500 hover:border-[#555]"
+                        ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+                        : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
                     }`}
                   >
                     <Plus size={14} /> Add
                   </button>
                   <button
                     onClick={() => setAdjustType("remove")}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black tracking-widest uppercase transition rounded-md border ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black tracking-widest uppercase transition rounded-xl border ${
                       adjustType === "remove"
-                        ? "bg-rose-500/10 border-rose-500 text-rose-400"
-                        : "bg-[#1a1a1a] border-[#333] text-slate-500 hover:border-[#555]"
+                        ? "bg-rose-50 border-rose-500 text-rose-700"
+                        : "bg-white border-slate-300 text-slate-500 hover:border-slate-400"
                     }`}
                   >
                     <Minus size={14} /> Remove
@@ -725,7 +725,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
 
                 {/* Quantity */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-[0.2em]">
+                  <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-[0.2em]">
                     Quantity Adjustment
                   </label>
                   <input
@@ -733,17 +733,17 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
                     min={0}
                     value={adjustQty}
                     onChange={(e) => setAdjustQty(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="w-full bg-[#1a1a1a] text-white text-center text-3xl font-black px-4 py-4 border border-[#333] rounded-lg focus:border-[#ef4444] focus:ring-1 focus:ring-[#ef4444] focus:outline-none transition"
+                    className="w-full bg-white text-slate-900 text-center text-3xl font-black px-4 py-4 border border-slate-300 rounded-xl focus:border-slate-500 focus:ring-1 focus:ring-slate-200 focus:outline-none transition"
                   />
                 </div>
 
                 {/* Preview */}
-                <div className="flex items-center justify-between py-3 px-5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
-                  <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">
+                <div className="flex items-center justify-between py-3 px-5 bg-slate-50 border border-slate-200 rounded-lg">
+                  <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">
                     Resulting Stock
                   </span>
                   <span className={`text-2xl font-black ${
-                    adjustType === "add" ? "text-emerald-400" : "text-rose-400"
+                    adjustType === "add" ? "text-emerald-600" : "text-rose-600"
                   }`}>
                     {adjustType === "add"
                       ? adjustPart.quantity_in_stock + adjustQty
@@ -753,17 +753,17 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = ({ onNavigate }) => {
               </div>
 
               {/* Footer */}
-              <div className="flex gap-3 px-6 py-5 border-t border-[#2a2a2a] bg-[#1a1a1a]">
+              <div className="flex gap-3 px-6 py-5 border-t border-slate-200 bg-slate-50">
                 <button
                   onClick={handleStockAdjust}
                   disabled={adjusting || adjustQty <= 0}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#ef4444] hover:bg-rose-600 text-white font-black py-3 rounded-md transition text-[11px] tracking-[0.2em] uppercase border border-[#ef4444] disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-black py-3 rounded-xl transition text-[11px] tracking-[0.2em] uppercase border border-slate-900 disabled:opacity-50"
                 >
                   {adjusting ? "UPDATING..." : "APPLY"}
                 </button>
                 <button
                   onClick={() => setAdjustPart(null)}
-                  className="flex-1 bg-transparent border border-[#333] text-slate-400 hover:text-white hover:border-[#555] rounded-md font-bold py-3 transition text-[11px] tracking-[0.2em] uppercase"
+                  className="flex-1 bg-transparent border border-slate-300 text-slate-500 hover:text-slate-900 hover:border-slate-400 rounded-xl font-bold py-3 transition text-[11px] tracking-[0.2em] uppercase"
                 >
                   Cancel
                 </button>

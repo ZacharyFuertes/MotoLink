@@ -516,22 +516,22 @@ ${shopData}`;
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] w-full max-w-[700px] h-[85vh] max-h-[700px] overflow-hidden shadow-2xl flex flex-col"
+          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full max-w-[700px] h-[85vh] max-h-[700px] overflow-hidden shadow-xl flex flex-col"
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[#222] bg-[#111111] flex-shrink-0">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-slate-50 flex-shrink-0">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#d63a2f] to-[#f97316] flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
                 <Bot size={24} className="text-white" strokeWidth={1.5} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-display text-lg text-white uppercase tracking-wide font-bold">
+                  <h2 className="font-display text-lg text-slate-900 uppercase tracking-wide font-bold">
                     Admin AI
                   </h2>
-                  <Sparkles size={14} className="text-[#d63a2f]" />
+                  <Sparkles size={14} className="text-slate-900" />
                 </div>
-                <p className="text-[9px] text-[#6b6b6b] font-bold tracking-[0.2em] uppercase">
+                <p className="text-[9px] text-slate-500 font-bold tracking-[0.2em] uppercase">
                   Business Intelligence Assistant
                 </p>
               </div>
@@ -541,13 +541,13 @@ ${shopData}`;
               <button
                 onClick={fetchShopData}
                 disabled={dataLoading}
-                className="px-3 py-2 border border-[#333] hover:border-[#d63a2f] text-[#6b6b6b] hover:text-[#d63a2f] transition text-[9px] font-bold tracking-widest uppercase disabled:opacity-50"
+                className="px-3 py-2 border border-slate-300 hover:border-slate-700 text-slate-500 hover:text-slate-700 transition text-[9px] font-bold tracking-widest uppercase disabled:opacity-50"
               >
                 {dataLoading ? "LOADING..." : "REFRESH DATA"}
               </button>
               <button
                 onClick={onClose}
-                className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white"
+                className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900"
               >
                 <X size={18} strokeWidth={1} />
               </button>
@@ -555,16 +555,16 @@ ${shopData}`;
           </div>
 
           {/* ── Messages ── */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-[#0a0a0a]">
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-slate-50">
             {/* Welcome message */}
             {messages.length === 0 && (
               <div className="space-y-6">
                 <div className="text-center py-4">
-                  <Bot size={40} className="text-[#333] mx-auto mb-3" />
-                  <p className="text-[#6b6b6b] text-xs font-bold tracking-widest uppercase mb-1">
+                  <Bot size={40} className="text-slate-400 mx-auto mb-3" />
+                  <p className="text-slate-500 text-xs font-bold tracking-widest uppercase mb-1">
                     MotoLink Admin AI
                   </p>
-                  <p className="text-[#555] text-[11px] max-w-sm mx-auto leading-relaxed">
+                  <p className="text-slate-500 text-[11px] max-w-sm mx-auto leading-relaxed">
                     Ask me anything about your shop — revenue, inventory,
                     appointments, mechanic workload, and more.
                   </p>
@@ -579,10 +579,10 @@ ${shopData}`;
                         key={idx}
                         onClick={() => handleSend(qp.prompt)}
                         disabled={loading || dataLoading || !groqClient.current}
-                        className="flex items-center gap-2 px-4 py-3 bg-[#111] border border-[#222] hover:border-[#d63a2f]/50 hover:bg-[#161616] transition text-left group disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-3 bg-slate-100 border border-slate-200 hover:border-slate-400 hover:bg-slate-100 transition text-left group disabled:opacity-50"
                       >
-                        <Icon size={14} className="text-[#d63a2f] shrink-0" />
-                        <span className="text-[10px] text-[#888] font-bold tracking-wider uppercase group-hover:text-white transition">
+                        <Icon size={14} className="text-slate-900 shrink-0" />
+                        <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase group-hover:text-slate-700 transition">
                           {qp.label}
                         </span>
                       </button>
@@ -610,8 +610,8 @@ ${shopData}`;
                   <div
                     className={`max-w-[85%] px-5 py-4 ${
                       msg.role === "user"
-                        ? "bg-[#d63a2f] text-white border border-[#d63a2f]"
-                        : "bg-[#111] text-[#ccc] border border-[#222]"
+                        ? "bg-slate-900 text-white border border-slate-900"
+                        : "bg-slate-100 text-slate-600 border border-slate-200"
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">
@@ -625,7 +625,7 @@ ${shopData}`;
                     </p>
                     <p
                       className={`text-[9px] mt-2 ${
-                        msg.role === "user" ? "text-white/50" : "text-[#555]"
+                        msg.role === "user" ? "text-slate-500" : "text-slate-500"
                       }`}
                     >
                       {msg.timestamp.toLocaleTimeString()}
@@ -639,7 +639,7 @@ ${shopData}`;
                           key={s}
                           onClick={() => handleSend(s)}
                           disabled={loading}
-                          className="px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase border border-[#333] text-[#6b6b6b] hover:border-[#d63a2f] hover:text-[#d63a2f] hover:bg-[#1a1010] transition-colors disabled:opacity-30"
+                          className="px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30"
                         >
                           {s}
                         </button>
@@ -657,12 +657,12 @@ ${shopData}`;
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="bg-[#111] border border-[#222] px-5 py-4 flex items-center gap-3">
+                <div className="bg-slate-100 border border-slate-200 px-5 py-4 flex items-center gap-3">
                   <div className="flex gap-1">
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
                       transition={{ duration: 0.6, repeat: Infinity }}
-                      className="w-2 h-2 bg-[#d63a2f] rounded-full"
+                      className="w-2 h-2 bg-slate-400 rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -671,7 +671,7 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.2,
                       }}
-                      className="w-2 h-2 bg-[#d63a2f] rounded-full"
+                      className="w-2 h-2 bg-slate-400 rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -680,10 +680,10 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.4,
                       }}
-                      className="w-2 h-2 bg-[#d63a2f] rounded-full"
+                      className="w-2 h-2 bg-slate-400 rounded-full"
                     />
                   </div>
-                  <span className="text-[#888] text-xs font-bold tracking-widest uppercase">
+                  <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">
                     Analyzing...
                   </span>
                 </div>
@@ -694,11 +694,11 @@ ${shopData}`;
           </div>
 
           {/* ── Input ── */}
-          <div className="border-t border-[#222] px-6 py-4 bg-[#111111] flex-shrink-0">
+          <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex-shrink-0">
             {!groqClient.current && (
-              <div className="mb-3 flex items-center gap-2 bg-[#221515] border border-[#d63a2f]/30 px-4 py-2">
-                <AlertCircle size={14} className="text-[#d63a2f] shrink-0" />
-                <span className="text-[10px] text-[#d63a2f] font-bold tracking-widest uppercase">
+              <div className="mb-3 flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-2">
+                <AlertCircle size={14} className="text-red-600 shrink-0" />
+                <span className="text-[10px] text-red-600 font-bold tracking-widest uppercase">
                   GROQ API KEY NOT CONFIGURED
                 </span>
               </div>
@@ -718,14 +718,14 @@ ${shopData}`;
                     : "Ask about revenue, inventory, appointments..."
                 }
                 disabled={loading || dataLoading || !groqClient.current}
-                className="flex-1 bg-[#0a0a0a] text-white px-5 py-3 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition text-xs font-bold tracking-wider uppercase disabled:opacity-50 placeholder:text-[#555]"
+                className="flex-1 bg-white text-slate-900 px-5 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-wider uppercase rounded-xl disabled:opacity-50 placeholder:text-slate-400"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={
                   loading || !input.trim() || dataLoading || !groqClient.current
                 }
-                className="px-5 py-3 bg-[#d63a2f] hover:bg-[#b82e25] text-white transition border border-[#d63a2f] disabled:opacity-30 disabled:cursor-not-allowed"
+                className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white transition border border-slate-900 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Send size={16} />
               </button>

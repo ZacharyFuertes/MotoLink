@@ -122,7 +122,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
   }
 
   return (
-    <div className="flex bg-[#f5f5f5] min-h-screen text-slate-200 font-sans selection:bg-indigo-600 selection:text-gray-900">
+    <div className="flex bg-[#f5f5f5] min-h-screen text-slate-200 font-sans selection:bg-slate-900 selection:text-white">
       <div className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full transition-all duration-300">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
@@ -131,7 +131,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
           </div>
           <button
             onClick={handleCreateNew}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-gray-900 px-5 py-2.5 font-bold uppercase tracking-widest textxs transition"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 font-bold uppercase tracking-widest textxs transition"
           >
             <Plus size={16} /> Add Service
           </button>
@@ -139,7 +139,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#d63a2f] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <div className="bg-white border border-gray-200 shadow-xl overflow-hidden">
@@ -153,16 +153,16 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                     <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#222]">
+                <tbody className="divide-y divide-slate-200">
                   {services.map((service) => (
-                    <tr key={service.id} className="hover:bg-[#151515] transition">
+                    <tr key={service.id} className="hover:bg-slate-100 transition">
                       <td className="px-6 py-5">
                         {editingId === service.id && !isAddingMode ? (
                           <input
                             type="text"
                             value={editForm.label || ""}
                             onChange={(e) => setEditForm({...editForm, label: e.target.value})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-[#d63a2f]"
+                            className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-slate-500"
                           />
                         ) : (
                           <div className="font-bold text-gray-900 uppercase text-xs tracking-wider">{service.label}</div>
@@ -174,7 +174,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                             type="text"
                             value={editForm.description || ""}
                             onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-[#d63a2f]"
+                            className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-slate-500"
                           />
                         ) : (
                           <span className="truncate max-w-xs block">{service.description}</span>
@@ -188,17 +188,17 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                               type="number"
                               value={editForm.price || 0}
                               onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
-                              className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-[#d63a2f]"
+                              className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-slate-500"
                             />
                           </div>
                         ) : (
-                          <div className="font-mono text-indigo-600 font-bold">₱{Number(service.price).toFixed(2)}</div>
+                          <div className="font-mono text-slate-900 font-bold">₱{Number(service.price).toFixed(2)}</div>
                         )}
                       </td>
                       <td className="px-6 py-5 text-right">
                         {editingId === service.id && !isAddingMode ? (
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={handleSave} className="p-2 text-indigo-600 hover:bg-indigo-50 transition"><Save size={16} /></button>
+                            <button onClick={handleSave} className="p-2 text-slate-900 hover:bg-slate-100 transition"><Save size={16} /></button>
                             <button onClick={() => setEditingId(null)} className="p-2 text-gray-400 hover:text-gray-900 transition"><X size={16} /></button>
                           </div>
                         ) : (
@@ -213,14 +213,14 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
                   {/* Add New Row Inline */}
                   {isAddingMode && editingId === "new" && (
-                    <tr className="bg-indigo-50">
+                    <tr className="bg-slate-100">
                       <td className="px-6 py-5">
                         <input
                           type="text"
                           placeholder="Service Name"
                           value={editForm.label || ""}
                           onChange={(e) => setEditForm({...editForm, label: e.target.value})}
-                          className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-[#d63a2f]"
+                          className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-slate-500"
                         />
                       </td>
                       <td className="px-6 py-5 hidden sm:table-cell">
@@ -229,7 +229,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                           placeholder="Description"
                           value={editForm.description || ""}
                           onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                          className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-[#d63a2f]"
+                          className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-slate-500"
                         />
                       </td>
                       <td className="px-6 py-5">
@@ -240,12 +240,12 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                             placeholder="Price"
                             value={editForm.price || 0}
                             onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-[#d63a2f]"
+                            className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-slate-500"
                           />
                         </div>
                       </td>
                       <td className="px-6 py-5 text-right flex items-center justify-end gap-2">
-                         <button onClick={handleSave} className="p-2 text-indigo-600 hover:bg-indigo-50 transition"><Save size={16} /></button>
+                         <button onClick={handleSave} className="p-2 text-slate-900 hover:bg-slate-100 transition"><Save size={16} /></button>
                          <button onClick={() => { setIsAddingMode(false); setEditingId(null); }} className="p-2 text-gray-400 hover:text-gray-900 transition"><X size={16} /></button>
                       </td>
                     </tr>

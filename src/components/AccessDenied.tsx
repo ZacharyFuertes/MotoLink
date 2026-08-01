@@ -45,7 +45,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-4 py-12"
+      className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4 py-12"
     >
       <div className="max-w-md w-full">
         <div className="text-center">
@@ -56,8 +56,8 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
             transition={{ delay: 0.1, duration: 0.3 }}
             className="flex justify-center mb-6"
           >
-            <div className="bg-red-500/20 border border-red-500/30 rounded-full p-4">
-              <AlertTriangle className="w-8 h-8 text-red-400" />
+            <div className="bg-red-50 border border-red-200 rounded-full p-4">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
           </motion.div>
 
@@ -66,7 +66,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.3 }}
-            className="text-3xl font-bold text-white mb-2"
+            className="text-3xl font-bold text-slate-900 mb-2"
           >
             Access Denied
           </motion.h1>
@@ -76,9 +76,9 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.3 }}
-            className="text-slate-400 mb-6"
+            className="text-slate-500 mb-6"
           >
-            You don't have permission to access <span className="text-slate-300 font-semibold">{requestedPage}</span>.
+            You don't have permission to access <span className="text-slate-900 font-semibold">{requestedPage}</span>.
           </motion.p>
 
           {/* User Info */}
@@ -86,17 +86,17 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.3 }}
-            className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 mb-6 text-left"
+            className="bg-white border border-slate-200 rounded-xl p-4 mb-6 text-left shadow-sm"
           >
-            <div className="text-sm text-slate-400 mb-1">Your Role</div>
-            <div className="text-white font-semibold capitalize mb-3">
+            <div className="text-sm text-slate-500 mb-1">Your Role</div>
+            <div className="text-slate-900 font-semibold capitalize mb-3">
               {user?.role || 'Unknown'}
             </div>
-            <div className="text-sm text-slate-400 mb-1">You Can Access</div>
-            <div className="text-slate-300 text-sm space-y-1">
+            <div className="text-sm text-slate-500 mb-1">You Can Access</div>
+            <div className="text-slate-600 text-sm space-y-1">
               {allowedPages.map((page, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <span className="text-green-400">✓</span>
+                  <span className="text-green-600">✓</span>
                   <span>{page}</span>
                 </div>
               ))}
@@ -112,14 +112,14 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
           >
             <button
               onClick={() => handleNavigate(defaultPage)}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition"
             >
               <Home className="w-4 h-4" />
               Go to {defaultPage === 'appointments' ? 'Appointments' : 'Dashboard'}
             </button>
             <button
               onClick={() => handleNavigate('landing')}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl font-medium transition"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home
@@ -131,7 +131,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.3 }}
-            className="text-xs text-slate-500 mt-6"
+            className="text-xs text-slate-400 mt-6"
           >
             If you believe this is an error, please contact your administrator.
           </motion.p>

@@ -423,7 +423,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     return (
       <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin h-12 w-12 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-500">Loading platform analytics...</p>
         </div>
       </div>
@@ -436,9 +436,9 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       value: totalShops,
       sub: `${activeShops} active`,
       icon: <Store className="w-6 h-6" />,
-      color: "bg-indigo-500",
-      lightColor: "bg-indigo-50",
-      textColor: "text-indigo-600",
+      color: "bg-slate-900",
+      lightColor: "bg-slate-100",
+      textColor: "text-slate-900",
     },
     {
       label: "Total Customers",
@@ -499,7 +499,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
                 <Shield className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-gray-900 text-sm">
@@ -531,12 +531,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 title={sidebarCollapsed ? item.label : undefined}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700"
+                    ? "bg-slate-100 text-slate-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive ? "text-indigo-600" : "text-gray-400"}`}
+                  className={`w-5 h-5 shrink-0 ${isActive ? "text-slate-900" : "text-gray-400"}`}
                 />
                 {!sidebarCollapsed && <span>{item.label}</span>}
               </button>
@@ -580,7 +580,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
             >
               <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <span className="font-bold text-gray-900 text-sm">
@@ -607,12 +607,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                         isActive
-                          ? "bg-indigo-50 text-indigo-700"
+                          ? "bg-slate-100 text-slate-700"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                       }`}
                     >
                       <Icon
-                        className={`w-5 h-5 shrink-0 ${isActive ? "text-indigo-600" : "text-gray-400"}`}
+                        className={`w-5 h-5 shrink-0 ${isActive ? "text-slate-900" : "text-gray-400"}`}
                       />
                       <span>{item.label}</span>
                     </button>
@@ -666,8 +666,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
             </button>
             <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-indigo-600 font-semibold text-sm">
+              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+                <span className="text-slate-900 font-semibold text-sm">
                   {user?.name?.charAt(0)?.toUpperCase()}
                 </span>
               </div>
@@ -689,12 +689,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 mb-6 text-white"
+                className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-xl p-6 mb-6 text-white"
               >
                 <h2 className="text-2xl font-bold mb-1">
                   Congratulations {user?.name}! 🎉
                 </h2>
-                <p className="text-indigo-100 text-sm">
+                <p className="text-white text-sm">
                   Platform Overview — Here's what's happening across all your shops
                   today.
                 </p>
@@ -982,8 +982,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <tr key={shop.id} className="hover:bg-gray-50 transition">
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                                  <Store className="w-4 h-4 text-indigo-600" />
+                                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                                  <Store className="w-4 h-4 text-slate-900" />
                                 </div>
                                 <div>
                                   <p className="font-medium text-gray-900">

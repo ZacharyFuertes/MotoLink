@@ -176,15 +176,15 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
             initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="bg-[#111111] border border-[#2a2a2a] border-t-2 border-t-[#d63a2f] w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full max-w-2xl shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
-            <div className="px-6 py-5 border-b border-[#2a2a2a] flex items-center justify-between sticky top-0 bg-[#111111] z-10">
-              <h3 className="text-xl font-display font-bold text-white uppercase tracking-wide">
+            <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-slate-50 z-10">
+              <h3 className="text-xl font-display font-bold text-slate-900 uppercase tracking-wide">
                 Job Order
               </h3>
               <button
                 onClick={onClose}
-                className="text-slate-500 hover:text-white transition"
+                className="text-slate-500 hover:text-slate-900 transition"
               >
                 <X size={20} />
               </button>
@@ -195,7 +195,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">
                   Service
                 </p>
-                <p className="text-white font-bold">
+                <p className="text-slate-900 font-bold">
                   {appointment.service_type}
                 </p>
                 <p className="text-slate-500 text-sm mt-1">
@@ -216,9 +216,9 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                   Loading...
                 </p>
               ) : !jobOrder ? (
-                <div className="border border-[#2a2a2a] p-6 text-center">
-                  <Wrench className="w-10 h-10 text-[#d63a2f] mx-auto mb-3" />
-                  <p className="text-white font-bold uppercase tracking-widest text-sm mb-1">
+                <div className="border border-slate-200 p-6 text-center rounded-xl">
+                  <Wrench className="w-10 h-10 text-slate-900 mx-auto mb-3" />
+                  <p className="text-slate-900 font-bold uppercase tracking-widest text-sm mb-1">
                     No job order yet
                   </p>
                   <p className="text-slate-500 text-xs mb-5">
@@ -228,7 +228,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                   <button
                     onClick={handleStartJobOrder}
                     disabled={saving}
-                    className="px-8 py-3 bg-[#d63a2f] hover:bg-[#c0322a] text-white font-bold text-xs uppercase tracking-widest transition disabled:opacity-50"
+                    className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                   >
                     Start Job Order
                   </button>
@@ -239,15 +239,15 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                     <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
                       Status
                     </p>
-                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 border border-[#2a2a2a] text-slate-400">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 border border-slate-300 text-slate-600">
                       {jobOrder.status.replace(/_/g, " ")}
                     </span>
                   </div>
 
                   {/* Labor logging */}
-                  <div className="border border-[#2a2a2a] p-4">
-                    <p className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-widest mb-3">
-                      <Clock3 size={14} className="text-[#d63a2f]" /> Labor Log
+                  <div className="border border-slate-200 p-4 rounded-xl">
+                    <p className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest mb-3">
+                      <Clock3 size={14} className="text-slate-900" /> Labor Log
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -260,7 +260,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                           step="0.5"
                           value={laborHours}
                           onChange={(e) => setLaborHours(e.target.value)}
-                          className="w-full bg-[#0f0f0f] text-white px-3 py-2.5 border border-[#2a2a2a] focus:border-[#d63a2f] focus:outline-none transition rounded-none text-xs font-bold"
+                          className="w-full bg-white text-slate-900 px-3 py-2.5 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl text-xs font-bold"
                         />
                       </div>
                       <div>
@@ -273,23 +273,23 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                           step="50"
                           value={laborRate}
                           onChange={(e) => setLaborRate(e.target.value)}
-                          className="w-full bg-[#0f0f0f] text-white px-3 py-2.5 border border-[#2a2a2a] focus:border-[#d63a2f] focus:outline-none transition rounded-none text-xs font-bold"
+                          className="w-full bg-white text-slate-900 px-3 py-2.5 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl text-xs font-bold"
                         />
                       </div>
                     </div>
                     <button
                       onClick={handleSaveLabor}
                       disabled={saving || jobOrder.status === "completed"}
-                      className="mt-3 w-full bg-slate-800 hover:bg-slate-700 text-white py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50"
+                      className="mt-3 w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                     >
                       Save Labor
                     </button>
                   </div>
 
                   {/* Parts */}
-                  <div className="border border-[#2a2a2a] p-4">
-                    <p className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-widest mb-3">
-                      <Package size={14} className="text-[#d63a2f]" /> Parts Used
+                  <div className="border border-slate-200 p-4 rounded-xl">
+                    <p className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest mb-3">
+                      <Package size={14} className="text-slate-900" /> Parts Used
                     </p>
                     {(jobOrder.parts_used || []).length === 0 ? (
                       <p className="text-slate-600 text-xs">
@@ -300,10 +300,10 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                         {(jobOrder.parts_used || []).map((p) => (
                           <div
                             key={p.part_id}
-                            className="flex items-center justify-between bg-[#0f0f0f] border border-[#2a2a2a] px-3 py-2"
+                            className="flex items-center justify-between bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl"
                           >
                             <div>
-                              <p className="text-white text-sm font-bold">
+                              <p className="text-slate-900 text-sm font-bold">
                                 {parts.find((x) => x.id === p.part_id)?.name ||
                                   "Part"}
                               </p>
@@ -335,7 +335,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                           <select
                             value={selectedPart}
                             onChange={(e) => setSelectedPart(e.target.value)}
-                            className="w-full bg-[#0f0f0f] text-white px-3 py-2.5 border border-[#2a2a2a] focus:border-[#d63a2f] focus:outline-none transition rounded-none text-xs font-bold"
+                            className="w-full bg-white text-slate-900 px-3 py-2.5 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl text-xs font-bold"
                           >
                             <option value="">Select part...</option>
                             {parts.map((part) => (
@@ -354,13 +354,13 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                             min="1"
                             value={selectedQty}
                             onChange={(e) => setSelectedQty(e.target.value)}
-                            className="w-full bg-[#0f0f0f] text-white px-3 py-2.5 border border-[#2a2a2a] focus:border-[#d63a2f] focus:outline-none transition rounded-none text-xs font-bold"
+                            className="w-full bg-white text-slate-900 px-3 py-2.5 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl text-xs font-bold"
                           />
                         </div>
                         <button
                           onClick={handleAddPart}
                           disabled={saving}
-                          className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50"
+                          className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                         >
                           <Plus size={14} /> Add
                         </button>
@@ -369,7 +369,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                   </div>
 
                   {/* Total */}
-                  <div className="flex items-center justify-between bg-[#0f0f0f] border border-[#2a2a2a] p-4">
+                  <div className="flex items-center justify-between bg-slate-50 border border-slate-200 p-4 rounded-xl">
                     <div>
                       <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                         Parts: PHP {totalPartsCost.toLocaleString()}
@@ -382,7 +382,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                       <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
                         Total
                       </p>
-                      <p className="text-[#d63a2f] font-black text-2xl">
+                      <p className="text-slate-900 font-black text-2xl">
                         ₱{totalCost.toLocaleString()}
                       </p>
                     </div>

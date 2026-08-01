@@ -43,27 +43,27 @@ const STATUS_CONFIG: Record<
   { color: string; bg: string; icon: React.ReactNode; label: string }
 > = {
   pending: {
-    color: "text-yellow-500",
-    bg: "bg-[#221515] border-yellow-500/50",
+    color: "text-yellow-600",
+    bg: "bg-yellow-50 border-yellow-200",
     icon: <Clock size={12} strokeWidth={2} />,
     label: "PENDING",
   },
   confirmed: {
     color: "text-white",
-    bg: "bg-[#d63a2f] border-[#d63a2f]",
+    bg: "bg-slate-900 border-slate-900",
     icon: <CheckCircle size={12} strokeWidth={2} />,
     label: "CONFIRMED",
   },
 
   completed: {
-    color: "text-green-500",
-    bg: "bg-green-900/20 border-green-500/50",
+    color: "text-green-600",
+    bg: "bg-green-50 border-green-200",
     icon: <CheckCircle size={12} strokeWidth={2} />,
     label: "COMPLETED",
   },
   cancelled: {
     color: "text-red-500",
-    bg: "bg-red-900/20 border-red-500/50",
+    bg: "bg-red-50 border-red-200",
     icon: <XCircle size={12} strokeWidth={2} />,
     label: "CANCELLED",
   },
@@ -229,12 +229,12 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-[#0a0a0a] rounded-none border border-[#222] border-t-2 border-t-[#d63a2f] w-full sm:max-w-[1200px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl flex flex-col"
+          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[1200px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-xl flex flex-col"
         >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-[#222] flex-shrink-0 bg-[#111111]">
+          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-[#d63a2f] flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
                 <CalendarDays
                   size={28}
                   className="text-white"
@@ -242,13 +242,13 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-[#d63a2f] text-[10px] font-bold tracking-[0.22em] uppercase">
-                  <div className="w-6 h-[1px] bg-[#d63a2f]" /> MY SCHEDULE
+                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.22em] uppercase">
+                  <div className="w-6 h-[1px] bg-slate-900" /> MY SCHEDULE
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl text-white uppercase leading-none tracking-[0.12em]">
+                <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-[0.12em]">
                   APPOINTMENTS
                 </h2>
-                <p className="text-[#6b6b6b] text-xs font-light tracking-wide hidden sm:block">
+                <p className="text-slate-500 text-xs font-light tracking-wide hidden sm:block">
                   View and manage your service appointments
                 </p>
               </div>
@@ -257,7 +257,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white shrink-0"
+                className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
                 title="Refresh"
               >
                 <RefreshCw
@@ -268,7 +268,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
               </button>
               <button
                 onClick={onClose}
-                className="p-2 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white shrink-0"
+                className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
               >
                 <X size={20} strokeWidth={1} />
               </button>
@@ -276,39 +276,39 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           </div>
 
           {/* ── Filter Tabs ── */}
-          <div className="flex items-center gap-2 px-6 sm:px-10 py-4 border-b border-[#222] flex-shrink-0 bg-[#0a0a0a]">
+          <div className="flex items-center gap-2 px-6 sm:px-10 py-4 border-b border-slate-200 flex-shrink-0 bg-white">
             {FILTER_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
                 className={`px-5 py-2 text-[10px] font-bold tracking-[0.15em] uppercase transition-all border ${
                   filter === tab.key
-                    ? "bg-[#221515] text-[#d63a2f] border-[#d63a2f]"
-                    : "text-[#888] border-[#222] hover:text-white hover:bg-[#111] hover:border-[#333]"
+                    ? "bg-slate-100 text-slate-900 border-slate-900"
+                    : "text-slate-400 border-slate-200 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300"
                 }`}
               >
                 {tab.label}
               </button>
             ))}
-            <div className="ml-auto text-[10px] font-bold tracking-[0.15em] uppercase text-[#888]">
+            <div className="ml-auto text-[10px] font-bold tracking-[0.15em] uppercase text-slate-400">
               {filteredAppointments.length} APPOINTMENT
               {filteredAppointments.length !== 1 ? "S" : ""}
             </div>
           </div>
 
           {/* ── Appointments List ── */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-[#0a0a0a]">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-white">
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-3 border-[#d63a2f] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 border border-[#222] bg-[#111]">
+              <div className="flex flex-col items-center justify-center py-20 border border-slate-200 bg-slate-100">
                 <AlertCircle
-                  className="w-14 h-14 text-[#333] mb-4"
+                  className="w-14 h-14 text-slate-400 mb-4"
                   strokeWidth={1}
                 />
-                <p className="text-[#6b6b6b] text-[10px] tracking-widest uppercase font-bold">
+                <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold">
                   {filter === "upcoming"
                     ? "NO UPCOMING APPOINTMENTS"
                     : filter === "past"
@@ -331,18 +331,18 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      className="bg-[#111111] rounded-none p-6 border border-[#222] hover:border-[#333] transition flex flex-col items-stretch group"
+                      className="bg-slate-50 rounded-xl p-6 border border-slate-200 hover:border-slate-300 transition flex flex-col items-stretch group"
                     >
                       <div className="flex items-start justify-between flex-1">
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           {/* Date Badge */}
-                          <div className="w-16 h-16 bg-[#0a0a0a] border border-[#333] flex flex-col items-center justify-center flex-shrink-0">
-                            <span className="text-[10px] text-[#555] font-bold tracking-widest uppercase mb-1">
+                          <div className="w-16 h-16 bg-white border border-slate-300 flex flex-col items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-1">
                               {new Date(
                                 apt.scheduled_date + "T00:00:00",
                               ).toLocaleDateString("en-US", { month: "short" })}
                             </span>
-                            <span className="font-display text-2xl text-white leading-none">
+                            <span className="font-display text-2xl text-slate-900 leading-none">
                               {new Date(
                                 apt.scheduled_date + "T00:00:00",
                               ).getDate()}
@@ -350,14 +350,14 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-display text-xl text-white uppercase leading-none mb-4 group-hover:text-[#d63a2f] transition-colors tracking-[0.1em]">
+                            <h4 className="font-display text-xl text-slate-900 uppercase leading-none mb-4 group-hover:text-slate-700 transition-colors tracking-[0.1em]">
                               {apt.service_type}
                             </h4>
                             <div className="flex flex-col gap-3">
-                              <span className="flex items-center gap-3 text-[#888] text-[10px] tracking-[0.12em] font-bold uppercase">
+                              <span className="flex items-center gap-3 text-slate-400 text-[10px] tracking-[0.12em] font-bold uppercase">
                                 <Calendar
                                   size={12}
-                                  className="text-[#666] flex-shrink-0"
+                                  className="text-slate-400 flex-shrink-0"
                                 />
                                 {new Date(
                                   apt.scheduled_date + "T00:00:00",
@@ -367,25 +367,25 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                                   day: "numeric",
                                 })}
                               </span>
-                              <span className="flex items-center gap-3 text-[#888] text-[10px] tracking-[0.12em] font-bold uppercase">
+                              <span className="flex items-center gap-3 text-slate-400 text-[10px] tracking-[0.12em] font-bold uppercase">
                                 <Clock
                                   size={12}
-                                  className="text-[#666] flex-shrink-0"
+                                  className="text-slate-400 flex-shrink-0"
                                 />
                                 {formatTime(apt.scheduled_time)}
                               </span>
                               {apt.mechanic_name && (
-                                <span className="flex items-center gap-3 text-[#888] text-[10px] tracking-[0.12em] font-bold uppercase">
+                                <span className="flex items-center gap-3 text-slate-400 text-[10px] tracking-[0.12em] font-bold uppercase">
                                   <Wrench
                                     size={12}
-                                    className="text-[#d63a2f] flex-shrink-0"
+                                    className="text-slate-900 flex-shrink-0"
                                   />
                                   {apt.mechanic_name}
                                 </span>
                               )}
                             </div>
                             {apt.description && (
-                              <p className="text-[#555] text-xs mt-4 font-light italic border-l block border-[#d63a2f] pl-2">
+                              <p className="text-slate-500 text-xs mt-4 font-light italic border-l block border-slate-900 pl-2">
                                 {apt.description}
                               </p>
                             )}
@@ -395,26 +395,26 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
 
                       {/* Parts Section */}
                       {apt.parts && apt.parts.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-[#222]">
-                          <p className="text-[10px] font-bold tracking-[0.2em] text-[#d63a2f] uppercase mb-4 leading-tight">
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <p className="text-[10px] font-bold tracking-[0.2em] text-slate-900 uppercase mb-4 leading-tight">
                             PARTS INCLUDED
                           </p>
                           <div className="space-y-3">
                             {apt.parts.map((part, idx) => (
                               <div
                                 key={idx}
-                                className="bg-[#0a0a0a] p-3 rounded-none border border-[#333] flex items-center justify-between"
+                                className="bg-white p-3 rounded-xl border border-slate-300 flex items-center justify-between"
                               >
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-white font-bold text-xs truncate">
+                                  <p className="text-slate-900 font-bold text-xs truncate">
                                     {part.part_name}
                                   </p>
-                                  <p className="text-[9px] text-[#888]">
+                                  <p className="text-[9px] text-slate-400">
                                     {part.quantity}x @ ₱
                                     {part.unit_price.toLocaleString()}
                                   </p>
                                 </div>
-                                <p className="text-[#4ade80] font-bold text-xs ml-2 flex-shrink-0">
+                                <p className="text-green-600 font-bold text-xs ml-2 flex-shrink-0">
                                   ₱
                                   {(
                                     part.quantity * part.unit_price
@@ -424,12 +424,12 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                             ))}
                           </div>
                           {apt.total_amount && (
-                            <div className="mt-3 pt-3 border-t border-[#333]">
+                            <div className="mt-3 pt-3 border-t border-slate-300">
                               <div className="flex items-center justify-between">
-                                <span className="text-[#888] text-[10px] font-bold uppercase tracking-[0.12em]">
+                                <span className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.12em]">
                                   TOTAL:
                                 </span>
-                                <span className="text-[#d63a2f] font-bold text-sm">
+                                <span className="text-slate-900 font-bold text-sm">
                                   ₱{apt.total_amount.toLocaleString()}
                                 </span>
                               </div>
@@ -439,7 +439,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                       )}
 
                       {/* Action Row */}
-                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#222]">
+                      <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-200">
                         {/* Status Badge */}
                         <span
                           className={`flex items-center gap-2 text-[9px] px-3 py-1.5 border font-bold tracking-[0.14em] ${status.bg} ${status.color}`}
@@ -452,7 +452,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                         {showCancel && !isConfirmingCancel && (
                           <button
                             onClick={() => setConfirmCancelId(apt.id)}
-                            className="flex items-center gap-2 text-[9px] font-bold tracking-[0.14em] uppercase text-[#888] hover:text-white transition px-3 py-1.5 bg-[#161616] hover:bg-[#d63a2f] border border-[#333] hover:border-[#d63a2f]"
+                            className="flex items-center gap-2 text-[9px] font-bold tracking-[0.14em] uppercase text-slate-400 hover:text-white transition px-3 py-1.5 bg-slate-100 hover:bg-slate-800 border border-slate-300 hover:border-slate-700"
                           >
                             <Ban size={10} /> CANCEL
                           </button>
@@ -468,7 +468,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                             exit={{ opacity: 0, height: 0 }}
                             className="overflow-hidden"
                           >
-                            <div className="mt-4 pt-4 border-t border-[#333] border-dashed flex flex-col justify-between gap-4">
+                            <div className="mt-4 pt-4 border-t border-slate-300 border-dashed flex flex-col justify-between gap-4">
                               <p className="text-[10px] text-red-500 tracking-widest font-bold uppercase">
                                 ARE YOU SURE YOU WANT TO CANCEL THIS
                                 APPOINTMENT?
@@ -476,7 +476,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                               <div className="flex items-center gap-3 w-full">
                                 <button
                                   onClick={() => setConfirmCancelId(null)}
-                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-[#888] hover:text-white bg-[#161616] hover:bg-[#222] transition border border-[#333]"
+                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-slate-400 hover:text-slate-900 bg-slate-100 hover:bg-slate-100 transition border border-slate-300 rounded-xl"
                                 >
                                   KEEP
                                 </button>
@@ -485,7 +485,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                                     handleCancelAppointment(apt.id)
                                   }
                                   disabled={isCancelling}
-                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-white bg-[#d63a2f] hover:bg-[#c0322a] transition flex items-center justify-center gap-2 border border-[#d63a2f]"
+                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-white bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center gap-2 border border-slate-900 rounded-xl"
                                 >
                                   {isCancelling ? (
                                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

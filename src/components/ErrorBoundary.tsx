@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
             {/* Error Icon */}
             <div className="flex justify-center mb-4">
               <div className="bg-red-100 rounded-full p-4">

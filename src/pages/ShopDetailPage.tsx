@@ -91,10 +91,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-[#d63a2f] border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-[#6b6b6b] text-xs uppercase tracking-widest font-bold">
+          <div className="animate-spin w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">
             Loading shop...
           </p>
         </div>
@@ -104,15 +104,15 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
 
   if (error || !shop) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <AlertCircle className="w-12 h-12 text-[#d63a2f] mx-auto mb-4" />
-          <p className="text-white text-sm font-bold uppercase tracking-widest mb-2">
+          <AlertCircle className="w-12 h-12 text-slate-900 mx-auto mb-4" />
+          <p className="text-slate-900 text-sm font-bold uppercase tracking-widest mb-2">
             {error || "Shop not found"}
           </p>
           <button
             onClick={onBack}
-            className="mt-4 px-6 py-3 bg-[#d63a2f] text-white font-bold text-xs uppercase tracking-widest"
+            className="mt-4 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-widest rounded-xl"
           >
             Back to shops
           </button>
@@ -122,12 +122,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#f5f5f5]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-[#6b6b6b] hover:text-white text-xs font-bold uppercase tracking-widest mb-6 transition"
+          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 text-xs font-bold uppercase tracking-widest mb-6 transition"
         >
           <ArrowLeft size={16} /> Back to shops
         </button>
@@ -136,7 +136,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#111111] border border-[#222] p-8 mb-8"
+          className="bg-white border border-slate-200 rounded-xl p-8 mb-8"
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-6">
             <img
@@ -145,7 +145,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
               className="h-20 w-20 rounded-xl border border-slate-100 object-contain p-1 bg-white"
             />
             <div className="flex-1">
-              <h1 className="font-display text-3xl sm:text-4xl text-white uppercase tracking-wide">
+              <h1 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase tracking-wide">
                 {shop.name}
               </h1>
               <p className="text-slate-400 text-sm mt-2">{shop.description}</p>
@@ -171,7 +171,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
             {onConnect && (
               <button
                 onClick={() => onConnect(shop.id)}
-                className="shrink-0 bg-[#d63a2f] hover:bg-[#c0322a] text-white px-8 py-3 font-bold text-xs uppercase tracking-widest transition"
+                className="shrink-0 bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 py-3 font-bold text-xs uppercase tracking-widest transition"
               >
                 Connect
               </button>
@@ -182,7 +182,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
               {shop.specialties.map((s) => (
                 <span
                   key={s}
-                  className="rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300"
+                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
                 >
                   {s}
                 </span>
@@ -193,8 +193,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
 
         {/* Services */}
         <section className="mb-10">
-          <h2 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest text-sm mb-4">
-            <Wrench size={16} className="text-[#d63a2f]" /> Services
+          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
+            <Wrench size={16} className="text-slate-900" /> Services
           </h2>
           {services.length === 0 ? (
             <p className="text-slate-500 text-sm">No services listed yet.</p>
@@ -203,9 +203,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
               {services.map((svc) => (
                 <div
                   key={svc.id}
-                  className="bg-[#111111] border border-[#222] p-5"
+                  className="bg-white border border-slate-200 rounded-xl p-5"
                 >
-                  <p className="text-white font-bold text-sm uppercase tracking-wider">
+                  <p className="text-slate-900 font-bold text-sm uppercase tracking-wider">
                     {svc.label}
                   </p>
                   {svc.description && (
@@ -213,7 +213,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
                       {svc.description}
                     </p>
                   )}
-                  <p className="text-[#d63a2f] font-bold mt-3">
+                  <p className="text-slate-900 font-bold mt-3">
                     PHP {Number(svc.price).toLocaleString()}
                   </p>
                 </div>
@@ -224,8 +224,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
 
         {/* Mechanics */}
         <section className="mb-10">
-          <h2 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest text-sm mb-4">
-            <Users size={16} className="text-[#d63a2f]" /> Mechanics
+          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
+            <Users size={16} className="text-slate-900" /> Mechanics
           </h2>
           {mechanics.length === 0 ? (
             <p className="text-slate-500 text-sm">No mechanics listed yet.</p>
@@ -234,9 +234,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
               {mechanics.map((mech) => (
                 <div
                   key={mech.id}
-                  className="bg-[#111111] border border-[#222] p-5"
+                  className="bg-white border border-slate-200 rounded-xl p-5"
                 >
-                  <p className="text-white font-bold text-sm uppercase tracking-wider">
+                  <p className="text-slate-900 font-bold text-sm uppercase tracking-wider">
                     {mech.name}
                   </p>
                   <p className="text-slate-500 text-xs mt-1">{mech.email}</p>
@@ -248,8 +248,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
 
         {/* Products */}
         <section>
-          <h2 className="flex items-center gap-2 text-white font-bold uppercase tracking-widest text-sm mb-4">
-            <Package size={16} className="text-[#d63a2f]" /> Products
+          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
+            <Package size={16} className="text-slate-900" /> Products
           </h2>
           {products.length === 0 ? (
             <p className="text-slate-500 text-sm">No products listed yet.</p>
@@ -258,7 +258,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
               {products.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-[#111111] border border-[#222] p-5"
+                  className="bg-white border border-slate-200 rounded-xl p-5"
                 >
                   {p.image_url && (
                     <img
@@ -267,11 +267,11 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
                       className="h-32 w-full object-contain mb-3"
                     />
                   )}
-                  <p className="text-white font-bold text-sm">{p.name}</p>
+                  <p className="text-slate-900 font-bold text-sm">{p.name}</p>
                   <p className="text-slate-500 text-xs mt-1 line-clamp-2">
                     {p.description}
                   </p>
-                  <p className="text-[#d63a2f] font-bold mt-3">
+                  <p className="text-slate-900 font-bold mt-3">
                     PHP {Number(p.unit_price).toLocaleString()}
                   </p>
                 </div>

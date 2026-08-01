@@ -186,9 +186,9 @@ const SystemNavbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a] border-b border-[#222] shadow-2xl">
-      {/* Red accent line at top */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#d63a2f]" />
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      {/* Accent line at top */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-900" />
       <div className="w-full px-2 sm:px-4 lg:px-6 2xl:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -202,7 +202,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               )
             }
           >
-            <div className="relative w-14 h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.8)] border-2 border-[#333] group-hover:border-[#d63a2f] overflow-hidden shrink-0 transition-all duration-300">
+            <div className="relative w-14 h-14 lg:w-16 lg:h-16 flex items-center justify-center rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.08)] border-2 border-slate-200 group-hover:border-slate-900 overflow-hidden shrink-0 transition-all duration-300">
               <div className="absolute inset-0 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] rounded-full pointer-events-none z-10" />
               <img
                 src="/favicon.svg"
@@ -211,10 +211,10 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-lg lg:text-xl font-display font-black text-white uppercase tracking-wide leading-none mb-1">
+              <h1 className="text-lg lg:text-xl font-display font-black text-slate-900 uppercase tracking-wide leading-none mb-1">
                 MotoLink
               </h1>
-              <p className="text-[9px] text-[#d63a2f] font-bold tracking-[0.2em] uppercase leading-none">
+              <p className="text-[9px] text-slate-500 font-bold tracking-[0.2em] uppercase leading-none">
                 {user?.role === "customer"
                   ? "CUSTOMER PORTAL"
                   : user?.role === "mechanic"
@@ -236,14 +236,14 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleMenuItemClick(item.id)}
                   title={item.tooltip}
-                  className={`shrink-0 flex items-center gap-1.5 px-2 xl:px-3 py-2 rounded-none transition-all uppercase text-[9px] xl:text-[10px] font-bold tracking-widest border ${
+                  className={`shrink-0 flex items-center gap-1.5 px-2 xl:px-3 py-2 rounded-lg transition-all uppercase text-[9px] xl:text-[10px] font-bold tracking-widest ${
                     isActive
-                      ? "bg-[#111111] text-white border-[#333]"
-                      : "text-white border-transparent hover:text-white hover:bg-[#111111] hover:border-[#333]"
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-600 border border-transparent hover:text-slate-900 hover:bg-slate-100"
                   }`}
                 >
                   <Icon
-                    className={`w-3 h-3 ${isActive ? "text-[#d63a2f]" : "text-[#6b6b6b]"}`}
+                    className={`w-3 h-3 ${isActive ? "text-white" : "text-slate-400"}`}
                   />
                   <span>{getMenuItemLabel(item)}</span>
                 </motion.button>
@@ -260,7 +260,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-24 right-4 bg-[#d63a2f] border border-[#c0322a] text-white px-4 py-3 rounded-none text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap shadow-2xl shadow-[#d63a2f]/20"
+                  className="absolute top-24 right-4 bg-slate-900 text-white px-4 py-3 rounded-lg text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 whitespace-nowrap shadow-lg"
                 >
                   <Lock className="w-4 h-4" />
                   {disabledTooltip}
@@ -273,7 +273,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onAIChat}
-              className="flex items-center gap-1.5 xl:gap-2 px-2 xl:px-3 py-2 rounded-none bg-transparent border border-[#d63a2f] hover:bg-[#d63a2f] text-[#d63a2f] hover:text-white transition uppercase text-[9px] xl:text-[10px] font-bold tracking-widest"
+              className="flex items-center gap-1.5 xl:gap-2 px-2 xl:px-3 py-2 rounded-lg bg-transparent border border-slate-900 hover:bg-slate-900 text-slate-900 hover:text-white transition uppercase text-[9px] xl:text-[10px] font-bold tracking-widest"
               title="MotoMech AI Chat"
             >
               <MessageSquare className="w-3 h-3" />
@@ -285,7 +285,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-              className="flex items-center gap-1.5 xl:gap-2 px-2 xl:px-3 py-2 rounded-none bg-transparent border border-[#333] hover:bg-[#111111] hover:border-[#666] text-[#6b6b6b] hover:text-white transition uppercase text-[9px] xl:text-[10px] font-bold tracking-widest"
+              className="flex items-center gap-1.5 xl:gap-2 px-2 xl:px-3 py-2 rounded-lg bg-transparent border border-slate-300 hover:bg-slate-100 hover:border-slate-400 text-slate-500 hover:text-slate-900 transition uppercase text-[9px] xl:text-[10px] font-bold tracking-widest"
               title={
                 language === "en" ? "Switch to Tagalog" : "Switch to English"
               }
@@ -296,15 +296,15 @@ const SystemNavbar: React.FC<NavbarProps> = ({
 
             {/* User Info */}
             {user && (
-              <div className="hidden sm:flex items-center gap-3 px-3 py-2 bg-[#111111] border border-[#333] rounded-none">
-                <div className="w-8 h-8 bg-[#0a0a0a] border border-[#222] flex items-center justify-center text-[#d63a2f] font-display text-xl font-black leading-none">
+              <div className="hidden sm:flex items-center gap-3 px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg">
+                <div className="w-8 h-8 bg-white border border-slate-200 flex items-center justify-center text-slate-900 font-display text-xl font-black leading-none">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-white text-[10px] uppercase font-bold tracking-widest leading-none mb-1">
+                  <p className="text-slate-900 text-[10px] uppercase font-bold tracking-widest leading-none mb-1">
                     {user.name}
                   </p>
-                  <p className="text-[#6b6b6b] text-[8px] uppercase font-bold tracking-widest leading-none">
+                  <p className="text-slate-500 text-[8px] uppercase font-bold tracking-widest leading-none">
                     {getRoleLabel(user.role)}
                   </p>
                 </div>
@@ -322,7 +322,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                   window.location.href = "/";
                 });
               }}
-              className="flex items-center gap-2 px-4 py-2 rounded-none bg-transparent hover:bg-[#d63a2f] border border-[#d63a2f] text-[#d63a2f] hover:text-white transition uppercase text-[10px] font-bold tracking-[0.2em]"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-transparent hover:bg-slate-900 border border-slate-300 text-slate-600 hover:text-white transition uppercase text-[10px] font-bold tracking-[0.2em]"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -332,7 +332,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-slate-700 transition text-white"
+              className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition text-slate-900"
             >
               {isMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -350,7 +350,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-[#222] bg-[#0a0a0a] py-4 px-4 space-y-2"
+              className="md:hidden border-t border-slate-200 bg-white py-4 px-4 space-y-2"
             >
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -364,14 +364,14 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                       setIsMenuOpen(false);
                     }}
                     title={item.tooltip}
-                    className={`w-full flex items-center gap-3 px-5 py-4 border transition-all rounded-none uppercase text-[11px] font-bold tracking-widest ${
+                    className={`w-full flex items-center gap-3 px-5 py-4 border rounded-lg transition-all uppercase text-[11px] font-bold tracking-widest ${
                       isActive
-                        ? "bg-[#111111] text-white border-[#333]"
-                        : "bg-transparent border-transparent text-[#6b6b6b] hover:text-white hover:bg-[#111] hover:border-[#333]"
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-transparent border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-200"
                     }`}
                   >
                     <Icon
-                      className={`w-4 h-4 ${isActive ? "text-[#d63a2f]" : ""}`}
+                      className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`}
                     />
                     <span>{getMenuItemLabel(item)}</span>
                   </motion.button>

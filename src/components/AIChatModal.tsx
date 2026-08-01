@@ -488,12 +488,12 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-[#0a0a0a] rounded-none border border-[#222] border-t-2 border-t-[#d63a2f] w-full sm:max-w-[1000px] h-[95vh] sm:h-[90vh] overflow-hidden shadow-2xl flex flex-col"
+          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[1000px] h-[95vh] sm:h-[90vh] overflow-hidden shadow-xl flex flex-col"
         >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-8 sm:px-12 py-8 border-b border-[#222] flex-shrink-0 bg-[#111111]">
+          <div className="flex items-start justify-between px-8 sm:px-12 py-8 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-[#d63a2f] flex items-center justify-center shrink-0">
+              <div className="w-16 h-16 bg-slate-900 flex items-center justify-center shrink-0">
                 <MessageSquare
                   size={32}
                   className="text-white"
@@ -501,10 +501,10 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-3 text-[#d63a2f] text-[11px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-[#d63a2f]" /> AI ASSISTANT
+                <div className="flex items-center gap-3 text-slate-900 text-[11px] font-bold tracking-[0.2em] uppercase">
+                  <div className="w-6 h-[1px] bg-slate-900" /> AI ASSISTANT
                 </div>
-                <h2 className="font-display text-4xl sm:text-5xl text-white uppercase leading-none tracking-wide">
+                <h2 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase leading-none tracking-wide">
                   MOTOLINK AI
                 </h2>
                 <div className="flex items-center gap-3 mt-1">
@@ -527,18 +527,18 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     </>
                   )}
                   {/* Login status */}
-                  <span className="text-[#333] text-[11px]">·</span>
+                  <span className="text-slate-400 text-[11px]">·</span>
                   {isLoggedInCustomer && customerCtx ? (
                     <>
-                      <User size={12} className="text-[#d63a2f]" />
-                      <span className="text-[#d63a2f] text-[11px] font-bold tracking-widest">
+                      <User size={12} className="text-slate-900" />
+                      <span className="text-slate-900 text-[11px] font-bold tracking-widest">
                         LOGGED IN
                       </span>
                     </>
                   ) : (
                     <>
-                      <LogIn size={12} className="text-[#6b6b6b]" />
-                      <span className="text-[#6b6b6b] text-[11px] tracking-widest">
+                      <LogIn size={12} className="text-slate-500" />
+                      <span className="text-slate-500 text-[11px] tracking-widest">
                         GUEST
                       </span>
                     </>
@@ -547,7 +547,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     <button
                       onClick={loadContext}
                       title="Refresh"
-                      className="ml-2 text-[#555] hover:text-white transition"
+                      className="ml-2 text-slate-500 hover:text-slate-900 transition"
                     >
                       <RefreshCw size={12} />
                     </button>
@@ -557,7 +557,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
             </div>
             <button
               onClick={onClose}
-              className="p-3 border border-[#333] hover:bg-[#222] transition text-[#6b6b6b] hover:text-white shrink-0"
+              className="p-3 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
             >
               <X size={24} strokeWidth={1} />
             </button>
@@ -565,14 +565,14 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
 
           {/* ── Error Banner ── */}
           {error && (
-            <div className="bg-[#221515] border-b border-[#d63a2f]/30 px-8 py-4 flex items-center gap-3 text-[#d63a2f] text-sm font-bold tracking-widest uppercase">
+            <div className="bg-red-50 border-b border-red-200 px-8 py-4 flex items-center gap-3 text-red-600 text-sm font-bold tracking-widest uppercase">
               <AlertCircle size={16} />
               <span>{error}</span>
             </div>
           )}
 
           {/* ── Messages ── */}
-          <div className="flex-1 overflow-y-auto px-8 sm:px-12 py-10 bg-[#0a0a0a] space-y-8">
+          <div className="flex-1 overflow-y-auto px-8 sm:px-12 py-10 bg-slate-50 space-y-8">
             {messages.map((message, idx) => {
               const isLastBotMsg =
                 message.sender === "bot" && idx === messages.length - 1;
@@ -593,13 +593,13 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     <div
                       className={`w-12 h-12 shrink-0 flex items-center justify-center border ${
                         message.sender === "user"
-                          ? "bg-[#111] border-[#333] text-[#6b6b6b]"
-                          : "bg-[#221515] border-[#d63a2f] text-[#d63a2f]"
+                          ? "bg-slate-100 border-slate-200 text-slate-500"
+                          : "bg-slate-100 border-slate-300 text-slate-700"
                       }`}
                     >
                       {message.sender === "user" ? (
                         isLoggedInCustomer && customerCtx ? (
-                          <span className="text-base font-black text-[#d63a2f]">
+                          <span className="text-base font-black text-slate-900">
                             {customerCtx.name.charAt(0)}
                           </span>
                         ) : (
@@ -612,8 +612,8 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     <div
                       className={`p-6 border ${
                         message.sender === "user"
-                          ? "bg-[#111] border-[#333] text-white"
-                          : "bg-[#0a0a0a] border-[#222] text-[#ccc]"
+                          ? "bg-slate-900 border-slate-900 text-white"
+                          : "bg-white border-slate-200 text-slate-600"
                       }`}
                     >
                       <div className="text-sm sm:text-base font-light leading-relaxed whitespace-pre-wrap">
@@ -637,7 +637,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                           key={s}
                           onClick={() => sendMessageFromText(s)}
                           disabled={loading}
-                          className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-[#333] text-[#6b6b6b] hover:border-[#d63a2f] hover:text-[#d63a2f] hover:bg-[#1a1010] transition-colors disabled:opacity-30"
+                          className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30"
                         >
                           {s}
                         </button>
@@ -655,15 +655,15 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                 className="flex justify-start"
               >
                 <div className="flex gap-5">
-                  <div className="w-12 h-12 shrink-0 flex items-center justify-center border bg-[#221515] border-[#d63a2f] text-[#d63a2f]">
+                  <div className="w-12 h-12 shrink-0 flex items-center justify-center border bg-slate-100 border-slate-300 text-slate-700">
                     <Bot size={20} />
                   </div>
-                  <div className="p-6 border bg-[#0a0a0a] border-[#222] flex items-center gap-3">
+                  <div className="p-6 border bg-white border-slate-200 flex items-center gap-3">
                     <Loader2
                       size={18}
-                      className="animate-spin text-[#d63a2f]"
+                      className="animate-spin text-slate-900"
                     />
-                    <span className="text-[11px] uppercase tracking-widest font-bold text-[#6b6b6b]">
+                    <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500">
                       THINKING...
                     </span>
                   </div>
@@ -674,7 +674,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* ── Input ── */}
-          <div className="p-8 sm:px-12 border-t border-[#222] bg-[#111111]">
+          <div className="p-8 sm:px-12 border-t border-slate-200 bg-slate-50">
             {/* Quick chips — personalized if logged in */}
             <div className="flex flex-wrap gap-3 mb-6">
               {(isLoggedInCustomer && customerCtx?.vehicles.length
@@ -694,7 +694,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                   key={chip}
                   onClick={() => sendMessageFromText(chip)}
                   disabled={loading}
-                  className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-[#333] text-[#6b6b6b] hover:border-[#d63a2f] hover:text-[#d63a2f] transition-colors disabled:opacity-30 truncate max-w-[200px]"
+                  className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 transition-colors disabled:opacity-30 truncate max-w-[200px]"
                 >
                   {chip}
                 </button>
@@ -716,12 +716,12 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                       : "ASK ABOUT SERVICES, PARTS, SCHEDULES..."
                 }
                 disabled={loading || !!error}
-                className="flex-1 bg-[#0a0a0a] text-white px-6 py-5 border border-[#333] focus:border-[#d63a2f] focus:outline-none transition text-sm font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-white text-slate-900 px-6 py-5 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-sm font-bold tracking-widest uppercase rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim() || !!error}
-                className="w-16 shrink-0 bg-[#d63a2f] hover:bg-[#c0322a] disabled:bg-[#333] disabled:text-[#6b6b6b] text-white flex items-center justify-center transition-colors disabled:cursor-not-allowed"
+                className="w-16 shrink-0 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:text-slate-500 text-white flex items-center justify-center transition-colors rounded-xl disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <Loader2 size={24} className="animate-spin" />

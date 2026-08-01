@@ -105,26 +105,26 @@ const NotificationPreferencesModal: React.FC<
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.92, opacity: 0, y: 24 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="bg-slate-900 border border-slate-700 border-t-2 border-t-blue-500 w-full max-w-md shadow-2xl rounded-lg overflow-hidden"
+            className="bg-white border border-slate-200 border-t-2 border-t-slate-900 w-full max-w-md shadow-xl rounded-xl overflow-hidden"
           >
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-700 flex items-center justify-between">
+            <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                  <Bell className="w-5 h-5 text-blue-400" />
+                <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-white font-black text-lg tracking-wide">
+                  <h2 className="text-slate-900 font-black text-lg tracking-wide">
                     Notification Settings
                   </h2>
-                  <p className="text-slate-400 text-xs">
+                  <p className="text-slate-500 text-xs">
                     Manage your alert preferences
                   </p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-white transition p-1 rounded-md hover:bg-slate-700"
+                className="text-slate-400 hover:text-slate-900 transition p-1 rounded-md hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -133,13 +133,13 @@ const NotificationPreferencesModal: React.FC<
             {/* Body */}
             <div className="px-6 py-6 space-y-5">
               {/* Contact info recap */}
-              <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">
                   Contact on File
                 </p>
                 <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                  <span className="text-white text-sm font-medium">
+                  <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <span className="text-slate-900 text-sm font-medium">
                     {user?.email || "—"}
                   </span>
                 </div>
@@ -148,23 +148,23 @@ const NotificationPreferencesModal: React.FC<
               {/* Toggle section */}
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
-                  <span className="ml-3 text-slate-400 text-sm">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <span className="ml-3 text-slate-500 text-sm">
                     Loading preferences…
                   </span>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
                     Notification Channels
                   </p>
 
                   {/* Email toggle */}
                   <div
-                    className={`flex items-center justify-between p-4 rounded-lg border transition cursor-pointer select-none ${
+                    className={`flex items-center justify-between p-4 rounded-xl border transition cursor-pointer select-none ${
                       emailEnabled
-                        ? "bg-blue-600/10 border-blue-600/40"
-                        : "bg-slate-800/50 border-slate-700"
+                        ? "bg-blue-50 border-blue-200"
+                        : "bg-white border-slate-200"
                     }`}
                     onClick={() => setEmailEnabled((v) => !v)}
                     role="button"
@@ -177,11 +177,11 @@ const NotificationPreferencesModal: React.FC<
                   >
                     <div className="flex items-center gap-3">
                       <Mail
-                        className={`w-5 h-5 ${emailEnabled ? "text-blue-400" : "text-slate-500"}`}
+                        className={`w-5 h-5 ${emailEnabled ? "text-blue-600" : "text-slate-400"}`}
                       />
                       <div>
                         <p
-                          className={`font-semibold text-sm ${emailEnabled ? "text-white" : "text-slate-400"}`}
+                          className={`font-semibold text-sm ${emailEnabled ? "text-slate-900" : "text-slate-400"}`}
                         >
                           Email Notifications
                         </p>
@@ -194,7 +194,7 @@ const NotificationPreferencesModal: React.FC<
                     {/* Custom toggle switch */}
                     <div
                       className={`relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${
-                        emailEnabled ? "bg-blue-600" : "bg-slate-600"
+                        emailEnabled ? "bg-blue-600" : "bg-slate-300"
                       }`}
                     >
                       <motion.div
@@ -211,10 +211,10 @@ const NotificationPreferencesModal: React.FC<
 
                   {/* Info blurb */}
                   <div
-                    className={`p-4 rounded-lg border transition text-sm leading-relaxed ${
+                    className={`p-4 rounded-xl border transition text-sm leading-relaxed ${
                       emailEnabled
-                        ? "bg-emerald-900/10 border-emerald-800/30 text-emerald-400"
-                        : "bg-slate-800/30 border-slate-700 text-slate-500"
+                        ? "bg-blue-50 border-blue-200 text-blue-700"
+                        : "bg-slate-50 border-slate-200 text-slate-500"
                     }`}
                   >
                     {emailEnabled ? (
@@ -240,10 +240,10 @@ const NotificationPreferencesModal: React.FC<
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className={`flex items-center gap-3 p-3 rounded-lg border text-sm font-medium ${
+                    className={`flex items-center gap-3 p-3 rounded-xl border text-sm font-medium ${
                       message.type === "success"
-                        ? "bg-emerald-900/20 border-emerald-700/50 text-emerald-400"
-                        : "bg-red-900/20 border-red-700/50 text-red-400"
+                        ? "bg-green-50 border-green-200 text-green-700"
+                        : "bg-red-50 border-red-200 text-red-600"
                     }`}
                   >
                     {message.type === "success" ? (
@@ -258,10 +258,10 @@ const NotificationPreferencesModal: React.FC<
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-5 border-t border-slate-700 bg-slate-800/30 flex gap-3">
+            <div className="px-6 py-5 border-t border-slate-200 bg-slate-50 flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 py-2.5 bg-transparent hover:bg-slate-700 text-slate-400 hover:text-white font-semibold text-sm rounded-lg border border-slate-600 transition"
+                className="flex-1 py-2.5 bg-transparent hover:bg-slate-100 text-slate-500 hover:text-slate-900 font-semibold text-sm rounded-xl border border-slate-300 transition"
               >
                 Cancel
               </button>
@@ -269,7 +269,7 @@ const NotificationPreferencesModal: React.FC<
                 onClick={handleSave}
                 disabled={saving || loading}
                 id="notification-save-btn"
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg transition flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2"
               >
                 {saving ? (
                   <>

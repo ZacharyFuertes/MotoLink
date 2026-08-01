@@ -22,19 +22,19 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
       <motion.div
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="bg-[#0a0a0a] border border-[#222] border-t-2 border-t-[#d63a2f] w-full max-w-sm overflow-hidden flex flex-col shadow-2xl relative"
+        className="bg-white border border-slate-200 border-t-2 border-t-slate-900 w-full max-w-sm overflow-hidden flex flex-col shadow-xl relative rounded-xl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-[#111] border-b border-[#222]">
+        <div className="flex items-center justify-between p-4 bg-slate-50 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#d63a2f]" />
-            <h3 className="font-display font-bold text-white uppercase text-xs tracking-widest">
+            <AlertTriangle className="w-4 h-4 text-slate-900" />
+            <h3 className="font-display font-bold text-slate-900 uppercase text-xs tracking-widest">
               {title}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-[#666] hover:text-white transition"
+            className="text-slate-400 hover:text-slate-900 transition"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -43,7 +43,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
 
         {/* Body */}
         <div className="p-6">
-          <p className="text-[#888] text-sm leading-relaxed mb-6 font-medium text-center">
+          <p className="text-slate-500 text-sm leading-relaxed mb-6 font-medium text-center">
             {message}
           </p>
 
@@ -51,25 +51,25 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
           <div className="flex gap-3">
             <button
               onClick={onTryAgain || onClose}
-              className="flex-1 bg-[#d63a2f] hover:bg-[#b82e25] text-white font-bold py-3 uppercase tracking-widest text-[10px] transition border border-[#d63a2f]"
+              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 uppercase tracking-widest text-[10px] transition border border-slate-900 rounded-lg"
             >
               Try Again
             </button>
             <button
               onClick={onClose}
-              className="flex-1 bg-transparent hover:bg-[#222] text-[#6b6b6b] hover:text-white font-bold py-3 uppercase tracking-widest text-[10px] border border-[#333] transition"
+              className="flex-1 bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold py-3 uppercase tracking-widest text-[10px] border border-slate-300 rounded-lg transition"
             >
               Close
             </button>
           </div>
 
           {/* Footer Links */}
-          <div className="mt-5 text-center border-t border-[#1a1a1a] pt-4">
+          <div className="mt-5 text-center border-t border-slate-100 pt-4">
             <button
               onClick={() =>
                 alert("Password reset functionality would open here.")
               }
-              className="text-[#555] hover:text-[#d63a2f] text-[10px] uppercase tracking-widest font-bold transition"
+              className="text-slate-500 hover:text-slate-900 text-[10px] uppercase tracking-widest font-bold transition"
             >
               Forgot Password?
             </button>
