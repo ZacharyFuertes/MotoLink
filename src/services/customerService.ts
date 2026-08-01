@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import { User, Vehicle } from '../types'
+import { User } from '../types'
 
 /**
  * Customers Service
@@ -154,111 +154,6 @@ export const customerService = {
     } catch (err) {
       console.error('Error fetching customer stats:', err)
       return null
-    }
-  },
-}
-
-/**
- * Vehicles Service
- * Handles all vehicle database operations
- */
-
-export const vehicleService = {
-  /**
-   * Fetch all vehicles for a customer
-   */
-  async getCustomerVehicles(customerId: string): Promise<Vehicle[]> {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('customer_id', customerId)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      return data || []
-    } catch (err) {
-      console.error('Error fetching vehicles:', err)
-      return []
-    }
-  },
-
-  /**
-   * Get a single vehicle by ID
-   */
-  async getVehicleById(vehicleId: string): Promise<Vehicle | null> {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', vehicleId)
-        .single()
-
-      if (error) throw error
-      return data || null
-    } catch (err) {
-      console.error('Error fetching vehicle:', err)
-      return null
-    }
-  },
-
-  /**
-   * Create a new vehicle
-   */
-  async createVehicle(vehicle: Omit<Vehicle, 'id' | 'created_at'>): Promise<Vehicle | null> {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .insert([vehicle])
-        .select()
-        .single()
-
-      if (error) throw error
-      console.log('✅ Vehicle created:', data)
-      return data || null
-    } catch (err) {
-      console.error('Error creating vehicle:', err)
-      return null
-    }
-  },
-
-  /**
-   * Update a vehicle
-   */
-  async updateVehicle(vehicleId: string, updates: Partial<Vehicle>): Promise<Vehicle | null> {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .update(updates)
-        .eq('id', vehicleId)
-        .select()
-        .single()
-
-      if (error) throw error
-      console.log('✅ Vehicle updated:', data)
-      return data || null
-    } catch (err) {
-      console.error('Error updating vehicle:', err)
-      return null
-    }
-  },
-
-  /**
-   * Delete a vehicle
-   */
-  async deleteVehicle(vehicleId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('vehicles')
-        .delete()
-        .eq('id', vehicleId)
-
-      if (error) throw error
-      console.log('✅ Vehicle deleted')
-      return true
-    } catch (err) {
-      console.error('Error deleting vehicle:', err)
-      return false
     }
   },
 }
