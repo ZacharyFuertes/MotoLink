@@ -10,12 +10,49 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+   <!-- Chosen (jQuery) for enhanced multi-select (barebones as provided) -->
+   <link href="https://cdn.rawgit.com/harvesthq/chosen/gh-pages/chosen.min.css" rel="stylesheet"/>
+
+   <style>
+     /* Chosen scrollbar customizations */
+     .chosen-container .chosen-results::-webkit-scrollbar { width: 10px; }
+     .chosen-container .chosen-results::-webkit-scrollbar-track { background: #fbf9f5; }
+     .chosen-container .chosen-results::-webkit-scrollbar-thumb { background: #0ea5ff; border-radius: 9999px; }
+     .chosen-container .chosen-results::-webkit-scrollbar-button { background: #0ea5ff; }
+
+     /* Firefox scrollbar styling */
+     .chosen-container .chosen-results { scrollbar-width: thin; scrollbar-color: #0ea5ff #fbf9f5; }
+
+     /* Chosen dropdown arrow / caret styling */
+     .chosen-container .chosen-single b,
+     .chosen-container .chosen-single div b {
+       background: #0ea5ff !important;
+       border-radius: 4px;
+       width: 18px !important;
+       height: 18px !important;
+       margin-right: 6px;
+       display: inline-block;
+     }
+     .chosen-container .chosen-single b:after {
+       border-top-color: white !important;
+     }
+
+     /* Chosen multi-select remove default focus outline tweaks */
+     .chosen-container-multi .chosen-choices li.search-choice { background: #e6f6ff; border-color: #0ea5ff; }
+
+     /* Ensure chosen results track padding and cream background when empty */
+     .chosen-container .chosen-results { background: #fff; }
+   </style>
+ </head>
+ <body>
+   <div id="root"></div>
+   <!-- jQuery and Chosen (loaded before the app so components can initialize) -->
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+   <script src="https://cdn.rawgit.com/harvesthq/chosen/gh-pages/chosen.jquery.min.js"></script>
+   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+   <script type="module" src="/src/main.tsx"></script>
+ </body>
 </html>

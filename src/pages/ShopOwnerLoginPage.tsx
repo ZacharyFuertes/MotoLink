@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home, Store } from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
+import motolinkLogo from "../pictures/public/Motolink.png";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getRoleLabel } from "../utils/roleAccess";
@@ -39,6 +40,44 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     shop_phone: "",
   });
 
+  const selectRef = useRef<HTMLSelectElement | null>(null);
+
+  const SPECIALTY_OPTIONS = [
+    "Engine Repair",
+    "Brake Service",
+    "Tire Service",
+    "Oil Change",
+    "Electrical",
+    "Diagnostics",
+    "Suspension",
+    "Battery Replacement",
+    "Custom Fabrication",
+    "Towing",
+  ];
+
+  useEffect(() => {
+    const $ = (window as any).$ || (window as any).jQuery;
+    const sel = selectRef.current;
+    if ($ && sel) {
+      const $sel = $(sel as any);
+      if ($sel.chosen) {
+        $sel.chosen({ width: "100%", placeholder_text_multiple: "Shop's Specialty Services" });
+        $sel.on("change", function (this: any) {
+          const val = $sel.val();
+          const specialties = Array.isArray(val) ? val : val ? [val] : [];
+          setSignupData((prev) => ({ ...prev, shop_description: specialties.join(", ") }));
+        });
+      }
+      return () => {
+        if ($sel.chosen) {
+          try {
+            $sel.off("change");
+            $sel.chosen("destroy");
+          } catch (error) {}
+        }
+      };
+    }
+  }, []);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -293,8 +332,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5 bg-slate-100">
-                <Store className="w-10 h-10 text-slate-500" />
+              <div className="w-full flex items-center justify-center mx-auto mb-5 bg-transparent">
+                <img src={motolinkLogo} alt="Motolink logo" className="max-h-36 w-auto object-contain" />
               </div>
 
               <motion.div
@@ -318,7 +357,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Password" required className={inputClass} />
                 <input type="text" value={signupData.name} onChange={(e) => setSignupData({ ...signupData, name: e.target.value })} placeholder="Your Name" required className={inputClass} />
                 <input type="text" value={signupData.shop_name} onChange={(e) => setSignupData({ ...signupData, shop_name: e.target.value })} placeholder="Shop Name" required className={inputClass} />
-                <input type="text" value={signupData.shop_description} onChange={(e) => setSignupData({ ...signupData, shop_description: e.target.value })} placeholder="Shop Description (optional)" className={inputClass} />
+                <select ref={selectRef} multiple className={`${inputClass} chosen-select`}>
+                  <option value=""></option>
+                  {SPECIALTY_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
                 <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address (optional)" className={inputClass} />
                 <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City (optional)" className={inputClass} />
                 <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
