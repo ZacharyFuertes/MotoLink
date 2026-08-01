@@ -367,7 +367,7 @@ const MechanicDashboard: React.FC = () => {
               <span className="text-white font-bold text-lg">M</span>
             </div>
             <div>
-              <h2 className="text-sm font-black text-white">MOTOSHOP</h2>
+              <h2 className="text-sm font-black text-white">MOTOLINK</h2>
               <p className="text-xs text-slate-400">Mechanic Dashboard</p>
             </div>
           </div>

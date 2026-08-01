@@ -23,19 +23,19 @@ const Footer: React.FC = () => {
       name: 'Facebook',
       icon: Facebook,
       url: 'https://facebook.com',
-      label: 'Visit MotoShop on Facebook',
+      label: 'Visit MotoLink on Facebook',
     },
     {
       name: 'Instagram',
       icon: Instagram,
       url: 'https://instagram.com',
-      label: 'Follow MotoShop on Instagram',
+      label: 'Follow MotoLink on Instagram',
     },
     {
       name: 'Twitter',
       icon: Twitter,
       url: 'https://twitter.com',
-      label: 'Follow MotoShop on Twitter',
+      label: 'Follow MotoLink on Twitter',
     },
     {
       name: 'LinkedIn',

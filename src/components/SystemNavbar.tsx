@@ -206,7 +206,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               <div className="absolute inset-0 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] rounded-full pointer-events-none z-10" />
               <img
                 src="/favicon.svg"
-                alt="MotoShop Logo"
+                alt="MotoLink Logo"
                 className="w-[90%] h-[90%] object-contain scale-110 relative z-0"
               />
             </div>

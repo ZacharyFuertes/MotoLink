@@ -248,7 +248,7 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
 
       // Build context string
       const context = `
-=== MOTOSHOP BUSINESS DATA (LIVE) ===
+=== MOTOLINK BUSINESS DATA (LIVE) ===
 Date: ${new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
 📊 OVERVIEW:
@@ -334,7 +334,7 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     setLoading(true);
 
     try {
-      const systemPrompt = `You are MotoShop Admin AI — a powerful business intelligence assistant for the shop owner. You have access to REAL-TIME business data below. Answer the owner's questions using this data. Be specific with numbers, names, and actionable insights.
+      const systemPrompt = `You are MotoLink Admin AI — a powerful business intelligence assistant for the shop owner. You have access to REAL-TIME business data below. Answer the owner's questions using this data. Be specific with numbers, names, and actionable insights.
 
 RULES:
 1. Always reference real data from the context below
@@ -562,7 +562,7 @@ ${shopData}`;
                 <div className="text-center py-4">
                   <Bot size={40} className="text-[#333] mx-auto mb-3" />
                   <p className="text-[#6b6b6b] text-xs font-bold tracking-widest uppercase mb-1">
-                    MotoShop Admin AI
+                    MotoLink Admin AI
                   </p>
                   <p className="text-[#555] text-[11px] max-w-sm mx-auto leading-relaxed">
                     Ask me anything about your shop — revenue, inventory,

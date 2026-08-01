@@ -8,7 +8,7 @@
 const SENDGRID_API_KEY = import.meta.env.VITE_SENDGRID_API_KEY as string;
 // @ts-ignore - Vite environment variables
 const FROM_EMAIL = import.meta.env.VITE_SENDGRID_FROM_EMAIL as string;
-const FROM_NAME = "MotoShop AutoCare";
+const FROM_NAME = "MotoLink";
 
 export interface EmailPayload {
   to: string;

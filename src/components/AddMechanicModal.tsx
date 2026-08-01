@@ -176,7 +176,7 @@ const AddMechanicModal: React.FC<AddMechanicModalProps> = ({ isOpen, onClose }) 
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="MECHANIC@MOTOSHOP.COM"
+                    placeholder="MECHANIC@MOTOLINK.COM"
                     required
                     className="w-full pl-11 pr-4 py-4 bg-[#0a0a0a] border border-[#333] rounded-none text-white focus:outline-none focus:border-[#d63a2f] transition text-xs font-bold tracking-widest uppercase"
                   />

@@ -324,8 +324,8 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     sender: "bot",
     timestamp: new Date(),
     content: customer
-      ? `Hello, ${customer.name.split(" ")[0]}! I'm MotoMech AI, your JSBM MotoShop assistant.\n\nI can see you have ${customer.vehicles.length > 0 ? customer.vehicles.map((v) => `a ${v.year} ${v.make} ${v.model}`).join(" and ") : "no registered vehicles yet"}. How can I help you today?\n\n- Service info and pricing\n- Parts availability\n- Mechanic schedules`
-      : `Hello! I'm MotoMech AI, JSBM MotoShop's 24/7 assistant. How can I help you today?\n\n- Service info and pricing\n- Parts availability and recommendations\n- Mechanic schedules and availability\n\nTip: Log in for a faster booking experience!`,
+      ? `Hello, ${customer.name.split(" ")[0]}! I'm MotoMech AI, your MotoLink assistant.\n\nI can see you have ${customer.vehicles.length > 0 ? customer.vehicles.map((v) => `a ${v.year} ${v.make} ${v.model}`).join(" and ") : "no registered vehicles yet"}. How can I help you today?\n\n- Service info and pricing\n- Parts availability\n- Mechanic schedules`
+      : `Hello! I'm MotoMech AI, MotoLink's 24/7 assistant. How can I help you today?\n\n- Service info and pricing\n- Parts availability and recommendations\n- Mechanic schedules and availability\n\nTip: Log in for a faster booking experience!`,
   });
 
   // Init Groq

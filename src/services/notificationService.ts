@@ -73,7 +73,7 @@ const buildServiceCompletionHtml = (data: ServiceCompletionData): string => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Service Completed – MotoShop AutoCare</title>
+  <title>Service Completed – MotoLink</title>
 </head>
 <body style="margin:0;padding:0;background:#0f0f0f;font-family:'Helvetica Neue',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;padding:32px 16px;">
@@ -88,7 +88,7 @@ const buildServiceCompletionHtml = (data: ServiceCompletionData): string => {
                 <tr>
                   <td>
                     <div style="display:inline-block;background:#d63a2f;width:36px;height:36px;border-radius:4px;text-align:center;line-height:36px;font-size:20px;font-weight:900;color:#fff;vertical-align:middle;">M</div>
-                    <span style="margin-left:10px;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px;vertical-align:middle;">MOTOSHOP</span>
+                    <span style="margin-left:10px;font-size:18px;font-weight:900;color:#fff;letter-spacing:2px;vertical-align:middle;">MOTOLINK</span>
                   </td>
                   <td align="right">
                     <span style="background:#16a34a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;padding:4px 12px;border-radius:999px;text-transform:uppercase;">SERVICE COMPLETE</span>
@@ -215,7 +215,7 @@ const buildServiceCompletionHtml = (data: ServiceCompletionData): string => {
           <tr>
             <td style="padding:20px 36px;border-top:1px solid #1a1a1a;background:#0a0a0a;">
               <p style="margin:0;font-size:12px;color:#555;text-align:center;line-height:1.8;">
-                MotoShop AutoCare &nbsp;•&nbsp; Professional Vehicle Service<br/>
+                MotoLink &nbsp;•&nbsp; Professional Vehicle Service<br/>
                 Questions? Reply to this email or visit our shop.<br/>
                 <span style="color:#333;">This is an automated notification. Appointment #${data.appointmentId.substring(0, 8).toUpperCase()}</span>
               </p>
@@ -244,7 +244,7 @@ const buildServiceCompletionText = (data: ServiceCompletionData): string => {
       : "  (no parts recorded)";
 
   return [
-    "MOTOSHOP AUTOCARE — SERVICE COMPLETION NOTICE",
+    "MOTOLINK — SERVICE COMPLETION NOTICE",
     "==============================================",
     "",
     `Dear ${data.customerName},`,
@@ -266,7 +266,7 @@ const buildServiceCompletionText = (data: ServiceCompletionData): string => {
       : "",
     "Your vehicle is ready for pickup during business hours.",
     "",
-    "Thank you for choosing MotoShop AutoCare!",
+    "Thank you for choosing MotoLink!",
     `Ref: ${data.appointmentId.substring(0, 8).toUpperCase()}`,
   ]
     .filter((l) => l !== undefined)
@@ -367,7 +367,7 @@ export const sendServiceCompletionEmail = async (
   }
 
   // ── 2. Build content ─────────────────────────────────────────────────────
-  const subject = `✅ Your ${data.serviceType} service is complete – MotoShop AutoCare`;
+  const subject = `✅ Your ${data.serviceType} service is complete – MotoLink`;
   const htmlContent = buildServiceCompletionHtml(data);
   const textContent = buildServiceCompletionText(data);
 
