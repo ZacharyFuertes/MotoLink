@@ -247,7 +247,16 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - **USER MUST RUN** `20260731_owner_data_isolation.sql` in Supabase SQL Editor (direct Postgres unreachable — IPv6-only host). Verified live BEFORE migration: `reservations` columns are `id, customer_id, part_id, status, quantity, created_at, updated_at` (no shop_id yet).
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes.
 
----
+### TASK: Dead-code removal sweep (full re-sweep, 8 steps)
+- **Group 3 (unused exports):** removed `vehicleService` from `customerService.ts` (whole object) + its `Vehicle` import; removed `withRetry` + `validateDatabaseConnection` from `dbHelper.ts` (kept `formatDatabaseError`, used by AuthContext) + dropped now-unused `supabase` import; removed `featuredProductService` from `productService.ts` + `FeaturedProduct` interface from `types/index.ts` (only used by dead files)
+- **Group 4 (dead whole files, 10):** deleted `AboutUs.tsx`, `FeaturedSection.tsx`, `Hero.tsx`, `Navbar.tsx`, `ServicesGrid.tsx`, `ViewPartsListModal.tsx`, `pages/AdminProductsPage.tsx` (was never wired into App.tsx/roleAccess routing), `pages/CustomerPortal.tsx` (superseded by CustomerPortalModal), `utils/vehicleCompatibility.ts`, `__tests__/notificationService.test.ts` (imported vitest which is NOT installed — couldn't run)
+- **Group 2 (orphaned assets):** deleted `pictures/icons/logo.png` (406KB) + entire `about-us-pics/` folder (6 images, only used by dead AboutUs)
+- **Group 1 (legacy branding):** replaced JSBM/MotoShop → MotoLink in `AIChatModal.tsx` (greeting), `sendgridClient.ts` (FROM_NAME), `notificationService.ts` (email HTML/plain/subject), `AdminChatbot.tsx` (prompt+title), `SystemNavbar.tsx` (alt), `Footer.tsx` (social labels), `MechanicDashboard.tsx` (header), `AddMechanicModal.tsx` (placeholder). Kept `AuthContext.tsx:259` `motoshop_appointments` localStorage cleanup (intentional legacy-key purge on logout). `JBMS`/`JBSM`/`Joeyboy` had ZERO hits in active code
+- **Group 5 (scripts):** deleted `test_orders.js` (queried dropped `orders` table), `test_query.js`, `test_query_fixed.js`, `test_reservations.js`, `test_reservations_schema.js`, `test_supabase_connection.js` (had stale anon JWT for dead project ref `qscdmsfo…`), `tmp/check_parts.js` + empty `tmp/`; removed broken `"seed": "node seed-demo.js"` script from package.json (file never existed)
+- **NOTE (process lesson):** a PowerShell bulk string-replace loop using `$pair[0]`/`$pair[1]` corrupted 7 files (PowerShell indexes strings as char arrays → replaced ALL `a`→`l` file-wide). Recovered via `git checkout` and redid edits one-by-one with the edit tool. ALWAYS do string replacements via edit tool, never `$string[i]` indexing on a string in PowerShell.
+- **Verify:** `npm run build` passes clean (`tsc` + vite, 2815 modules, 10.3s). Zero dangling imports to any deleted file/export. No branding/corruption remnants in src.
+
+
 
 ## CURRENT STATE
 
