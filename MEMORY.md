@@ -1,4 +1,4 @@
-# MotoLink — Brain / Memory File
+# MotoLink â€” Brain / Memory File
 
 > **RULE:** Read this file FIRST before starting any task. Update it after every task.
 > This is the persistent memory so context is never lost between sessions.
@@ -24,8 +24,8 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - Supabase project ref: `hrrjdeamvwncssaczqvz`
 - URL: `https://hrrjdeamvwncssaczqvz.supabase.co`
 - Keys live in `.env.local` (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY)
-- DB password: `Moto-Link123456` — NOTE: direct Postgres connection fails (host is IPv6-only, unreachable from this machine). Use REST API instead.
-- Admin account: `admin@motolink.com` / `MotolinkAdmin123!` — UUID `cea04e43-44dc-4e35-b3c1-ef5ffc776193`, role `admin` in `auth.users` + `public.users`
+- DB password: `Moto-Link123456` â€” NOTE: direct Postgres connection fails (host is IPv6-only, unreachable from this machine). Use REST API instead.
+- Admin account: `admin@motolink.com` / `MotolinkAdmin123!` â€” UUID `cea04e43-44dc-4e35-b3c1-ef5ffc776193`, role `admin` in `auth.users` + `public.users`
 
 ---
 
@@ -34,8 +34,8 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 `users, shops, vehicles, services_pricing, parts, products, featured_products, appointments, job_orders, job_order_items, invoices, part_sales, reservations, mechanic_availability, notifications, customer_notification_settings`
 
 - `customers` table was DROPPED; 7 FKs re-pointed to `users(id)`
-- `services_pricing` now has `shop_id` (nullable, FK → shops, ON DELETE CASCADE)
-- `mechanic_availability` now has `shop_id` (nullable, FK → shops, ON DELETE CASCADE)
+- `services_pricing` now has `shop_id` (nullable, FK â†’ shops, ON DELETE CASCADE)
+- `mechanic_availability` now has `shop_id` (nullable, FK â†’ shops, ON DELETE CASCADE)
 - Admin RLS policies applied across all tables (`supabase/admin_rls.sql`)
 
 ---
@@ -44,7 +44,7 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 
 | File | Purpose |
 |------|---------|
-| `MEMORY.md` | **THIS FILE** — persistent brain, read first |
+| `MEMORY.md` | **THIS FILE** â€” persistent brain, read first |
 | `Info for DFD lvl 1.md` | Full Level 1 DFD: 7 entities, 7 processes, 16 stores, 73 flows |
 | `MOTOLINK_ERD_SCHEMA.sql` | Clean 16-table ERD-ready schema (matches live DB) |
 | `COMPLETE_DATABASE_SCHEMA.sql` | Aspirational 25+ table schema (many tables NOT in live DB) |
@@ -56,21 +56,21 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 
 ## COMPLETE TASK HISTORY (chronological)
 
-### PRE-SESSION WORK (done before memory file existed — carried in from prior context)
-1. **Supabase setup** — connected project, configured keys, `.env.local`
-2. **Admin dashboard** — built `AdminPlatformDashboard.tsx` as Materio-style layout wrapper (persistent sidebar/header), restyled all 7 sub-pages dark → light theme, admin RBAC on owner pages
-3. **Role-based routing** — `rolePagesMapping` in `roleAccess.ts` (admin → admin-dashboard, owner → dashboard)
-4. **Dropped `customers` table** — live DB migration, 7 FKs re-pointed to `users(id)`
-5. **Schema docs** — created COMPLETE_DATABASE_SCHEMA.sql, supabase/schema.sql, MOTOLINK_ERD_SCHEMA.sql
-6. **DFD doc** — created `Info for DFD lvl 1.md` (66 flows at the time)
-7. **Migration audit** — created `audit.md`
+### PRE-SESSION WORK (done before memory file existed â€” carried in from prior context)
+1. **Supabase setup** â€” connected project, configured keys, `.env.local`
+2. **Admin dashboard** â€” built `AdminPlatformDashboard.tsx` as Materio-style layout wrapper (persistent sidebar/header), restyled all 7 sub-pages dark â†’ light theme, admin RBAC on owner pages
+3. **Role-based routing** â€” `rolePagesMapping` in `roleAccess.ts` (admin â†’ admin-dashboard, owner â†’ dashboard)
+4. **Dropped `customers` table** â€” live DB migration, 7 FKs re-pointed to `users(id)`
+5. **Schema docs** â€” created COMPLETE_DATABASE_SCHEMA.sql, supabase/schema.sql, MOTOLINK_ERD_SCHEMA.sql
+6. **DFD doc** â€” created `Info for DFD lvl 1.md` (66 flows at the time)
+7. **Migration audit** â€” created `audit.md`
 
 ### TASK: Fix admin_rls.sql (P2 crash bug + schema gaps)
 - Removed 3 lines from `supabase/admin_rls.sql` referencing dropped `customers` table (was lines 53-55)
 - File now applies admin RLS cleanly
 
 ### TASK: Owner signup flow (P5)
-- `OwnerLoginPage.tsx` — added signup tab:
+- `OwnerLoginPage.tsx` â€” added signup tab:
   1. `supabase.auth.signUp(email, password)`
   2. INSERT into `shops` with `owner_id`
   3. INSERT into `users` with `shop_id` = new shop id
@@ -78,7 +78,7 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - This is the ONLY path that creates a shop (no admin approval)
 
 ### TASK: Owner dashboard (P6)
-- Created `src/pages/Dashboard.tsx` — 5 metric cards (today's revenue, pending appts, customers, low stock, products) + pending appointments list + low stock alerts
+- Created `src/pages/Dashboard.tsx` â€” 5 metric cards (today's revenue, pending appts, customers, low stock, products) + pending appointments list + low stock alerts
 - All 6 queries scoped by `user.shop_id`
 - Route added in `App.tsx`
 
@@ -91,13 +91,13 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - `AIChatModal.tsx` (fetchShopContext scoped by shopId)
 
 ### TASK: Crash bug fix (P2)
-- `AIChatModal.tsx:110` — `.from("customers")` → `.from("users")` (customers table no longer exists)
+- `AIChatModal.tsx:110` â€” `.from("customers")` â†’ `.from("users")` (customers table no longer exists)
 
 ### TASK: Dead code removal (P8)
-- `shopService.ts` — removed `demoShops` fallback (returns `[]`)
-- `supabaseClient.ts` — removed `getUsers()`, `getParts()`, `getAppointments()`
-- `FeaturedSection.tsx` (in Index.tsx) — removed localStorage booking pattern
-- `Navbar.tsx` + `SystemNavbar.tsx` — JBMS → "MotoLink" branding
+- `shopService.ts` â€” removed `demoShops` fallback (returns `[]`)
+- `supabaseClient.ts` â€” removed `getUsers()`, `getParts()`, `getAppointments()`
+- `FeaturedSection.tsx` (in Index.tsx) â€” removed localStorage booking pattern
+- `Navbar.tsx` + `SystemNavbar.tsx` â€” JBMS â†’ "MotoLink" branding
 - KEPT: `SERVICE_TYPES` + `defaultProducts` as fallbacks
 - `demoShops.ts` file still exists but is now UNUSED (still contains "JBMS(JOEYBOY MOTORCYCLE SHOP)")
 
@@ -108,10 +108,10 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 
 ### TASK: Run migrations + verify (user ran SQL)
 - Verified via REST API:
-  - `services_pricing.shop_id` exists ✅
-  - `mechanic_availability.shop_id` exists ✅
-  - All 10 tables readable via service_role ✅
-  - `npm run build` passes (0 errors, 2800 modules) ✅
+  - `services_pricing.shop_id` exists âœ…
+  - `mechanic_availability.shop_id` exists âœ…
+  - All 10 tables readable via service_role âœ…
+  - `npm run build` passes (0 errors, 2800 modules) âœ…
 
 ### TASK: Delta analysis (DFD + ERD comparison)
 - Compared migration changes against existing docs
@@ -119,13 +119,13 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - Identified remaining gaps: AdminServicesPage, BookAppointmentModal, AdminMechanicAvailability lack shop_id filters
 
 ### TASK: Git push
-- Commit `75183d0` on `main` — 20 files, +1148/-268
+- Commit `75183d0` on `main` â€” 20 files, +1148/-268
 - Had to `git pull --rebase` first (remote had new commits)
 - Pushed successfully
 
 ### TASK: Update documentation files
-- `MOTOLINK_ERD_SCHEMA.sql` — added `shop_id` to services_pricing + mechanic_availability + indexes
-- `Info for DFD lvl 1.md` — updated all 7 processes, 16 stores, expanded to 73 flows, documented owner dashboard + signup flow
+- `MOTOLINK_ERD_SCHEMA.sql` â€” added `shop_id` to services_pricing + mechanic_availability + indexes
+- `Info for DFD lvl 1.md` â€” updated all 7 processes, 16 stores, expanded to 73 flows, documented owner dashboard + signup flow
 
 ### TASK: Simplified DFD
 - Created `MotoLink DFD Level 1 (Simplified).md`
@@ -133,138 +133,138 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - Rewrote as pure plain-text logic (entities, processes, stores, flows, isolation rules, signup sequence, file map)
 
 ### TASK: Memory file (THIS)
-- Created `MEMORY.md` as persistent brain — read first every session
+- Created `MEMORY.md` as persistent brain â€” read first every session
 
 ### TASK: BookAppointmentModal shop_id filter
-- `BookAppointmentModal.tsx:253-259` — `fetchServices()` now guards `if (!defaultShopId) return;` and filters `.eq("shop_id", defaultShopId)` matching `fetchAvailableParts()` pattern
+- `BookAppointmentModal.tsx:253-259` â€” `fetchServices()` now guards `if (!defaultShopId) return;` and filters `.eq("shop_id", defaultShopId)` matching `fetchAvailableParts()` pattern
 - No other functions in file touched
-- **NEW ISSUE DISCOVERED:** `src/pages/MotolinkLanding.tsx` has 3 unused imports (`ArrowRight`, `CheckCircle2`, `MapPinned`) that break `tsc` — came from remote commit `9382c9b navbar`, NOT from this change. NOT yet fixed.
+- **NEW ISSUE DISCOVERED:** `src/pages/MotolinkLanding.tsx` has 3 unused imports (`ArrowRight`, `CheckCircle2`, `MapPinned`) that break `tsc` â€” came from remote commit `9382c9b navbar`, NOT from this change. NOT yet fixed.
 
 ### TASK: "Go all" queued-prompts batch (14-item todo list)
-1. **BookAppointmentModal default-shop-id fix** — removed `shopIdToUse = "default-shop-id"` fallback; now `setErrorMsg` + block when no valid shop_id; reset `mechanicAvailability` on close; availability shown when schedule exists OR bookings exist
-2. **demoShops deletion** — deleted `src/data/demoShops.ts`, `jbms.png`, `pworks.jpg`, `kec.jpg`; KEPT `Motolink.svg` (used by Footer/Navbar/LoginChoice); fixed stale comment in `ShopMap.tsx:57`
-3. **AdminMechanicAvailability fixes** — availability SELECT scoped via `mechanicIds` in-filter; INSERT includes `shop_id: user?.shop_id || null`; `day_of_week` stored as INTEGER (`daysOfWeek.indexOf(...)`) — page previously inserted day-name strings (latent bug, DB column is int 0-6); type widened to `number | string`; display maps int→name
-4. **BookAppointmentModal slot computation** — added `mechanicAvailability` state + `fetchMechanicAvailability()` (`.eq("mechanic_id",...).eq("day_of_week", dayIdx)` with `dayIdx=(getDay()+6)%7`); `isSlotAvailable()` = time within schedule bounds, no schedule → open; grid uses `isBooked = bookedSlots.includes(time) || !isSlotAvailable(time)`
-5. **UpdatePartsPage scoping** — CONFIRMED already scoped (Today's Sales `.eq("shop_id",...)` at `:96`); no fix needed
-6. **Shop detail page** — created `src/pages/ShopDetailPage.tsx` (shop info + services + mechanics + products, all shop-scoped); added `getShopById` to `shopService.ts`; wired "View shop" via `onViewShop` prop through `ShopCard → ShopGallery → MotolinkLanding`; App.tsx uses `viewingShopId` overlay state in BOTH unauthenticated + authenticated landing branches (no roleAccess change needed)
-7. **Appointment status alignment (latent DB bug)** — DB CHECK allows only `pending,confirmed,in_progress,completed,cancelled`; app used `ready_for_finalization` (would VIOLATE constraint). Replaced `ready_for_finalization` → `in_progress` in `types/index.ts`, `AppointmentCalendarPage.tsx`, `MechanicDashboard.tsx`, `SENDGRID_SETUP.md`. Live `appointments`/`job_orders` tables confirmed empty via REST
-8. **Job order handoff** — created `src/services/jobOrderService.ts` (ensure/get/logLabor/addPartUsed/completeJobOrder/getJobOrderById) + `src/components/JobOrderModal.tsx` (labor hours/rate logging + parts used picker, no stock deduction). `AppointmentCalendarPage`: auto-creates job order when status → `confirmed`/`in_progress`; completes job order at owner finalize; "Job Order" button on owner cards
-9. **Invoice generation** — created `src/services/invoiceService.ts` (createInvoiceForJobOrder idempotent per job_order_id, getInvoicesForCustomer, markInvoicePaid). Wired into finalize path in `AppointmentCalendarPage`. Customer view already exists in `ServiceHistoryModal.tsx` (line ~398). NOTE: `invoices` DB table has NO tax/subtotal/due_date/issued_date columns — TS `Invoice` type is aspirational; inserts use DB columns only
-10. **Low-stock list** — FIXED bug in `inventoryService.getLowStockParts` (was `.lte('quantity_in_stock','reorder_level')` comparing to STRING literal — PostgREST can't do column-to-column; now fetch-then-filter client-side). Built `src/pages/LowStockPage.tsx` (restock action via `updatePartStock`); registered as `low-stock` AppPage for owner+admin; added to `roleAccess.ts`, `App.tsx` (admin layout + main layout), admin sidebar, SystemNavbar
-11. **Reservation flow** — created `src/services/reservationService.ts` (create/getMy/getShop/updateStatus/fulfillReservation-deducts-stock). `BrowsePartsPage`: customer "Reserve Part" button + qty stepper in detail modal + "My Reservations" panel (statuses). `CustomersListPage`: owner/admin reservations panel with Confirm/Fulfill/Cancel actions. NOTE: `reservations` table has NO shop_id — scoping is via `parts.shop_id` join
-12. **Owner dashboard reports** — `Dashboard.tsx`: 30-day revenue trend (part_sales + completed job_orders daily, Recharts BarChart) + per-mechanic productivity (completed job orders grouped, name lookup via users join)
-13. **Build verification** — `npm run build` passes (tsc + vite, 2812 modules)
-14. **TS JobOrder type** — added `total_cost?`, widened status union to match DB (`pending`/`billed`)
+1. **BookAppointmentModal default-shop-id fix** â€” removed `shopIdToUse = "default-shop-id"` fallback; now `setErrorMsg` + block when no valid shop_id; reset `mechanicAvailability` on close; availability shown when schedule exists OR bookings exist
+2. **demoShops deletion** â€” deleted `src/data/demoShops.ts`, `jbms.png`, `pworks.jpg`, `kec.jpg`; KEPT `Motolink.svg` (used by Footer/Navbar/LoginChoice); fixed stale comment in `ShopMap.tsx:57`
+3. **AdminMechanicAvailability fixes** â€” availability SELECT scoped via `mechanicIds` in-filter; INSERT includes `shop_id: user?.shop_id || null`; `day_of_week` stored as INTEGER (`daysOfWeek.indexOf(...)`) â€” page previously inserted day-name strings (latent bug, DB column is int 0-6); type widened to `number | string`; display maps intâ†’name
+4. **BookAppointmentModal slot computation** â€” added `mechanicAvailability` state + `fetchMechanicAvailability()` (`.eq("mechanic_id",...).eq("day_of_week", dayIdx)` with `dayIdx=(getDay()+6)%7`); `isSlotAvailable()` = time within schedule bounds, no schedule â†’ open; grid uses `isBooked = bookedSlots.includes(time) || !isSlotAvailable(time)`
+5. **UpdatePartsPage scoping** â€” CONFIRMED already scoped (Today's Sales `.eq("shop_id",...)` at `:96`); no fix needed
+6. **Shop detail page** â€” created `src/pages/ShopDetailPage.tsx` (shop info + services + mechanics + products, all shop-scoped); added `getShopById` to `shopService.ts`; wired "View shop" via `onViewShop` prop through `ShopCard â†’ ShopGallery â†’ MotolinkLanding`; App.tsx uses `viewingShopId` overlay state in BOTH unauthenticated + authenticated landing branches (no roleAccess change needed)
+7. **Appointment status alignment (latent DB bug)** â€” DB CHECK allows only `pending,confirmed,in_progress,completed,cancelled`; app used `ready_for_finalization` (would VIOLATE constraint). Replaced `ready_for_finalization` â†’ `in_progress` in `types/index.ts`, `AppointmentCalendarPage.tsx`, `MechanicDashboard.tsx`, `SENDGRID_SETUP.md`. Live `appointments`/`job_orders` tables confirmed empty via REST
+8. **Job order handoff** â€” created `src/services/jobOrderService.ts` (ensure/get/logLabor/addPartUsed/completeJobOrder/getJobOrderById) + `src/components/JobOrderModal.tsx` (labor hours/rate logging + parts used picker, no stock deduction). `AppointmentCalendarPage`: auto-creates job order when status â†’ `confirmed`/`in_progress`; completes job order at owner finalize; "Job Order" button on owner cards
+9. **Invoice generation** â€” created `src/services/invoiceService.ts` (createInvoiceForJobOrder idempotent per job_order_id, getInvoicesForCustomer, markInvoicePaid). Wired into finalize path in `AppointmentCalendarPage`. Customer view already exists in `ServiceHistoryModal.tsx` (line ~398). NOTE: `invoices` DB table has NO tax/subtotal/due_date/issued_date columns â€” TS `Invoice` type is aspirational; inserts use DB columns only
+10. **Low-stock list** â€” FIXED bug in `inventoryService.getLowStockParts` (was `.lte('quantity_in_stock','reorder_level')` comparing to STRING literal â€” PostgREST can't do column-to-column; now fetch-then-filter client-side). Built `src/pages/LowStockPage.tsx` (restock action via `updatePartStock`); registered as `low-stock` AppPage for owner+admin; added to `roleAccess.ts`, `App.tsx` (admin layout + main layout), admin sidebar, SystemNavbar
+11. **Reservation flow** â€” created `src/services/reservationService.ts` (create/getMy/getShop/updateStatus/fulfillReservation-deducts-stock). `BrowsePartsPage`: customer "Reserve Part" button + qty stepper in detail modal + "My Reservations" panel (statuses). `CustomersListPage`: owner/admin reservations panel with Confirm/Fulfill/Cancel actions. NOTE: `reservations` table has NO shop_id â€” scoping is via `parts.shop_id` join
+12. **Owner dashboard reports** â€” `Dashboard.tsx`: 30-day revenue trend (part_sales + completed job_orders daily, Recharts BarChart) + per-mechanic productivity (completed job orders grouped, name lookup via users join)
+13. **Build verification** â€” `npm run build` passes (tsc + vite, 2812 modules)
+14. **TS JobOrder type** â€” added `total_cost?`, widened status union to match DB (`pending`/`billed`)
 
 ### TASK: Split Owner/Admin login into two portals (A-E)
 - **AUDIT:** `OwnerLoginPage.tsx` accepted both `owner` + `admin` (line 136) yet was admin-styled (adminIcon, "Admin Login Failed", red theme); `LoginChoicePage.tsx` had one combined "Owner/Admin" tile; no separate admin page existed
-- **B: `src/pages/ShopOwnerLoginPage.tsx`** — byte-for-byte copy of the old page's auth + signup/shop-creation logic; re-branded: lucide `Store` icon (replaces adminIcon), violet theme, "Shop Owner Login Failed"; role check now ONLY accepts `owner`; admin gets "Wrong Portal → use the Admin Portal" message
-- **C: `src/pages/AdminLoginPage.tsx`** — login-only (NO signup), red admin branding (adminIcon, "Admin Login Failed"); role check only accepts `admin`; owner rejected with "use the Shop Owner Portal" message
-- **D: Wiring** — `LoginChoicePage.tsx`: single tile split into "Shop Owner" (Store icon, violet) + "Platform Admin" (ShieldCheck icon, red); grid `md:grid-cols-3` → `md:grid-cols-2`; new `onChooseAdmin` prop. `App.tsx`: `LoginType` union gained `"admin"`; `onChooseAdmin` → `setCurrentLoginType("admin")`; admin branch renders `AdminLoginPage`; else-branch renders `ShopOwnerLoginPage`
-- **E: Cleanup** — grep confirmed no `src` imports of the old page (only its own decl + historical docs); DELETED `src/pages/OwnerLoginPage.tsx`
+- **B: `src/pages/ShopOwnerLoginPage.tsx`** â€” byte-for-byte copy of the old page's auth + signup/shop-creation logic; re-branded: lucide `Store` icon (replaces adminIcon), violet theme, "Shop Owner Login Failed"; role check now ONLY accepts `owner`; admin gets "Wrong Portal â†’ use the Admin Portal" message
+- **C: `src/pages/AdminLoginPage.tsx`** â€” login-only (NO signup), red admin branding (adminIcon, "Admin Login Failed"); role check only accepts `admin`; owner rejected with "use the Shop Owner Portal" message
+- **D: Wiring** â€” `LoginChoicePage.tsx`: single tile split into "Shop Owner" (Store icon, violet) + "Platform Admin" (ShieldCheck icon, red); grid `md:grid-cols-3` â†’ `md:grid-cols-2`; new `onChooseAdmin` prop. `App.tsx`: `LoginType` union gained `"admin"`; `onChooseAdmin` â†’ `setCurrentLoginType("admin")`; admin branch renders `AdminLoginPage`; else-branch renders `ShopOwnerLoginPage`
+- **E: Cleanup** â€” grep confirmed no `src` imports of the old page (only its own decl + historical docs); DELETED `src/pages/OwnerLoginPage.tsx`
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes (2813 modules)
 - NOTE: docs (`audit.md`, `Info for DFD lvl 1.md`, `MotoLink DFD Level 1 (Simplified).md`) still reference `OwnerLoginPage.tsx` as historical file paths
 
-### TASK: Redesign LoginChoicePage — tiers, neutral cards, Register shop action
-- `LoginChoicePage.tsx` rewritten: two labeled tiers ("Public access" → Customer/Mechanic; "Business and admin — verified access" → Shop Owner/Platform Admin); all four cards now ONE neutral style (`bg-slate-50`, `border-slate-200`, slate-600 icons) — per-role accent colors (green/blue/purple/red) removed
+### TASK: Redesign LoginChoicePage â€” tiers, neutral cards, Register shop action
+- `LoginChoicePage.tsx` rewritten: two labeled tiers ("Public access" â†’ Customer/Mechanic; "Business and admin â€” verified access" â†’ Shop Owner/Platform Admin); all four cards now ONE neutral style (`bg-slate-50`, `border-slate-200`, slate-600 icons) â€” per-role accent colors (green/blue/purple/red) removed
 - Lock badges only on business tier: "Secured" (Shop Owner) + "Restricted" (Platform Admin), 11px, top-right
-- Shop Owner card is now a `motion.div` with two visible buttons: "Log in" (→ login) and "Register shop" (→ signup mode); the other 3 cards stay whole-card `<button>`s
-- `ShopOwnerLoginPage.tsx`: new `initialIsSignup?: boolean` prop seeds `useState(initialIsSignup)` — no auth logic changed
-- `App.tsx`: `LoginType` union gained `"owner-signup"`; `onChooseRegister` → `setCurrentLoginType("owner-signup")`; new branch renders `ShopOwnerLoginPage` with `initialIsSignup={true}` (mirrors existing `customer-signup` pattern)
-- `DatabaseStatus.tsx`: status dot is now a white pill (`bg-white/90`, border, rounded-full) with an adjacent text label — "System online" / "Checking connection…" / "Connection error" (dot rendered on all 4 App layouts)
+- Shop Owner card is now a `motion.div` with two visible buttons: "Log in" (â†’ login) and "Register shop" (â†’ signup mode); the other 3 cards stay whole-card `<button>`s
+- `ShopOwnerLoginPage.tsx`: new `initialIsSignup?: boolean` prop seeds `useState(initialIsSignup)` â€” no auth logic changed
+- `App.tsx`: `LoginType` union gained `"owner-signup"`; `onChooseRegister` â†’ `setCurrentLoginType("owner-signup")`; new branch renders `ShopOwnerLoginPage` with `initialIsSignup={true}` (mirrors existing `customer-signup` pattern)
+- `DatabaseStatus.tsx`: status dot is now a white pill (`bg-white/90`, border, rounded-full) with an adjacent text label â€” "System online" / "Checking connectionâ€¦" / "Connection error" (dot rendered on all 4 App layouts)
 - `npx tsc --noEmit` clean + `npm run build` passes
 
 ### TASK: Flat neutral redesign of all auth screens
-- Audit: only 4 files need restyling — `LoginPage.tsx` (customer), `MechanicLoginPage.tsx`, `ShopOwnerLoginPage.tsx`, `AdminLoginPage.tsx`. NO auth modals exist (glob found none). `LoginChoicePage.tsx` already neutral → excluded
-- Design applied to all 4: white flat bg (already done), removed decorative blur blobs, dark gradient card → `bg-white border-slate-200 shadow-sm` (removed inline `linear-gradient`/`backdropFilter` + inner glow divs), icon tile → `bg-slate-100` with muted PNG icon (`brightness-0 opacity-60`) or `text-slate-500` lucide, headline `text-slate-900` sentence-case, inputs → light (`bg-white border-slate-300`, muted `text-slate-400` icons), primary buttons → solid `bg-slate-900 hover:bg-slate-800` (no gradient), toggle links/divider slate-toned
-- Content/copy preserved EXCEPT `"Open Your Shop"` → `"Open your shop"` (sentence case)
-- Status-pill collision fix: Home button moved `top-6 right-6` → `bottom-6 right-6` on all 4 login pages so it no longer overlaps the `DatabaseStatus` pill (top-right)
+- Audit: only 4 files need restyling â€” `LoginPage.tsx` (customer), `MechanicLoginPage.tsx`, `ShopOwnerLoginPage.tsx`, `AdminLoginPage.tsx`. NO auth modals exist (glob found none). `LoginChoicePage.tsx` already neutral â†’ excluded
+- Design applied to all 4: white flat bg (already done), removed decorative blur blobs, dark gradient card â†’ `bg-white border-slate-200 shadow-sm` (removed inline `linear-gradient`/`backdropFilter` + inner glow divs), icon tile â†’ `bg-slate-100` with muted PNG icon (`brightness-0 opacity-60`) or `text-slate-500` lucide, headline `text-slate-900` sentence-case, inputs â†’ light (`bg-white border-slate-300`, muted `text-slate-400` icons), primary buttons â†’ solid `bg-slate-900 hover:bg-slate-800` (no gradient), toggle links/divider slate-toned
+- Content/copy preserved EXCEPT `"Open Your Shop"` â†’ `"Open your shop"` (sentence case)
+- Status-pill collision fix: Home button moved `top-6 right-6` â†’ `bottom-6 right-6` on all 4 login pages so it no longer overlaps the `DatabaseStatus` pill (top-right)
 - LoginPage make/model suggestion dropdowns restyled light (`bg-white`, `hover:bg-slate-50`)
 - Final grep: no gradients / no all-caps headlines in any login page (only intentional `uppercase` tier labels in LoginChoicePage); `tsc --noEmit` clean + `npm run build` passes (2813 modules)
 
 ### TASK: Fix 401 on shop registration
 - **Root cause (3 parts):**
-  1. **RLS:** live `shops` table had only "Anyone can browse active shops" (SELECT) + admin policies — NO INSERT policy → PostgREST 401 on `.insert().select("id")`
-  2. **Email confirmation:** project has "Confirm email" ENABLED (verified — signup hits `over_email_send_rate_limit` trying to send confirmation). `signUp()` returns NO session → profile/shop inserts run as anon → 401. App code (AuthContext + ShopOwnerLoginPage) signs in immediately after signup → designed for autoconfirm
+  1. **RLS:** live `shops` table had only "Anyone can browse active shops" (SELECT) + admin policies â€” NO INSERT policy â†’ PostgREST 401 on `.insert().select("id")`
+  2. **Email confirmation:** project has "Confirm email" ENABLED (verified â€” signup hits `over_email_send_rate_limit` trying to send confirmation). `signUp()` returns NO session â†’ profile/shop inserts run as anon â†’ 401. App code (AuthContext + ShopOwnerLoginPage) signs in immediately after signup â†’ designed for autoconfirm
   3. **Schema:** live `shops` requires `slug`, `latitude`, `longitude` NOT NULL; signup insert provided none (would 400 after RLS passes). `slug` only used for display in AdminPlatformDashboard (`s.slug`), not routing
 - **Client fix (`ShopOwnerLoginPage.tsx`):** generates `slug` (slugify shop name + 5-char random suffix); `address`/`city` fall back to `""` (NOT NULL, form marks them optional); clear error if `authData.session` is null ("confirm your email then sign in") instead of cryptic 401
 - **SQL migration `supabase/migrations/20260731_owner_signup_rls_and_nullable_coords.sql`:** lat/lng DROP NOT NULL; INSERT policies for `shops` (`WITH CHECK owner_id = auth.uid()`), `users` (`auth.uid() = id`), `vehicles` (`customer_id = auth.uid()`); owner SELECT own shop
-- **`schema.sql` updated** — lat/lng now nullable (matches migration)
-- **USER MUST DO (not doable via API):** (1) run the migration in Supabase SQL Editor; (2) disable "Confirm email" in Dashboard → Authentication → Email (autoconfirm)
-- Customer signup has the same latent anon-insert issue (AuthContext.signup) — fixed by same RLS + autoconfirm changes
+- **`schema.sql` updated** â€” lat/lng now nullable (matches migration)
+- **USER MUST DO (not doable via API):** (1) run the migration in Supabase SQL Editor; (2) disable "Confirm email" in Dashboard â†’ Authentication â†’ Email (autoconfirm)
+- Customer signup has the same latent anon-insert issue (AuthContext.signup) â€” fixed by same RLS + autoconfirm changes
 - `tsc --noEmit` clean
 
 ### TASK: Owner portal scoping + shop profile editor
-- **BUG FOUND:** owner tools rendered EMPTY in main App layout — `isAdminLayout` only matched `admin` role, and the fallback layout only rendered `dashboard`/`mechanic-portal`/`mechanic-dashboard`/`browse-parts`/`low-stock`. So owner navigation to Inventory/Appointments/Customers/Services/Mechanic Availability/Settings showed a blank `<main>`
+- **BUG FOUND:** owner tools rendered EMPTY in main App layout â€” `isAdminLayout` only matched `admin` role, and the fallback layout only rendered `dashboard`/`mechanic-portal`/`mechanic-dashboard`/`browse-parts`/`low-stock`. So owner navigation to Inventory/Appointments/Customers/Services/Mechanic Availability/Settings showed a blank `<main>`
 - **FIX (`App.tsx`):** added render cases for `inventory`, `update-parts`, `appointments`, `customers`, `services`, `mechanic-availability`, `settings`, `shop-settings` in the main (non-admin) layout so owners get them via `SystemNavbar`; admins still short-circuit through `AdminPlatformDashboard`
 - **`roleAccess.ts`:** new AppPage `"shop-settings"` added to `owner` only
 - **`SystemNavbar.tsx`:** new "Shop Profile" menu item (`Store` icon) for owner
-- **`shopService.ts`:** added `updateShop(shopId, updates)` — writes name/slug/logo_url/description/address/city/lat/lng/phone/email/specialties/operating_hours/is_active, returns refreshed Shop
-- **`src/pages/ShopSettingsPage.tsx` (NEW):** owner-only page loading their shop via `getShopById(user.shop_id)`; form for identity, location/contact, specialties (comma list → text[]), operating hours, plus "Public listing" toggle (`is_active`); saves via `updateShop`; shows "No shop linked" state when `user.shop_id` is missing. Changes feed `getPublicShops` → landing + `getShopById` → ShopDetailPage
-- **`SettingsPage.tsx`:** added "Shop Profile" card (owner only) → navigates to `shop-settings`
-- **`AdminServicesPage.tsx` shop-scoping (confirmed live DB gap):** REST-verified `services_pricing` HAS `shop_id` (migration applied live). fetch → `.eq("shop_id", user.shop_id)` for owners (admin stays global); upsert now includes `shop_id` for owners and OMITS the client-generated `service_${Date.now()}` id on new rows (was a latent UUID violation — id column is UUID, string id would 400); delete scoped by shop_id for owners
+- **`shopService.ts`:** added `updateShop(shopId, updates)` â€” writes name/slug/logo_url/description/address/city/lat/lng/phone/email/specialties/operating_hours/is_active, returns refreshed Shop
+- **`src/pages/ShopSettingsPage.tsx` (NEW):** owner-only page loading their shop via `getShopById(user.shop_id)`; form for identity, location/contact, specialties (comma list â†’ text[]), operating hours, plus "Public listing" toggle (`is_active`); saves via `updateShop`; shows "No shop linked" state when `user.shop_id` is missing. Changes feed `getPublicShops` â†’ landing + `getShopById` â†’ ShopDetailPage
+- **`SettingsPage.tsx`:** added "Shop Profile" card (owner only) â†’ navigates to `shop-settings`
+- **`AdminServicesPage.tsx` shop-scoping (confirmed live DB gap):** REST-verified `services_pricing` HAS `shop_id` (migration applied live). fetch â†’ `.eq("shop_id", user.shop_id)` for owners (admin stays global); upsert now includes `shop_id` for owners and OMITS the client-generated `service_${Date.now()}` id on new rows (was a latent UUID violation â€” id column is UUID, string id would 400); delete scoped by shop_id for owners
 - **`supabase/schema.sql`:** synced `services_pricing` + `mechanic_availability` to include nullable `shop_id` + indexes (were missing despite live DB + migration having them)
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes (2814 modules)
 
 ### TASK: Role-gated signup, owner dashboard shell, live shop info, post-registration redirect
-- **Root cause of "owner registered as customer":** auth-race. On `signUp()` (autoconfirm), the `onAuthStateChange` listener fires `setUserProfileFromSession` which, when `public.users` row not found yet (PGRST116), auto-inserted a **`customer`** profile. The signup handler then tried `.insert()` of the owner profile → duplicate-key failure OR (if the handler won) still raced. Net effect: shop owner account had role `customer` and/or registration failed
-- **Fix (`AuthContext.tsx` + `ShopOwnerLoginPage.tsx`):** listener auto-create now uses `upsert(..., { onConflict: "id", ignoreDuplicates: true })` (never clobbers); `AuthContext.signup` customer profile uses `upsert({ onConflict: "id" })`; owner signup profile uses `upsert({ onConflict: "id" })` (merge → forces `role: "owner"` + `shop_id`) PLUS a corrective `update({ role: "owner", shop_id })` after shop insert. Owner role is now deterministic
-- **Role labels:** `getRoleLabel()` added to `roleAccess.ts` (owner → "Shop Owner", admin → "Platform Admin"); `SystemNavbar` + owner shell header display the label instead of raw role. Internal role value stays `owner` (DB/RLS/checks depend on it — NOT renamed to "Shop_Owner")
-- **Post-registration/login redirect (`App.tsx`):** `handleLoginSuccess` is now role-aware — owner → `dashboard`, mechanic → `mechanic-dashboard`, customer → `landing` (previously everyone → landing + effect redirect)
-- **`src/pages/OwnerPlatformDashboard.tsx` (NEW):** sidebar dashboard shell mirroring `AdminPlatformDashboard` (collapsible sidebar + mobile overlay + sticky header), violet accent ("MOTO SHOP"); owner nav: Dashboard, Shop Profile, Inventory, Update Parts, Appointments, Customers, Services, Manage Mechanics, Low Stock, Settings; embeds the existing `Dashboard` component on the dashboard page; access-guard `role !== "owner"` → Access Denied
-- **Live shop info:** owner dashboard shows a "Live Shop Info" card fetching the shop via `getShopById(user.shop_id)` — same source the landing page uses — with logo/name/address/active pill/specialties/description, "Edit Shop Info" button → `shop-settings`; subscribes to a realtime channel on `shops` filtered by the owner's shop_id so edits reflect instantly
+- **Root cause of "owner registered as customer":** auth-race. On `signUp()` (autoconfirm), the `onAuthStateChange` listener fires `setUserProfileFromSession` which, when `public.users` row not found yet (PGRST116), auto-inserted a **`customer`** profile. The signup handler then tried `.insert()` of the owner profile â†’ duplicate-key failure OR (if the handler won) still raced. Net effect: shop owner account had role `customer` and/or registration failed
+- **Fix (`AuthContext.tsx` + `ShopOwnerLoginPage.tsx`):** listener auto-create now uses `upsert(..., { onConflict: "id", ignoreDuplicates: true })` (never clobbers); `AuthContext.signup` customer profile uses `upsert({ onConflict: "id" })`; owner signup profile uses `upsert({ onConflict: "id" })` (merge â†’ forces `role: "owner"` + `shop_id`) PLUS a corrective `update({ role: "owner", shop_id })` after shop insert. Owner role is now deterministic
+- **Role labels:** `getRoleLabel()` added to `roleAccess.ts` (owner â†’ "Shop Owner", admin â†’ "Platform Admin"); `SystemNavbar` + owner shell header display the label instead of raw role. Internal role value stays `owner` (DB/RLS/checks depend on it â€” NOT renamed to "Shop_Owner")
+- **Post-registration/login redirect (`App.tsx`):** `handleLoginSuccess` is now role-aware â€” owner â†’ `dashboard`, mechanic â†’ `mechanic-dashboard`, customer â†’ `landing` (previously everyone â†’ landing + effect redirect)
+- **`src/pages/OwnerPlatformDashboard.tsx` (NEW):** sidebar dashboard shell mirroring `AdminPlatformDashboard` (collapsible sidebar + mobile overlay + sticky header), violet accent ("MOTO SHOP"); owner nav: Dashboard, Shop Profile, Inventory, Update Parts, Appointments, Customers, Services, Manage Mechanics, Low Stock, Settings; embeds the existing `Dashboard` component on the dashboard page; access-guard `role !== "owner"` â†’ Access Denied
+- **Live shop info:** owner dashboard shows a "Live Shop Info" card fetching the shop via `getShopById(user.shop_id)` â€” same source the landing page uses â€” with logo/name/address/active pill/specialties/description, "Edit Shop Info" button â†’ `shop-settings`; subscribes to a realtime channel on `shops` filtered by the owner's shop_id so edits reflect instantly
 - **`App.tsx` wiring:** `ownerLayoutPages` list + `isOwnerLayout` block renders `OwnerPlatformDashboard` wrapping all 9 owner pages (dashboard embedded); AccessDenied path for owners now renders inside the owner shell; owners no longer use `SystemNavbar`
 - **Light-theme consistency:** `ShopSettingsPage.tsx` + `SettingsPage.tsx` restyled from dark (`#0f0f0f`) to light (`#f5f5f5` bg, white cards, violet accents) to match the owner shell (other embedded pages already light: Inventory/Dashboard/AdminServices/AdminMechanicAvailability)
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes (2814 modules)
 
 ### TASK: Fix 406 on shop registration + owner-becomes-customer (auth-race round 2)
-- **Live DB diagnostics (REST, anon + fresh auth token):** `users` insert → 201, `shops` insert (name/slug/description/address/city/phone/email/owner_id/is_active) → 201, `users` upsert `role:"owner"` on_conflict=id → 200 with `role:"owner"`. **The 20260731 migration IS applied live; RLS INSERT policies + autoconfirm all work** — the server side was never the problem this time
-- **Real root cause (client race):** the `onAuthStateChange` listener fires `setUserProfileFromSession` during `signUp` → auto-creates a `customer` profile. That auto-create used `upsert(..., { ignoreDuplicates: true }).select().single()` → **406 when the ignored insert returns 0 rows**. The stale `customer` user object from the same race then drove the redirect/Wrong Portal/UI role → owner appeared as customer
+- **Live DB diagnostics (REST, anon + fresh auth token):** `users` insert â†’ 201, `shops` insert (name/slug/description/address/city/phone/email/owner_id/is_active) â†’ 201, `users` upsert `role:"owner"` on_conflict=id â†’ 200 with `role:"owner"`. **The 20260731 migration IS applied live; RLS INSERT policies + autoconfirm all work** â€” the server side was never the problem this time
+- **Real root cause (client race):** the `onAuthStateChange` listener fires `setUserProfileFromSession` during `signUp` â†’ auto-creates a `customer` profile. That auto-create used `upsert(..., { ignoreDuplicates: true }).select().single()` â†’ **406 when the ignored insert returns 0 rows**. The stale `customer` user object from the same race then drove the redirect/Wrong Portal/UI role â†’ owner appeared as customer
 - **Fix (`AuthContext.tsx`):** `setUserProfileFromSession` now uses `.select().maybeSingle()` (returns `null` instead of throwing 406 when ignoreDuplicates skips) and returns `Promise<User | null>`; `login()` now `await`s `setUserProfileFromSession(...)` so `user` reflects the real DB role when login resolves; `refreshUser()` returns the fresh profile
-- **Fix (`ShopOwnerLoginPage.tsx`):** both login and signup paths `await refreshUser()` + reset `roleCheckedRef` before judging the portal; the role-check effect does a ONE-TIME re-fetch before showing "Wrong Portal" (previously it could sign out a valid owner whose role was merely stale); `shops` insert changed `.select("id").single()` → `.maybeSingle()` (no 406 on skipped insert) with an explicit "RLS INSERT policy missing" error message
-- **Remaining `.single()` calls** (getById fetches in customer/inventory/jobOrder/invoice/reservation/shop/product services) are legit — row expected to exist
+- **Fix (`ShopOwnerLoginPage.tsx`):** both login and signup paths `await refreshUser()` + reset `roleCheckedRef` before judging the portal; the role-check effect does a ONE-TIME re-fetch before showing "Wrong Portal" (previously it could sign out a valid owner whose role was merely stale); `shops` insert changed `.select("id").single()` â†’ `.maybeSingle()` (no 406 on skipped insert) with an explicit "RLS INSERT policy missing" error message
+- **Remaining `.single()` calls** (getById fetches in customer/inventory/jobOrder/invoice/reservation/shop/product services) are legit â€” row expected to exist
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes (2814 modules)
-- **STILL NEEDS MANUAL BROWSER TEST:** register a new shop → expect role `owner` + straight to the owner dashboard, no 406 in console
+- **STILL NEEDS MANUAL BROWSER TEST:** register a new shop â†’ expect role `owner` + straight to the owner dashboard, no 406 in console
 
-### TASK: THE REAL BUG — FK race on shop registration (owner still ends up customer)- **User reported registration still fails with an error and accounts end up `customer`.** DB query showed both real attempts (`beloy123@gmail.com`, `jbmshop@gmail.com`) had `role=customer` AND `shop_id` empty; the `shops` table had NO shop owned by either → the shop INSERT itself was failing
-- **Reproduced via REST with a fresh signup token:** shop insert → **409 `23503` "Key is not present in table users" (shops_owner_id_fkey)**. The app created the SHOP BEFORE the `users` row existed. `shops.owner_id → users(id)` is a hard FK; the signup handler only upserted the owner profile AFTER the shop insert, and the auth listener's async profile-create usually loses that race → shop insert 409 → "Registration failed" → account left as `customer`
-- **Why my earlier isolated test passed:** the diagnostic happened to insert the `users` row FIRST, then shop → 201. It never reproduced the app's real interleaving
-- **Fix (`ShopOwnerLoginPage.tsx` handleSignup — REORDERED):** (1) signUp → (2) `users` upsert `role:"owner"` WITHOUT `shop_id` (omitted because `users.shop_id → shops.id` must exist first) → (3) `shops` insert (FK now resolves) → (4) `users` update `{ role: "owner", shop_id: shop.id }` → (5) `login()` + `refreshUser()`
-- **Proven end-to-end via REST** (fresh account, exact app order incl. `Prefer: return=representation`): users upsert OK → shop insert OK (got id) → update shop_id OK → FINAL `role=owner` + shop linked
+### TASK: THE REAL BUG â€” FK race on shop registration (owner still ends up customer)- **User reported registration still fails with an error and accounts end up `customer`.** DB query showed both real attempts (`beloy123@gmail.com`, `jbmshop@gmail.com`) had `role=customer` AND `shop_id` empty; the `shops` table had NO shop owned by either â†’ the shop INSERT itself was failing
+- **Reproduced via REST with a fresh signup token:** shop insert â†’ **409 `23503` "Key is not present in table users" (shops_owner_id_fkey)**. The app created the SHOP BEFORE the `users` row existed. `shops.owner_id â†’ users(id)` is a hard FK; the signup handler only upserted the owner profile AFTER the shop insert, and the auth listener's async profile-create usually loses that race â†’ shop insert 409 â†’ "Registration failed" â†’ account left as `customer`
+- **Why my earlier isolated test passed:** the diagnostic happened to insert the `users` row FIRST, then shop â†’ 201. It never reproduced the app's real interleaving
+- **Fix (`ShopOwnerLoginPage.tsx` handleSignup â€” REORDERED):** (1) signUp â†’ (2) `users` upsert `role:"owner"` WITHOUT `shop_id` (omitted because `users.shop_id â†’ shops.id` must exist first) â†’ (3) `shops` insert (FK now resolves) â†’ (4) `users` update `{ role: "owner", shop_id: shop.id }` â†’ (5) `login()` + `refreshUser()`
+- **Proven end-to-end via REST** (fresh account, exact app order incl. `Prefer: return=representation`): users upsert OK â†’ shop insert OK (got id) â†’ update shop_id OK â†’ FINAL `role=owner` + shop linked
 - **Test accounts created (owners with live shops):** `diag-register-7624@test.local` / `DiagOwner123!` (Diag Test Shop); `repro-1059798197@test.local` / `ReproTest123!` (Repro Shop); `e2e-1984807849@test.local` / `E2eTest123!` (E2E Shop). The diag account's password was reset + shop linked via service role (it previously had `role=owner` but `shop_id` null)
-- **Existing broken registrations:** `beloy123@gmail.com` + `jbmshop@gmail.com` are stuck as `customer` — fix via `UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>'` (or re-register)
+- **Existing broken registrations:** `beloy123@gmail.com` + `jbmshop@gmail.com` are stuck as `customer` â€” fix via `UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>'` (or re-register)
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes
-- **STILL NEEDS MANUAL BROWSER TEST:** register a new shop → expect role `owner` + straight to the owner dashboard
+- **STILL NEEDS MANUAL BROWSER TEST:** register a new shop â†’ expect role `owner` + straight to the owner dashboard
 
 ### TASK: Per-shop data isolation audit + owner_data_isolation migration
 - **Audit result:** owner dashboard client queries were ALREADY scoped by `.eq("shop_id", user.shop_id)` in Dashboard/UpdateParts/Inventory/LowStock/AdminServices/AdminProducts/AppointmentCalendar/CustomersList/AdminMechanicAvailability. Most tables already have owner RLS policies (`shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid())`).
 - **2 real DB-layer leaks found (why owners didn't get truly separate data):**
-  1. **`services_pricing` had NO owner RLS policy** — only "Anyone can view active services" + admin manage. Owner add/edit/delete of their shop's services was blocked at the DB level (the app scoped client-side but RLS rejected writes).
-  2. **`reservations` had NO `shop_id` column and NO owner RLS policy** — owner reads were attempted via a `parts.shop_id` join, which RLS blocked (only customer + admin policies existed). Owners literally couldn't see/act on their shop's reservations.
-- **Fix — `supabase/migrations/20260731_owner_data_isolation.sql`:** adds `reservations.shop_id` (FK → shops, ON DELETE CASCADE) + backfills from `parts.shop_id`; owner SELECT + UPDATE policies on `reservations`; owner FOR ALL policy on `services_pricing`; keeps customer INSERT policy on reservations.
-- **Code changes:** `reservationService.ts` — `Reservation` gains `shop_id`; `createReservation(..., shopId?)` stores the part's shop; `getShopReservations` scopes by `reservations.shop_id` (not the join). `BrowsePartsPage.tsx` passes `selectedPart.shop_id` + local `Part` interface gains `shop_id`. `CustomersListPage.tsx` reservation spend query scopes `.eq("shop_id", user.shop_id)` instead of `.eq("parts.shop_id", ...)`.
+  1. **`services_pricing` had NO owner RLS policy** â€” only "Anyone can view active services" + admin manage. Owner add/edit/delete of their shop's services was blocked at the DB level (the app scoped client-side but RLS rejected writes).
+  2. **`reservations` had NO `shop_id` column and NO owner RLS policy** â€” owner reads were attempted via a `parts.shop_id` join, which RLS blocked (only customer + admin policies existed). Owners literally couldn't see/act on their shop's reservations.
+- **Fix â€” `supabase/migrations/20260731_owner_data_isolation.sql`:** adds `reservations.shop_id` (FK â†’ shops, ON DELETE CASCADE) + backfills from `parts.shop_id`; owner SELECT + UPDATE policies on `reservations`; owner FOR ALL policy on `services_pricing`; keeps customer INSERT policy on reservations.
+- **Code changes:** `reservationService.ts` â€” `Reservation` gains `shop_id`; `createReservation(..., shopId?)` stores the part's shop; `getShopReservations` scopes by `reservations.shop_id` (not the join). `BrowsePartsPage.tsx` passes `selectedPart.shop_id` + local `Part` interface gains `shop_id`. `CustomersListPage.tsx` reservation spend query scopes `.eq("shop_id", user.shop_id)` instead of `.eq("parts.shop_id", ...)`.
 - **`schema.sql` synced** with the new column/index + owner policies.
-- **USER MUST RUN** `20260731_owner_data_isolation.sql` in Supabase SQL Editor (direct Postgres unreachable — IPv6-only host). Verified live BEFORE migration: `reservations` columns are `id, customer_id, part_id, status, quantity, created_at, updated_at` (no shop_id yet).
+- **USER MUST RUN** `20260731_owner_data_isolation.sql` in Supabase SQL Editor (direct Postgres unreachable â€” IPv6-only host). Verified live BEFORE migration: `reservations` columns are `id, customer_id, part_id, status, quantity, created_at, updated_at` (no shop_id yet).
 - **Verify:** `npx tsc --noEmit` clean + `npm run build` passes.
 
 ### TASK: Dead-code removal sweep (full re-sweep, 8 steps)
 - **Group 3 (unused exports):** removed `vehicleService` from `customerService.ts` (whole object) + its `Vehicle` import; removed `withRetry` + `validateDatabaseConnection` from `dbHelper.ts` (kept `formatDatabaseError`, used by AuthContext) + dropped now-unused `supabase` import; removed `featuredProductService` from `productService.ts` + `FeaturedProduct` interface from `types/index.ts` (only used by dead files)
-- **Group 4 (dead whole files, 10):** deleted `AboutUs.tsx`, `FeaturedSection.tsx`, `Hero.tsx`, `Navbar.tsx`, `ServicesGrid.tsx`, `ViewPartsListModal.tsx`, `pages/AdminProductsPage.tsx` (was never wired into App.tsx/roleAccess routing), `pages/CustomerPortal.tsx` (superseded by CustomerPortalModal), `utils/vehicleCompatibility.ts`, `__tests__/notificationService.test.ts` (imported vitest which is NOT installed — couldn't run)
+- **Group 4 (dead whole files, 10):** deleted `AboutUs.tsx`, `FeaturedSection.tsx`, `Hero.tsx`, `Navbar.tsx`, `ServicesGrid.tsx`, `ViewPartsListModal.tsx`, `pages/AdminProductsPage.tsx` (was never wired into App.tsx/roleAccess routing), `pages/CustomerPortal.tsx` (superseded by CustomerPortalModal), `utils/vehicleCompatibility.ts`, `__tests__/notificationService.test.ts` (imported vitest which is NOT installed â€” couldn't run)
 - **Group 2 (orphaned assets):** deleted `pictures/icons/logo.png` (406KB) + entire `about-us-pics/` folder (6 images, only used by dead AboutUs)
-- **Group 1 (legacy branding):** replaced JSBM/MotoShop → MotoLink in `AIChatModal.tsx` (greeting), `sendgridClient.ts` (FROM_NAME), `notificationService.ts` (email HTML/plain/subject), `AdminChatbot.tsx` (prompt+title), `SystemNavbar.tsx` (alt), `Footer.tsx` (social labels), `MechanicDashboard.tsx` (header), `AddMechanicModal.tsx` (placeholder). Kept `AuthContext.tsx:259` `motoshop_appointments` localStorage cleanup (intentional legacy-key purge on logout). `JBMS`/`JBSM`/`Joeyboy` had ZERO hits in active code
-- **Group 5 (scripts):** deleted `test_orders.js` (queried dropped `orders` table), `test_query.js`, `test_query_fixed.js`, `test_reservations.js`, `test_reservations_schema.js`, `test_supabase_connection.js` (had stale anon JWT for dead project ref `qscdmsfo…`), `tmp/check_parts.js` + empty `tmp/`; removed broken `"seed": "node seed-demo.js"` script from package.json (file never existed)
-- **NOTE (process lesson):** a PowerShell bulk string-replace loop using `$pair[0]`/`$pair[1]` corrupted 7 files (PowerShell indexes strings as char arrays → replaced ALL `a`→`l` file-wide). Recovered via `git checkout` and redid edits one-by-one with the edit tool. ALWAYS do string replacements via edit tool, never `$string[i]` indexing on a string in PowerShell.
+- **Group 1 (legacy branding):** replaced JSBM/MotoShop â†’ MotoLink in `AIChatModal.tsx` (greeting), `sendgridClient.ts` (FROM_NAME), `notificationService.ts` (email HTML/plain/subject), `AdminChatbot.tsx` (prompt+title), `SystemNavbar.tsx` (alt), `Footer.tsx` (social labels), `MechanicDashboard.tsx` (header), `AddMechanicModal.tsx` (placeholder). Kept `AuthContext.tsx:259` `motoshop_appointments` localStorage cleanup (intentional legacy-key purge on logout). `JBMS`/`JBSM`/`Joeyboy` had ZERO hits in active code
+- **Group 5 (scripts):** deleted `test_orders.js` (queried dropped `orders` table), `test_query.js`, `test_query_fixed.js`, `test_reservations.js`, `test_reservations_schema.js`, `test_supabase_connection.js` (had stale anon JWT for dead project ref `qscdmsfoâ€¦`), `tmp/check_parts.js` + empty `tmp/`; removed broken `"seed": "node seed-demo.js"` script from package.json (file never existed)
+- **NOTE (process lesson):** a PowerShell bulk string-replace loop using `$pair[0]`/`$pair[1]` corrupted 7 files (PowerShell indexes strings as char arrays â†’ replaced ALL `a`â†’`l` file-wide). Recovered via `git checkout` and redid edits one-by-one with the edit tool. ALWAYS do string replacements via edit tool, never `$string[i]` indexing on a string in PowerShell.
 - **Verify:** `npm run build` passes clean (`tsc` + vite, 2815 modules, 10.3s). Zero dangling imports to any deleted file/export. No branding/corruption remnants in src.
 
 
 
 ## CURRENT STATE
 
-- **Build:** passes clean (`tsc` + `vite build`) ✅
+- **Build:** passes clean (`tsc` + `vite build`) âœ…
 - **Code:** multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built
-- **Owner portal:** owners register → `role: owner` (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 `shops_owner_id_fkey`); redirected straight to the new violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no `SystemNavbar`
+- **Owner portal:** owners register â†’ `role: owner` (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert â€” was 409 `shops_owner_id_fkey`); redirected straight to the new violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no `SystemNavbar`
 - **DB:** 20260731 migration CONFIRMED applied live (REST-verified: users/shops INSERT 201, owner-role upsert 200); RLS INSERT policies working; autoconfirm working; `services_pricing`/`mechanic_availability` confirmed to have `shop_id` live; `appointments` + `job_orders` tables confirmed empty
-- **Owner data isolation:** audit done — all owner queries scoped by `shop_id`; `20260731_owner_data_isolation.sql` (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor)
+- **Owner data isolation:** audit done â€” all owner queries scoped by `shop_id`; `20260731_owner_data_isolation.sql` (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor)
 - **Git:** not pushed since prior push = commit `75183d0`
 - **Docs:** `MEMORY.md` updated with full batch history (below)
 
@@ -272,14 +272,14 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 
 ## OPEN ITEMS / GAPS (still pending)
 
-1. **Backfill decision:** existing `services_pricing`/`mechanic_availability` rows have `shop_id = NULL` — pick option A/B/C from migration file
+1. **Backfill decision:** existing `services_pricing`/`mechanic_availability` rows have `shop_id = NULL` â€” pick option A/B/C from migration file
 2. **NOT NULL decision:** optional `ALTER TABLE ... SET NOT NULL` on the two new shop_id columns after backfill
-3. **Runtime verification:** browser testing of cross-shop isolation not yet done (CLI can't open browser) — need manual test of Owner1/Owner2/Admin/customer flows (esp. owner signup → role owner + redirect to dashboard, no 406 in console)
-4. **Reservations scoping:** `reservations` table has NO shop_id column — scoped via `parts.shop_id` join; consider a shop_id column if direct scoping needed
-5. **Seed data:** no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
-6. **~~Owner signup still needs user action~~** — 20260731 migration CONFIRMED applied live + autoconfirm working; no further user action needed
-6b. **NEW — run `supabase/migrations/20260731_owner_data_isolation.sql`** in Supabase SQL Editor (reservations.shop_id + owner RLS for reservations/services) — REQUIRED before owner reservations/services CRUD works
-7. **Existing wrong-role users:** `beloy123@gmail.com` + `jbmshop@gmail.com` were created as `customer` by the FK-race bug (no shop either) — fix in DB (`UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>'`) or re-register
+3. **Runtime verification:** browser testing of cross-shop isolation not yet done (CLI can't open browser) â€” need manual test of Owner1/Owner2/Admin/customer flows (esp. owner signup â†’ role owner + redirect to dashboard, no 406 in console)
+4. **Reservations scoping:** `reservations` table has NO shop_id column â€” scoped via `parts.shop_id` join; consider a shop_id column if direct scoping needed
+5. **Seed data:** no job_orders/part_sales yet (tables empty) â€” dashboard trend/productivity charts show empty states until real data exists
+6. **~~Owner signup still needs user action~~** â€” 20260731 migration CONFIRMED applied live + autoconfirm working; no further user action needed
+6b. **NEW â€” run `supabase/migrations/20260731_owner_data_isolation.sql`** in Supabase SQL Editor (reservations.shop_id + owner RLS for reservations/services) â€” REQUIRED before owner reservations/services CRUD works
+7. **Existing wrong-role users:** `beloy123@gmail.com` + `jbmshop@gmail.com` were created as `customer` by the FK-race bug (no shop either) â€” fix in DB (`UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>'`) or re-register
 
 ---
 
@@ -292,14 +292,14 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
   $headers = @{apikey=$anonKey; Authorization="Bearer $anonKey"}
   Invoke-RestMethod -Uri "$url/rest/v1/services_pricing?limit=1" -Headers $headers -Method Get
   ```
-  (Keys from `.env.local`; anon key and service role key differ — use the exact strings from the file)
+  (Keys from `.env.local`; anon key and service role key differ â€” use the exact strings from the file)
 
 ---
 
 ## LESSONS / CONVENTIONS
 
-- PowerShell 5.1 has NO `-SkipCertificateCheck` flag — don't use it
-- `head`/`tail`/`&&` don't work in PowerShell — use `Select-Object`/full commands
+- PowerShell 5.1 has NO `-SkipCertificateCheck` flag â€” don't use it
+- `head`/`tail`/`&&` don't work in PowerShell â€” use `Select-Object`/full commands
 - Keys in `.env.local` are the source of truth (session context copies were stale/mangled)
 - `.env.local` file has encoding issues with comments (UTF-8 comments render as `??`), but key VALUES are fine
 - Always verify live DB state via REST API (direct Postgres is unreachable)
@@ -307,6 +307,8 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - When user says "push", commit all staged changes with a descriptive message then `git pull --rebase` then push
 - Docs updates must trace to real file paths + line numbers, never guesses
 
+
+---
 
 ---
 
@@ -1235,6 +1237,739 @@ localStorage.clear()
 - Changes are purely application-level
 - ErrorBoundary shows detailed errors in dev mode only
 - Production users see user-friendly error messages
+
+
+## ===== MotoLink Architecture.md =====
+
+---
+title: MotoLink Architecture
+tags:
+  - motolink
+  - architecture
+  - database
+  - react
+  - supabase
+  - rbac
+date: 2026-08-01
+---
+
+# MotoLink Architecture
+
+> [!abstract] Overview
+> **MotoLink** is a multi-tenant auto shop management platform designed to connect vehicle owners with auto service centers. The platform supports multi-tenant data isolation, role-based access control (RBAC), real-time inventory tracking, appointment scheduling, and automated customer notifications.
+
+---
+
+## 1. System Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Client Layer ["Client Layer (React 18 + TypeScript + Vite)"]
+        UI["Tailwind CSS Slate UI"]
+        AuthContext["Auth Context (RBAC)"]
+        Landing["Public Landing & Shop Discovery"]
+        Portals["Role Portals (Customer, Mechanic, Owner, Admin)"]
+    end
+
+    subgraph Service Layer ["Service Layer"]
+        SupabaseClient["Supabase Client Helper"]
+        SendGridService["SendGrid Email Client"]
+        GeoService["Haversine Geolocation Engine"]
+        NotificationService["Notification Audit & Opt-Out Service"]
+    end
+
+    subgraph Backend Layer ["Backend Layer (Supabase PaaS)"]
+        GoTrue["Supabase Auth (GoTrue)"]
+        PostgreSQL[("PostgreSQL Database")]
+        RLS["Row Level Security Policies (shop_id scoping)"]
+    end
+
+    Client Layer --> Service Layer
+    Service Layer --> Backend Layer
+    Portals --> AuthContext
+    AuthContext --> GoTrue
+    SupabaseClient --> PostgreSQL
+    PostgreSQL --> RLS
+    NotificationService --> SendGridService
+```
+
+---
+
+## 2. Tech Stack
+
+### Technology Stack Summary
+
+- Frontend: React 18 + TypeScript + Vite
+- UI Styling: Tailwind CSS + Framer Motion + Lucide React
+- State & Auth: React Context API (`AuthContext`, `LanguageContext`, `PartsListContext`)
+- Backend & Database: Supabase Postgres + Auth + Row-Level Security (RLS)
+- AI Layer: Groq API with LLM-powered chatbot support
+- Notifications: SendGrid transactional email integration
+- Mapping & Discovery: Browser Geolocation API + Haversine distance calculation
+- Deployment: Vercel-ready frontend delivery
+
+### Stack Matrix
+
+| Layer | Technology | Key Details |
+| :--- | :--- | :--- |
+| **Frontend Framework** | **React 18 (TypeScript)** | Single-page application built with Vite bundler |
+| **Styling System** | **Tailwind CSS v3** | Design Tokens: `slate-900` primary, `slate-50` shells, `slate-200/300` borders |
+| **State & Auth** | **React Context API** | `AuthContext` (RBAC & profile hydration), `PartsListContext`, `LanguageContext` |
+| **UI Components** | **Lucide React + Framer Motion** | Iconography and smooth page/modal transition animations |
+| **Database & Auth** | **Supabase (PostgreSQL 15)** | Row-Level Security (RLS), GoTrue JWT Auth, Realtime listeners |
+| **AI Chat Service** | **Groq API** | LLM assistance for diagnostics and business context queries |
+| **Transactional Email**| **SendGrid API** | Service completion notices with fallback plain-text rendering |
+| **Location Engine** | **Browser Geolocation API** | Native coordinates paired with Haversine formula calculation |
+| **Deployment Target** | **Vercel** | Hosted frontend with Supabase backend integration |
+
+---
+
+## 3. Database Schema & Data Models
+
+> [!info] Multi-Tenant Architecture
+> Multi-tenancy is enforced at the database level using `shop_id` scoping. Shop owners and mechanics only query and mutate data attached to their assigned `shop_id`.
+
+```mermaid
+erDiagram
+    SHOPS ||--o{ USERS : employs_or_owns
+    SHOPS ||--o{ PARTS : stocks
+    SHOPS ||--o{ APPOINTMENTS : hosts
+    SHOPS ||--o{ JOB_ORDERS : executes
+    USERS ||--o{ VEHICLES : owns
+    USERS ||--o{ APPOINTMENTS : books
+    VEHICLES ||--o{ APPOINTMENTS : serviced_in
+    APPOINTMENTS ||--o| JOB_ORDERS : generates
+    JOB_ORDERS ||--o{ JOB_ORDER_PARTS : uses
+    PARTS ||--o{ JOB_ORDER_PARTS : consumed_by
+    USERS ||--o{ RESERVATIONS : places
+    PARTS ||--o{ RESERVATIONS : reserves
+```
+
+### Core Entity Schema Definitions
+
+#### `users`
+- `id` (UUID, Primary Key -> `auth.users.id`)
+- `email` (VARCHAR, Unique)
+- `name` (VARCHAR)
+- `phone` (VARCHAR, Optional)
+- `address` (TEXT, Optional)
+- `role` (ENUM: `'customer'`, `'mechanic'`, `'owner'`, `'admin'`)
+- `shop_id` (UUID, Foreign Key -> `shops.id`, Nullable for Customers/Admins)
+
+#### `shops`
+- `id` (UUID, Primary Key)
+- `name` (VARCHAR)
+- `slug` (VARCHAR, Unique)
+- `description` (TEXT)
+- `address` (TEXT)
+- `city` (VARCHAR)
+- `latitude` (FLOAT8)
+- `longitude` (FLOAT8)
+- `specialties` (TEXT[])
+- `operating_hours` (VARCHAR)
+- `is_active` (BOOLEAN)
+
+#### `vehicles`
+- `id` (UUID, Primary Key)
+- `customer_id` (UUID, Foreign Key -> `users.id`)
+- `make` (VARCHAR)
+- `model` (VARCHAR)
+- `year` (INTEGER/VARCHAR)
+
+#### `parts` (Inventory)
+- `id` (UUID, Primary Key)
+- `shop_id` (UUID, Foreign Key -> `shops.id`)
+- `name` (VARCHAR)
+- `category` (ENUM: `'brakes'`, `'tires'`, `'oils'`, `'electrical'`, `'suspension'`, `'exhaust'`, `'filters'`, `'other'`)
+- `sku` (VARCHAR)
+- `unit_price` (DECIMAL)
+- `quantity_in_stock` (INTEGER)
+- `reorder_level` (INTEGER)
+- `image_url` (TEXT)
+
+#### `appointments`
+- `id` (UUID, Primary Key)
+- `customer_id` (UUID, Foreign Key -> `users.id`)
+- `vehicle_id` (UUID, Foreign Key -> `vehicles.id`)
+- `shop_id` (UUID, Foreign Key -> `shops.id`)
+- `mechanic_id` (UUID, Foreign Key -> `users.id`, Nullable)
+- `scheduled_date` (DATE)
+- `scheduled_time` (VARCHAR)
+- `service_type` (VARCHAR)
+- `status` (ENUM: `'pending'`, `'confirmed'`, `'in_progress'`, `'completed'`, `'cancelled'`)
+- `notes` (TEXT)
+- `parts` (JSONB)
+- `total_amount` (DECIMAL)
+
+#### `job_orders`
+- `id` (UUID, Primary Key)
+- `appointment_id` (UUID, Foreign Key -> `appointments.id`)
+- `customer_id` (UUID, Foreign Key -> `users.id`)
+- `mechanic_id` (UUID, Foreign Key -> `users.id`)
+- `shop_id` (UUID, Foreign Key -> `shops.id`)
+- `vehicle_id` (UUID, Foreign Key -> `vehicles.id`)
+- `status` (ENUM: `'draft'`, `'pending'`, `'in_progress'`, `'completed'`, `'cancelled'`, `'billed'`)
+- `parts_used` (JSONB: `[{ part_id, quantity_used, unit_price }]`)
+- `labor_hours` (DECIMAL)
+- `labor_rate` (DECIMAL)
+- `total_cost` (DECIMAL)
+
+---
+
+## 4. Role-Based Access Control (RBAC) Matrix
+
+> [!key] Security Permissions
+> Managed via `AuthContext` helper functions and enforced by Supabase RLS.
+
+| Permission Helper | Customer | Mechanic | Shop Owner | Platform Admin |
+| :--- | :---: | :---: | :---: | :---: |
+| `canAccessCustomerPortal()` | ✅ | ❌ | ❌ | ❌ |
+| `canRecordServiceProgress()` | ❌ | ✅ | ✅ | ❌ |
+| `canManageInventory()` | ❌ | ❌ | ✅ | ✅ |
+| `canManageAppointments()` | ❌ | ✅ | ✅ | ✅ |
+| `canManageUsers()` | ❌ | ❌ | ✅ (Shop Scope) | ✅ (Global) |
+| `canAccessAdminDashboard()` | ❌ | ❌ | ❌ | ✅ |
+| `canViewReports()` | ❌ | ❌ | ✅ (Shop Scope) | ✅ (Global) |
+
+---
+
+## 5. Related Notes
+- [[MotoLink Logic and Algorithm]]
+- [[MotoLink System Flow]]
+
+
+## ===== MotoLink Logic and Algorithm.md =====
+
+---
+title: MotoLink Logic and Algorithm
+tags:
+  - motolink
+  - logic
+  - algorithm
+  - auth
+  - inventory
+  - appointments
+date: 2026-08-01
+---
+
+# MotoLink Logic and Algorithm
+
+> [!abstract] Purpose
+> This note captures the core decision logic, business rules, and algorithmic patterns used by MotoLink during authentication, shop discovery, appointment handling, inventory monitoring, and job-order processing.
+
+---
+
+## 1. Core Logic Model
+
+MotoLink operates as a multi-tenant service platform where every major workflow is anchored on these business rules:
+
+1. Every user belongs to exactly one role:
+   - `customer`
+   - `mechanic`
+   - `owner`
+   - `admin`
+
+2. Data access is scoped to the relevant `shop_id`.
+   - Customers only see their own records.
+   - Mechanics and owners see records tied to their assigned shop.
+   - Admins can manage the global platform view.
+
+3. Every transactional workflow is enforced first at the UI layer and second at the database layer through Supabase RLS.
+
+---
+
+## 2. Authentication and Role Resolution Logic
+
+### Authentication Flow
+
+```text
+Start
+  ↓
+User submits email + password
+  ↓
+Supabase Auth validates credentials
+  ↓
+AuthContext receives session
+  ↓
+Fetch profile from users table using auth user UUID
+  ↓
+Role is resolved from users.role
+  ↓
+Navigate to role-specific portal
+```
+
+### Role Rules
+
+- `customer` → customer portal experience
+- `mechanic` → workshop operations and assigned jobs
+- `owner` → shop-level management and inventory control
+- `admin` → platform dashboard, global oversight
+
+### Access Rule Algorithm
+
+```text
+if role == 'customer':
+  allow view own appointments, own vehicles, own service history
+else if role == 'mechanic':
+  allow manage assigned appointments and job orders
+else if role == 'owner':
+  allow manage shop, inventory, staff, bookings
+else if role == 'admin':
+  allow platform-wide analytics and user control
+```
+
+---
+
+## 3. Shop Discovery Algorithm
+
+The shop discovery experience uses browser geolocation and a distance-sorting algorithm.
+
+### Distance Calculation
+
+MotoLink applies the Haversine formula to compute the distance between the user location and each shop location.
+
+```text
+distanceKm = earthRadiusKm * 2 * atan2(
+  sqrt(sin²(Δlat/2) + cos(lat1) * cos(lat2) * sin²(Δlon/2)),
+  sqrt(1 - haversine)
+)
+```
+
+### Sorting Strategy
+
+```text
+1. Read available shops from Supabase
+2. Measure distance from current user coordinates
+3. Attach distanceKm to each shop
+4. Sort ascending by distance
+5. Filter by specialty, city, or availability flags if requested
+6. Render shops nearest-first
+```
+
+This produces a local discovery sequence such as:
+
+- nearest shop first
+- specialty match second
+- availability filter third
+- city search last
+
+---
+
+## 4. Appointment Booking Logic
+
+### Booking Rule Set
+
+1. A customer selects a vehicle, service type, date, time, and shop.
+2. The system validates that the selected shop exists and is active.
+3. The appointment is inserted into the `appointments` table.
+4. A matching `job_order` record is created when the appointment becomes actionable.
+5. The status moves through lifecycle states:
+   - `pending`
+   - `confirmed`
+   - `in_progress`
+   - `completed`
+   - `cancelled`
+
+### Business Logic
+
+```text
+customer creates appointment
+  ↓
+store customer_id, vehicle_id, shop_id, mechanic_id(optional)
+  ↓
+set status = 'pending'
+  ↓
+if shop accepts and confirms:
+    status = 'confirmed'
+  ↓
+if technician starts work:
+    status = 'in_progress'
+  ↓
+if service is completed:
+    status = 'completed'
+```
+
+---
+
+## 5. Inventory and Low-Stock Algorithm
+
+### Inventory Rule
+
+Every part item is linked to a `shop_id` and tracked by stock quantity.
+
+```text
+if quantity_in_stock <= reorder_level:
+    mark as low stock
+    show alert in dashboard / low-stock page
+```
+
+### Alert Logic
+
+- `quantity_in_stock` is read from the `parts` table.
+- `reorder_level` acts as the threshold boundary.
+- Shop owners and admins receive visibility into urgent stock levels.
+
+### Low-Stock Priority
+
+```text
+sort parts by:
+  1. quantity_in_stock ascending
+  2. reorder_level descending
+  3. category priority if needed
+```
+
+This makes restocking decisions readable and actionable.
+
+---
+
+## 6. Job Order and Labor Tracking Logic
+
+When an appointment enters service, MotoLink creates or resolves a job order as the operational work record.
+
+### Workflow
+
+```text
+appointment exists
+  ↓
+ensure job order for appointment
+  ↓
+mechanic logs labor hours and labor rate
+  ↓
+mechanic records parts used
+  ↓
+job order total_cost = labor + parts_used value
+  ↓
+status is updated to billed / completed as appropriate
+```
+
+### Cost Algorithm
+
+```text
+total_cost = labor_hours * labor_rate + sum(part_quantity * unit_price)
+```
+
+This enables the invoice and billing view that follows the completed service cycle.
+
+---
+
+## 7. Notification and Service Completion Logic
+
+MotoLink sends notification messages after service-related events, especially when the service is completed.
+
+### Notification Trigger
+
+```text
+if appointment status changes to 'completed':
+    retrieve customer contact data
+    compile service summary
+    send transactional email / notification
+```
+
+### Notification Rule Set
+
+- customer notifications should be scoped to the relevant customer record
+- opt-out preference is respected
+- delivery is handled through the notification service layer
+
+---
+
+## 8. Security and Tenancy Logic
+
+The platform follows tenancy principles that mirror the real database design:
+
+```text
+user session is created
+  ↓
+role is resolved from profile
+  ↓
+shop_id is attached to user profile when applicable
+  ↓
+all queries are filtered to shop_id scope
+  ↓
+RLS blocks cross-shop access
+```
+
+### Result
+
+This gives MotoLink a strict owner/operator isolation pattern while still allowing admin-level oversight.
+
+---
+
+## 9. Summary Algorithm
+
+MotoLink can be described by the following high-level logic:
+
+```text
+Authenticate user
+  ↓
+Resolve role and shop scope
+  ↓
+Serve role-specific portal and permitted actions
+  ↓
+Process appointments, inventory, and job orders
+  ↓
+Emit notifications and analytics
+  ↓
+Protect all data through tenant-aware RLS
+```
+
+---
+
+## 10. Related Notes
+- [[MotoLink Architecture]]
+- [[MotoLink System Flow]]
+
+
+## ===== MotoLink System Flow.md =====
+
+---
+title: MotoLink System Flow
+tags:
+  - motolink
+  - system-flow
+  - workflow
+  - appointments
+  - inventory
+  - auth
+date: 2026-08-01
+---
+
+# MotoLink System Flow
+
+> [!abstract] Purpose
+> This note shows the end-to-end system workflow for MotoLink from sign-in to shop discovery, booking, service execution, inventory updates, and customer notification.
+
+---
+
+## 1. High-Level System Flow
+
+```mermaid
+flowchart LR
+    A[User Visits Landing Page] --> B[Choose Login Type]
+    B --> C[Authenticate via Supabase Auth]
+    C --> D[Load Role Profile from users table]
+    D --> E[Route to Customer / Mechanic / Owner / Admin Portal]
+    E --> F[Interact with Shop, Appointment, Inventory, or Job Order Modules]
+    F --> G[Write/Read via Supabase Postgres]
+    G --> H[Apply RLS + Role Scope]
+    H --> I[Show Dashboard / Notification / Service Result]
+```
+
+---
+
+## 2. Public Discovery Flow
+
+```text
+Landing page is loaded
+  ↓
+User opens shop discovery
+  ↓
+Browser requests geolocation permission
+  ↓
+Current coordinates are captured
+  ↓
+Shops are loaded from the database
+  ↓
+Haversine formula calculates distance from user to each shop
+  ↓
+Shops are sorted nearest-first
+  ↓
+Relevant filters are applied
+  ↓
+The user sees a ranked shop list
+```
+
+### Discovery Rule
+
+```text
+HTTP Request → Shop records → Location enrichment → Sort distance → Render filtered list
+```
+
+---
+
+## 3. Login and Role Routing Flow
+
+```text
+User enters credentials
+  ↓
+AuthContext.login() triggers Supabase auth
+  ↓
+Session is created and JWT is returned
+  ↓
+Auth listener refreshes profile from users table
+  ↓
+The app reads the user.role value
+  ↓
+App routes user to the correct page
+```
+
+### Routing Behavior
+
+- `customer` → customer portal / booking flow
+- `mechanic` → mechanic dashboard / service assignment
+- `owner` → shop management dashboard
+- `admin` → advanced platform dashboard
+
+---
+
+## 4. Appointment Booking System Flow
+
+```text
+Customer selects shop, vehicle, service, date, and time
+  ↓
+Booking modal validates required data
+  ↓
+Appointment service inserts new record into appointments
+  ↓
+Record is linked to customer_id, vehicle_id, and shop_id
+  ↓
+Appointment enters pending status
+  ↓
+Owner/mechanic reviews and confirms or assigns mechanic
+  ↓
+Status updates through pending → confirmed → in_progress → completed
+```
+
+### Booking Data Path
+
+```text
+Frontend Form
+  ↓
+BookAppointmentModal
+  ↓
+appointmentService.createAppointment()
+  ↓
+Supabase appointments table
+  ↓
+UI refresh and status display
+```
+
+---
+
+## 5. Job Order Execution Flow
+
+```text
+Appointment is confirmed
+  ↓
+Mechanic opens job order / service panel
+  ↓
+System checks if an associated job order exists
+  ↓
+If absent, it is created automatically from the appointment
+  ↓
+Labor hours and labor rate are recorded
+  ↓
+Used parts are logged against the job order
+  ↓
+Total cost is recalculated
+  ↓
+Service result is recorded and status is updated
+```
+
+### Cost Flow
+
+```text
+job_order.total_cost = 
+  labor_hours × labor_rate + parts_used subtotal
+```
+
+---
+
+## 6. Inventory Management Flow
+
+```text
+Owner/admin opens inventory page
+  ↓
+inventoryService fetches all parts for shop_id scope
+  ↓
+Displayed table shows stock, price, category, reorder level
+  ↓
+User adds, edits, or deletes a part
+  ↓
+Database update is applied through Supabase
+  ↓
+Low-stock alerts are recalculated
+  ↓
+Inventory status is shown on dashboard and related pages
+```
+
+### Inventory Logic
+
+```text
+if stock <= reorder_level:
+  show low-stock warning
+  push alert to dashboard metrics
+```
+
+---
+
+## 7. Notification and Completion Flow
+
+```text
+Service reaches completed status
+  ↓
+Notification job is triggered
+  ↓
+Customer details and service summary are assembled
+  ↓
+Email or notification message is sent
+  ↓
+Customer sees confirmation and service history update
+```
+
+### Output Behavior
+
+- service completion notices
+- customer communication confirmation
+- record persistence for service history and audit trail
+
+---
+
+## 8. Data Security Flow
+
+```text
+Every request is authenticated by session
+  ↓
+Profile role and shop scope are loaded
+  ↓
+Supabase RLS query filter restricts result set
+  ↓
+Unauthorized cross-shop reads are blocked
+```
+
+### Security Rule
+
+```text
+A mechanic can view only records from their shop.
+An owner can manage only that shop's inventory and appointments.
+An admin can view platform-wide analytics.
+```
+
+---
+
+## 9. End-to-End System Summary
+
+```text
+User Action
+  ↓
+Frontend Component
+  ↓
+Context or Service Layer
+  ↓
+Supabase / PostgreSQL Query
+  ↓
+RLS Scoped Result
+  ↓
+UI Refresh + Notification / Analytics
+```
+
+This is the basic operating pattern behind MotoLink: the UI triggers a request, the service layer performs the business action, the database persists the state, and security scope ensures each role only sees the records they are permitted to access.
+
+---
+
+## 10. Related Notes
+- [[MotoLink Architecture]]
+- [[MotoLink Logic and Algorithm]]
 
 
 ## ===== Info for DFD lvl 1.md =====
@@ -5101,676 +5836,4 @@ For issues or questions about compatibility checking:
 
 **Last Updated**: May 5, 2026
 **Compatibility Version**: 1.0
-
-
-## ===== MotoLink Architecture.md =====
-
----
-title: MotoLink Architecture
-tags:
-  - motolink
-  - architecture
-  - database
-  - react
-  - supabase
-  - rbac
-date: 2026-08-01
----
-
-# MotoLink Architecture
-
-> [!abstract] Overview
-> **MotoLink** is a multi-tenant auto shop management platform designed to connect vehicle owners with auto service centers. The platform supports multi-tenant data isolation, role-based access control (RBAC), real-time inventory tracking, appointment scheduling, and automated customer notifications.
-
----
-
-## 1. System Architecture Diagram
-
-```mermaid
-graph TD
-    subgraph Client Layer ["Client Layer (React 18 + TypeScript + Vite)"]
-        UI["Tailwind CSS Slate UI"]
-        AuthContext["Auth Context (RBAC)"]
-        Landing["Public Landing & Shop Discovery"]
-        Portals["Role Portals (Customer, Mechanic, Owner, Admin)"]
-    end
-
-    subgraph Service Layer ["Service Layer"]
-        SupabaseClient["Supabase Client Helper"]
-        SendGridService["SendGrid Email Client"]
-        GeoService["Haversine Geolocation Engine"]
-        NotificationService["Notification Audit & Opt-Out Service"]
-    end
-
-    subgraph Backend Layer ["Backend Layer (Supabase PaaS)"]
-        GoTrue["Supabase Auth (GoTrue)"]
-        PostgreSQL[("PostgreSQL Database")]
-        RLS["Row Level Security Policies (shop_id scoping)"]
-    end
-
-    Client Layer --> Service Layer
-    Service Layer --> Backend Layer
-    Portals --> AuthContext
-    AuthContext --> GoTrue
-    SupabaseClient --> PostgreSQL
-    PostgreSQL --> RLS
-    NotificationService --> SendGridService
-```
-
----
-
-## 2. Tech Stack
-
-### Technology Stack Summary
-
-- Frontend: React 18 + TypeScript + Vite
-- UI Styling: Tailwind CSS + Framer Motion + Lucide React
-- State & Auth: React Context API (`AuthContext`, `LanguageContext`, `PartsListContext`)
-- Backend & Database: Supabase Postgres + Auth + Row-Level Security (RLS)
-- AI Layer: Groq API with LLM-powered chatbot support
-- Notifications: SendGrid transactional email integration
-- Mapping & Discovery: Browser Geolocation API + Haversine distance calculation
-- Deployment: Vercel-ready frontend delivery
-
-### Stack Matrix
-
-| Layer | Technology | Key Details |
-| :--- | :--- | :--- |
-| **Frontend Framework** | **React 18 (TypeScript)** | Single-page application built with Vite bundler |
-| **Styling System** | **Tailwind CSS v3** | Design Tokens: `slate-900` primary, `slate-50` shells, `slate-200/300` borders |
-| **State & Auth** | **React Context API** | `AuthContext` (RBAC & profile hydration), `PartsListContext`, `LanguageContext` |
-| **UI Components** | **Lucide React + Framer Motion** | Iconography and smooth page/modal transition animations |
-| **Database & Auth** | **Supabase (PostgreSQL 15)** | Row-Level Security (RLS), GoTrue JWT Auth, Realtime listeners |
-| **AI Chat Service** | **Groq API** | LLM assistance for diagnostics and business context queries |
-| **Transactional Email**| **SendGrid API** | Service completion notices with fallback plain-text rendering |
-| **Location Engine** | **Browser Geolocation API** | Native coordinates paired with Haversine formula calculation |
-| **Deployment Target** | **Vercel** | Hosted frontend with Supabase backend integration |
-
----
-
-## 3. Database Schema & Data Models
-
-> [!info] Multi-Tenant Architecture
-> Multi-tenancy is enforced at the database level using `shop_id` scoping. Shop owners and mechanics only query and mutate data attached to their assigned `shop_id`.
-
-```mermaid
-erDiagram
-    SHOPS ||--o{ USERS : employs_or_owns
-    SHOPS ||--o{ PARTS : stocks
-    SHOPS ||--o{ APPOINTMENTS : hosts
-    SHOPS ||--o{ JOB_ORDERS : executes
-    USERS ||--o{ VEHICLES : owns
-    USERS ||--o{ APPOINTMENTS : books
-    VEHICLES ||--o{ APPOINTMENTS : serviced_in
-    APPOINTMENTS ||--o| JOB_ORDERS : generates
-    JOB_ORDERS ||--o{ JOB_ORDER_PARTS : uses
-    PARTS ||--o{ JOB_ORDER_PARTS : consumed_by
-    USERS ||--o{ RESERVATIONS : places
-    PARTS ||--o{ RESERVATIONS : reserves
-```
-
-### Core Entity Schema Definitions
-
-#### `users`
-- `id` (UUID, Primary Key -> `auth.users.id`)
-- `email` (VARCHAR, Unique)
-- `name` (VARCHAR)
-- `phone` (VARCHAR, Optional)
-- `address` (TEXT, Optional)
-- `role` (ENUM: `'customer'`, `'mechanic'`, `'owner'`, `'admin'`)
-- `shop_id` (UUID, Foreign Key -> `shops.id`, Nullable for Customers/Admins)
-
-#### `shops`
-- `id` (UUID, Primary Key)
-- `name` (VARCHAR)
-- `slug` (VARCHAR, Unique)
-- `description` (TEXT)
-- `address` (TEXT)
-- `city` (VARCHAR)
-- `latitude` (FLOAT8)
-- `longitude` (FLOAT8)
-- `specialties` (TEXT[])
-- `operating_hours` (VARCHAR)
-- `is_active` (BOOLEAN)
-
-#### `vehicles`
-- `id` (UUID, Primary Key)
-- `customer_id` (UUID, Foreign Key -> `users.id`)
-- `make` (VARCHAR)
-- `model` (VARCHAR)
-- `year` (INTEGER/VARCHAR)
-
-#### `parts` (Inventory)
-- `id` (UUID, Primary Key)
-- `shop_id` (UUID, Foreign Key -> `shops.id`)
-- `name` (VARCHAR)
-- `category` (ENUM: `'brakes'`, `'tires'`, `'oils'`, `'electrical'`, `'suspension'`, `'exhaust'`, `'filters'`, `'other'`)
-- `sku` (VARCHAR)
-- `unit_price` (DECIMAL)
-- `quantity_in_stock` (INTEGER)
-- `reorder_level` (INTEGER)
-- `image_url` (TEXT)
-
-#### `appointments`
-- `id` (UUID, Primary Key)
-- `customer_id` (UUID, Foreign Key -> `users.id`)
-- `vehicle_id` (UUID, Foreign Key -> `vehicles.id`)
-- `shop_id` (UUID, Foreign Key -> `shops.id`)
-- `mechanic_id` (UUID, Foreign Key -> `users.id`, Nullable)
-- `scheduled_date` (DATE)
-- `scheduled_time` (VARCHAR)
-- `service_type` (VARCHAR)
-- `status` (ENUM: `'pending'`, `'confirmed'`, `'in_progress'`, `'completed'`, `'cancelled'`)
-- `notes` (TEXT)
-- `parts` (JSONB)
-- `total_amount` (DECIMAL)
-
-#### `job_orders`
-- `id` (UUID, Primary Key)
-- `appointment_id` (UUID, Foreign Key -> `appointments.id`)
-- `customer_id` (UUID, Foreign Key -> `users.id`)
-- `mechanic_id` (UUID, Foreign Key -> `users.id`)
-- `shop_id` (UUID, Foreign Key -> `shops.id`)
-- `vehicle_id` (UUID, Foreign Key -> `vehicles.id`)
-- `status` (ENUM: `'draft'`, `'pending'`, `'in_progress'`, `'completed'`, `'cancelled'`, `'billed'`)
-- `parts_used` (JSONB: `[{ part_id, quantity_used, unit_price }]`)
-- `labor_hours` (DECIMAL)
-- `labor_rate` (DECIMAL)
-- `total_cost` (DECIMAL)
-
----
-
-## 4. Role-Based Access Control (RBAC) Matrix
-
-> [!key] Security Permissions
-> Managed via `AuthContext` helper functions and enforced by Supabase RLS.
-
-| Permission Helper | Customer | Mechanic | Shop Owner | Platform Admin |
-| :--- | :---: | :---: | :---: | :---: |
-| `canAccessCustomerPortal()` | ✅ | ❌ | ❌ | ❌ |
-| `canRecordServiceProgress()` | ❌ | ✅ | ✅ | ❌ |
-| `canManageInventory()` | ❌ | ❌ | ✅ | ✅ |
-| `canManageAppointments()` | ❌ | ✅ | ✅ | ✅ |
-| `canManageUsers()` | ❌ | ❌ | ✅ (Shop Scope) | ✅ (Global) |
-| `canAccessAdminDashboard()` | ❌ | ❌ | ❌ | ✅ |
-| `canViewReports()` | ❌ | ❌ | ✅ (Shop Scope) | ✅ (Global) |
-
----
-
-## 5. Related Notes
-- [[MotoLink Logic and Algorithm]]
-- [[MotoLink System Flow]]
-
-
-## ===== MotoLink Logic and Algorithm.md =====
-
----
-title: MotoLink Logic and Algorithm
-tags:
-  - motolink
-  - algorithm
-  - logic
-  - haversine
-  - rbac
-  - state-machine
-date: 2026-08-01
----
-
-# MotoLink Logic and Algorithm
-
-> [!abstract] Overview
-> This note documents the core computational logic and algorithms powering MotoLink — from geographic shop discovery to inventory management, RBAC permission checks, appointment state machines, and notification preference handling.
-
----
-
-## 1. Geolocation & Shop Discovery (Haversine Formula)
-
-MotoLink ranks partner shops by distance from the user's real GPS location using the **Haversine formula**.
-
-> [!code] Source
-> `src/services/shopService.ts` → `distanceInKm()`, `sortByDistance()`
-
-### Algorithm Steps
-1. User's browser grants location via the **Geolocation API** (`GeolocationCoordinates`).
-2. For each active shop, compute distance from user's `(lat, lon)` to the shop's `(lat, lon)`.
-3. Sort shops ascending by distance (nearest first).
-
-### Haversine Formula
-```text
-a = sin²(Δlat/2) + cos(lat1) · cos(lat2) · sin²(Δlon/2)
-c = 2 · atan2(√a, √(1−a))
-distance = R · c        where R = 6371 km
-```
-
-### TypeScript Implementation
-```ts
-const toRadians = (value: number) => (value * Math.PI) / 180;
-
-export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
-  const earthRadiusKm = 6371;
-  const latitudeDelta = toRadians(shop.latitude - origin.latitude);
-  const longitudeDelta = toRadians(shop.longitude - origin.longitude);
-  const latitude1 = toRadians(origin.latitude);
-  const latitude2 = toRadians(shop.latitude);
-  const haversine =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(latitude1) * Math.cos(latitude2) * Math.sin(longitudeDelta / 2) ** 2;
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-};
-```
-
-> [!note] Complexity
-> - Time: **O(n log n)** — dominated by `sort()`. Distance per shop is **O(1)**.
-> - Space: **O(n)** — one `distanceKm` field attached per shop.
-
----
-
-## 2. Shop Search & Filtering Pipeline
-
-`getPublicShops()` + client-side filters produce the "Explore Partner Shops" grid.
-
-| Filter Stage | Logic | Where |
-| :--- | :--- | :--- |
-| **Active filter** | `.eq("is_active", true)` — only bookable shops | PostgREST query |
-| **City / keyword** | Case-insensitive match on `city` or `name` | Client (`ShopFilters`) |
-| **Specialty** | Substring match on `specialties` array | Client |
-| **Distance sort** | `sortByDistance(shops, location)` ascending | Client |
-
-> [!tip] Defensive Type Normalization
-> `specialties` is coerced to `Array.isArray(...) ? specialties : []` on every fetch — guards against malformed DB rows crashing the UI.
-
----
-
-## 3. Inventory & Low-Stock Algorithm
-
-`inventoryService` handles all part CRUD and stock monitoring.
-
-### Low-Stock Detection
-> [!warning] PostgREST Limitation
-> PostgREST **cannot compare two columns** (e.g. `quantity_in_stock <= reorder_level`) directly in a query. MotoLink fetches all parts for a shop ordered by stock ascending, then filters **client-side**.
-
-```ts
-async getLowStockParts(shopId: string): Promise<Part[]> {
-  const { data } = await supabase
-    .from('parts').select('*')
-    .eq('shop_id', shopId)
-    .order('quantity_in_stock', { ascending: true });
-  return (data || []).filter(
-    (p) => p.quantity_in_stock <= (p.reorder_level || 0),
-  );
-}
-```
-
-**Threshold rule:** a part is `LOW STOCK` ⟺ `quantity_in_stock <= reorder_level`.
-
-### Stock Mutation Operations
-- `createPart` / `updatePart` / `deletePart` — standard CRUD.
-- `updatePartStock(partId, quantity)` — **absolute** write of `quantity_in_stock` (used after reservations consume parts, or manual stock counts).
-- Stock badges derive from the low-stock predicate at render time (single source of truth).
-
----
-
-## 4. Role-Based Access Control (RBAC) Logic
-
-> [!code] Source
-> `src/contexts/AuthContext.tsx` — permission helper methods.
-
-### Permission Predicates
-```ts
-canManageInventory()      // owner, admin
-canViewInventory()        // all authenticated roles
-canManageAppointments()   // mechanic, owner, admin
-canViewOwnAppointments()  // customer (own only)
-canManageUsers()          // owner (shop scope), admin (global)
-canViewReports()          // owner, admin
-canRecordServiceProgress()// mechanic, owner
-canAccessCustomerPortal() // customer
-hasRole(roles)            // generic membership check
-```
-
-> [!key] Defense in Depth
-> Front-end helpers gate the **UI**. The source of truth is **Supabase Row-Level Security (RLS)** with `shop_id` policies — a compromised client cannot read another tenant's rows.
-
----
-
-## 5. Appointment Status State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> Pending
-    Pending --> Confirmed : owner/mechanic confirms
-    Pending --> Cancelled : customer/owner cancels
-    Confirmed --> In_Progress : mechanic starts service
-    Confirmed --> Cancelled : cancellation
-    In_Progress --> Completed : work finished, job order billed
-    Completed --> [*]
-```
-
-**Transitions allowed (via UI guards):**
-
-| From | To | Trigger Actor |
-| :--- | :--- | :--- |
-| `pending` | `confirmed` | Mechanic / Owner |
-| `pending` | `cancelled` | Customer / Owner |
-| `confirmed` | `in_progress` | Mechanic |
-| `confirmed` | `cancelled` | Owner |
-| `in_progress` | `completed` | Mechanic (completes job order) |
-
----
-
-## 6. Job Order & Billing Algorithm
-
-A `job_order` is generated from an appointment and accumulates parts + labor.
-
-### Cost Computation
-```text
-parts_total = Σ ( quantity_used × unit_price )  over parts_used[]
-labor_cost  = labor_hours × labor_rate
-total_cost  = parts_total + labor_cost
-```
-
-### State Machine
-```mermaid
-stateDiagram-v2
-    [*] --> Draft
-    Draft --> Pending : saved & assigned to mechanic
-    Pending --> In_Progress : mechanic starts
-    In_Progress --> Completed : parts + labor finalized
-    Completed --> Billed : invoice generated & sent
-    Pending --> Cancelled : cancelled
-    In_Progress --> Cancelled : cancelled
-```
-
-### Stock Deduction on Job Completion
-When a job order is marked **completed**, the parts consumed are written back to inventory via `updatePartStock`, keeping `quantity_in_stock` consistent with `parts_used[]`.
-
-> [!note] Atomicity Caveat
-> Current implementation is a sequential client-side flow (decrement stock, then update order). Multi-shop concurrency on the same SKU is guarded by RLS scoping to `shop_id`.
-
----
-
-## 7. Notification Preference & Dispatch Algorithm
-
-> [!code] Source
-> `src/services/notificationService.ts`
-
-### Decision Flow
-1. Resolve `customer_id` from `users.email`.
-2. Look up `customer_notification_settings.email_notifications_enabled`.
-3. **Missing record → default `true`** (opt-in by default, per product decision).
-4. If `false` → log `skipped` to `notifications` audit table, return without sending.
-5. Else build HTML + plain-text templates, send via SendGrid.
-6. Log outcome (`sent` / `failed`) to `notifications` for the audit trail.
-
-### Email Template Rebrand (2026)
-The HTML template was migrated from the legacy dark-red theme to the **white/slate brand palette**:
-- Card: `#ffffff` on `#f5f5f5` body, `slate-900` (`#0f172a`) accent rules
-- Semantic success badge kept green (`#16a34a`)
-- Total amount row in `slate-900` on `slate-100`
-
----
-
-## 8. Auth Hydration Algorithm
-
-> [!code] Source
-> `src/contexts/AuthContext.tsx`
-
-Designed to eliminate the loading-spinner flash:
-1. `getSession()` on mount (fast, localStorage read).
-2. Render page immediately — no blocking spinner.
-3. Fetch `users` profile row in background.
-4. `PGRST116` (not found) → `upsert` a default `customer` profile with `ignoreDuplicates` to survive signup races.
-5. Subscribe to `onAuthStateChange` for live sign-in/out sync.
-
----
-
-## Related Notes
-- [[MotoLink Architecture]]
-- [[MotoLink System Flow]]
-
-
-## ===== MotoLink System Flow.md =====
-
----
-title: MotoLink System Flow
-tags:
-  - motolink
-  - system-flow
-  - workflow
-  - user-journey
-  - sequence
-date: 2026-08-01
----
-
-# MotoLink System Flow
-
-> [!abstract] Overview
-> End-to-end workflow documentation for MotoLink — every user journey from landing page to service completion, including how data flows through the multi-tenant backend.
-
----
-
-## 1. System Flow Map (High Level)
-
-```mermaid
-flowchart LR
-    A[Visitor] -->|Browse| B[Landing / Shop Discovery]
-    B -->|Geolocation + Haversine| C[Shop Gallery]
-    C --> D[Register / Login]
-
-    D -->|role=customer| E[Customer Portal]
-    D -->|role=mechanic| F[Mechanic Portal]
-    D -->|role=owner| G[Owner Portal]
-    D -->|role=admin| H[Platform Admin]
-
-    E --> I[Book Appointment]
-    F --> J[Manage Appointments & Job Orders]
-    G --> K[Manage Shop, Inventory, Staff]
-    H --> L[Platform Oversight]
-
-    I --> M[Service Completed]
-    J --> M
-    M --> N[SendGrid Email Notification]
-    N --> O[Customer picks up vehicle]
-```
-
----
-
-## 2. Onboarding & Authentication Flow
-
-```mermaid
-sequenceDiagram
-    actor U as User
-    participant UI as React App
-    participant Auth as AuthContext
-    participant DB as Supabase (Auth + users)
-
-    U->>UI: Visits MotoLink
-    UI->>Auth: getSession() on mount (fast, localStorage)
-    Auth-->>UI: session (or null)
-    UI->>UI: Render immediately (no spinner)
-    Auth->>DB: fetch users.profile by id (background)
-    alt Profile missing (PGRST116)
-        Auth->>DB: upsert default customer profile (ignoreDuplicates)
-    end
-    Auth-->>UI: user + role hydrated
-    UI->>UI: Gate routes via RBAC helpers (hasRole / canManage*)
-```
-
-> [!key] Multi-Tenant Scoping
-> After login, every query is scoped by `shop_id` (owner/mechanic) or `customer_id` (customer). RLS enforces the same isolation server-side.
-
----
-
-## 3. Customer Flow — Shop Discovery to Booking
-
-```mermaid
-sequenceDiagram
-    actor C as Customer
-    participant L as Landing
-    participant S as shopService
-    participant R as ReservationService
-    participant A as Appointment Service
-    participant DB as PostgreSQL
-
-    C->>L: Grants location
-    L->>S: getPublicShops()  (is_active = true)
-    S-->>L: shops[]
-    L->>S: sortByDistance(shops, coords)  (Haversine)
-    L-->>C: Nearest shops first
-    C->>L: Select shop → ShopDetail
-    L-->>C: Shop profile + parts + book CTA
-
-    C->>A: Create appointment (vehicle, service, date/time)
-    A->>DB: INSERT appointment (status=pending, shop_id)
-    DB-->>A: appointment row
-    A-->>C: Confirmation in Customer Portal
-
-    opt Reserve a part instead
-        C->>R: createReservation(customerId, partId, qty, shopId)
-        R->>DB: INSERT reservation (status=pending, shop_id)
-        R-->>C: reservation listed in "My Reservations"
-    end
-```
-
-### Appointment Status Journey (Customer view)
-```
-pending → confirmed → in_progress → completed
-   └── cancelled (any prior stage)
-```
-
----
-
-## 4. Mechanic Flow — Service Execution
-
-```mermaid
-sequenceDiagram
-    actor M as Mechanic
-    participant MP as Mechanic Portal
-    participant A as Appointment Service
-    participant JO as JobOrderService
-    participant Inv as InventoryService
-    participant N as NotificationService
-
-    M->>MP: View shop's appointments (scoped by shop_id)
-    MP-->>M: Pending / confirmed queue
-
-    M->>A: Confirm appointment
-    A-->>MP: status = confirmed
-
-    M->>A: Start work
-    A-->>MP: status = in_progress
-
-    M->>JO: Create / update job order (parts_used, labor_hours, labor_rate)
-    JO->>Inv: updatePartStock(partId, newQty)  (decrement consumed parts)
-    JO->>JO: compute total_cost = parts_total + labor_cost
-
-    M->>JO: Complete job order
-    JO-->>MP: job_order status = completed
-    M->>A: Mark appointment completed
-    N->>DB: log notification attempt (sent/failed/skipped)
-    N->>SendGrid: send service-completion email (if opted in)
-```
-
----
-
-## 5. Owner Flow — Shop Operations
-
-```mermaid
-flowchart TD
-    O[Owner] --> O1[Owner Portal Dashboard]
-    O1 --> O2[Manage Shop Profile]
-    O1 --> O3[Manage Inventory / Parts]
-    O1 --> O4[Manage Staff & Mechanics]
-    O1 --> O5[View Appointments & Job Orders]
-    O1 --> O6[Fulfill Reservations]
-    O1 --> O7[View Reports (30-day)]
-
-    O3 --> O3a[Add / Edit / Delete part]
-    O3 --> O3b[Set reorder_level]
-    O3 --> O3c[Monitor Low-Stock list]
-    O3a & O3b & O3c --> O3d[inventoryService CRUD]
-
-    O6 --> O6a[fulfillReservation]
-    O6a --> O6b[Check stock >= qty]
-    O6b -- yes --> O6c[Deduct stock + set fulfilled]
-    O6b -- no --> O6d[Reject / partial]
-```
-
-> [!note] Owner Data Isolation
-> Owners only ever see rows where `shop_id = their shop`. This was enforced via RLS policies + `reservations.shop_id` column in the owner data-isolation migration.
-
----
-
-## 6. Admin (Platform) Flow — Oversight
-
-```mermaid
-flowchart LR
-    A[Platform Admin] --> D[Admin Platform Dashboard]
-    D --> |Global view| S[All Shops / Tenants]
-    D --> |Global management| I[Inventory Across Shops]
-    D --> |Global management| U[User & Shop Administration]
-    D --> |System| N[Notifications / Audit Logs]
-```
-
-> [!warning] Scope Boundary
-> `admin` bypasses single-shop RLS but still cannot exceed the platform's RLS policies. Per-shop data is never mixed between tenants.
-
----
-
-## 7. Part Reservation Fulfillment Algorithm (Data Flow)
-
-> [!code] Source
-> `src/services/reservationService.ts` → `fulfillReservation()`
-
-```text
-Input:  reservation (with embedded part row)
-1. Guard: part exists?
-2. Guard: part.quantity_in_stock >= reservation.quantity ?  else FAIL
-3. newQty = max(0, quantity_in_stock - quantity)
-4. UPDATE parts SET quantity_in_stock = newQty WHERE id = part.id
-5. If stock update fails → abort (no status change)
-6. UPDATE reservations SET status = 'fulfilled'
-```
-
-> [!key] Failure Atomicity
-> If the stock deduction fails, the reservation status is NOT advanced — preventing "fulfilled but never actually deducted" inconsistencies.
-
----
-
-## 8. Email Notification Pipeline
-
-```mermaid
-sequenceDiagram
-    actor Sys as System (on job order completion)
-    participant NS as NotificationService
-    participant DB as Supabase
-    participant SG as SendGrid
-
-    Sys->>NS: sendServiceCompletionEmail(data)
-    NS->>DB: lookup customer_id by email
-    NS->>DB: check email_notifications_enabled
-    alt Disabled
-        NS->>DB: log status = skipped
-        NS-->>Sys: return { skipped: true }
-    else Enabled
-        NS->>NS: build HTML + plain-text (slate theme)
-        NS->>SG: send via SendGrid API
-        SG-->>NS: success / error
-        NS->>DB: log status = sent | failed (audit trail)
-        NS-->>Sys: return { success }
-    end
-```
-
----
-
-## 9. Bilingual UI Flow
-
-> [!info] LanguageContext
-> MotoLink is **bilingual**. The `LanguageContext` provides a `language` + `setLanguage` pair; UI strings swap dynamically between locales at runtime without reload.
-
----
-
-## Related Notes
-- [[MotoLink Architecture]]
-- [[MotoLink Logic and Algorithm]]
 
