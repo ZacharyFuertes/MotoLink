@@ -33,7 +33,19 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
 
   useEffect(() => { getPublicShops().then(setShops); }, []);
   const results = useMemo(() => sortByDistance(shops, location).filter((shop) => (!specialty || shop.specialties.includes(specialty)) && (!availabilityOnly || shop.available) && (!city || `${shop.name} ${shop.city} ${shop.address}`.toLowerCase().includes(city.toLowerCase()))), [shops, location, specialty, availabilityOnly, city]);
-  const specialties = useMemo(() => [...new Set(shops.flatMap((shop) => shop.specialties))].sort(), [shops]);
+  const DEFAULT_SPECIALTIES = [
+    "Engine Repair",
+    "Brake Service",
+    "Tire Service",
+    "Oil Change",
+    "Electrical",
+    "Diagnostics",
+    "Suspension",
+    "Battery Replacement",
+    "Custom Fabrication",
+    "Towing",
+  ];
+  const specialties = useMemo(() => [...new Set([...(shops.flatMap((shop) => shop.specialties) || []), ...DEFAULT_SPECIALTIES])].sort(), [shops]);
   const requestLocation = () => {
     setLocationMessage("");
 
@@ -59,14 +71,49 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   };
+  const [suggestionMessage, setSuggestionMessage] = useState("");
+
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
+
+  const chooseSuggestedShop = (): ShopSearchResult | undefined => {
+    if (!results.length) return undefined;
+
+    return [...results].sort((a, b) => {
+      const score = (shop: ShopSearchResult) => (shop.available === false ? 0 : 1);
+      const availabilityDiff = score(b) - score(a);
+      if (availabilityDiff !== 0) return availabilityDiff;
+      return (a.distanceKm ?? Number.MAX_VALUE) - (b.distanceKm ?? Number.MAX_VALUE);
+    })[0];
+  };
+
+  const suggestShop = () => {
+    const suggested = chooseSuggestedShop();
+    if (!suggested) {
+      setSuggestionMessage("No shops match your current filters. Try broadening the search or checking back later.");
+      return;
+    }
+
+    setSelectedShop(suggested);
+    setSuggestionMessage(`Suggested shop: ${suggested.name}${suggested.city ? ` in ${suggested.city}` : ""}. ${suggested.available === false ? "Availability data is not current for this shop." : "This shop is available based on the current list."}`);
+    scrollTo("map");
+  };
 
   return <div className="min-h-screen bg-white text-slate-900">
     <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} onLogout={onLogout} />
     <main>
       {/* Top hero slideshow (original heroslide images) */}
       <HeroSlideshow />
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Discover nearby</p><h2 className="mt-2 text-3xl font-bold">Explore shops on the map</h2><p className="mt-2 text-slate-600">Browse freely. Login is only required when you connect or book.</p></div><button onClick={requestLocation} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500"><Navigation size={16} /> Use my location</button></div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} /></div>{locationMessage ? <p className="mt-3 text-sm text-slate-600">{locationMessage}</p> : null}</div></motion.section>
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Discover nearby</p><h2 className="mt-2 text-3xl font-bold">Explore shops on the map</h2><p className="mt-2 text-slate-600">Browse freely. Login is only required when you connect or book.</p></div><div className="flex flex-wrap gap-3"><button onClick={requestLocation} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-slate-500"><Navigation size={16} /> Use my location</button><button onClick={suggestShop} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"><Search size={16} /> Suggest a shop</button></div></div><div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 shadow-sm">
+            {selectedShop ? (
+              <p><span className="font-semibold">Search result:</span> {selectedShop.name} {selectedShop.city ? `in ${selectedShop.city}` : ""}. Select it on the map or use the shop card below to connect.</p>
+            ) : suggestionMessage ? (
+              <p><span className="font-semibold">Search result:</span> {suggestionMessage}</p>
+            ) : results.length ? (
+              <p><span className="font-semibold">Search result:</span> {results.length} shop{results.length === 1 ? "" : "s"} match your current filters. Top match: {results[0].name}.</p>
+            ) : (
+              <p><span className="font-semibold">Search result:</span> No matching shops yet. Try a broader city, specialty, or availability filter.</p>
+            )}
+          </div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} selectedShopId={selectedShop?.id} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} /></div>{locationMessage ? <p className="mt-3 text-sm text-slate-600">{locationMessage}</p> : null}{suggestionMessage ? <p className="mt-3 text-sm font-medium text-slate-700">{suggestionMessage}</p> : null}</div></motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-slate-50 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8"><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Partner network</p><h2 className="mt-2 text-3xl font-bold">Explore Partner Shops</h2><p className="mt-2 text-slate-600">{results.length} shop{results.length === 1 ? "" : "s"} matching your search.</p></div>{results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-600"><Search className="mx-auto mb-3" />No shops match these filters. Try a broader search.</div>}</div></motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} className="scroll-mt-20 bg-slate-50 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8 text-center"><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Why choose</p><h2 className="mt-2 text-3xl font-bold text-slate-900">MOTOLINK</h2><p className="mt-3 max-w-2xl mx-auto text-slate-600">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p></div><div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[

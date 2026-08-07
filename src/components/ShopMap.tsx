@@ -9,6 +9,7 @@ declare const L: any;
 
 interface ShopMapProps {
   shops: ShopSearchResult[];
+  selectedShopId?: string;
   locationGranted: boolean;
   location?: GeolocationCoordinates;
   onRequestLocation: () => void;
@@ -19,7 +20,7 @@ const MAP_CENTER_LAT = 14.5712431655223;
 const MAP_CENTER_LNG = 121.10514957211315;
 const CIRCLE_RADIUS_METERS = 2000;
 
-const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect }: ShopMapProps) => {
+const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -61,11 +62,20 @@ const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect
         const popupContent = `<div style="min-width:200px"><strong>${shop.name}</strong><br/>${shop.address || ''}<br/><small><strong>Specialty:</strong> ${shop.specialties?.join(', ') || ''}</small><br/><small><strong>Hours:</strong> ${shop.operating_hours || ''}</small></div>`;
         marker.bindPopup(popupContent);
         marker.on("click", () => onSelect(shop));
+
+        if (selectedShopId === shop.id) {
+          marker.openPopup();
+        }
       }
     });
 
+    const selectedShop = shops.find((shop) => shop.id === selectedShopId);
+    if (selectedShop && typeof selectedShop.latitude === "number" && typeof selectedShop.longitude === "number") {
+      map.setView([selectedShop.latitude, selectedShop.longitude], 14);
+    }
+
     return () => { map.remove(); };
-  }, [locationGranted, location, onSelect, shops]);
+  }, [locationGranted, location, onSelect, shops, selectedShopId]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)]">
