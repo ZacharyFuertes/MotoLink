@@ -37,6 +37,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     shop_description: "",
     shop_address: "",
     shop_city: "",
+    shop_coordinates: "",
     shop_phone: "",
   });
 
@@ -152,6 +153,28 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         );
       if (profileError) throw profileError;
 
+      // Parse "lat, lng" into numeric latitude/longitude so the shop shows on
+      // the map. Coordinates are optional; invalid input is rejected up front.
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      if (signupData.shop_coordinates.trim()) {
+        const [rawLat, rawLng] = signupData.shop_coordinates.split(",");
+        latitude = parseFloat(rawLat?.trim());
+        longitude = parseFloat(rawLng?.trim());
+        if (
+          Number.isNaN(latitude) ||
+          Number.isNaN(longitude) ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180
+        ) {
+          throw new Error(
+            "Invalid coordinates. Use the format: 14.5712, 121.1051 (latitude, longitude).",
+          );
+        }
+      }
+
       // Create the shop (owner_id FK now resolves to the users row above)
       const { data: shopData, error: shopError } = await supabase
         .from("shops")
@@ -165,6 +188,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           description: signupData.shop_description || null,
           address: signupData.shop_address || "",
           city: signupData.shop_city || "",
+          latitude,
+          longitude,
           phone: signupData.shop_phone || null,
           email: signupData.email,
           owner_id: authData.user.id,
@@ -353,7 +378,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   ))}
                 </select>
                 <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address" required className={inputClass} />
-                <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="Shop Coordinates" required className={inputClass} />
+                <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City" className={inputClass} />
+                <input type="text" value={signupData.shop_coordinates} onChange={(e) => setSignupData({ ...signupData, shop_coordinates: e.target.value })} placeholder="Shop Coordinates (e.g., 14.5712, 121.1051)" className={inputClass} />
                 <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
                 <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
