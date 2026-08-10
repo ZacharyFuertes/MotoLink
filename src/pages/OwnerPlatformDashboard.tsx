@@ -50,6 +50,9 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLoading, setShopLoading] = useState(false);
 
+  const isPendingApproval = !!shop && !shop.is_active;
+  const isLocked = shopLoading || isPendingApproval;
+
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "shop-settings", label: "Shop Profile", icon: Store },
@@ -155,16 +158,22 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => onNavigate?.(item.id)}
+                onClick={() => {
+                  if (isLocked) return;
+                  onNavigate?.(item.id);
+                }}
                 title={sidebarCollapsed ? item.label : undefined}
+                disabled={isLocked}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-violet-50 text-violet-700"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
+                } ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive ? "text-violet-600" : "text-gray-400"}`}
+                  className={`w-5 h-5 shrink-0 ${isActive ? "text-violet-600" : "text-gray-400"} ${
+                    isLocked ? "opacity-40" : ""
+                  }`}
                 />
                 {!sidebarCollapsed && <span>{item.label}</span>}
               </button>
@@ -230,17 +239,21 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     <button
                       key={item.id}
                       onClick={() => {
+                        if (isLocked) return;
                         setMobileSidebarOpen(false);
                         onNavigate?.(item.id);
                       }}
+                      disabled={isLocked}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                         isActive
                           ? "bg-violet-50 text-violet-700"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      }`}
+                      } ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       <Icon
-                        className={`w-5 h-5 shrink-0 ${isActive ? "text-violet-600" : "text-gray-400"}`}
+                        className={`w-5 h-5 shrink-0 ${isActive ? "text-violet-600" : "text-gray-400"} ${
+                          isLocked ? "opacity-40" : ""
+                        }`}
                       />
                       <span>{item.label}</span>
                     </button>
@@ -279,6 +292,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             <h1 className="text-lg font-semibold text-gray-900">
               {currentLabel}
             </h1>
+            {isPendingApproval && (
+              <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium">
+                <Clock className="w-3.5 h-3.5" />
+                Pending Approval
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -313,7 +332,37 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {currentPage === "dashboard" ? (
+          {shopLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader className="w-8 h-8 text-violet-500 animate-spin" />
+            </div>
+          ) : isPendingApproval ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl border border-gray-200 p-10 mb-6 flex flex-col items-center text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mb-6">
+                <Clock className="w-10 h-10 text-amber-500" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Awaiting for MOTO LINK admin for approval
+              </h2>
+              <p className="text-gray-500 text-sm max-w-md leading-relaxed">
+                Your shop{" "}
+                <span className="font-semibold text-gray-700">
+                  {shop?.name || ""}
+                </span>{" "}
+                has been registered and is currently under review. The dashboard
+                will unlock automatically once a MotoLink admin approves your
+                shop.
+              </p>
+              <div className="mt-6 flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-500 text-xs">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                Status: Pending Approval
+              </div>
+            </motion.div>
+          ) : currentPage === "dashboard" ? (
             <>
               {/* Welcome Banner */}
               <motion.div

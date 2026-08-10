@@ -14,7 +14,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import usersIcon from "../pictures/icons/users.png";
-import ErrorModal from "../components/ErrorModal";
+import InlineError from "../components/InlineError";
 import {
   filterMakes,
   filterModels,
@@ -257,20 +257,6 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Error Modal Component */}
-      <ErrorModal
-        isOpen={!!error}
-        title="Login Failed"
-        message={error}
-        onClose={() => setError("")}
-        onTryAgain={() => {
-          setError("");
-          if (!isSignup) {
-            setFormData((prev) => ({ ...prev, password: "" }));
-          }
-        }}
-      />
-
       {/* Back Button */}
       <motion.button
         onClick={onBack}
@@ -343,6 +329,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             </motion.div>
 
             {/* Form */}
+            <InlineError message={error} onClose={() => setError("")} />
             <form onSubmit={handleSubmit} className="space-y-4">
               <AnimatePresence mode="wait">
                 <motion.div

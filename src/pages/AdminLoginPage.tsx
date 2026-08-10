@@ -4,7 +4,7 @@ import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import adminIcon from "../pictures/icons/admin.png";
-import ErrorModal from "../components/ErrorModal";
+import InlineError from "../components/InlineError";
 
 interface AdminLoginPageProps {
   onLoginSuccess: () => void;
@@ -97,18 +97,6 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Error Modal Component */}
-      <ErrorModal
-        isOpen={!!error}
-        title="Admin Login Failed"
-        message={error}
-        onClose={() => setError("")}
-        onTryAgain={() => {
-          setError("");
-          setFormData((prev) => ({ ...prev, password: "" }));
-        }}
-      />
-
       {/* Back Button */}
       <motion.button
         onClick={onBack}
@@ -175,6 +163,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
             </motion.div>
 
             {/* Form */}
+            <InlineError message={error} onClose={() => setError("")} />
             <form onSubmit={handleSubmit} className="space-y-4">
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
                 <div className="relative">

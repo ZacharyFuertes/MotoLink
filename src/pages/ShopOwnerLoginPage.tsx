@@ -5,7 +5,7 @@ import motolinkLogo from "../pictures/public/Motolink.png";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getRoleLabel } from "../utils/roleAccess";
-import ErrorModal from "../components/ErrorModal";
+import InlineError from "../components/InlineError";
 
 interface ShopOwnerLoginPageProps {
   onLoginSuccess: () => void;
@@ -277,18 +277,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      {/* Error Modal Component */}
-      <ErrorModal
-        isOpen={!!error}
-        title="Shop Owner Login Failed"
-        message={error}
-        onClose={() => setError("")}
-        onTryAgain={() => {
-          setError("");
-          setFormData((prev) => ({ ...prev, password: "" }));
-        }}
-      />
-
       {/* Back Button */}
       <motion.button
         onClick={onBack}
@@ -351,6 +339,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
             </motion.div>
 
             {/* Form */}
+            <InlineError message={error} onClose={() => setError("")} />
             {isSignup ? (
               <form onSubmit={handleSignup} className="space-y-4">
                 <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="Email" required className={inputClass} />
