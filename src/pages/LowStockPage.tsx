@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Package, ArrowLeftRight, RefreshCw } from "lucide-react";
+import { AlertTriangle, Package, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { Part } from "../types";
@@ -36,126 +36,152 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
       part.quantity_in_stock + qty,
     );
     setRestocking(null);
-    if (ok) fetchLowStock();
+    if (ok) {
+      setRestockQty((prev) => ({ ...prev, [part.id]: 0 }));
+      fetchLowStock();
+    }
   };
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="space-y-6">
+      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-red-600" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-display text-3xl text-gray-900 uppercase tracking-wide">
-              Low Stock
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              Low Stock Alerts
             </h1>
-            <p className="text-sm text-gray-500">
-              Parts at or below their reorder level
+            <p className="text-xs text-slate-500 mt-0.5">
+              Items at or below their reorder threshold requiring restock.
             </p>
           </div>
         </div>
-        <button
-          onClick={() => fetchLowStock()}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:border-gray-500 transition"
-        >
-          <RefreshCw size={16} /> Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchLowStock()}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+          >
+            <RefreshCw size={14} /> Refresh List
+          </button>
+          <button
+            onClick={() => onNavigate?.("inventory")}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+          >
+            <Package size={14} /> Full Inventory
+          </button>
+        </div>
       </motion.div>
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin h-10 w-10 border-4 border-gray-300 border-t-gray-900 rounded-full" />
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 rounded-full border-4 border-red-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
+          </div>
         </div>
       ) : parts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center">
-          <Package className="mx-auto mb-3 text-gray-300 w-12 h-12" />
-          <p className="text-gray-600 font-medium">
-            All parts are sufficiently stocked.
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="dashboard-card p-12 text-center"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            All Stock Levels Healthy
+          </h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+            No items in your inventory are currently below their reorder threshold.
           </p>
-          <p className="text-sm text-gray-400 mt-1">
-            No parts are below their reorder level.
-          </p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {parts.map((part) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {parts.map((part, index) => {
             const stockPct =
               part.reorder_level > 0
                 ? Math.min((part.quantity_in_stock / part.reorder_level) * 100, 100)
                 : 0;
             const qty = restockQty[part.id] || 0;
+            const isCritical = part.quantity_in_stock === 0;
+
             return (
               <motion.div
                 key={part.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border border-gray-200 bg-white p-5"
+                transition={{ delay: index * 0.05 }}
+                className="dashboard-card p-5 flex flex-col"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <p className="font-bold text-gray-900 truncate">
+                    <h3 className="font-bold text-slate-900 text-sm truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                       {part.name}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {part.category}
-                      {part.sku ? ` · ${part.sku}` : ""}
+                    </h3>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5 capitalize">
+                      {part.category} {part.sku ? `· ${part.sku}` : ""}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0 ${
+                      isCritical
+                        ? "bg-red-100 text-red-700"
+                        : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
                     {part.quantity_in_stock} / {part.reorder_level}
                   </span>
                 </div>
 
-                <div className="mt-4 w-full bg-gray-100 rounded-full h-2">
+                <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
                   <div
-                    className={`h-2 rounded-full ${stockPct > 60 ? "bg-amber-500" : "bg-red-500"}`}
-                    style={{ width: `${stockPct}%` }}
+                    className={`h-1.5 rounded-full transition-all ${
+                      isCritical ? "bg-red-600" : stockPct < 50 ? "bg-red-500" : "bg-amber-500"
+                    }`}
+                    style={{ width: `${Math.max(stockPct, 5)}%` }}
                   />
                 </div>
 
-                <div className="mt-3 flex items-center justify-between text-sm">
-                  <span className="text-gray-600">
+                <div className="flex items-center justify-between text-xs mb-4">
+                  <span className="font-extrabold text-slate-900 tabular-nums">
                     ₱{Number(part.unit_price).toLocaleString()}
                   </span>
-                  {stockPct > 60 ? (
-                    <span className="text-amber-600 text-xs font-semibold">
-                      Low
-                    </span>
-                  ) : (
-                    <span className="text-red-600 text-xs font-semibold">
-                      Critical
-                    </span>
-                  )}
+                  <span
+                    className={`text-[11px] font-bold ${
+                      isCritical ? "text-red-600" : "text-amber-600"
+                    }`}
+                  >
+                    {isCritical ? "Out of Stock" : "Low Stock"}
+                  </span>
                 </div>
 
-                <div className="mt-4 flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <ArrowLeftRight className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Restock qty"
-                      value={qty || ""}
-                      onChange={(e) =>
-                        setRestockQty({
-                          ...restockQty,
-                          [part.id]: parseInt(e.target.value, 10) || 0,
-                        })
-                      }
-                      className="w-full rounded-xl border border-gray-300 pl-9 pr-3 py-2.5 text-sm font-medium focus:border-gray-900 focus:outline-none transition"
-                    />
-                  </div>
+                <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Qty to add"
+                    value={qty || ""}
+                    onChange={(e) =>
+                      setRestockQty({
+                        ...restockQty,
+                        [part.id]: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
+                  />
                   <button
                     onClick={() => handleRestock(part)}
                     disabled={restocking === part.id || qty <= 0}
-                    className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 transition disabled:opacity-40"
+                    className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-40 shrink-0"
                   >
-                    {restocking === part.id ? "..." : "Restock"}
+                    {restocking === part.id ? "Restocking..." : "Restock"}
                   </button>
                 </div>
               </motion.div>
@@ -163,15 +189,6 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
           })}
         </div>
       )}
-
-      <div className="mt-8 flex justify-end">
-        <button
-          onClick={() => onNavigate?.("inventory")}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition"
-        >
-          <Package size={16} /> Go to full inventory
-        </button>
-      </div>
     </div>
   );
 };

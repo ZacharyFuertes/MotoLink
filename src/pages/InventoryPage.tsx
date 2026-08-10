@@ -1,36 +1,33 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowUpDown,
   Plus,
   Search,
   Edit2,
   Trash2,
   AlertCircle,
   Download,
-  ArrowLeft,
   Lock,
   X,
   Upload,
-  Save,
   Package,
-  Zap,
+  DollarSign,
+  AlertTriangle,
 } from "lucide-react";
-import { useLanguage } from "../contexts/LanguageContext";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { imageService } from "../services/imageService";
 import { Part } from "../types";
 
 const categoryColors: Record<string, string> = {
-  brakes: "from-red-500 to-red-600",
-  tires: "from-gray-500 to-gray-600",
-  oils: "from-yellow-500 to-yellow-600",
-  electrical: "from-blue-500 to-blue-600",
-  suspension: "from-purple-500 to-purple-600",
-  exhaust: "from-orange-500 to-orange-600",
-  filters: "from-green-500 to-green-600",
-  other: "from-slate-500 to-slate-600",
+  brakes: "#ef4444",
+  tires: "#64748b",
+  oils: "#f59e0b",
+  electrical: "#3b82f6",
+  suspension: "#8b5cf6",
+  exhaust: "#f97316",
+  filters: "#10b981",
+  other: "#64748b",
 };
 
 type SortOption = "name" | "price-high" | "price-low" | "stock-low" | "popularity";
@@ -57,8 +54,7 @@ interface PartFormData {
   image_url: string;
 }
 
-const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
-  const { t } = useLanguage();
+const InventoryPage: React.FC<InventoryPageProps> = () => {
   const { user, canManageInventory } = useAuth();
   const [parts, setParts] = useState<Part[]>([]);
   const [filters, setFilters] = useState<InventoryFilters>({
@@ -104,8 +100,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
     }
   };
 
-
-
   // Add part handler
   const handleAddPart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +125,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         setParts([...parts, newPart]);
         setShowAddForm(false);
         resetForm();
-        alert("Part added successfully!");
       }
     } catch (err) {
       console.error("Error adding part:", err);
@@ -152,7 +145,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
     try {
       setSaving(true);
 
-      // If image URL changed and old image exists, delete it from Supabase Storage
       if (
         formData.image_url !== selectedPart.image_url &&
         selectedPart.image_url
@@ -175,7 +167,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         setShowEditForm(false);
         setSelectedPart(null);
         resetForm();
-        alert("Part updated successfully!");
       }
     } catch (err) {
       console.error("Error updating part:", err);
@@ -192,7 +183,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
     try {
       setSaving(true);
 
-      // Delete image from Supabase Storage if it exists
       if (selectedPart.image_url) {
         await imageService.deletePartImage(selectedPart.image_url);
       }
@@ -202,7 +192,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         setParts(parts.filter((p) => p.id !== selectedPart.id));
         setShowDeleteConfirm(false);
         setSelectedPart(null);
-        alert("Part deleted successfully!");
       }
     } catch (err) {
       console.error("Error deleting part:", err);
@@ -234,11 +223,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        // Show preview immediately
         const previewUrl = URL.createObjectURL(file);
         setImagePreview(previewUrl);
 
-        // Upload to Supabase Storage
         const uploadedUrl = await imageService.uploadPartImage(
           file,
           formData.name || "part",
@@ -287,7 +274,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
       return matchesSearch && matchesCategory && matchesLowStock;
     });
 
-    // Apply sorting
     const sorted = [...filtered];
     switch (filters.sortBy) {
       case "price-high":
@@ -300,8 +286,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         sorted.sort((a, b) => a.quantity_in_stock - b.quantity_in_stock);
         break;
       case "popularity":
-        // Popularity score: higher price + lower remaining stock = more popular
-        // Items that sell well have high price and low stock relative to reorder level
         sorted.sort((a, b) => {
           const aScore = a.unit_price * (1 + Math.max(0, a.reorder_level - a.quantity_in_stock));
           const bScore = b.unit_price * (1 + Math.max(0, b.reorder_level - b.quantity_in_stock));
@@ -318,6 +302,17 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
   }, [parts, filters]);
 
   const categories = Array.from(new Set(parts.map((p) => p.category)));
+  const isOwner = canManageInventory();
+
+  // Summary statistics
+  const totalValue = useMemo(
+    () => parts.reduce((sum, p) => sum + p.unit_price * p.quantity_in_stock, 0),
+    [parts],
+  );
+  const lowStockCount = useMemo(
+    () => parts.filter((p) => p.quantity_in_stock <= p.reorder_level).length,
+    [parts],
+  );
 
   const handleExportCSV = () => {
     const csv = [
@@ -351,17 +346,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
     a.click();
   };
 
-  const isOwner = canManageInventory();
-
-  // ── Shared input class for the brutalist theme ──
   const inputClass =
-    "w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl";
+    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition";
   const labelClass =
-    "block text-xs font-semibold text-gray-500 mb-2";
+    "block text-[11px] font-bold text-slate-600 mb-1.5";
 
-  // ── Reusable form fields component ──
   const renderFormFields = () => (
-    <>
+    <div className="space-y-4">
       {/* Image Upload */}
       <div>
         <label className={labelClass}>Part Image</label>
@@ -370,13 +361,13 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-full h-44 object-cover border border-gray-300 mb-2"
+              className="w-full h-40 object-cover rounded-xl border border-slate-200 mb-2"
             />
           ) : (
-            <div className="w-full h-44 bg-[#f5f5f5] border border-gray-200 flex flex-col items-center justify-center mb-2 gap-2">
-              <Upload className="w-8 h-8 text-slate-400" />
-              <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">
-                UPLOAD IMAGE
+            <div className="w-full h-40 bg-slate-50 border border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center mb-2 gap-2">
+              <Upload className="w-6 h-6 text-slate-400" />
+              <span className="text-xs font-semibold text-slate-500">
+                Click or drag to upload image
               </span>
             </div>
           )}
@@ -386,9 +377,6 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onChange={handleImageChange}
             className="absolute inset-0 opacity-0 cursor-pointer"
           />
-          <p className="text-[9px] text-gray-400 tracking-widest uppercase font-bold">
-            Click or drag to upload
-          </p>
         </div>
       </div>
 
@@ -449,7 +437,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onChange={(e) =>
               setFormData({
                 ...formData,
-                unit_price: parseFloat(e.target.value),
+                unit_price: parseFloat(e.target.value) || 0,
               })
             }
             className={inputClass}
@@ -460,28 +448,28 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
       {/* Quantity & Reorder */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={labelClass}>Quantity in Stock</label>
+          <label className={labelClass}>In Stock</label>
           <input
             type="number"
             value={formData.quantity_in_stock}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                quantity_in_stock: parseInt(e.target.value),
+                quantity_in_stock: parseInt(e.target.value) || 0,
               })
             }
             className={inputClass}
           />
         </div>
         <div>
-          <label className={labelClass}>Reorder Level</label>
+          <label className={labelClass}>Reorder Threshold</label>
           <input
             type="number"
             value={formData.reorder_level}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                reorder_level: parseInt(e.target.value),
+                reorder_level: parseInt(e.target.value) || 0,
               })
             }
             className={inputClass}
@@ -498,123 +486,144 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             setFormData({ ...formData, description: e.target.value })
           }
           rows={3}
-          className={`${inputClass} normal-case`}
-          style={{ textTransform: "none" }}
+          className={`${inputClass} resize-y`}
         />
       </div>
-    </>
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] p-6 sm:p-8">
-      {/* Back Button */}
-      <motion.button
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        onClick={() => onNavigate && onNavigate(user?.role === "admin" ? "admin-dashboard" : "dashboard")}
-        className="mb-8 flex items-center gap-3 text-slate-900 hover:text-gray-900 transition-colors group"
-      >
-        <div className="w-10 h-10 bg-white border border-gray-300 group-hover:border-slate-900 flex items-center justify-center transition">
-          <ArrowLeft size={18} strokeWidth={1.5} />
-        </div>
-        <span className="text-[10px] font-bold tracking-[0.2em] uppercase">Back to Dashboard</span>
-      </motion.button>
-
-      {/* Role Info Banner */}
-      {!isOwner && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 bg-red-50 border border-slate-200 p-5 flex items-start gap-4"
-        >
-          <Lock className="w-5 h-5 text-slate-900 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-[10px] font-bold text-slate-900 mb-1 tracking-[0.2em] uppercase">
-              Read-Only Access
-            </h3>
-            <p className="text-gray-500 text-xs font-light">
-              You are viewing inventory in read-only mode. Only shop owners can
-              add, edit, or delete parts.
-            </p>
-          </div>
-        </motion.div>
-      )}
-
-
-
-
+    <div className="space-y-6">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
-        <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
-              <Package size={28} className="text-white" strokeWidth={1.5} />
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            Inventory Management
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {isOwner ? "Manage parts catalog, track stock levels, and set reorder alerts." : "View shop parts catalog."}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
+          </button>
+          {isOwner && (
+            <button
+              onClick={() => {
+                resetForm();
+                setShowAddForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            >
+              <Plus className="w-4 h-4" />
+              Add Part
+            </button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Read-Only Warning */}
+      {!isOwner && (
+        <div className="p-4 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-700 text-xs font-medium flex items-center gap-3">
+          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>You are in read-only mode. Only shop owners can add or edit inventory items.</span>
+        </div>
+      )}
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="stat-card p-5"
+          style={{ "--stat-accent": "#8b5cf6" } as React.CSSProperties}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+              <Package className="w-4.5 h-4.5" />
             </div>
             <div>
-              <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5">
-                <div className="w-6 h-[1px] bg-slate-900" /> MANAGEMENT
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-gray-900 uppercase tracking-wide leading-none">
-                {t("inventory.title")}
-              </h1>
-              <p className="text-gray-500 text-xs font-light tracking-wide mt-1">
-                {isOwner ? "Manage" : "View"} {filteredParts.length} /{" "}
-                {parts.length} parts in inventory
-              </p>
+              <p className="text-xs font-medium text-slate-500">Total Items</p>
+              <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{parts.length}</p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 bg-transparent border border-gray-300 hover:border-gray-400 text-gray-500 hover:text-gray-900 px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
-            {/* Add Part Button - Only for Owners (TODO: implemented — hidden for mechanics) */}
-            {isOwner && (
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowAddForm(true);
-                }}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-3 transition text-[10px] font-bold tracking-[0.15em] uppercase border border-slate-900"
-                title="Add new part"
-              >
-                <Plus className="w-5 h-5" />
-                {t("inventory.add_part")}
-              </button>
-            )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="stat-card p-5"
+          style={{ "--stat-accent": "#10b981" } as React.CSSProperties}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <DollarSign className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Total Inventory Value</p>
+              <p className="text-2xl font-extrabold text-slate-900 tabular-nums">₱{totalValue.toLocaleString()}</p>
+            </div>
           </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="stat-card p-5"
+          style={{ "--stat-accent": "#ef4444" } as React.CSSProperties}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
+              <AlertTriangle className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Low Stock Alerts</p>
+              <p className="text-2xl font-extrabold text-slate-900 tabular-nums">{lowStockCount}</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Filters Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="dashboard-card p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
+      >
+        <div className="flex-1 w-full relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by part name or SKU..."
+            value={filters.searchTerm}
+            onChange={(e) =>
+              setFilters({ ...filters, searchTerm: e.target.value })
+            }
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition"
+          />
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 border border-gray-200 rounded-xl">
-          <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={t("inventory.search")}
-              value={filters.searchTerm}
-              onChange={(e) =>
-                setFilters({ ...filters, searchTerm: e.target.value })
-              }
-              className="w-full bg-[#f5f5f5] text-gray-900 pl-12 pr-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl"
-            />
-          </div>
-
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <select
             value={filters.category || ""}
             onChange={(e) =>
               setFilters({ ...filters, category: e.target.value || undefined })
             }
-            className="bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl"
+            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-violet-500 transition"
           >
-            <option value="">{t("inventory.category")} - All</option>
+            <option value="">All Categories</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -622,78 +631,72 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             ))}
           </select>
 
-          {/* Sort By */}
-          <div className="relative flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
-            <select
-              value={filters.sortBy}
-              onChange={(e) =>
-                setFilters({ ...filters, sortBy: e.target.value as SortOption })
-              }
-              className={`bg-[#f5f5f5] text-gray-900 pl-9 pr-4 py-3 border focus:outline-none transition text-xs font-bold tracking-widest uppercase rounded-xl ${
-                filters.sortBy === "popularity"
-                  ? "border-slate-900 text-slate-900"
-                  : "border-gray-300 focus:border-slate-500"
-              }`}
-            >
-              <option value="name">Name A-Z</option>
-              <option value="price-high">Price: High → Low</option>
-              <option value="price-low">Price: Low → High</option>
-              <option value="stock-low">Stock: Low → High</option>
-              <option value="popularity">★ Popularity</option>
-            </select>
-          </div>
+          <select
+            value={filters.sortBy}
+            onChange={(e) =>
+              setFilters({ ...filters, sortBy: e.target.value as SortOption })
+            }
+            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-violet-500 transition"
+          >
+            <option value="name">Name A–Z</option>
+            <option value="price-high">Price: High → Low</option>
+            <option value="price-low">Price: Low → High</option>
+            <option value="stock-low">Stock: Low → High</option>
+            <option value="popularity">Popularity</option>
+          </select>
 
           <button
             onClick={() =>
               setFilters({ ...filters, showLowStock: !filters.showLowStock })
             }
-            className={`px-5 py-3 text-[9px] font-bold uppercase tracking-widest transition-all border ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               filters.showLowStock
-                ? "bg-red-50 text-slate-900 border-slate-900"
-                : "text-gray-500 border-gray-200 hover:bg-white hover:text-gray-600"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
             }`}
           >
-            {t("inventory.low_stock")}
+            Low Stock Only
           </button>
         </div>
       </motion.div>
 
       {/* Parts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         <AnimatePresence>
           {filteredParts.map((part, index) => {
             const isLowStock = part.quantity_in_stock <= part.reorder_level;
             return (
               <motion.div
                 key={part.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.04 }}
-                className="group bg-white border border-gray-200 hover:border-gray-300 transition flex flex-col"
+                className="dashboard-card overflow-hidden flex flex-col"
               >
-                {/* Image */}
-                <div className="relative aspect-[4/3] bg-[#f5f5f5] border-b border-gray-200 overflow-hidden">
+                {/* Image Frame */}
+                <div className="relative aspect-[16/10] bg-slate-100 border-b border-slate-100 overflow-hidden">
                   {part.image_url ? (
                     <img
                       src={part.image_url}
                       alt={part.name}
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500 group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Zap className="w-12 h-12 text-slate-400" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+                      <Package className="w-10 h-10 text-slate-300" />
                     </div>
                   )}
                   {/* Badges */}
                   <div className="absolute top-3 right-3 flex flex-col gap-1.5">
                     {isLowStock && (
-                      <span className="bg-red-50 border border-slate-900 text-slate-900 text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase flex items-center gap-1">
-                        <AlertCircle size={10} /> LOW STOCK
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+                        <AlertCircle size={10} /> Low Stock
                       </span>
                     )}
-                    <span className="bg-white border border-gray-300 text-gray-500 text-[8px] font-bold px-2.5 py-1 tracking-widest uppercase">
+                  </div>
+                  <div className="absolute bottom-3 left-3">
+                    <span className="bg-white/90 backdrop-blur-sm text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm capitalize">
                       {part.category}
                     </span>
                   </div>
@@ -701,41 +704,35 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
 
                 {/* Content */}
                 <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-black text-gray-900 uppercase leading-tight tracking-wide group-hover:text-red-600 transition-colors truncate">
-                        {part.name}
-                      </h3>
-                      <p className="text-[9px] text-gray-400 mt-1 font-bold tracking-widest uppercase">
-                        SKU: {part.sku}
-                      </p>
-                    </div>
-                  </div>
+                  <h3 className="font-bold text-slate-900 text-sm truncate mb-0.5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    {part.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono mb-3">
+                    SKU: {part.sku}
+                  </p>
 
                   {part.description && (
-                    <p className="text-slate-500 text-xs font-light leading-relaxed mb-4 line-clamp-2">
+                    <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 mb-4">
                       {part.description}
                     </p>
                   )}
 
                   {/* Stock Bar */}
-                  <div className="bg-[#f5f5f5] border border-gray-200 p-3 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">
-                        {t("inventory.stock")}
-                      </span>
+                  <div className="mt-auto pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                      <span className="text-slate-400 font-medium">Stock Status</span>
                       <span
-                        className={`text-xs font-black ${
-                          isLowStock ? "text-slate-900" : "text-emerald-600"
+                        className={`font-bold tabular-nums ${
+                          isLowStock ? "text-red-600" : "text-emerald-600"
                         }`}
                       >
-                        {part.quantity_in_stock}
+                        {part.quantity_in_stock} units
                       </span>
                     </div>
-                    <div className="w-full bg-gray-100 h-1">
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
-                        className={`h-1 transition-all ${
-                          isLowStock ? "bg-slate-900" : "bg-emerald-600"
+                        className={`h-1.5 rounded-full transition-all ${
+                          isLowStock ? "bg-red-500" : "bg-emerald-500"
                         }`}
                         style={{
                           width: `${Math.min((part.quantity_in_stock / Math.max(part.reorder_level * 3, 1)) * 100, 100)}%`,
@@ -745,16 +742,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                   </div>
 
                   {/* Price & Actions */}
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-2xl font-black text-slate-900">
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                    <span className="text-lg font-extrabold text-slate-900 tabular-nums">
                       ₱{part.unit_price.toLocaleString()}
                     </span>
-                    {/* CRUD Buttons - Only visible to Owners (TODO: implemented — mechanics see nothing, pure read-only) */}
                     {isOwner && (
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => openEditForm(part)}
-                          className="w-9 h-9 flex items-center justify-center border border-gray-300 text-gray-500 hover:border-slate-900 hover:text-red-600 hover:bg-red-50 transition"
+                          className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
                           title="Edit part"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
@@ -764,7 +760,7 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
                             setSelectedPart(part);
                             setShowDeleteConfirm(true);
                           }}
-                          className="w-9 h-9 flex items-center justify-center border border-gray-300 text-gray-500 hover:border-slate-900 hover:text-red-600 hover:bg-red-50 transition"
+                          className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition"
                           title="Delete part"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -781,19 +777,15 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
 
       {/* Empty State */}
       {filteredParts.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center justify-center py-20 border border-gray-200 bg-white mt-6"
-        >
-          <Package className="w-16 h-16 text-slate-400 mb-4" strokeWidth={1} />
-          <p className="text-gray-500 text-[10px] tracking-widest uppercase font-bold">
+        <div className="dashboard-card p-16 text-center">
+          <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 text-sm font-semibold">
             No parts found matching your filters
           </p>
-        </motion.div>
+        </div>
       )}
 
-      {/* ══════════ ADD PART MODAL ══════════ */}
+      {/* Add Part Modal */}
       <AnimatePresence>
         {showAddForm && (
           <motion.div
@@ -804,55 +796,39 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onClick={() => setShowAddForm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-slate-900 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-xl flex flex-col"
+              className="dashboard-card max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl"
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-slate-900 flex items-center justify-center shrink-0">
-                    <Plus size={24} className="text-white" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                      <div className="w-6 h-[1px] bg-slate-900" /> NEW ENTRY
-                    </div>
-                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wide leading-none">
-                      Add Part
-                    </h2>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Add Inventory Part
+                </h3>
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="p-2 border border-gray-300 hover:bg-gray-100 transition text-gray-500 hover:text-gray-900"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
                 >
-                  <X size={20} strokeWidth={1} />
+                  <X size={18} />
                 </button>
               </div>
-
-              {/* Modal Body */}
-              <form onSubmit={handleAddPart} className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+              <form onSubmit={handleAddPart} className="space-y-5">
                 {renderFormFields()}
-
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-slate-900 disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    {saving ? "SAVING..." : "SAVE PART"}
-                  </button>
+                <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Add Part"}
                   </button>
                 </div>
               </form>
@@ -861,9 +837,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         )}
       </AnimatePresence>
 
-      {/* ══════════ EDIT PART MODAL ══════════ */}
+      {/* Edit Part Modal */}
       <AnimatePresence>
-        {showEditForm && selectedPart && (
+        {showEditForm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -872,55 +848,39 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onClick={() => setShowEditForm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-slate-900 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-xl flex flex-col"
+              className="dashboard-card max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl"
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-slate-900 flex items-center justify-center shrink-0">
-                    <Edit2 size={22} className="text-white" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                      <div className="w-6 h-[1px] bg-slate-900" /> EDIT ENTRY
-                    </div>
-                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-wide leading-none truncate max-w-[300px]">
-                      {selectedPart.name}
-                    </h2>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Edit Part — {selectedPart?.name}
+                </h3>
                 <button
                   onClick={() => setShowEditForm(false)}
-                  className="p-2 border border-gray-300 hover:bg-gray-100 transition text-gray-500 hover:text-gray-900"
+                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
                 >
-                  <X size={20} strokeWidth={1} />
+                  <X size={18} />
                 </button>
               </div>
-
-              {/* Modal Body */}
-              <form onSubmit={handleEditPart} className="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+              <form onSubmit={handleEditPart} className="space-y-5">
                 {renderFormFields()}
-
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-slate-900 disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    {saving ? "UPDATING..." : "UPDATE PART"}
-                  </button>
+                <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowEditForm(false)}
-                    className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </form>
@@ -929,9 +889,9 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
         )}
       </AnimatePresence>
 
-      {/* ══════════ DELETE CONFIRMATION MODAL ══════════ */}
+      {/* Delete Confirmation Modal */}
       <AnimatePresence>
-        {showDeleteConfirm && selectedPart && (
+        {showDeleteConfirm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -940,51 +900,37 @@ const InventoryPage: React.FC<InventoryPageProps> = ({ onNavigate }) => {
             onClick={() => setShowDeleteConfirm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#f5f5f5] border border-gray-200 border-t-2 border-t-slate-900 max-w-md w-full shadow-xl"
+              className="dashboard-card max-w-md w-full p-6 shadow-2xl"
             >
-              {/* Header */}
-              <div className="px-8 py-6 border-b border-gray-200 bg-white">
-                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase mb-2">
-                  <div className="w-6 h-[1px] bg-slate-900" /> CONFIRM DELETE
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4" />
                 </div>
-                <h3 className="text-xl font-black text-gray-900 uppercase tracking-wide">
-                  Delete Part?
+                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Delete Part
                 </h3>
               </div>
-
-              {/* Body */}
-              <div className="px-8 py-6">
-                <p className="text-gray-500 text-sm font-light mb-2">
-                  Are you sure you want to delete:
-                </p>
-                <p className="text-gray-900 font-black text-lg uppercase tracking-wide mb-6">
-                  {selectedPart.name}
-                </p>
-                <p className="text-gray-400 text-xs font-light">
-                  This action cannot be undone. The part and its image will be permanently removed.
-                </p>
-              </div>
-
-              {/* Footer */}
-              <div className="flex gap-3 px-8 py-6 border-t border-gray-200">
+              <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                Are you sure you want to delete <span className="font-bold text-slate-800">{selectedPart?.name}</span>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={handleDeletePart}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase border border-slate-900 disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50"
                 >
-                  <Trash2 size={16} />
-                  {saving ? "DELETING..." : "DELETE"}
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 bg-transparent border border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-bold px-6 py-4 transition text-[10px] tracking-[0.2em] uppercase"
-                >
-                  Cancel
+                  {saving ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </motion.div>
