@@ -1,6 +1,19 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Wrench, CheckCircle, XCircle, Mail } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Mail,
+  Calendar,
+  User,
+  Car,
+  Plus,
+  X,
+  Search,
+  Phone,
+  Clock,
+  Wrench,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { Appointment, AppointmentStatus } from "../types";
@@ -17,26 +30,31 @@ interface Mechanic {
 
 const statusConfig: Record<
   AppointmentStatus,
-  { color: string; label: string }
+  { color: string; dot: string; label: string }
 > = {
   pending: {
-    color: "bg-red-50 border-red-200 text-red-700",
+    color: "bg-amber-50 text-amber-700 border border-amber-200/60",
+    dot: "bg-amber-500",
     label: "Pending",
   },
   confirmed: {
-    color: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    color: "bg-indigo-50 text-indigo-700 border border-indigo-200/60",
+    dot: "bg-indigo-500",
     label: "Confirmed",
   },
   in_progress: {
-    color: "bg-purple-50 border-purple-200 text-purple-700",
+    color: "bg-violet-50 text-violet-700 border border-violet-200/60",
+    dot: "bg-violet-500",
     label: "In Progress",
   },
   completed: {
-    color: "bg-gray-50 border-gray-200 text-gray-500",
+    color: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+    dot: "bg-emerald-500",
     label: "Completed",
   },
   cancelled: {
-    color: "bg-gray-50 border-gray-200 text-gray-500",
+    color: "bg-slate-100 text-slate-500 border border-slate-200/60",
+    dot: "bg-slate-400",
     label: "Cancelled",
   },
 };
@@ -49,21 +67,18 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
-  // Use today's date for default booking but don't filter the list by it
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
   const selectedSlot = "09:00 AM";
 
   const [showBookingForm, setShowBookingForm] = useState(false);
-  const [loadingMechanics, setLoadingMechanics] = useState(false);
   const [saving, setSaving] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
 
   const [jobOrderAppointment, setJobOrderAppointment] =
     useState<Appointment | null>(null);
 
-  // ── Toast notification state ────────────────────────────────────────────
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -124,7 +139,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       .subscribe();
 
     return () => {
-      // ✅ FIX: Call unsubscribe before removeChannel to properly clean up subscription
       channel.unsubscribe();
       fetchAbortRef.current?.abort();
       supabase.removeChannel(channel);
@@ -137,7 +151,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   const fetchMechanics = async () => {
     try {
-      setLoadingMechanics(true);
       let query = supabase
         .from("users")
         .select("id, name, email")
@@ -153,8 +166,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     } catch (err) {
       console.error("Error fetching mechanics:", err);
       setMechanics([]);
-    } finally {
-      setLoadingMechanics(false);
     }
   };
 
@@ -176,7 +187,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
 
-        // Job order handoff: create a job order once work is confirmed or started
         if (
           (newStatus === "confirmed" || newStatus === "in_progress") &&
           appointment.status !== "completed" &&
@@ -186,23 +196,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           await jobOrderService.ensureJobOrderForAppointment(appointment);
         }
 
-        // Workflow Enforcements
         if (newStatus === "completed") {
           if (user.role !== "owner" && user.role !== "admin") {
-            alert(
-              "Only administrators can finalize appointments for the dashboard.",
-            );
+            alert("Only administrators can finalize appointments.");
             return;
           }
           if (appointment.status !== "in_progress") {
-            alert(
-              "The mechanic must mark the work as complete before you can finalize it.",
-            );
+            alert("The mechanic must mark the work as completed before finalizing.");
             return;
           }
         }
 
-        // Handle stock deduction when finalizing (completed)
         if (newStatus === "completed" && appointment.status !== "completed") {
           const parts = appointment.parts || [];
           const resolvedParts: { name: string; quantity: number; unit_price: number }[] = [];
@@ -235,8 +239,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             }
           }
 
-          // ── Fire service-completion email ────────────────────────────────
-          // Fetch customer email (joins may not include it, so fetch directly)
           let customerEmail = "";
           let vehicleMake = "";
           let vehicleModel = "";
@@ -268,13 +270,11 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             }
           }
 
-          // Fallback: parse vehicle from description if DB fetch failed
           if (!vehicleMake && appointment.description) {
             vehicleMake = appointment.description.split(" - ")[0] || "";
           }
 
           if (customerEmail) {
-            // Fire-and-forget so UI isn't blocked
             sendServiceCompletionEmail({
               appointmentId: appointment.id,
               customerName: (appointment as any).customer?.name || customerEmail,
@@ -290,22 +290,19 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             })
               .then((result) => {
                 if (result.skipped) {
-                  showToast("Email skipped – customer opted out of notifications.", "info");
+                  showToast("Email skipped – customer opted out.", "info");
                 } else if (result.success) {
-                  showToast(`✅ Service completion email sent to ${customerEmail}`);
+                  showToast(`Completion email sent to ${customerEmail}`);
                 } else {
-                  showToast(`⚠️ Email delivery failed: ${result.error}`, "error");
+                  showToast(`Email delivery failed: ${result.error}`, "error");
                 }
               })
               .catch(() =>
-                showToast("⚠️ Could not send notification email.", "error")
+                showToast("Could not send notification email.", "error")
               );
-          } else {
-            showToast("No customer email on file – notification skipped.", "info");
           }
         }
 
-        // Complete the linked job order (stock is already deducted above)
         if (newStatus === "completed" && appointment.status !== "completed") {
           const jobOrder =
             await jobOrderService.ensureJobOrderForAppointment(appointment);
@@ -319,7 +316,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               })
               .eq("id", jobOrder.id);
 
-            // Generate invoice from the completed job order
             const invoice = await invoiceService.createInvoiceForJobOrder({
               ...jobOrder,
               status: "completed",
@@ -328,8 +324,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               showToast(
                 `Invoice ₱${Number(invoice.total_amount).toLocaleString()} generated.`,
               );
-            } else {
-              showToast("Invoice generation failed.", "error");
             }
           }
         }
@@ -401,10 +395,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         service_type: "Oil Change",
         mechanic_id: "",
       });
-      alert("Appointment booked successfully!");
+      showToast("Appointment booked successfully!");
     } catch (error) {
       console.error("Error booking appointment:", error);
-      alert("Failed to book appointment. Please try again.");
+      alert("Failed to book appointment.");
     } finally {
       setSaving(false);
     }
@@ -412,386 +406,475 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   const isOwner = user?.role === "owner" || user?.role === "admin";
   const isCustomer = user?.role === "customer";
-  const canBookAppointments = isCustomer;
+  const canBookAppointments = isCustomer || isOwner;
   const canUpdateStatus = isOwner;
 
-  const upcomingAppointments = filteredAppointments.filter(
-    (a) =>
-      a.status === "pending" ||
-      a.status === "confirmed" ||
-      a.status === "in_progress",
+  const [filterStatus, setFilterStatus] = useState<AppointmentStatus | "all">(
+    "all",
   );
-  const pastAppointments = filteredAppointments.filter(
-    (a) => a.status === "completed" || a.status === "cancelled",
-  );
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const todayKey = new Date().toISOString().split("T")[0];
+
+  const statCards = [
+    {
+      label: "Today's Appointments",
+      value: filteredAppointments.filter((a) => a.scheduled_date === todayKey)
+        .length,
+      icon: Calendar,
+      tile: "bg-violet-50 text-violet-600",
+    },
+    {
+      label: "Pending",
+      value: filteredAppointments.filter((a) => a.status === "pending").length,
+      icon: Clock,
+      tile: "bg-amber-50 text-amber-600",
+    },
+    {
+      label: "In Progress",
+      value: filteredAppointments.filter((a) => a.status === "in_progress")
+        .length,
+      icon: Wrench,
+      tile: "bg-fuchsia-50 text-fuchsia-600",
+    },
+    {
+      label: "Completed",
+      value: filteredAppointments.filter((a) => a.status === "completed").length,
+      icon: CheckCircle,
+      tile: "bg-emerald-50 text-emerald-600",
+    },
+  ];
+
+  const filterTabs: { key: AppointmentStatus | "all"; label: string; count: number }[] = [
+    { key: "all", label: "All", count: filteredAppointments.length },
+    ...(Object.keys(statusConfig) as AppointmentStatus[]).map((status) => ({
+      key: status,
+      label: statusConfig[status].label,
+      count: filteredAppointments.filter((a) => a.status === status).length,
+    })),
+  ];
+
+  const visibleAppointments = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    return filteredAppointments
+      .filter((a) => filterStatus === "all" || a.status === filterStatus)
+      .filter((a) => {
+        if (!q) return true;
+        const customerName = ((a as any).customer?.name || "").toLowerCase();
+        const customerPhone = ((a as any).customer?.phone || "").toLowerCase();
+        const vehicle = (a.description?.split(" - ")[0] || "").toLowerCase();
+        const service = (a.service_type || "").toLowerCase();
+        return (
+          customerName.includes(q) ||
+          customerPhone.includes(q) ||
+          vehicle.includes(q) ||
+          service.includes(q)
+        );
+      })
+      .sort(
+        (a, b) =>
+          a.scheduled_date.localeCompare(b.scheduled_date) ||
+          (a.scheduled_time || "").localeCompare(b.scheduled_time || ""),
+      );
+  }, [filteredAppointments, filterStatus, searchTerm]);
+
+  const inputClass =
+    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition";
 
   return (
-    <div className="bg-transparent">
-      {/* ── Toast notification ─────────────────────────────────── */}
+    <div className="space-y-6">
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            key="toast"
-            initial={{ opacity: 0, y: -16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -16, scale: 0.96 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-lg shadow-xl border text-sm font-semibold max-w-sm ${
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs font-bold ${
               toast.type === "success"
-                ? "bg-emerald-900/95 border-emerald-700 text-emerald-300"
+                ? "bg-emerald-900 text-emerald-200 border-emerald-700"
                 : toast.type === "error"
-                  ? "bg-red-900/95 border-red-700 text-red-300"
-                  : "bg-slate-800/95 border-slate-600 text-slate-300"
+                  ? "bg-red-900 text-red-200 border-red-700"
+                  : "bg-slate-900 text-slate-200 border-slate-700"
             }`}
           >
-            {toast.type === "success" && <CheckCircle className="w-5 h-5 flex-shrink-0 text-emerald-400" />}
-            {toast.type === "error" && <XCircle className="w-5 h-5 flex-shrink-0 text-red-400" />}
-            {toast.type === "info" && <Mail className="w-5 h-5 flex-shrink-0 text-slate-400" />}
+            {toast.type === "success" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
+            {toast.type === "error" && <XCircle className="w-4 h-4 text-red-400" />}
+            {toast.type === "info" && <Mail className="w-4 h-4 text-slate-400" />}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
-      <section className="relative w-full pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-800 to-transparent">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-12"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Clock className="w-8 h-8 text-moto-accent" />
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-gray-900">
-                {isOwner ? "Customer" : "Your"}{" "}
-                <span className="text-moto-accent">Appointments</span>
-              </h1>
-            </div>
-            <p className="text-lg text-slate-300 max-w-2xl">
-              {isOwner
-                ? "View and manage all customer appointments. Track booking statuses and assign mechanics."
-                : "Schedule service appointments, track your booking status, and select your preferred mechanic. Professional service at your convenience."}
-            </p>
-          </motion.div>
+
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            Appointments
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {isOwner ? "Manage shop booking calendar and status workflow." : "Schedule and track your service appointments."}
+          </p>
         </div>
-      </section>
+        {canBookAppointments && (
+          <button
+            onClick={() => setShowBookingForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+          >
+            <Plus className="w-4 h-4" />
+            New Appointment
+          </button>
+        )}
+      </motion.div>
 
-      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 pb-6 border-b border-gray-200">
-            <div>
-              <div className="flex items-center gap-3 text-slate-900 text-[11px] font-bold tracking-[0.2em] uppercase mb-2">
-                <div className="w-6 h-[1px] bg-slate-900" />{" "}
-                {isOwner ? "SHOP APPOINTMENTS" : "MY APPOINTMENTS"}
-              </div>
-              <h1 className="font-display text-4xl sm:text-5xl text-gray-900 uppercase tracking-wide">
-                APPOINTMENTS LIST
-              </h1>
-            </div>
-
-            {canBookAppointments && (
-              <button
-                onClick={() => setShowBookingForm(true)}
-                className="mt-4 sm:mt-0 px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold tracking-[0.2em] text-[11px] uppercase transition border border-slate-900"
+      {/* Stats Row */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        {statCards.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }}
+              className="dashboard-card p-4 flex items-center gap-3.5"
+            >
+              <div
+                className={`w-10 h-10 rounded-xl ${stat.tile} flex items-center justify-center shrink-0`}
               >
-                + NEW APPOINTMENT
-              </button>
-            )}
-          </div>
-
-          <div className="mb-12">
-            <h2 className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
-              ACTIVE & UPCOMING
-            </h2>
-            {upcomingAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 border border-gray-200 bg-white">
-                <Clock className="w-16 h-16 text-slate-400 mb-5" strokeWidth={1} />
-                <p className="text-gray-500 text-[11px] tracking-widest uppercase font-bold">
-                  NO ACTIVE APPOINTMENTS
+                <Icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-slate-500 truncate">
+                  {stat.label}
+                </p>
+                <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">
+                  {stat.value}
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                <AnimatePresence>
-                  {upcomingAppointments.map((apt) => (
-                    <motion.div
-                      key={apt.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white border border-gray-200 hover:border-gray-300 transition flex flex-col p-7"
-                    >
-                      <div className="flex items-start justify-between mb-5 pb-5 border-b border-gray-200">
-                        <div>
-                          <p className="font-display text-2xl text-gray-900 uppercase flex items-center gap-3">
-                            {new Date(apt.scheduled_date).toLocaleDateString(
-                              "en-PH",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                            <span className="text-slate-900 px-3">•</span>
-                            {apt.scheduled_time}
-                          </p>
-                          <p className="text-gray-500 text-[11px] font-bold tracking-[0.2em] uppercase mt-2">
-                            {apt.service_type}
-                          </p>
-                        </div>
-                        {canUpdateStatus ? (
-                          <div className="flex items-center gap-3">
-                            {isOwner && (
-                              <button
-                                onClick={() => setJobOrderAppointment(apt)}
-                                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest transition"
-                              >
-                                Job Order
-                              </button>
-                            )}
-                            {apt.status === "in_progress" &&
-                              isOwner && (
-                                <button
-                                  onClick={() =>
-                                    handleStatusChange(apt.id, "completed")
-                                  }
-                                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-gray-900 text-[10px] font-black uppercase tracking-widest transition shadow-lg shadow-green-900/20"
-                                >
-                                  Finalize Revenue
-                                </button>
-                              )}
-                            <select
-                              value={apt.status}
-                              onChange={(e) =>
-                                handleStatusChange(
-                                  apt.id,
-                                  e.target.value as AppointmentStatus,
-                                )
-                              }
-                              className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 border appearance-none outline-none transition cursor-pointer text-center ${statusConfig[apt.status].color}`}
-                            >
-                              {Object.entries(statusConfig).map(
-                                ([status, config]) => {
-                                  return (
-                                    <option
-                                      key={status}
-                                      value={status}
-                                      className="bg-white text-gray-900"
-                                    >
-                                      {config.label}
-                                    </option>
-                                  );
-                                },
-                              )}
-                            </select>
-                          </div>
-                        ) : (
-                          <span
-                            className={`text-[10px] font-bold tracking-widest uppercase px-4 py-2 border ${statusConfig[apt.status].color}`}
-                          >
-                            {statusConfig[apt.status].label}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 space-y-3 mb-3">
-                        {(apt as any).customer?.name && (
-                          <div className="flex items-center gap-3">
-                            <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
-                              CLIENT:
-                            </span>
-                            <span className="text-slate-400 text-sm font-medium">
-                              {(apt as any).customer.name}{" "}
-                              {(apt as any).customer.phone
-                                ? `- ${(apt as any).customer.phone}`
-                                : ""}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3">
-                          <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
-                            VEHICLE:
-                          </span>
-                          <span className="text-slate-400 text-sm font-medium">
-                            {apt.description?.split(" - ")[0] || "Unknown"}
-                          </span>
-                        </div>
-                        {apt.notes && (
-                          <div className="flex items-start gap-3 mt-3 pt-3 border-t border-slate-200">
-                            <span className="text-gray-400 text-[11px] font-bold uppercase tracking-widest min-w-[80px]">
-                              NOTES:
-                            </span>
-                            <span className="text-gray-500 text-sm font-light">
-                              {apt.notes}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
+            </motion.div>
+          );
+        })}
+      </motion.div>
 
-          {pastAppointments.length > 0 && (
-            <div>
-              <h2 className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
-                PAST & COMPLETED
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pastAppointments.map((apt) => (
-                  <div
-                    key={apt.id}
-                    className="bg-white border border-gray-200 p-6 opacity-75 hover:opacity-100 transition"
-                  >
-                    <div className="flex justify-between items-center mb-3">
-                      <p className="font-display text-gray-900 uppercase text-base">
-                        {new Date(apt.scheduled_date).toLocaleDateString(
-                          "en-PH",
-                          { month: "short", day: "numeric", year: "numeric" },
-                        )}
-                      </p>
-                      <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest border border-gray-200 px-3 py-1.5">
-                        {statusConfig[apt.status].label}
-                      </span>
-                    </div>
-                    <p className="text-gray-500 text-sm mb-2 font-bold">
-                      {apt.service_type}
-                    </p>
-                    {(apt as any).customer?.name && (
-                      <p className="text-slate-500 text-sm">
-                        {(apt as any).customer.name}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+      {/* Filters Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="dashboard-card p-4 flex flex-col gap-4"
+      >
+        <div className="relative w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by customer, vehicle, service or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition"
+          />
         </div>
-      </section>
+        <div className="flex flex-wrap items-center gap-2">
+          {filterTabs.map((tab) => {
+            const active = filterStatus === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setFilterStatus(tab.key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  active
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${
+                    active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
 
+      {/* Appointments List */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="dashboard-card overflow-hidden"
+      >
+        <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+              <Calendar size={16} />
+            </div>
+            <h2
+              className="text-sm font-bold text-slate-900"
+              style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+            >
+              Appointments
+            </h2>
+          </div>
+          <span className="text-xs font-semibold text-slate-400">
+            {visibleAppointments.length}{" "}
+            {visibleAppointments.length === 1 ? "appointment" : "appointments"}
+          </span>
+        </div>
+
+        {visibleAppointments.length === 0 ? (
+          <div className="p-16 text-center">
+            <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-500 text-xs font-semibold">
+              No appointments match these filters
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            <AnimatePresence initial={false}>
+              {visibleAppointments.map((apt) => {
+                const conf = statusConfig[apt.status];
+                return (
+                  <motion.div
+                    key={apt.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                  >
+                    {/* Left: status + service + customer */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${conf.color}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${conf.dot}`} />
+                          {conf.label}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 tabular-nums">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          {new Date(apt.scheduled_date).toLocaleDateString(
+                            "en-PH",
+                            { month: "short", day: "numeric", year: "numeric" },
+                          )}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          {apt.scheduled_time}
+                        </span>
+                      </div>
+
+                      <p
+                        className="font-bold text-slate-900 text-sm mt-2"
+                        style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+                      >
+                        {apt.service_type}
+                      </p>
+
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-xs text-slate-500">
+                        {(apt as any).customer?.name && (
+                          <span className="flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-slate-400" />
+                            {(apt as any).customer.name}
+                          </span>
+                        )}
+                        {(apt as any).customer?.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            {(apt as any).customer.phone}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Car className="w-3.5 h-3.5 text-slate-400" />
+                          {apt.description?.split(" - ")[0] || "Vehicle"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: actions */}
+                    {canUpdateStatus && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isOwner && (
+                          <button
+                            onClick={() => setJobOrderAppointment(apt)}
+                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"
+                          >
+                            Job Order
+                          </button>
+                        )}
+                        {apt.status === "in_progress" && isOwner && (
+                          <button
+                            onClick={() => handleStatusChange(apt.id, "completed")}
+                            className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Finalize
+                          </button>
+                        )}
+                        <select
+                          value={apt.status}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              apt.id,
+                              e.target.value as AppointmentStatus,
+                            )
+                          }
+                          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-violet-500 transition"
+                        >
+                          {Object.entries(statusConfig).map(([status, config]) => (
+                            <option key={status} value={status}>
+                              {config.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Booking Modal */}
       <AnimatePresence>
         {showBookingForm && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setShowBookingForm(false);
-            }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowBookingForm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-xl border border-gray-200 border-t-2 border-t-slate-900 w-full max-w-md shadow-xl overflow-hidden"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
             >
-              <div className="px-6 py-5 border-b border-gray-200 bg-white flex items-center justify-between">
-                <h3 className="text-xl font-display font-bold text-gray-900 uppercase tracking-wide">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Book Appointment
                 </h3>
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="text-gray-500 hover:text-gray-900 transition"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
                 >
-                  &times;
+                  <X size={18} />
                 </button>
               </div>
-              <div className="px-6 py-6 space-y-4">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold"
-                />
-                <input
-                  type="text"
-                  placeholder="Customer Name"
-                  value={formData.customer_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customer_name: e.target.value })
-                  }
-                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={formData.customer_phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customer_phone: e.target.value })
-                  }
-                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Vehicle (Make/Model)"
-                  value={formData.vehicle_make}
-                  onChange={(e) =>
-                    setFormData({ ...formData, vehicle_make: e.target.value })
-                  }
-                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold placeholder:text-gray-400"
-                />
-                <select
-                  value={formData.service_type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, service_type: e.target.value })
-                  }
-                  className="w-full bg-white text-gray-900 px-4 py-3 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold"
-                >
-                  <option>Oil Change</option>
-                  <option>Brake Service</option>
-                  <option>Tire Replacement</option>
-                  <option>Engine Diagnostic</option>
-                  <option>General Maintenance</option>
-                  <option>Custom Work</option>
-                </select>
-                <div className="bg-white p-4 border border-gray-300">
-                  <label className="flex items-center gap-2 text-gray-900 font-bold mb-3 uppercase text-[10px] tracking-widest">
-                    <Wrench className="w-3 h-3 text-slate-900" /> Assign
-                    Mechanic
-                  </label>
-                  {loadingMechanics ? (
-                    <p className="text-gray-500 text-xs uppercase tracking-widest">
-                      Loading mechanics...
-                    </p>
-                  ) : mechanics.length === 0 ? (
-                    <p className="text-gray-500 text-xs uppercase tracking-widest">
-                      No mechanics available
-                    </p>
-                  ) : (
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Customer Name</label>
+                  <input
+                    type="text"
+                    placeholder="Full name"
+                    value={formData.customer_name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, customer_name: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    placeholder="0917..."
+                    value={formData.customer_phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, customer_phone: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Vehicle (Make / Model)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Honda Click 150i"
+                    value={formData.vehicle_make}
+                    onChange={(e) =>
+                      setFormData({ ...formData, vehicle_make: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Service Type</label>
+                  <select
+                    value={formData.service_type}
+                    onChange={(e) =>
+                      setFormData({ ...formData, service_type: e.target.value })
+                    }
+                    className={inputClass}
+                  >
+                    <option>Oil Change</option>
+                    <option>Brake Service</option>
+                    <option>Tire Replacement</option>
+                    <option>Engine Diagnostic</option>
+                    <option>General Maintenance</option>
+                    <option>Custom Work</option>
+                  </select>
+                </div>
+                {mechanics.length > 0 && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Assign Mechanic (Optional)</label>
                     <select
                       value={formData.mechanic_id}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          mechanic_id: e.target.value,
-                        })
+                        setFormData({ ...formData, mechanic_id: e.target.value })
                       }
-                      className="w-full bg-gray-50 text-gray-900 px-3 py-2 border border-gray-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs tracking-widest font-bold"
+                      className={inputClass}
                     >
-                      <option value="">Select a mechanic (optional)</option>
-                      {mechanics.map((mechanic) => (
-                        <option key={mechanic.id} value={mechanic.id}>
-                          {mechanic.name}
+                      <option value="">Unassigned</option>
+                      {mechanics.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
                         </option>
                       ))}
                     </select>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-              <div className="px-6 py-5 border-t border-gray-200 bg-white flex gap-3">
+
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="flex-1 bg-transparent hover:bg-slate-100 text-gray-500 hover:text-gray-900 font-bold py-3 uppercase tracking-widest text-[10px] border border-gray-300 transition"
+                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleBookAppointment}
                   disabled={saving}
-                  className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 uppercase tracking-widest text-[10px] transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
                 >
-                  {saving ? "Saving..." : "Book Now"}
+                  {saving ? "Booking..." : "Confirm Booking"}
                 </button>
               </div>
             </motion.div>
@@ -799,11 +882,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         )}
       </AnimatePresence>
 
-      <JobOrderModal
-        isOpen={Boolean(jobOrderAppointment)}
-        appointment={jobOrderAppointment}
-        onClose={() => setJobOrderAppointment(null)}
-      />
+      {/* Job Order Modal Handoff */}
+      {jobOrderAppointment && (
+        <JobOrderModal
+          isOpen={!!jobOrderAppointment}
+          appointment={jobOrderAppointment}
+          onClose={() => setJobOrderAppointment(null)}
+        />
+      )}
     </div>
   );
 };
