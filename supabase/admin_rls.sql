@@ -22,6 +22,14 @@ CREATE POLICY "Admin can view all users" ON public.users FOR SELECT USING (publi
 DROP POLICY IF EXISTS "Admin can view all shops" ON public.shops;
 CREATE POLICY "Admin can view all shops" ON public.shops FOR SELECT USING (public.is_admin());
 
+-- SHOPS: Admin can update shops (approve pending registrations / deactivate)
+DROP POLICY IF EXISTS "Admin can update all shops" ON public.shops;
+CREATE POLICY "Admin can update all shops" ON public.shops FOR UPDATE USING (public.is_admin());
+
+-- SHOPS: Admin can delete shops (cascades to parts/services/availability/appointments)
+DROP POLICY IF EXISTS "Admin can delete all shops" ON public.shops;
+CREATE POLICY "Admin can delete all shops" ON public.shops FOR DELETE USING (public.is_admin());
+
 -- APPOINTMENTS: Admin can view all appointments
 DROP POLICY IF EXISTS "Admin can view all appointments" ON public.appointments;
 CREATE POLICY "Admin can view all appointments" ON public.appointments FOR SELECT USING (public.is_admin());

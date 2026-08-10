@@ -321,16 +321,26 @@ This is the ONLY path that creates a shop (no admin approval)
 - KEPT intentional data-layer mechanic references: BookAppointmentModal mechanic slot selection, AdminChatbot mechanic workload, AdminPlatformDashboard mechanic stats, wrong-portal messages in the 3 login pages
 - Verify: npx tsc --noEmit clean + npm run build passes (2813 modules); no `isMechanic` symbols remain in src
 
+### TASK: Admin platform = pure oversight (shop approval + shop management)
+- Admin no longer has owner operational tools: removed inventory, update-parts, services, low-stock, mechanic-availability, customers, admin-users from admin role (roleAccess.ts). Admin pages now: admin-dashboard, admin-shops, appointments, settings. Owners keep all operational tools (unchanged, scoped by shop_id → per-shop data isolation already in place via InventoryPage/UpdatePartsPage/LowStockPage/AdminServicesPage/AdminMechanicAvailability/CustomersListPage all filtering user.shop_id)
+- AdminPlatformDashboard.tsx: sidebar = Dashboard / Shops / Appointments / Settings (Customers → Shops); added "New Shop Approvals" card (pending = is_active:false) with Approve buttons + pending pill in welcome banner; fetchAdminData refactored to useCallback; removed unused Package/ClipboardList/Clock/AlertTriangle imports
+- New src/pages/AdminShopsPage.tsx: list all shops w/ owner + appointment counts, tabs (All/Pending/Active), search, Approve / Deactivate / Delete (type DELETE confirm). Renders at page id "admin-shops" (was already in AppPage union)
+- App.tsx: adminLayoutPages trimmed to admin-dashboard/admin-shops/appointments/settings; admin render block now only renders AdminShopsPage/Appointments/Settings
+- Shop approval workflow: ShopOwnerLoginPage.tsx registers new shops with is_active:false (was true) + signup note "reviewed by platform admin before it goes live". Owners no longer self-publish: ShopSettingsPage.tsx "Public listing" toggle removed → read-only status badge ("Live on MotoLink" / "Awaiting platform approval"); OwnerPlatformDashboard.tsx "Hidden from MotoLink"/"Hidden from landing page" labels → "Awaiting platform approval"
+- admin_rls.sql: added "Admin can update all shops" (approve/deactivate) + "Admin can delete all shops" FOR UPDATE/DELETE policies — MUST be run in Supabase SQL Editor for the admin Approve/Deactivate/Delete buttons to work (existing "Admin can view all shops" SELECT already live)
+- Verify: npx tsc --noEmit clean + npm run build passes (2814 modules)
+
 ---
 
 ## CURRENT STATE
 
 - Build: passes clean (tsc + vite build) ✅
-- Git: branch main @ commit c7ec157 pushed; working tree currently has Phase 1 (mechanic portal removal) UNCOMMITTED
+- Git: branch main @ commits 781645e + 5a96a97 pushed (partner gallery restyle + mechanic cleanup); working tree currently has Admin-oversight changes (shop approval + shop management) UNCOMMITTED
 - Code: multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built; landing/login white-slate theme + new logo + favicon done
-- Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar
+- Admin portal: pure platform oversight — sidebar = Dashboard / Shops / Appointments / Settings; new shop registrations land as PENDING (is_active:false) and must be approved by admin (Shops page or dashboard "New Shop Approvals" card); admin can deactivate + delete shops; no owner operational tools in admin UI
+- Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar; shop NOT live until platform admin approves
 - DB: 20260731 migration CONFIRMED applied live (REST-verified: users/shops INSERT 201, owner-role upsert 200); RLS INSERT policies working; autoconfirm working; services_pricing/mechanic_availability confirmed to have shop_id live; appointments + job_orders tables confirmed empty
-- Owner data isolation: audit done — all owner queries scoped by shop_id; 20260731_owner_data_isolation.sql (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor)
+- Owner data isolation: audit done — all owner queries scoped by shop_id (per-shop data separation); 20260731_owner_data_isolation.sql (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor); admin UPDATE/DELETE shop policies in admin_rls.sql ALSO not yet applied live
 - Role model: 3 connected top-level POVs (customer, owner, admin) now IMPLEMENTED in app routing — mechanic portal (login/dashboard) REMOVED (Phase 1, Option B); mechanic role remains only at the data layer (mechanic_availability, job_order assignment) managed by owners
 - Docs: MEMORY.md updated with full merged history + revised role-flow diagrams + consolidated documentation (this file); all other .md files are gitignored/local-only
 

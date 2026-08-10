@@ -336,7 +336,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     {shop?.city || "—"} Shop
                   </span>
                   <span className="bg-white/20 px-3 py-1 rounded-full">
-                    {shop?.is_active ? "Live on MotoLink" : "Hidden from MotoLink"}
+                    {shop?.is_active ? "Live on MotoLink" : "Awaiting platform approval"}
                   </span>
                 </div>
               </motion.div>
@@ -408,7 +408,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                           />
                           {shop.is_active
                             ? "Visible on landing page"
-                            : "Hidden from landing page"}
+                            : "Awaiting platform approval"}
                         </span>
                       </div>
                     </div>

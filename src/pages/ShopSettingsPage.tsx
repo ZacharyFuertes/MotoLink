@@ -338,30 +338,33 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center justify-between">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 mb-1">
                   Public listing
                 </h2>
                 <p className="text-slate-500 text-sm">
-                  When enabled, your shop appears on the MotoLink landing page
-                  and can receive bookings.
+                  Your shop's live status is managed by the MotoLink platform
+                  admin. New shops must be approved before they appear on the
+                  landing page.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleField("is_active", !shop.is_active)}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  shop.is_active ? "bg-emerald-500" : "bg-slate-300"
+              <span
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shrink-0 ${
+                  shop.is_active
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700"
                 }`}
-                title={shop.is_active ? "Active" : "Inactive"}
               >
                 <span
-                  className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${
-                    shop.is_active ? "left-7" : "left-1"
+                  className={`w-2 h-2 rounded-full ${
+                    shop.is_active ? "bg-emerald-500" : "bg-amber-500"
                   }`}
                 />
-              </button>
+                {shop.is_active
+                  ? "Live on MotoLink"
+                  : "Awaiting platform approval"}
+              </span>
             </div>
 
             <div className="flex justify-end">

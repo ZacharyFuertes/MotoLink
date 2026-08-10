@@ -5,7 +5,6 @@ export type AppPage =
   | "dashboard"
   | "admin-dashboard"
   | "admin-shops"
-  | "admin-users"
   | "inventory"
   | "update-parts"
   | "appointments"
@@ -40,14 +39,6 @@ export const rolePagesMapping: Record<UserRole, AppPage[]> = {
   admin: [
     "admin-dashboard",
     "admin-shops",
-    "admin-users",
-    "inventory",
-    "update-parts",
-    "appointments",
-    "customers",
-    "services",
-    "mechanic-availability",
-    "low-stock",
     "settings",
   ],
 };

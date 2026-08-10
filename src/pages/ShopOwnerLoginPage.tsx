@@ -168,7 +168,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           phone: signupData.shop_phone || null,
           email: signupData.email,
           owner_id: authData.user.id,
-          is_active: true,
+          is_active: false,
         })
         .select("id")
         .maybeSingle();
@@ -370,6 +370,11 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   {loading && <Loader size={18} className="animate-spin" />}
                   Register Shop
                 </motion.button>
+                <p className="text-center text-slate-400 text-xs mt-4">
+                  Your shop will be reviewed by the MotoLink platform admin
+                  before it goes live. You can sign in and set up your dashboard
+                  right away.
+                </p>
               </form>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

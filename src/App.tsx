@@ -17,6 +17,7 @@ import DatabaseStatus from "./components/DatabaseStatus";
 import AccessDenied from "./components/AccessDenied";
 import Dashboard from "./pages/Dashboard";
 import AdminPlatformDashboard from "./pages/AdminPlatformDashboard";
+import AdminShopsPage from "./pages/AdminShopsPage";
 import OwnerPlatformDashboard from "./pages/OwnerPlatformDashboard";
 import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
@@ -401,13 +402,7 @@ const AppContent: React.FC = () => {
   const isAdminRole = user?.role === "admin";
   const adminLayoutPages = [
     "admin-dashboard",
-    "inventory",
-    "update-parts",
-    "appointments",
-    "customers",
-    "services",
-    "mechanic-availability",
-    "low-stock",
+    "admin-shops",
     "settings",
   ];
   const isAdminLayout = isAdminRole && adminLayoutPages.includes(currentPage);
@@ -481,40 +476,8 @@ const AppContent: React.FC = () => {
           onNavigate={(page: string) => handlePageChange(page as PageType)}
           currentPage={currentPage}
         >
-          {currentPage === "inventory" && (
-            <InventoryPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "update-parts" && (
-            <UpdatePartsPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "appointments" && (
-            <AppointmentCalendarPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "customers" && (
-            <CustomersListPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "services" && (
-            <AdminServicesPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "mechanic-availability" && (
-            <AdminMechanicAvailability
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
-          )}
-          {currentPage === "low-stock" && (
-            <LowStockPage
-              onNavigate={(page: string) => handlePageChange(page as PageType)}
-            />
+          {currentPage === "admin-shops" && (
+            <AdminShopsPage />
           )}
           {currentPage === "settings" && (
             <SettingsPage

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -30,12 +30,10 @@ import {
   Bell,
   MapPin,
   Shield,
+  ShieldCheck,
+  CheckCircle2,
   Globe,
   Settings,
-  Package,
-  ClipboardList,
-  Clock,
-  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -57,6 +55,14 @@ interface ShopRow {
   appointment_count: number;
   total_revenue: number;
   is_active: boolean;
+  created_at: string;
+}
+
+interface PendingShop {
+  id: string;
+  name: string;
+  city: string;
+  owner_name: string;
   created_at: string;
 }
 
@@ -103,29 +109,22 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     { city: string; count: number }[]
   >([]);
   const [recentShops, setRecentShops] = useState<ShopRow[]>([]);
+  const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [weeklyRevenue, setWeeklyRevenue] = useState<
     { day: string; revenue: number }[]
   >([]);
 
   const sidebarItems = [
     { id: "admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "inventory", label: "Inventory", icon: Package },
-    { id: "update-parts", label: "Update Parts", icon: ClipboardList },
-    { id: "appointments", label: "Appointments", icon: Calendar },
-    { id: "customers", label: "Customers", icon: Users },
-    { id: "services", label: "Services", icon: Wrench },
-    { id: "low-stock", label: "Low Stock", icon: AlertTriangle },
-    { id: "mechanic-availability", label: "Mechanic Schedule", icon: Clock },
+    { id: "admin-shops", label: "Shops", icon: Store },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  useEffect(() => {
-    if (user?.role !== "admin") return;
-
-    const fetchAdminData = async () => {
-      setLoading(true);
-      try {
+  const fetchAdminData = useCallback(async () => {
+    setLoading(true);
+    try {
         const { data: shops } = await supabase
           .from("shops")
           .select("id, name, slug, city, is_active, created_at, owner_id");
@@ -139,6 +138,20 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         const users = allUsers || [];
         setTotalCustomers(users.filter((u) => u.role === "customer").length);
         setTotalMechanics(users.filter((u) => u.role === "mechanic").length);
+        setPendingShops(
+          allShops
+            .filter((s) => !s.is_active)
+            .map((s) => {
+              const owner = users.find((u) => u.id === s.owner_id);
+              return {
+                id: s.id,
+                name: s.name,
+                city: s.city,
+                owner_name: owner?.name || "N/A",
+                created_at: s.created_at,
+              };
+            }),
+        );
 
         const { data: allAppointments } = await supabase
           .from("appointments")
@@ -370,7 +383,23 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       } finally {
         setLoading(false);
       }
-    };
+  }, []);
+
+  const approveShop = useCallback(
+    async (shopId: string) => {
+      setApprovingId(shopId);
+      const { error } = await supabase
+        .from("shops")
+        .update({ is_active: true })
+        .eq("id", shopId);
+      setApprovingId(null);
+      if (!error) fetchAdminData();
+    },
+    [fetchAdminData],
+  );
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
 
     fetchAdminData();
 
@@ -401,7 +430,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.role]);
+  }, [user?.role, fetchAdminData]);
 
   if (user?.role !== "admin") {
     return (
@@ -685,31 +714,68 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {currentPage === "admin-dashboard" ? (
             <>
-              {/* Welcome Banner */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-r from-slate-900 to-slate-700 rounded-xl p-6 mb-6 text-white"
-              >
-                <h2 className="text-2xl font-bold mb-1">
-                  Congratulations {user?.name}! 🎉
-                </h2>
-                <p className="text-white text-sm">
-                  Platform Overview — Here's what's happening across all your shops
-                  today.
-                </p>
-                <div className="mt-4 flex items-center gap-4 text-sm">
-                  <span className="bg-white/20 px-3 py-1 rounded-full">
-                    {totalShops} Total Shops
-                  </span>
-                  <span className="bg-white/20 px-3 py-1 rounded-full">
-                    ₱{totalRevenue.toLocaleString()} Revenue
-                  </span>
-                  <span className="bg-white/20 px-3 py-1 rounded-full">
-                    {totalAppointments} Appointments
-                  </span>
-                </div>
-              </motion.div>
+              {/* Pending Shop Approvals */}
+              {pendingShops.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-amber-600" />
+                      <h3 className="text-base font-semibold text-gray-900">
+                        New Shop Approvals
+                      </h3>
+                    </div>
+                    <span className="text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                      {pendingShops.length} waiting
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {pendingShops.map((shop) => (
+                      <div
+                        key={shop.id}
+                        className="bg-white border border-amber-200 rounded-lg p-4 flex flex-col gap-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+                            <Store className="w-4 h-4 text-amber-700" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">
+                              {shop.name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {shop.owner_name}
+                            </p>
+                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                              <MapPin className="w-3 h-3" /> {shop.city || "No city"}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => approveShop(shop.id)}
+                          disabled={approvingId === shop.id}
+                          className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50"
+                        >
+                          {approvingId === shop.id ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              Approve Shop
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Stat Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">

@@ -93,7 +93,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       id: "customers",
       label: "Customers",
       icon: Users,
-      requiredRole: ["owner", "admin"],
+      requiredRole: ["owner"],
       tooltip: "Manage customers",
     },
 
@@ -129,7 +129,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       id: "low-stock",
       label: "Low Stock",
       icon: AlertTriangle,
-      requiredRole: ["owner", "admin"],
+      requiredRole: ["owner"],
       tooltip: "Parts at or below reorder level",
     },
     {
