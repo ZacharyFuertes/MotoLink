@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, Home, MapPin, Info, CheckCircle2, AlertCircle } from "lucide-react";
 import motolinkLogo from "../pictures/public/Motolink.png";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -13,6 +13,28 @@ interface ShopOwnerLoginPageProps {
   onHome?: () => void;
   initialIsSignup?: boolean;
 }
+
+const parseCoordinates = (
+  raw: string,
+): { latitude: number | null; longitude: number | null; valid: boolean } => {
+  const trimmed = raw.trim();
+  if (!trimmed) return { latitude: null, longitude: null, valid: true };
+  const [rawLat, rawLng] = trimmed.split(",");
+  const latitude = parseFloat(rawLat?.trim() ?? "");
+  const longitude = parseFloat(rawLng?.trim() ?? "");
+  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return { latitude: null, longitude: null, valid: false };
+  }
+  if (
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return { latitude: null, longitude: null, valid: false };
+  }
+  return { latitude, longitude, valid: true };
+};
 
 const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   onLoginSuccess,
@@ -119,13 +141,32 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     setError("");
     setLoading(true);
 
+    let createdAuthUserId: string | null = null;
+    let profileCreatedAsOwner = false;
+
     try {
+      // Parse "lat, lng" into numeric latitude/longitude FIRST so invalid input
+      // can't strand an account with a created user profile but no shop row
+      // (the shop insert below never runs, yet the account already exists as
+      // role 'owner' — the admin approval queue then never sees a shop).
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+      const parsed = parseCoordinates(signupData.shop_coordinates);
+      if (!parsed.valid) {
+        throw new Error(
+          "Invalid coordinates. Use the format: Latitude, Longitude — e.g. 14.5712, 121.1051.",
+        );
+      }
+      latitude = parsed.latitude;
+      longitude = parsed.longitude;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
         password: formData.password,
       });
       if (authError) throw authError;
       if (!authData?.user?.id) throw new Error("Signup failed");
+      createdAuthUserId = authData.user.id;
 
       if (!authData.session) {
         throw new Error(
@@ -152,28 +193,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           { onConflict: "id" },
         );
       if (profileError) throw profileError;
-
-      // Parse "lat, lng" into numeric latitude/longitude so the shop shows on
-      // the map. Coordinates are optional; invalid input is rejected up front.
-      let latitude: number | null = null;
-      let longitude: number | null = null;
-      if (signupData.shop_coordinates.trim()) {
-        const [rawLat, rawLng] = signupData.shop_coordinates.split(",");
-        latitude = parseFloat(rawLat?.trim());
-        longitude = parseFloat(rawLng?.trim());
-        if (
-          Number.isNaN(latitude) ||
-          Number.isNaN(longitude) ||
-          latitude < -90 ||
-          latitude > 90 ||
-          longitude < -180 ||
-          longitude > 180
-        ) {
-          throw new Error(
-            "Invalid coordinates. Use the format: 14.5712, 121.1051 (latitude, longitude).",
-          );
-        }
-      }
+      profileCreatedAsOwner = true;
 
       // Create the shop (owner_id FK now resolves to the users row above)
       const { data: shopData, error: shopError } = await supabase
@@ -218,6 +238,21 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       roleCheckedRef.current = false;
       setLoginAttempted(true);
     } catch (err) {
+      // Best-effort rollback: if anything fails after the profile was set to
+      // role 'owner' but before the shop row existed, revert the profile to a
+      // plain customer. Otherwise we strand an "owner awaiting approval"
+      // account that never appears in the admin approval queue.
+      if (createdAuthUserId && profileCreatedAsOwner) {
+        try {
+          await supabase
+            .from("users")
+            .update({ role: "customer", shop_id: null })
+            .eq("id", createdAuthUserId);
+        } catch (rollbackErr) {
+          console.error("Signup rollback failed:", rollbackErr);
+        }
+      }
+
       let errorMessage = "Registration failed. Please try again.";
       if (err instanceof Error) {
         if (err.message.includes("User already registered")) {
@@ -300,6 +335,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
+  const coordsCheck = parseCoordinates(signupData.shop_coordinates);
+  const coordsTouched = signupData.shop_coordinates.trim().length > 0;
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       {/* Back Button */}
@@ -379,7 +417,40 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 </select>
                 <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address" required className={inputClass} />
                 <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City" className={inputClass} />
-                <input type="text" value={signupData.shop_coordinates} onChange={(e) => setSignupData({ ...signupData, shop_coordinates: e.target.value })} placeholder="Shop Coordinates (e.g., 14.5712, 121.1051)" className={inputClass} />
+                <div>
+                  <div className="relative">
+                    <MapPin size={18} className={iconClass} />
+                    <input
+                      type="text"
+                      value={signupData.shop_coordinates}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, shop_coordinates: e.target.value })
+                      }
+                      placeholder="e.g. 14.5712, 121.1051"
+                      className={inputClass}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs text-slate-400 flex items-start gap-1.5 px-1">
+                    <Info size={13} className="mt-0.5 shrink-0" />
+                    <span>
+                      Format: <span className="font-mono text-slate-500">Latitude, Longitude</span>{" "}
+                      (decimal degrees). Copy from Google Maps, e.g.{" "}
+                      <span className="font-mono text-slate-500">14.5712, 121.1051</span>
+                    </span>
+                  </p>
+                  {coordsTouched && !coordsCheck.valid && (
+                    <p className="mt-1 text-xs text-red-500 flex items-center gap-1 px-1">
+                      <AlertCircle size={13} className="shrink-0" />
+                      Invalid format — enter Latitude, Longitude (e.g. 14.5712, 121.1051)
+                    </p>
+                  )}
+                  {coordsTouched && coordsCheck.valid && (
+                    <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1 px-1">
+                      <CheckCircle2 size={13} className="shrink-0" />
+                      Format looks good!
+                    </p>
+                  )}
+                </div>
                 <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
                 <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
