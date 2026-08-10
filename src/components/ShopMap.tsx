@@ -3,13 +3,10 @@ import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
 import { useEffect, useRef } from "react";
 
-// NOTE: Use shops provided via props and default markers. Logos are not used for map markers.
-
 declare const L: any;
 
 interface ShopMapProps {
   shops: ShopSearchResult[];
-  selectedShopId?: string;
   locationGranted: boolean;
   location?: GeolocationCoordinates;
   onRequestLocation: () => void;
@@ -18,9 +15,9 @@ interface ShopMapProps {
 
 const MAP_CENTER_LAT = 14.5712431655223;
 const MAP_CENTER_LNG = 121.10514957211315;
-const CIRCLE_RADIUS_METERS = 2000;
+const CIRCLE_RADIUS_METERS = 1500;
 
-const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect }: ShopMapProps) => {
+const ShopMap = ({ shops, locationGranted, location, onRequestLocation, onSelect }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -48,45 +45,34 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
       userMarker.bindPopup("You are here");
 
       Leaflet.circle(userLatLng, {
-        color: "#0f766e",
-        fillColor: "#14b8a6",
-        fillOpacity: 0.16,
+        color: "skyblue",
+        fillColor: "rgba(135, 206, 235, 0.3)",
+        fillOpacity: 0.35,
         radius: CIRCLE_RADIUS_METERS,
       }).addTo(map);
     }
 
-    // Place default Leaflet markers for the shops passed via props.
     shops.forEach((shop) => {
       if (typeof shop.latitude === "number" && typeof shop.longitude === "number") {
         const marker = Leaflet.marker([shop.latitude, shop.longitude]).addTo(map);
-        const popupContent = `<div style="min-width:200px"><strong>${shop.name}</strong><br/>${shop.address || ''}<br/><small><strong>Specialty:</strong> ${shop.specialties?.join(', ') || ''}</small><br/><small><strong>Hours:</strong> ${shop.operating_hours || ''}</small></div>`;
-        marker.bindPopup(popupContent);
+        marker.bindPopup(`<strong>${shop.name}</strong><br/>${shop.address || ""}`);
         marker.on("click", () => onSelect(shop));
-
-        if (selectedShopId === shop.id) {
-          marker.openPopup();
-        }
       }
     });
 
-    const selectedShop = shops.find((shop) => shop.id === selectedShopId);
-    if (selectedShop && typeof selectedShop.latitude === "number" && typeof selectedShop.longitude === "number") {
-      map.setView([selectedShop.latitude, selectedShop.longitude], 14);
-    }
-
     return () => { map.remove(); };
-  }, [locationGranted, location, onSelect, shops, selectedShopId]);
+  }, [locationGranted, location, onSelect, shops]);
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)]">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-100/70 via-white/50 to-slate-200/60" />
+      <div className="absolute inset-0 bg-gradient-to-br from-sky-100/70 via-white/50 to-emerald-100/60" />
       <div className="relative flex h-full min-h-[360px] flex-col justify-between">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-slate-900">Interactive map</p>
-            <p className="text-xs text-slate-500">Your location unlocks a live 2km radius view.</p>
+            <p className="text-xs text-slate-500">Your location unlocks a live 1.5km radius view.</p>
           </div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onRequestLocation} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onRequestLocation} className="flex items-center gap-2 rounded-xl bg-[#fffdf7] px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-[#f6f0e4]">
             <LocateFixed size={16} /> {locationGranted ? "Location enabled" : "Use my location"}
           </motion.button>
         </div>
@@ -97,14 +83,14 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
             <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white/70 px-6 text-center shadow-inner">
               <div>
                 <p className="text-sm font-semibold text-slate-900">Location access required</p>
-                <p className="mt-2 text-sm text-slate-600">Allow the app to use your location to unlock the live map, your marker and the 2km service circle.</p>
+                <p className="mt-2 text-sm text-slate-600">Allow the app to use your location to unlock the live map, your marker and the 1.5km service circle.</p>
                 <button onClick={onRequestLocation} className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Enable location</button>
               </div>
             </div>
           )}
         </div>
-        <p className="rounded-xl bg-white/85 p-3 text-xs text-slate-600 backdrop-blur">
-          {locationGranted ? "Shops are ordered by approximate distance from your location within a 2km service radius." : "Enable location to unlock the map view and distance sorting."}
+        <p className="rounded-xl bg-[#fffdf7]/85 p-3 text-xs text-slate-600 backdrop-blur">
+          {locationGranted ? "Shops are ordered by approximate distance from your location within a 1.5km service radius." : "Enable location to unlock the map view and distance sorting."}
         </p>
       </div>
     </motion.div>
