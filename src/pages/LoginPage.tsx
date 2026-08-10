@@ -126,7 +126,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
         if (existingUser && existingUser.role !== "customer") {
           const portalMap: { [key: string]: string } = {
-            mechanic: "Mechanic Portal",
+            mechanic: "the Shop Owner Portal",
             admin: "Admin Portal",
             owner: "Admin Portal",
           };
@@ -205,7 +205,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
       if (user.role === "mechanic") {
         portalURL =
-          "Your account is registered as a Mechanic. Please use the Mechanic Portal to login.";
+          "Your account is registered as a Mechanic. Mechanic accounts are managed by the shop owner.";
       } else if (user.role === "owner") {
         portalURL =
           "Your account is registered as Admin/Owner. Please use the Admin Portal to login.";

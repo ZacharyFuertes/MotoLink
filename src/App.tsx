@@ -22,8 +22,6 @@ import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
 
 import CustomersListPage from "./pages/CustomersListPage";
-import MechanicPortal from "./pages/MechanicPortal";
-import MechanicDashboard from "./pages/MechanicDashboard";
 import AdminServicesPage from "./pages/AdminServicesPage";
 import BrowsePartsPage from "./pages/BrowsePartsPage";
 import LowStockPage from "./pages/LowStockPage";
@@ -32,7 +30,6 @@ import SettingsPage from "./pages/SettingsPage";
 import ShopSettingsPage from "./pages/ShopSettingsPage";
 import AdminMechanicAvailability from "./pages/AdminMechanicAvailability";
 import LoginPage from "./pages/LoginPage";
-import MechanicLoginPage from "./pages/MechanicLoginPage";
 import ShopOwnerLoginPage from "./pages/ShopOwnerLoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import LoginChoicePage from "./pages/LoginChoicePage";
@@ -57,7 +54,6 @@ type LoginType =
   | "choice"
   | "customer"
   | "customer-signup"
-  | "mechanic"
   | "owner"
   | "admin"
   | "owner-signup";
@@ -221,12 +217,10 @@ const AppContent: React.FC = () => {
   // If not authenticated, show landing page or login
   if (!isAuthenticated) {
     const handleLoginSuccess = () => {
-      // Role-based destination: owners/mechanics go straight to their own
-      // dashboard; customers go to the splash/landing page
+      // Role-based destination: owners/admins go straight to their own
+      // dashboard; everyone else goes to the splash/landing page
       if (user?.role === "owner") {
         navigateTo("dashboard");
-      } else if (user?.role === "mechanic") {
-        navigateTo("mechanic-dashboard");
       } else {
         navigateTo("landing");
         if (localStorage.getItem("motolink_selected_shop_id")) {
@@ -266,7 +260,6 @@ const AppContent: React.FC = () => {
         ) : currentLoginType === "choice" ? (
           <LoginChoicePage
             onChooseCustomer={() => setCurrentLoginType("customer")}
-            onChooseMechanic={() => setCurrentLoginType("mechanic")}
             onChooseOwner={() => setCurrentLoginType("owner")}
             onChooseRegister={() => setCurrentLoginType("owner-signup")}
             onChooseAdmin={() => setCurrentLoginType("admin")}
@@ -281,12 +274,6 @@ const AppContent: React.FC = () => {
           />
         ) : currentLoginType === "customer" ? (
           <LoginPage
-            onLoginSuccess={handleLoginSuccess}
-            onBack={() => setCurrentLoginType("choice")}
-            onHome={() => setCurrentLoginType("landing")}
-          />
-        ) : currentLoginType === "mechanic" ? (
-          <MechanicLoginPage
             onLoginSuccess={handleLoginSuccess}
             onBack={() => setCurrentLoginType("choice")}
             onHome={() => setCurrentLoginType("landing")}
@@ -613,21 +600,17 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
       <DatabaseStatus />
-      {currentPage !== "mechanic-dashboard" && (
-        <SystemNavbar
-          currentPage={currentPage}
-          onNavigate={(page: string) => handlePageChange(page as PageType)}
-          onAIChat={() => setShowAIChat(true)}
-        />
-      )}
+      <SystemNavbar
+        currentPage={currentPage}
+        onNavigate={(page: string) => handlePageChange(page as PageType)}
+        onAIChat={() => setShowAIChat(true)}
+      />
 
       <main
         className={
-          currentPage === "mechanic-dashboard"
-            ? ""
-            : currentPage === "update-parts"
-              ? "pt-20"
-              : "pt-20 px-4 sm:px-6 lg:px-8 pb-12"
+          currentPage === "update-parts"
+            ? "pt-20"
+            : "pt-20 px-4 sm:px-6 lg:px-8 pb-12"
         }
       >
         {currentPage === "dashboard" && (
@@ -635,12 +618,6 @@ const AppContent: React.FC = () => {
             onNavigate={(page: string) => handlePageChange(page as PageType)}
           />
         )}
-        {currentPage === "mechanic-portal" && (
-          <MechanicPortal
-            onNavigate={(page: string) => handlePageChange(page as PageType)}
-          />
-        )}
-        {currentPage === "mechanic-dashboard" && <MechanicDashboard />}
         {currentPage === "browse-parts" && (
           <BrowsePartsPage
             onNavigate={(page: string) => handlePageChange(page as PageType)}

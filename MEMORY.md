@@ -22,7 +22,7 @@ Log in to Admin Dashboard → Monitor all shops & users (platform-wide view) →
 - **Owner → Customer**: every status update and invoice flows back to the customer automatically via notifications (no manual calls).
 - **Owner → Admin**: account, role, or shop-linking problems (e.g. the FK-race bug, wrong-role users) get escalated up to Admin to fix at the platform/database level.
 - **Admin → Owner**: Admin can also proactively fix broken shop/owner accounts (e.g. beloy123@gmail.com, jbmshop@gmail.com stuck as customer) without the owner needing to ask.
-- **Mechanic role**: still exists in the DB/roles system (mechanic_availability, job_order assignment) but is no longer treated as a separate top-level POV — folded into the Owner's job-order management step. OPEN DECISION: whether to formally drop mechanic as a UI-level portal (see Open Items).
+- **Mechanic role**: exists in the DB/roles system (mechanic_availability, job_order assignment) but is NOT a top-level POV — folded into the Owner's job-order management step. Mechanic portal REMOVED in the app (Phase 1, Option B): no MechanicLoginPage/dashboard; owners handle all job-order work in their own pages.
 
 ---
 
@@ -304,17 +304,28 @@ This is the ONLY path that creates a shop (no admin approval)
 - Exported MotoLink_MEMORY_Revised.docx — Word version of the memory file + diagrams, for upload to Google Drive/Docs (uploaded; NOT in repo)
 - Exported MotoLink_Capstone_Documentation.docx — full capstone-paper-ready chapter covering intro, problem statement, objectives, scope/limitations, architecture, roles, flowcharts, database design, features, methodology, testing, conclusion (several sections drafted and flagged for verification — see Open Items; uploaded; NOT in repo)
 
+### TASK: Phase 1 (3-POV flow) — remove mechanic as a top-level portal (Option B)
+- Deleted src/pages/MechanicLoginPage.tsx, src/pages/MechanicDashboard.tsx, src/pages/MechanicPortal.tsx, src/pictures/icons/mechanic.png
+- App.tsx: removed "mechanic" from LoginType union; mechanic branch in handleLoginSuccess (mechanics now go to landing — no portal); onChooseMechanic prop; mechanic-dashboard SystemNavbar/margin special-casing; mechanic-portal + mechanic-dashboard render blocks; removed 3 imports
+- roleAccess.ts: removed "mechanic-portal" + "mechanic-dashboard" AppPages; mechanic rolePagesMapping → [] (owners manage all job work; mechanic role kept in DB for assignment/availability)
+- LoginChoicePage.tsx: removed the Mechanic card (Public access tier = Customer only, single centered card)
+- SystemNavbar.tsx: removed mechanic-dashboard menu item + mechanic role label branch; dashboard nav item now owner-only
+- AccessDenied.tsx: removed mechanic default page + permissions entry
+- Wrong-portal messages reworded in AdminLoginPage.tsx, ShopOwnerLoginPage.tsx, LoginPage.tsx — mechanics are told "accounts are managed by the shop owner"
+- KEPT data layer (unchanged): mechanic role in DB, AddMechanicModal, AdminMechanicAvailability, mechanic_availability slot scheduling in BookAppointmentModal, job_order mechanic_id assignment, Dashboard mechanic productivity, AdminChatbot mechanic workload
+- Verify: npx tsc --noEmit clean + npm run build passes (2813 modules)
+
 ---
 
 ## CURRENT STATE
 
 - Build: passes clean (tsc + vite build) ✅
-- Git: branch main @ commit c7ec157 ("updated photos in landing page") — in sync with origin/main, working tree clean
+- Git: branch main @ commit c7ec157 pushed; working tree currently has Phase 1 (mechanic portal removal) UNCOMMITTED
 - Code: multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built; landing/login white-slate theme + new logo + favicon done
 - Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar
 - DB: 20260731 migration CONFIRMED applied live (REST-verified: users/shops INSERT 201, owner-role upsert 200); RLS INSERT policies working; autoconfirm working; services_pricing/mechanic_availability confirmed to have shop_id live; appointments + job_orders tables confirmed empty
 - Owner data isolation: audit done — all owner queries scoped by shop_id; 20260731_owner_data_isolation.sql (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor)
-- Role model: simplified to 3 connected top-level POVs (customer, owner, admin) in documentation/diagrams; mechanic still exists at DB/UI-action level under Owner — NOT yet reflected in actual app routing/portal structure (docs-only change so far)
+- Role model: 3 connected top-level POVs (customer, owner, admin) now IMPLEMENTED in app routing — mechanic portal (login/dashboard) REMOVED (Phase 1, Option B); mechanic role remains only at the data layer (mechanic_availability, job_order assignment) managed by owners
 - Docs: MEMORY.md updated with full merged history + revised role-flow diagrams + consolidated documentation (this file); all other .md files are gitignored/local-only
 
 ---
@@ -328,7 +339,7 @@ This is the ONLY path that creates a shop (no admin approval)
 - Reservations scoping: reservations table has NO shop_id column live yet — scoped via parts.shop_id join until migration is run
 - Seed data: no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
 - Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug (no shop either) — fix in DB (UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>') or re-register
-- Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing (docs and diagrams already reflect the simplified 3-POV model; the app itself still has the mechanic role at the data layer and this hasn't been implemented as a UI/routing change yet)
+- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. Follow-up: AddMechanicModal still issues passwords mechanics can no longer use — consider making mechanic account creation passwordless (no login needed)
 - Capstone doc: verify/replace the DRAFTED sections in MotoLink_Capstone_Documentation.docx (title page, problem statement, formal objectives, methodology framing) against the actual capstone proposal before submission
 
 ---

@@ -58,15 +58,8 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       id: "dashboard",
       label: t("nav.dashboard"),
       icon: BarChart3,
-      requiredRole: ["owner", "mechanic"],
-      tooltip: "Owners and Mechanics only",
-    },
-    {
-      id: "mechanic-dashboard",
-      label: "Dashboard",
-      icon: BarChart3,
-      requiredRole: ["mechanic"],
-      tooltip: "View your performance and customer metrics",
+      requiredRole: ["owner"],
+      tooltip: "Owners only",
     },
     {
       id: "inventory",
@@ -217,9 +210,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               <p className="text-[9px] text-slate-500 font-bold tracking-[0.2em] uppercase leading-none">
                 {user?.role === "customer"
                   ? "CUSTOMER PORTAL"
-                  : user?.role === "mechanic"
-                    ? "MECHANIC DASHBOARD"
-                    : "MANAGEMENT SYSTEM"}
+                  : "MANAGEMENT SYSTEM"}
               </p>
             </div>
           </motion.div>

@@ -1,11 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Users, Wrench, Store, ShieldCheck, Lock, ChevronRight, Home } from "lucide-react";
+import { Users, Store, ShieldCheck, Lock, ChevronRight, Home } from "lucide-react";
 import motolinkLogo from "../pictures/public/motolink-new-logo.svg";
 
 interface LoginChoicePageProps {
   onChooseCustomer: () => void;
-  onChooseMechanic: () => void;
   onChooseOwner: () => void;
   onChooseAdmin: () => void;
   onChooseRegister: () => void;
@@ -20,7 +19,6 @@ const iconClass = "w-8 h-8 text-slate-600";
 
 const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onChooseCustomer,
-  onChooseMechanic,
   onChooseOwner,
   onChooseAdmin,
   onChooseRegister,
@@ -61,7 +59,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
       <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-3">
         Public access
       </p>
-      <div className="grid md:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 gap-6 mb-10 max-w-md mx-auto">
         <motion.button
           onClick={onChooseCustomer}
           initial={{ opacity: 0, y: 20 }}
@@ -78,30 +76,6 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             <h3 className="text-xl font-bold text-slate-900 mb-2">Customer</h3>
             <p className="text-slate-500 text-sm mb-6">
               Book appointments and track repairs
-            </p>
-            <div className="flex items-center gap-2 text-slate-600 font-semibold group-hover:gap-3 transition-all">
-              Login
-              <ChevronRight className="w-5 h-5" />
-            </div>
-          </div>
-        </motion.button>
-
-        <motion.button
-          onClick={onChooseMechanic}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className={cardClass}
-        >
-          <div className="relative z-10">
-            <div className={iconTileClass}>
-              <Wrench className={iconClass} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Mechanic</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              Manage assigned jobs and repairs
             </p>
             <div className="flex items-center gap-2 text-slate-600 font-semibold group-hover:gap-3 transition-all">
               Login

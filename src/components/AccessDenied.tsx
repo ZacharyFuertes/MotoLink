@@ -19,7 +19,6 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
   // Determine default page based on role
   const getDefaultPage = () => {
     if (user?.role === 'customer') return 'appointments'
-    if (user?.role === 'mechanic') return 'dashboard'
     if (user?.role === 'owner') return 'dashboard'
     return 'landing'
   }
@@ -34,7 +33,6 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
 
   const rolePermissions: Record<string, string[]> = {
     customer: ['My Appointments', 'Browse Parts', 'Customer Portal'],
-    mechanic: ['Dashboard', 'My Appointments', 'Inventory (View-only)'],
     owner: ['All Features', 'Dashboard', 'Inventory Management', 'Appointments', 'Customers', 'Products'],
   }
 
