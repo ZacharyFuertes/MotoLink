@@ -43,6 +43,45 @@
 
      /* Ensure chosen results track padding and cream background when empty */
      .chosen-container .chosen-results { background: #fff; }
+
+     /* Match the rest of the form inputs for the specialty selector */
+     .chosen-container {
+       width: 100% !important;
+       border: 1px solid #cbd5e1;
+       border-radius: 0.75rem;
+       background: #ffffff;
+       box-shadow: none;
+       transition: border-color 0.3s ease, box-shadow 0.3s ease;
+     }
+     .chosen-container.chosen-container-active,
+     .chosen-container.chosen-with-drop {
+       border-color: #64748b !important;
+       box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
+     }
+     .chosen-container-multi .chosen-choices {
+       min-height: 3.5rem;
+       padding: 0.875rem 1rem;
+       margin: 0;
+       border: none !important;
+       background: transparent;
+       align-items: center;
+     }
+     .chosen-container-multi .chosen-choices li.search-field input[type="text"] {
+       padding: 0;
+       margin: 0;
+       width: 100%;
+       border: none;
+       background: transparent;
+       outline: none;
+       box-shadow: none;
+       color: #0f172a;
+       font-size: 0.875rem;
+     }
+     .chosen-container-multi .chosen-choices li.search-choice {
+       background: #e6f6ff;
+       border-color: #0ea5ff;
+       color: #0f172a;
+     }
    </style>
  </head>
  <body>
