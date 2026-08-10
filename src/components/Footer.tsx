@@ -48,10 +48,9 @@ const Footer: React.FC = () => {
   const navLinks = [
     { label: 'Browse Shops', href: '#shops' },
     { label: 'Map', href: '#map' },
-    { label: 'Contact', href: '#' },
-    { label: 'FAQ', href: '#' },
-    { label: 'Shipping', href: '#' },
-    { label: 'Returns', href: '#' },
+    
+  
+   
   ]
 
   const containerVariants = {
@@ -74,7 +73,7 @@ const Footer: React.FC = () => {
   }
 
   return (
-    <footer className="w-full bg-slate-50 border-t border-slate-200">
+    <footer className="w-full bg-moto-darker border-t border-moto-gray text-white">
       {/* Main Footer Content */}
       <motion.div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16"
@@ -86,26 +85,26 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-10">
           {/* Brand Section */}
           <motion.div variants={itemVariants}>
-            <h3 className="text-2xl font-display font-bold text-slate-900 mb-4">
+            <h3 className="text-2xl font-display font-bold text-white mb-4">
               <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-16 w-auto object-contain object-left" />
             </h3>
-            <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+            <p className="text-slate-200 mb-6 text-sm leading-relaxed">
               Discover trusted partner shops for motorcycle and automotive care across your area.
             </p>
-            <p className="text-slate-500 text-xs">
+            <p className="text-slate-200 text-xs">
               Find. Connect. Ride confidently. © {currentYear} Motolink Autoshop Clientele
             </p>
           </motion.div>
 
           {/* Navigation Links */}
           <motion.div variants={itemVariants}>
-            <h4 className="text-slate-900 font-semibold mb-4">Quick Links</h4>
+            <h4 className="text-white font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2">
               {navLinks.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-slate-600 hover:text-slate-900 transition-colors text-sm flex items-center gap-1"
+                    className="text-slate-300 hover:text-moto-accent transition-colors text-sm flex items-center gap-1"
                   >
                     {link.label}
                   </a>
@@ -116,17 +115,17 @@ const Footer: React.FC = () => {
 
           {/* Contact Info */}
           <motion.div variants={itemVariants}>
-            <h4 className="text-slate-900 font-semibold mb-4">Contact</h4>
-            <ul className="space-y-3 text-sm text-slate-600">
-              <li className="flex items-start gap-3 hover:text-slate-900 transition-colors">
+            <h4 className="text-white font-semibold mb-4">Contact</h4>
+            <ul className="space-y-3 text-sm text-slate-200">
+              <li className="flex items-start gap-3 hover:text-white transition-colors">
                 <MapPin size={18} className="mt-0.5 flex-shrink-0" />
                 <span>Metro Manila, Philippines<br />Connecting nearby independent shops</span>
               </li>
-              <li className="flex items-center gap-3 hover:text-slate-900 transition-colors cursor-pointer">
+              <li className="flex items-center gap-3 hover:text-white transition-colors cursor-pointer">
                 <Phone size={18} />
                 <a href="tel:+639123456789">+63 912 345 6789</a>
               </li>
-              <li className="flex items-center gap-3 hover:text-slate-900 transition-colors">
+              <li className="flex items-center gap-3 hover:text-white transition-colors">
                 <Mail size={18} />
                 <a href="mailto:hello@motolink.ph">hello@motolink.ph</a>
               </li>
@@ -166,7 +165,7 @@ const Footer: React.FC = () => {
 
       {/* Bottom Footer */}
       <motion.div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-500 text-sm"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-200 text-sm"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
@@ -174,11 +173,11 @@ const Footer: React.FC = () => {
       >
         <p>
           All rights reserved. |{' '}
-          <a href="#" className="text-slate-700 hover:text-slate-900">
+          <a href="#" className="text-white hover:text-moto-accent">
             Privacy
           </a>{' '}
           |{' '}
-          <a href="#" className="text-slate-700 hover:text-slate-900">
+          <a href="#" className="text-white hover:text-moto-accent">
             Terms
           </a>
         </p>

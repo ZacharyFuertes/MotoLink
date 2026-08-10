@@ -15,7 +15,8 @@ html {
 }
 
 body {
-  @apply bg-white text-slate-900 font-sans;
+  @apply bg-moto-dark text-slate-100 font-sans;
+  background-image: radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 30%), radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.12), transparent 28%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -36,12 +37,12 @@ body {
 
 /* Smooth transitions */
 button, a {
-  @apply transition-all duration-300 ease-out;
+  @apply transition duration-300 ease-out;
 }
 
 /* Selection styling */
 ::selection {
-  @apply bg-slate-900 text-white;
+  @apply bg-moto-accent text-slate-950;
 }
 
 /* Premium heading styles */
