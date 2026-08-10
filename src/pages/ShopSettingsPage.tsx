@@ -12,6 +12,8 @@ import {
   Clock,
   Tag,
   Globe,
+  Image as ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop } from "../services/shopService";
@@ -110,7 +112,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
       setSpecialtiesText((updated.specialties || []).join(", "));
       setMessage({
         type: "success",
-        text: "Shop details saved. Changes now appear on the MotoLink landing page.",
+        text: "Shop details saved successfully! Changes are live on the MotoLink landing page.",
       });
     } catch (err) {
       console.error("Error saving shop:", err);
@@ -124,268 +126,304 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   };
 
   const inputClass =
-    "w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition text-sm";
+    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition";
 
   const labelClass =
-    "flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 mb-1.5";
+    "flex items-center gap-1.5 text-[11px] font-bold text-slate-600 mb-1.5";
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto"
-      >
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800 mb-1">
-            Shop Profile
-          </h1>
-          <p className="text-slate-500 text-sm">
-            These details are shown publicly on the MotoLink landing page.
-          </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          Shop Profile &amp; Listing
+        </h1>
+        <p className="text-xs text-slate-500 mt-0.5">
+          Public information shown on the MotoLink platform directory.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="relative w-10 h-10">
+            <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
+          </div>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader className="w-8 h-8 text-violet-500 animate-spin" />
+      ) : !user.shop_id ? (
+        <div className="dashboard-card p-8 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
           </div>
-        ) : !user.shop_id ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 flex items-start gap-4 shadow-sm">
-            <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <h3 className="text-slate-800 font-bold mb-1">No shop linked</h3>
-              <p className="text-slate-500 text-sm">
-                Your account is not linked to a shop yet. Contact a platform
-                admin to link your account to a shop before editing its public
-                profile.
-              </p>
-            </div>
+          <div>
+            <h3 className="text-slate-900 font-bold text-sm mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              No shop linked to account
+            </h3>
+            <p className="text-slate-500 text-xs leading-relaxed">
+              Your owner account is not linked to a registered shop yet. Please contact a platform admin to complete the setup.
+            </p>
           </div>
-        ) : (
-          <form onSubmit={handleSave} className="space-y-6">
-            {message && (
-              <div
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium ${
-                  message.type === "success"
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                    : "bg-red-50 border-red-200 text-red-700"
-                }`}
-              >
-                {message.type === "success" ? (
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                )}
-                {message.text}
-              </div>
-            )}
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-6">
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-semibold ${
+                message.type === "success"
+                  ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
+                  : "bg-red-50 border-red-200/80 text-red-700"
+              }`}
+            >
+              {message.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+              )}
+              {message.text}
+            </motion.div>
+          )}
 
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <Store className="w-5 h-5 text-violet-500" /> Identity
-              </h2>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className={labelClass}>
-                    <Tag className="w-3.5 h-3.5" /> Shop Name
-                  </label>
-                  <input
-                    type="text"
-                    value={shop.name}
-                    onChange={(e) => handleField("name", e.target.value)}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    <Globe className="w-3.5 h-3.5" /> Slug
-                  </label>
-                  <input
-                    type="text"
-                    value={shop.slug}
-                    onChange={(e) => handleField("slug", e.target.value)}
-                    placeholder="my-shop"
-                    className={inputClass}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
-                    Must be unique across the platform.
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>
-                    <Tag className="w-3.5 h-3.5" /> Logo URL
-                  </label>
-                  <input
-                    type="text"
-                    value={shop.logo_url || ""}
-                    onChange={(e) => handleField("logo_url", e.target.value)}
-                    placeholder="https://..."
-                    className={inputClass}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Description</label>
-                  <textarea
-                    value={shop.description || ""}
-                    onChange={(e) => handleField("description", e.target.value)}
-                    rows={3}
-                    placeholder="Tell customers what your shop offers."
-                    className={`${inputClass} resize-y`}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>
-                    <Tag className="w-3.5 h-3.5" /> Specialties
-                  </label>
-                  <input
-                    type="text"
-                    value={specialtiesText}
-                    onChange={(e) => setSpecialtiesText(e.target.value)}
-                    placeholder="Brakes, Tires, Engine Repair"
-                    className={inputClass}
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">
-                    Comma-separated list.
-                  </p>
-                </div>
+          {/* Identity Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center shrink-0">
+                <Store className="w-5 h-5" />
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-violet-500" /> Location & Contact
-              </h2>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className={labelClass}>Address</label>
-                  <input
-                    type="text"
-                    value={shop.address || ""}
-                    onChange={(e) => handleField("address", e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>City</label>
-                  <input
-                    type="text"
-                    value={shop.city || ""}
-                    onChange={(e) => handleField("city", e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={shop.latitude || 0}
-                    onChange={(e) =>
-                      handleField("latitude", parseFloat(e.target.value) || 0)
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={shop.longitude || 0}
-                    onChange={(e) =>
-                      handleField("longitude", parseFloat(e.target.value) || 0)
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    <Phone className="w-3.5 h-3.5" /> Phone
-                  </label>
-                  <input
-                    type="text"
-                    value={shop.phone || ""}
-                    onChange={(e) => handleField("phone", e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>
-                    <Mail className="w-3.5 h-3.5" /> Email
-                  </label>
-                  <input
-                    type="email"
-                    value={shop.email || ""}
-                    onChange={(e) => handleField("email", e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>
-                    <Clock className="w-3.5 h-3.5" /> Operating Hours
-                  </label>
-                  <input
-                    type="text"
-                    value={shop.operating_hours || ""}
-                    onChange={(e) =>
-                      handleField("operating_hours", e.target.value)
-                    }
-                    placeholder="Mon–Sat 8:00 AM – 6:00 PM"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-800 mb-1">
-                  Public listing
+                <h2 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Identity &amp; Branding
                 </h2>
-                <p className="text-slate-500 text-sm">
-                  Your shop's live status is managed by the MotoLink platform
-                  admin. New shops must be approved before they appear on the
-                  landing page.
+                <p className="text-xs text-slate-400">Shop name, logo, description and tags</p>
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>
+                  <Tag className="w-3.5 h-3.5 text-violet-500" /> Shop Name
+                </label>
+                <input
+                  type="text"
+                  value={shop.name}
+                  onChange={(e) => handleField("name", e.target.value)}
+                  required
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  <Globe className="w-3.5 h-3.5 text-violet-500" /> URL Slug
+                </label>
+                <input
+                  type="text"
+                  value={shop.slug}
+                  onChange={(e) => handleField("slug", e.target.value)}
+                  placeholder="my-shop-name"
+                  className={inputClass}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>
+                  <ImageIcon className="w-3.5 h-3.5 text-violet-500" /> Logo Image URL
+                </label>
+                <input
+                  type="text"
+                  value={shop.logo_url || ""}
+                  onChange={(e) => handleField("logo_url", e.target.value)}
+                  placeholder="https://..."
+                  className={inputClass}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>Shop Description</label>
+                <textarea
+                  value={shop.description || ""}
+                  onChange={(e) => handleField("description", e.target.value)}
+                  rows={3}
+                  placeholder="Describe your services and repair specialties for customers."
+                  className={`${inputClass} resize-y`}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>
+                  <Sparkles className="w-3.5 h-3.5 text-violet-500" /> Specialties
+                </label>
+                <input
+                  type="text"
+                  value={specialtiesText}
+                  onChange={(e) => setSpecialtiesText(e.target.value)}
+                  placeholder="e.g. Engine Overhaul, Oil Change, Brake Service, Electrical"
+                  className={inputClass}
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Separate tags with commas.
                 </p>
               </div>
-              <span
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shrink-0 ${
-                  shop.is_active
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-amber-50 text-amber-700"
-                }`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    shop.is_active ? "bg-emerald-500" : "bg-amber-500"
-                  }`}
-                />
-                {shop.is_active
-                  ? "Live on MotoLink"
-                  : "Awaiting platform approval"}
-              </span>
+            </div>
+          </motion.div>
+
+          {/* Location & Contact Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-fuchsia-50 text-fuchsia-600 rounded-xl flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Location &amp; Contact Details
+                </h2>
+                <p className="text-xs text-slate-400">Address, coordinates, phone and operating hours</p>
+              </div>
             </div>
 
-            <div className="flex justify-end">
-              <motion.button
-                type="submit"
-                disabled={saving}
-                whileHover={{ scale: saving ? 1 : 1.02 }}
-                whileTap={{ scale: saving ? 1 : 0.98 }}
-                className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? (
-                  <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save Changes
-              </motion.button>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className={labelClass}>Address</label>
+                <input
+                  type="text"
+                  value={shop.address || ""}
+                  onChange={(e) => handleField("address", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>City</label>
+                <input
+                  type="text"
+                  value={shop.city || ""}
+                  onChange={(e) => handleField("city", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={shop.latitude || 0}
+                  onChange={(e) =>
+                    handleField("latitude", parseFloat(e.target.value) || 0)
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={shop.longitude || 0}
+                  onChange={(e) =>
+                    handleField("longitude", parseFloat(e.target.value) || 0)
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  <Phone className="w-3.5 h-3.5 text-fuchsia-500" /> Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={shop.phone || ""}
+                  onChange={(e) => handleField("phone", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  <Mail className="w-3.5 h-3.5 text-fuchsia-500" /> Contact Email
+                </label>
+                <input
+                  type="email"
+                  value={shop.email || ""}
+                  onChange={(e) => handleField("email", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>
+                  <Clock className="w-3.5 h-3.5 text-fuchsia-500" /> Operating Hours
+                </label>
+                <input
+                  type="text"
+                  value={shop.operating_hours || ""}
+                  onChange={(e) =>
+                    handleField("operating_hours", e.target.value)
+                  }
+                  placeholder="Mon–Sat 8:00 AM – 6:00 PM"
+                  className={inputClass}
+                />
+              </div>
             </div>
-          </form>
-        )}
-      </motion.div>
+          </motion.div>
+
+          {/* Status Bar Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="dashboard-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div>
+              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                Listing Visibility Status
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                New shop registrations are reviewed and approved by MotoLink platform administrators.
+              </p>
+            </div>
+            <span
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 ${
+                shop.is_active
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                  : "bg-amber-50 text-amber-700 border border-amber-200/60"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  shop.is_active ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                }`}
+              />
+              {shop.is_active
+                ? "Live on Directory"
+                : "Awaiting Admin Approval"}
+            </span>
+          </motion.div>
+
+          {/* Form Action */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-violet-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };

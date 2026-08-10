@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Save, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Edit2, Trash2, Save, X, Wrench } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import AccessDenied from "../components/AccessDenied";
 import { useAuth } from "../contexts/AuthContext";
@@ -38,7 +39,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
       }
       const { data, error } = await query.order("price", { ascending: true });
       if (error) {
-        console.warn("Could not fetch services, table might not exist yet.", error);
+        console.warn("Could not fetch services:", error);
         return;
       }
       setServices(data || []);
@@ -97,7 +98,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
       fetchServices();
     } catch (err) {
       console.error("Error saving service", err);
-      alert("Failed to save service. Check permissions and table schema.");
+      alert("Failed to save service.");
     }
   };
 
@@ -121,149 +122,180 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
     return <AccessDenied requestedPage="services" onNavigate={onNavigate} />;
   }
 
-  return (
-    <div className="flex bg-[#f5f5f5] min-h-screen text-slate-200 font-sans selection:bg-slate-900 selection:text-white">
-      <div className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full transition-all duration-300">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="font-display text-4xl uppercase tracking-wide text-gray-900 mb-2">Service Pricing</h1>
-            <p className="text-sm text-gray-500">Manage shop services, descriptions, and standard pricing.</p>
-          </div>
-          <button
-            onClick={handleCreateNew}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 font-bold uppercase tracking-widest textxs transition"
-          >
-            <Plus size={16} /> Add Service
-          </button>
-        </div>
+  const inputClass =
+    "px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white transition";
 
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            Service Catalog &amp; Pricing
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Configure shop service offerings, descriptions, and standard pricing rates.
+          </p>
+        </div>
+        <button
+          onClick={handleCreateNew}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+        >
+          <Plus size={16} /> Add Service
+        </button>
+      </motion.div>
+
+      {/* Services Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="dashboard-card overflow-hidden"
+      >
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="bg-white border border-gray-200 shadow-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 border-b border-gray-300">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Service Name</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest hidden sm:table-cell">Description</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Price</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {services.map((service) => (
-                    <tr key={service.id} className="hover:bg-slate-100 transition">
-                      <td className="px-6 py-5">
-                        {editingId === service.id && !isAddingMode ? (
-                          <input
-                            type="text"
-                            value={editForm.label || ""}
-                            onChange={(e) => setEditForm({...editForm, label: e.target.value})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-slate-500"
-                          />
-                        ) : (
-                          <div className="font-bold text-gray-900 uppercase text-xs tracking-wider">{service.label}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-5 hidden sm:table-cell text-gray-500 text-sm">
-                        {editingId === service.id && !isAddingMode ? (
-                          <input
-                            type="text"
-                            value={editForm.description || ""}
-                            onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-slate-500"
-                          />
-                        ) : (
-                          <span className="truncate max-w-xs block">{service.description}</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-5">
-                        {editingId === service.id && !isAddingMode ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-400">₱</span>
-                            <input
-                              type="number"
-                              value={editForm.price || 0}
-                              onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
-                              className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-slate-500"
-                            />
-                          </div>
-                        ) : (
-                          <div className="font-mono text-slate-900 font-bold">₱{Number(service.price).toFixed(2)}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        {editingId === service.id && !isAddingMode ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={handleSave} className="p-2 text-slate-900 hover:bg-slate-100 transition"><Save size={16} /></button>
-                            <button onClick={() => setEditingId(null)} className="p-2 text-gray-400 hover:text-gray-900 transition"><X size={16} /></button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => handleEdit(service)} className="p-2 text-gray-500 hover:text-gray-900 transition"><Edit2 size={16} /></button>
-                            <button onClick={() => handleDelete(service.id)} className="p-2 text-gray-500 hover:text-red-600 transition"><Trash2 size={16} /></button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-
-                  {/* Add New Row Inline */}
-                  {isAddingMode && editingId === "new" && (
-                    <tr className="bg-slate-100">
-                      <td className="px-6 py-5">
-                        <input
-                          type="text"
-                          placeholder="Service Name"
-                          value={editForm.label || ""}
-                          onChange={(e) => setEditForm({...editForm, label: e.target.value})}
-                          className="bg-white border border-gray-300 px-3 py-1.5 text-sm w-full focus:outline-none focus:border-slate-500"
-                        />
-                      </td>
-                      <td className="px-6 py-5 hidden sm:table-cell">
-                        <input
-                          type="text"
-                          placeholder="Description"
-                          value={editForm.description || ""}
-                          onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                          className="bg-white border border-gray-300 px-3 py-1.5 w-full focus:outline-none focus:border-slate-500"
-                        />
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">₱</span>
-                          <input
-                            type="number"
-                            placeholder="Price"
-                            value={editForm.price || 0}
-                            onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value)})}
-                            className="bg-white border border-gray-300 px-3 py-1.5 w-24 focus:outline-none focus:border-slate-500"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-right flex items-center justify-end gap-2">
-                         <button onClick={handleSave} className="p-2 text-slate-900 hover:bg-slate-100 transition"><Save size={16} /></button>
-                         <button onClick={() => { setIsAddingMode(false); setEditingId(null); }} className="p-2 text-gray-400 hover:text-gray-900 transition"><X size={16} /></button>
-                      </td>
-                    </tr>
-                  )}
-                  
-                  {!loading && services.length === 0 && !isAddingMode && (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-gray-400 text-sm italic">
-                        No service pricing configured. Run the SQL migration or add one here!
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="relative w-10 h-10">
+              <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+              <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
             </div>
           </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm dashboard-table">
+              <thead>
+                <tr>
+                  <th className="text-left">Service Name</th>
+                  <th className="text-left">Description</th>
+                  <th className="text-right">Price Rate</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((service) => (
+                  <tr key={service.id}>
+                    <td>
+                      {editingId === service.id && !isAddingMode ? (
+                        <input
+                          type="text"
+                          value={editForm.label || ""}
+                          onChange={(e) => setEditForm({...editForm, label: e.target.value})}
+                          className={`${inputClass} w-full`}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                            <Wrench size={15} />
+                          </div>
+                          <span className="font-bold text-slate-900 text-sm">{service.label}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-slate-500 text-xs">
+                      {editingId === service.id && !isAddingMode ? (
+                        <input
+                          type="text"
+                          value={editForm.description || ""}
+                          onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                          className={`${inputClass} w-full`}
+                        />
+                      ) : (
+                        <span className="truncate max-w-sm block">{service.description || "—"}</span>
+                      )}
+                    </td>
+                    <td className="text-right font-bold text-slate-900 tabular-nums">
+                      {editingId === service.id && !isAddingMode ? (
+                        <input
+                          type="number"
+                          value={editForm.price || 0}
+                          onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value) || 0})}
+                          className={`${inputClass} w-24 text-right`}
+                        />
+                      ) : (
+                        `₱${Number(service.price).toLocaleString()}`
+                      )}
+                    </td>
+                    <td className="text-right">
+                      {editingId === service.id && !isAddingMode ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={handleSave} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition">
+                            <Save size={15} />
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 transition">
+                            <X size={15} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handleEdit(service)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition">
+                            <Edit2 size={15} />
+                          </button>
+                          <button onClick={() => handleDelete(service.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 transition">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Inline New Row */}
+                {isAddingMode && editingId === "new" && (
+                  <tr className="bg-violet-50/40">
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="Service Name"
+                        value={editForm.label || ""}
+                        onChange={(e) => setEditForm({...editForm, label: e.target.value})}
+                        className={`${inputClass} w-full`}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        placeholder="Service Description"
+                        value={editForm.description || ""}
+                        onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                        className={`${inputClass} w-full`}
+                      />
+                    </td>
+                    <td className="text-right">
+                      <input
+                        type="number"
+                        placeholder="0"
+                        value={editForm.price || 0}
+                        onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value) || 0})}
+                        className={`${inputClass} w-24 text-right`}
+                      />
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={handleSave} className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">
+                          <Save size={15} />
+                        </button>
+                        <button onClick={() => { setIsAddingMode(false); setEditingId(null); }} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 transition">
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {services.length === 0 && !isAddingMode && (
+                  <tr>
+                    <td colSpan={4} className="py-16 text-center text-slate-400 text-xs">
+                      No services configured yet. Click "Add Service" to create your first offering.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 };

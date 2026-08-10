@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -13,6 +11,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Area,
+  AreaChart,
 } from "recharts";
 import {
   LayoutDashboard,
@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   Globe,
   Settings,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -67,7 +68,7 @@ interface PendingShop {
 }
 
 const COLORS = [
-  "#3b82f6",
+  "#6366f1",
   "#10b981",
   "#f59e0b",
   "#ef4444",
@@ -76,6 +77,23 @@ const COLORS = [
   "#06b6d4",
   "#84cc16",
 ];
+
+/* Custom chart tooltip */
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl px-4 py-3 shadow-lg">
+      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+      {payload.map((entry: any, i: number) => (
+        <p key={i} className="text-sm font-semibold text-slate-900">
+          {typeof entry.value === "number"
+            ? `₱${entry.value.toLocaleString()}`
+            : entry.value}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   onNavigate,
@@ -284,7 +302,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           completed: "#10b981",
           pending: "#f59e0b",
           cancelled: "#6b7280",
-          in_progress: "#3b82f6",
+          in_progress: "#6366f1",
         };
         setAppointmentsByStatus(
           Object.entries(statusMap).length > 0
@@ -434,13 +452,15 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
   if (user?.role !== "admin") {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-red-500" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6">
+            <Shield className="w-10 h-10 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
             Access Denied
           </h2>
-          <p className="text-gray-500">
+          <p className="text-slate-500 max-w-sm">
             This page is only accessible to platform administrators.
           </p>
         </div>
@@ -450,10 +470,13 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-500">Loading platform analytics...</p>
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+          </div>
+          <p className="text-slate-400 text-sm font-medium">Loading platform analytics…</p>
         </div>
       </div>
     );
@@ -464,81 +487,91 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       label: "Total Shops",
       value: totalShops,
       sub: `${activeShops} active`,
-      icon: <Store className="w-6 h-6" />,
-      color: "bg-slate-900",
-      lightColor: "bg-slate-100",
-      textColor: "text-slate-900",
+      icon: <Store className="w-5 h-5" />,
+      accent: "#6366f1",
+      bgTint: "bg-indigo-50/50",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
     },
     {
       label: "Total Customers",
       value: totalCustomers,
       sub: "registered",
-      icon: <Users className="w-6 h-6" />,
-      color: "bg-emerald-500",
-      lightColor: "bg-emerald-50",
-      textColor: "text-emerald-600",
+      icon: <Users className="w-5 h-5" />,
+      accent: "#10b981",
+      bgTint: "bg-emerald-50/50",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
     },
     {
       label: "Total Mechanics",
       value: totalMechanics,
       sub: "on platform",
-      icon: <Wrench className="w-6 h-6" />,
-      color: "bg-purple-500",
-      lightColor: "bg-purple-50",
-      textColor: "text-purple-600",
+      icon: <Wrench className="w-5 h-5" />,
+      accent: "#8b5cf6",
+      bgTint: "bg-violet-50/50",
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-600",
     },
     {
-      label: "Total Appointments",
+      label: "Appointments",
       value: totalAppointments,
       sub: "all shops",
-      icon: <Calendar className="w-6 h-6" />,
-      color: "bg-amber-500",
-      lightColor: "bg-amber-50",
-      textColor: "text-amber-600",
+      icon: <Calendar className="w-5 h-5" />,
+      accent: "#f59e0b",
+      bgTint: "bg-amber-50/50",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
     },
     {
       label: "Platform Revenue",
       value: `₱${totalRevenue.toLocaleString()}`,
       sub: "combined",
-      icon: <DollarSign className="w-6 h-6" />,
-      color: "bg-cyan-500",
-      lightColor: "bg-cyan-50",
-      textColor: "text-cyan-600",
+      icon: <DollarSign className="w-5 h-5" />,
+      accent: "#06b6d4",
+      bgTint: "bg-cyan-50/50",
+      iconBg: "bg-cyan-100",
+      iconColor: "text-cyan-600",
     },
     {
       label: "Active Shops",
       value: activeShops,
       sub: `${totalShops - activeShops} inactive`,
-      icon: <Activity className="w-6 h-6" />,
-      color: "bg-rose-500",
-      lightColor: "bg-rose-50",
-      textColor: "text-rose-600",
+      icon: <Activity className="w-5 h-5" />,
+      accent: "#ec4899",
+      bgTint: "bg-pink-50/50",
+      iconBg: "bg-pink-100",
+      iconColor: "text-pink-600",
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#f5f5f5] flex">
-      {/* Desktop Sidebar */}
-      <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ${
-          sidebarCollapsed ? "w-20" : "w-64"
-        }`}
-      >
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-gray-900 text-sm">
-                MOTO ADMIN
-              </span>
+  /* ─── Sidebar content (shared between desktop + mobile) ─── */
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Logo area */}
+      <div className="flex items-center justify-between h-16 px-4">
+        {(!sidebarCollapsed || isMobile) && (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Shield className="w-5 h-5 text-white" />
             </div>
-          )}
+            <div>
+              <span className="font-bold text-white text-sm tracking-wide">MOTOLINK</span>
+              <p className="text-[10px] text-indigo-300/70 font-medium tracking-widest uppercase">Admin</p>
+            </div>
+          </div>
+        )}
+        {isMobile ? (
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="p-1.5 rounded-lg hover:bg-white/10 text-white/50"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+            className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors"
           >
             {sidebarCollapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -546,47 +579,77 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               <ChevronLeft className="w-4 h-4" />
             )}
           </button>
-        </div>
+        )}
+      </div>
 
-        {/* Sidebar Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = (currentPage || "admin-dashboard") === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate?.(item.id)}
-                title={sidebarCollapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-slate-100 text-slate-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 shrink-0 ${isActive ? "text-slate-900" : "text-gray-400"}`}
-                />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
+      {/* Separator */}
+      <div className="mx-4 border-t border-white/[0.06]" />
 
-        {/* Sidebar Footer */}
-        <div className="px-3 py-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              logout().catch(() => {
-                window.location.href = "/";
-              });
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            {!sidebarCollapsed && <span>Logout</span>}
-          </button>
-        </div>
+      {/* Nav items */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {sidebarItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = (currentPage || "admin-dashboard") === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (isMobile) setMobileSidebarOpen(false);
+                onNavigate?.(item.id);
+              }}
+              title={sidebarCollapsed && !isMobile ? item.label : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                isActive
+                  ? "sidebar-nav-active"
+                  : "sidebar-nav-item"
+              }`}
+            >
+              <Icon
+                className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : ""}`}
+              />
+              {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-white/[0.06]">
+        {(!sidebarCollapsed || isMobile) && (
+          <div className="flex items-center gap-3 px-3 py-2 mb-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+              {user?.name?.charAt(0)?.toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white/90 truncate">{user?.name}</p>
+              <p className="text-[11px] text-white/40">Administrator</p>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => {
+            logout().catch(() => {
+              window.location.href = "/";
+            });
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:flex flex-col sidebar-dark transition-all duration-300 ${
+          sidebarCollapsed ? "w-20" : "w-[260px]"
+        }`}
+      >
+        <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -597,7 +660,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
               onClick={() => setMobileSidebarOpen(false)}
             />
             <motion.aside
@@ -605,62 +668,9 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed left-0 top-0 bottom-0 w-64 bg-white z-50 lg:hidden flex flex-col shadow-xl"
+              className="fixed left-0 top-0 bottom-0 w-[260px] sidebar-dark z-50 lg:hidden flex flex-col shadow-2xl"
             >
-              <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="font-bold text-gray-900 text-sm">
-                    MOTO ADMIN
-                  </span>
-                </div>
-                <button
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-              <nav className="flex-1 px-3 py-4 space-y-1">
-                {sidebarItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = (currentPage || "admin-dashboard") === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setMobileSidebarOpen(false);
-                        onNavigate?.(item.id);
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-slate-100 text-slate-700"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      }`}
-                    >
-                      <Icon
-                        className={`w-5 h-5 shrink-0 ${isActive ? "text-slate-900" : "text-gray-400"}`}
-                      />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-              <div className="px-3 py-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    logout().catch(() => {
-                      window.location.href = "/";
-                    });
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
-                >
-                  <LogOut className="w-5 h-5 shrink-0" />
-                  <span>Logout</span>
-                </button>
-              </div>
+              <SidebarContent isMobile />
             </motion.aside>
           </>
         )}
@@ -669,49 +679,56 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 dashboard-header h-16 flex items-center justify-between px-4 lg:px-8">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {sidebarItems.find((i) => i.id === currentPage)?.label || "Dashboard"}
-            </h1>
+            <div>
+              <h1 className="text-lg font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                {sidebarItems.find((i) => i.id === currentPage)?.label || "Dashboard"}
+              </h1>
+              <p className="text-xs text-slate-400 font-medium hidden sm:block">
+                Platform overview and management
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
               title="Toggle language"
             >
-              <Globe className="w-5 h-5" />
+              <Globe className="w-[18px] h-[18px]" />
             </button>
-            <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors relative">
+              <Bell className="w-[18px] h-[18px]" />
+              {pendingShops.length > 0 && (
+                <span className="notification-badge">{pendingShops.length}</span>
+              )}
             </button>
-            <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-                <span className="text-slate-900 font-semibold text-sm">
+            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-slate-200/60">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-sm">
+                <span className="text-white font-semibold text-xs">
                   {user?.name?.charAt(0)?.toUpperCase()}
                 </span>
               </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-gray-900 leading-none">
+              <div>
+                <p className="text-sm font-semibold text-slate-900 leading-none">
                   {user?.name}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">Admin</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Admin</p>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-8 overflow-auto">
           {currentPage === "admin-dashboard" ? (
             <>
               {/* Pending Shop Approvals */}
@@ -719,37 +736,46 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6"
+                  className="rounded-2xl p-6 mb-8"
+                  style={{
+                    background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                    border: "1px solid rgba(245, 158, 11, 0.2)",
+                  }}
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-5 h-5 text-amber-600" />
-                      <h3 className="text-base font-semibold text-gray-900">
-                        New Shop Approvals
-                      </h3>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                        <ShieldCheck className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                          Pending Approvals
+                        </h3>
+                        <p className="text-xs text-amber-700/70">New shops waiting for review</p>
+                      </div>
                     </div>
-                    <span className="text-xs font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
-                      {pendingShops.length} waiting
+                    <span className="text-xs font-bold text-amber-700 bg-amber-200/60 px-3 py-1.5 rounded-full">
+                      {pendingShops.length} pending
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {pendingShops.map((shop) => (
                       <div
                         key={shop.id}
-                        className="bg-white border border-amber-200 rounded-lg p-4 flex flex-col gap-3"
+                        className="bg-white/80 backdrop-blur-sm rounded-xl p-4 flex flex-col gap-3 border border-amber-200/40 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
-                            <Store className="w-4 h-4 text-amber-700" />
+                          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                            <Store className="w-5 h-5 text-amber-700" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">
+                            <p className="font-semibold text-sm text-slate-900 truncate">
                               {shop.name}
                             </p>
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-slate-500 truncate">
                               {shop.owner_name}
                             </p>
-                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                            <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
                               <MapPin className="w-3 h-3" /> {shop.city || "No city"}
                             </p>
                           </div>
@@ -757,12 +783,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         <button
                           onClick={() => approveShop(shop.id)}
                           disabled={approvingId === shop.id}
-                          className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50 shadow-sm shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30"
                         >
                           {approvingId === shop.id ? (
                             <>
-                              <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                              Approving...
+                              <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              Approving…
                             </>
                           ) : (
                             <>
@@ -778,71 +804,82 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               )}
 
               {/* Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
                 {statCards.map((stat, index) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow"
+                    transition={{ delay: index * 0.06, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    className="stat-card p-5"
+                    style={{ "--stat-accent": stat.accent } as React.CSSProperties}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div
-                        className={`${stat.lightColor} p-2 rounded-lg ${stat.textColor}`}
-                      >
+                      <div className={`${stat.iconBg} p-2.5 rounded-xl ${stat.iconColor}`}>
                         {stat.icon}
                       </div>
-                      <span className="text-xs text-gray-500">{stat.sub}</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
+                    <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
+                      {stat.value}
+                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{stat.sub}</span>
+                    </div>
                   </motion.div>
                 ))}
               </div>
 
               {/* Charts Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* Weekly Overview (Bar Chart) */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200"
+                  className="lg:col-span-2 dashboard-card p-6"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      Weekly Overview
-                    </h3>
-                    <span className="text-xs text-gray-500">This week</span>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Weekly Overview</h3>
+                        <p className="text-xs text-slate-400">Revenue this week</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full">This week</span>
                   </div>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={weeklyRevenue}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <BarChart data={weeklyRevenue} barSize={32}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="100%" stopColor="#818cf8" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                       <XAxis
                         dataKey="day"
-                        stroke="#9ca3af"
-                        fontSize={12}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        stroke="#9ca3af"
-                        fontSize={12}
+                        stroke="#cbd5e1"
+                        fontSize={11}
                         tickLine={false}
                         axisLine={false}
+                        fontWeight={500}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                        }}
+                      <YAxis
+                        stroke="#cbd5e1"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `₱${v.toLocaleString()}`}
                       />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} />
                       <Bar
                         dataKey="revenue"
-                        fill="#6366f1"
-                        radius={[6, 6, 0, 0]}
+                        fill="url(#barGradient)"
+                        radius={[8, 8, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -850,54 +887,59 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
                 {/* Appointment Status (Pie) */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.35 }}
-                  className="bg-white rounded-xl p-6 border border-gray-200"
+                  className="dashboard-card p-6"
                 >
-                  <h3 className="text-base font-semibold text-gray-900 mb-4">
-                    Appointment Status
-                  </h3>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Appointment Status</h3>
+                  </div>
+                  <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
                         data={appointmentsByStatus}
                         cx="50%"
                         cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
+                        innerRadius={50}
+                        outerRadius={75}
                         paddingAngle={4}
                         dataKey="value"
+                        strokeWidth={0}
                       >
                         {appointmentsByStatus.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                        }}
-                      />
+                      <Tooltip content={<ChartTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="space-y-2 mt-3">
+                  {/* Total in center overlay */}
+                  <div className="text-center -mt-[120px] mb-[60px] pointer-events-none">
+                    <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
+                      {appointmentsByStatus.reduce((s, i) => s + i.value, 0)}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Total</p>
+                  </div>
+                  <div className="space-y-2.5 mt-2">
                     {appointmentsByStatus.map((item) => (
                       <div
                         key={item.name}
-                        className="flex items-center justify-between text-sm"
+                        className="flex items-center justify-between"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-2.5 h-2.5 rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-gray-600 capitalize">
-                            {item.name}
+                          <span className="text-xs font-medium text-slate-600 capitalize">
+                            {item.name.replace("_", " ")}
                           </span>
                         </div>
-                        <span className="font-semibold text-gray-900">
+                        <span className="text-xs font-bold text-slate-900 tabular-nums">
                           {item.value}
                         </span>
                       </div>
@@ -907,94 +949,109 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Revenue Trend + Customers Per Shop */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                {/* Revenue Trend Line */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Revenue Trend Area */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200"
+                  className="lg:col-span-2 dashboard-card p-6"
                 >
-                  <h3 className="text-base font-semibold text-gray-900 mb-4">
-                    Platform Revenue Trend
-                  </h3>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-50 flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-cyan-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Platform Revenue Trend</h3>
+                      <p className="text-xs text-slate-400">Last 14 days</p>
+                    </div>
+                  </div>
                   <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={revenueTrend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <AreaChart data={revenueTrend}>
+                      <defs>
+                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                       <XAxis
                         dataKey="date"
-                        stroke="#9ca3af"
-                        fontSize={12}
-                        tickLine={false}
-                      />
-                      <YAxis
-                        stroke="#9ca3af"
-                        fontSize={12}
+                        stroke="#cbd5e1"
+                        fontSize={11}
                         tickLine={false}
                         axisLine={false}
+                        fontWeight={500}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-                        }}
+                      <YAxis
+                        stroke="#cbd5e1"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `₱${v.toLocaleString()}`}
                       />
-                      <Line
+                      <Tooltip content={<ChartTooltip />} />
+                      <Area
                         type="monotone"
                         dataKey="revenue"
                         stroke="#6366f1"
-                        strokeWidth={2}
-                        dot={{ fill: "#6366f1", r: 4 }}
-                        activeDot={{ r: 6, fill: "#4f46e5" }}
+                        strokeWidth={2.5}
+                        fill="url(#areaGradient)"
+                        dot={{ fill: "#6366f1", r: 3, strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: "#4f46e5", stroke: "#fff", strokeWidth: 2 }}
                       />
-                    </LineChart>
+                    </AreaChart>
                   </ResponsiveContainer>
                 </motion.div>
 
                 {/* Customers Per Shop */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.45 }}
-                  className="bg-white rounded-xl p-6 border border-gray-200"
+                  className="dashboard-card p-6"
                 >
-                  <h3 className="text-base font-semibold text-gray-900 mb-4">
-                    Customers Per Shop
-                  </h3>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Customers / Shop</h3>
+                  </div>
                   <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={customersPerShop} layout="vertical">
+                    <BarChart data={customersPerShop} layout="vertical" barSize={14}>
+                      <defs>
+                        <linearGradient id="hBarGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#10b981" />
+                          <stop offset="100%" stopColor="#34d399" />
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#f0f0f0"
+                        stroke="#f1f5f9"
                         horizontal={false}
                       />
                       <XAxis
                         type="number"
-                        stroke="#9ca3af"
-                        fontSize={12}
+                        stroke="#cbd5e1"
+                        fontSize={11}
                         tickLine={false}
+                        axisLine={false}
                       />
                       <YAxis
                         dataKey="name"
                         type="category"
-                        stroke="#9ca3af"
+                        stroke="#94a3b8"
                         fontSize={11}
                         width={90}
                         tickLine={false}
+                        axisLine={false}
+                        fontWeight={500}
                       />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#fff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                        }}
-                      />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.04)' }} />
                       <Bar
                         dataKey="count"
-                        fill="#10b981"
-                        radius={[0, 6, 6, 0]}
+                        fill="url(#hBarGradient)"
+                        radius={[0, 8, 8, 0]}
                         name="Customers"
                       />
                     </BarChart>
@@ -1003,88 +1060,80 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               {/* Shops Table + Shops by City */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* All Shops Table */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden"
+                  className="lg:col-span-2 dashboard-card overflow-hidden"
                 >
-                  <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      All Shops
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {recentShops.length} total
-                    </span>
+                  <div className="px-6 py-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                        <Store className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>All Shops</h3>
+                        <p className="text-xs text-slate-400">{recentShops.length} registered</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm dashboard-table">
                       <thead>
-                        <tr className="bg-gray-50">
-                          <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                            Shop
-                          </th>
-                          <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                            City
-                          </th>
-                          <th className="text-center text-xs font-medium text-400 uppercase tracking-wider py-3 px-4">
-                            Customers
-                          </th>
-                          <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                            Appts
-                          </th>
-                          <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                            Revenue
-                          </th>
-                          <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                            Status
-                          </th>
+                        <tr>
+                          <th className="text-left">Shop</th>
+                          <th className="text-left">City</th>
+                          <th className="text-center">Customers</th>
+                          <th className="text-center">Appts</th>
+                          <th className="text-right">Revenue</th>
+                          <th className="text-center">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody>
                         {recentShops.slice(0, 6).map((shop) => (
-                          <tr key={shop.id} className="hover:bg-gray-50 transition">
-                            <td className="py-3 px-4">
+                          <tr key={shop.id}>
+                            <td>
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                                  <Store className="w-4 h-4 text-slate-900" />
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                                  <Store className="w-3.5 h-3.5 text-slate-500" />
                                 </div>
                                 <div>
-                                  <p className="font-medium text-gray-900">
+                                  <p className="font-semibold text-slate-900 text-sm">
                                     {shop.name}
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-slate-400">
                                     {shop.owner_name}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 px-4 text-gray-600">
+                            <td className="text-slate-600 text-sm">
                               {shop.city}
                             </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                            <td className="text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold tabular-nums">
                                 {shop.customer_count}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium">
+                            <td className="text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold tabular-nums">
                                 {shop.appointment_count}
                               </span>
                             </td>
-                            <td className="py-3 px-4 text-right font-medium text-gray-900">
+                            <td className="text-right font-bold text-slate-900 tabular-nums text-sm">
                               ₱{shop.total_revenue.toLocaleString()}
                             </td>
-                            <td className="py-3 px-4 text-center">
+                            <td className="text-center">
                               <span
-                                className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                                   shop.is_active
                                     ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-red-50 text-red-700"
+                                    : "bg-red-50 text-red-600"
                                 }`}
                               >
+                                <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-red-400"}`} />
                                 {shop.is_active ? "Active" : "Inactive"}
                               </span>
                             </td>
@@ -1094,7 +1143,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <tr>
                             <td
                               colSpan={6}
-                              className="py-8 text-center text-gray-400"
+                              className="py-12 text-center text-slate-400 text-sm"
                             >
                               No shops yet
                             </td>
@@ -1105,43 +1154,48 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </motion.div>
 
-                {/* Shops by City + Deposits */}
+                {/* Shops by City */}
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.55 }}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+                  className="dashboard-card overflow-hidden"
                 >
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      Shops by City
-                    </h3>
+                  <div className="px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
+                        <MapPin className="w-4 h-4 text-violet-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Shops by City</h3>
+                        <p className="text-xs text-slate-400">Geographic distribution</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4">
+                  <div className="px-6 pb-6 space-y-5">
                     {shopsByCity.map((item, index) => {
                       const maxCount = Math.max(
                         ...shopsByCity.map((s) => s.count),
                         1,
                       );
                       return (
-                        <div key={item.city} className="mb-4 last:mb-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm font-medium text-gray-900">
-                                {item.city}
-                              </span>
-                            </div>
-                            <span className="text-sm font-semibold text-gray-900">
+                        <div key={item.city}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {item.city}
+                            </span>
+                            <span className="text-sm font-bold text-slate-900 tabular-nums">
                               {item.count}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2">
-                            <div
-                              className="h-2 rounded-full transition-all duration-500"
+                          <div className="w-full bg-slate-100 rounded-full h-2">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(item.count / maxCount) * 100}%` }}
+                              transition={{ duration: 0.8, delay: 0.6 + index * 0.1, ease: "easeOut" }}
+                              className="h-2 rounded-full"
                               style={{
-                                width: `${(item.count / maxCount) * 100}%`,
-                                backgroundColor: COLORS[index % COLORS.length],
+                                background: `linear-gradient(90deg, ${COLORS[index % COLORS.length]}, ${COLORS[index % COLORS.length]}cc)`,
                               }}
                             />
                           </div>
@@ -1149,7 +1203,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       );
                     })}
                     {shopsByCity.length === 0 && (
-                      <p className="text-center text-gray-400 text-sm py-4">
+                      <p className="text-center text-slate-400 text-sm py-6">
                         No data yet
                       </p>
                     )}
@@ -1159,57 +1213,55 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* Recent Users Table */}
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+                className="dashboard-card overflow-hidden"
               >
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-base font-semibold text-gray-900">
-                    Recent Users
-                  </h3>
+                <div className="px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                      <Users className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Recent Users</h3>
+                      <p className="text-xs text-slate-400">Newest registrations</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm dashboard-table">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                          User
-                        </th>
-                        <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                          Email
-                        </th>
-                        <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                          Role
-                        </th>
-                        <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider py-3 px-4">
-                          Joined
-                        </th>
+                      <tr>
+                        <th className="text-left">User</th>
+                        <th className="text-left">Email</th>
+                        <th className="text-center">Role</th>
+                        <th className="text-right">Joined</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody>
                       {recentUsers.map((u) => (
-                        <tr key={u.id} className="hover:bg-gray-50 transition">
-                          <td className="py-3 px-4">
+                        <tr key={u.id}>
+                          <td>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                <span className="text-gray-600 font-medium text-sm">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+                                <span className="text-slate-600 font-semibold text-xs">
                                   {u.name?.charAt(0)?.toUpperCase()}
                                 </span>
                               </div>
-                              <span className="font-medium text-gray-900">
+                              <span className="font-semibold text-slate-900 text-sm">
                                 {u.name}
                               </span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-gray-600">{u.email}</td>
-                          <td className="py-3 px-4 text-center">
+                          <td className="text-slate-500 text-sm">{u.email}</td>
+                          <td className="text-center">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                              className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold capitalize ${
                                 u.role === "admin"
                                   ? "bg-purple-50 text-purple-700"
                                   : u.role === "owner"
-                                    ? "bg-red-50 text-red-700"
+                                    ? "bg-rose-50 text-rose-700"
                                     : u.role === "mechanic"
                                       ? "bg-blue-50 text-blue-700"
                                       : "bg-emerald-50 text-emerald-700"
@@ -1218,7 +1270,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               {u.role}
                             </span>
                           </td>
-                          <td className="py-3 px-4 text-right text-gray-500 text-xs">
+                          <td className="text-right text-slate-400 text-xs tabular-nums">
                             {new Date(u.created_at).toLocaleDateString()}
                           </td>
                         </tr>
@@ -1227,7 +1279,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         <tr>
                           <td
                             colSpan={4}
-                            className="py-8 text-center text-gray-400"
+                            className="py-12 text-center text-slate-400"
                           >
                             No users yet
                           </td>

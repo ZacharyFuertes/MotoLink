@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { DollarSign, Calendar, Users, Package, AlertTriangle, ArrowRight, TrendingUp, Wrench } from "lucide-react";
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -33,6 +33,25 @@ interface MechanicProductivity {
   laborHours: number;
   revenue: number;
 }
+
+/* Custom chart tooltip */
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl px-4 py-3 shadow-lg">
+      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+      {payload.map((entry: any, i: number) => (
+        <p key={i} className="text-sm font-semibold text-slate-900">
+          {typeof entry.value === "number"
+            ? `₱${entry.value.toLocaleString()}`
+            : entry.value}
+        </p>
+      ))}
+    </div>
+  );
+};
+
+const MECHANIC_COLORS = ["#8b5cf6", "#6366f1", "#3b82f6", "#06b6d4", "#10b981", "#f59e0b"];
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
@@ -217,255 +236,314 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     }
   };
 
-  const cardClass = "bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow";
-  const labelClass = "text-sm font-medium text-slate-500";
-  const valueClass = "text-2xl font-bold text-slate-800 mt-1";
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full" />
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="relative w-10 h-10 mx-auto mb-3">
+            <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-slate-400 font-medium">Loading dashboard…</p>
+        </div>
       </div>
     );
   }
 
+  const statCards = [
+    {
+      label: "Today's Revenue",
+      value: `PHP ${metrics.todayRevenue.toLocaleString()}`,
+      icon: <DollarSign size={18} />,
+      accent: "#10b981",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+    },
+    {
+      label: "Pending Appointments",
+      value: metrics.pendingAppointments,
+      icon: <Calendar size={18} />,
+      accent: "#f59e0b",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+    },
+    {
+      label: "Total Customers",
+      value: metrics.totalCustomers,
+      icon: <Users size={18} />,
+      accent: "#6366f1",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
+    },
+    {
+      label: "Low Stock Items",
+      value: metrics.lowStockCount,
+      icon: <AlertTriangle size={18} />,
+      accent: "#ef4444",
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
+    },
+    {
+      label: "Products",
+      value: metrics.totalProducts,
+      icon: <Package size={18} />,
+      accent: "#8b5cf6",
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-600",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Welcome back, {user?.name}</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }} className={cardClass}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-emerald-50">
-                <DollarSign size={20} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className={labelClass}>Today's Revenue</p>
-                <p className={valueClass}>PHP {metrics.todayRevenue.toLocaleString()}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className={cardClass}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-50">
-                <Calendar size={20} className="text-amber-600" />
-              </div>
-              <div>
-                <p className={labelClass}>Pending Appointments</p>
-                <p className={valueClass}>{metrics.pendingAppointments}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className={cardClass}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-50">
-                <Users size={20} className="text-blue-600" />
-              </div>
-              <div>
-                <p className={labelClass}>Total Customers</p>
-                <p className={valueClass}>{metrics.totalCustomers}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className={cardClass}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-rose-50">
-                <AlertTriangle size={20} className="text-rose-600" />
-              </div>
-              <div>
-                <p className={labelClass}>Low Stock Items</p>
-                <p className={valueClass}>{metrics.lowStockCount}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className={cardClass}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-purple-50">
-                <Package size={20} className="text-purple-600" />
-              </div>
-              <div>
-                <p className={labelClass}>Products</p>
-                <p className={valueClass}>{metrics.totalProducts}</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-800">Pending Appointments</h2>
-              <button onClick={() => onNavigate?.("appointments")} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                View All <ArrowRight size={14} />
-              </button>
-            </div>
-            {recentAppointments.length === 0 ? (
-              <p className="text-slate-400 text-sm">No pending appointments</p>
-            ) : (
-              <div className="space-y-3">
-                {recentAppointments.slice(0, 5).map((apt) => (
-                  <div key={apt.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">{apt.service_type || "Service"}</p>
-                      <p className="text-xs text-slate-400">{apt.customer_name || "Walk-in"} &middot; {apt.scheduled_date}</p>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      apt.status === "pending" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"
-                    }`}>
-                      {apt.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-800">Low Stock Alerts</h2>
-              <button onClick={() => onNavigate?.("inventory")} className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                Manage Stock <ArrowRight size={14} />
-              </button>
-            </div>
-            {lowStockParts.length === 0 ? (
-              <p className="text-slate-400 text-sm">All items are well-stocked</p>
-            ) : (
-              <div className="space-y-3">
-                {lowStockParts.slice(0, 5).map((part: any) => (
-                  <div key={part.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">{part.name}</p>
-                      <p className="text-xs text-slate-400">{part.category} &middot; SKU: {part.sku}</p>
-                    </div>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-rose-50 text-rose-700">
-                      {part.quantity_in_stock} / {part.reorder_level}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </div>
-
-        {/* 30-day revenue trend + mechanic productivity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        {statCards.map((stat, index) => (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            key={stat.label}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
+            transition={{ delay: index * 0.06, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="stat-card p-5"
+            style={{ "--stat-accent": stat.accent } as React.CSSProperties}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={18} className="text-emerald-600" />
-              <h2 className="text-lg font-semibold text-slate-800">
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${stat.iconBg} ${stat.iconColor}`}>
+                {stat.icon}
+              </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+                <p className="text-xl font-extrabold text-slate-900 tabular-nums mt-0.5">{stat.value}</p>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Appointments + Low Stock */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="dashboard-card p-6"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-amber-600" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Pending Appointments</h2>
+            </div>
+            <button onClick={() => onNavigate?.("appointments")} className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors">
+              View All <ArrowRight size={12} />
+            </button>
+          </div>
+          {recentAppointments.length === 0 ? (
+            <div className="py-8 text-center">
+              <Calendar className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-400 text-sm">No pending appointments</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {recentAppointments.slice(0, 5).map((apt) => (
+                <div key={apt.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{apt.service_type || "Service"}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{apt.customer_name || "Walk-in"} · {apt.scheduled_date}</p>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
+                    apt.status === "pending" ? "bg-amber-50 text-amber-700" : "bg-indigo-50 text-indigo-700"
+                  }`}>
+                    {apt.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="dashboard-card p-6"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+              </div>
+              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Low Stock Alerts</h2>
+            </div>
+            <button onClick={() => onNavigate?.("inventory")} className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors">
+              Manage Stock <ArrowRight size={12} />
+            </button>
+          </div>
+          {lowStockParts.length === 0 ? (
+            <div className="py-8 text-center">
+              <Package className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+              <p className="text-slate-400 text-sm">All items are well-stocked</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {lowStockParts.slice(0, 5).map((part: any) => (
+                <div key={part.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{part.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{part.category} · SKU: {part.sku}</p>
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-red-50 text-red-700 tabular-nums">
+                    {part.quantity_in_stock} / {part.reorder_level}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* 30-day revenue trend + mechanic productivity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-2 dashboard-card p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 Revenue — Last 30 Days
               </h2>
+              <p className="text-xs text-slate-400">Part sales + completed jobs</p>
             </div>
-            {revenueTrend.length === 0 ? (
+          </div>
+          {revenueTrend.length === 0 ? (
+            <div className="py-12 text-center">
+              <TrendingUp className="w-8 h-8 text-slate-200 mx-auto mb-3" />
               <p className="text-slate-400 text-sm">
                 No sales recorded in the last 30 days.
               </p>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={revenueTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    interval={4}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    formatter={(value: any) => [
-                      `₱${Number(value).toLocaleString()}`,
-                      "Revenue",
-                    ]}
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Wrench size={18} className="text-blue-600" />
-              <h2 className="text-lg font-semibold text-slate-800">
-                Mechanic Productivity
-              </h2>
             </div>
-            {mechanicProductivity.length === 0 ? (
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={revenueTrend}>
+                <defs>
+                  <linearGradient id="shopAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#cbd5e1"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={4}
+                  fontWeight={500}
+                />
+                <YAxis
+                  stroke="#cbd5e1"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `₱${v.toLocaleString()}`}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fill="url(#shopAreaGradient)"
+                  dot={{ fill: "#10b981", r: 2, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#059669", stroke: "#fff", strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="dashboard-card p-6"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+              <Wrench className="w-4 h-4 text-indigo-600" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              Mechanic Productivity
+            </h2>
+          </div>
+          {mechanicProductivity.length === 0 ? (
+            <div className="py-12 text-center">
+              <Wrench className="w-8 h-8 text-slate-200 mx-auto mb-3" />
               <p className="text-slate-400 text-sm">
                 No completed job orders yet.
               </p>
-            ) : (
-              <div className="space-y-4">
-                {mechanicProductivity.map((mech) => (
-                  <div key={mech.id}>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium text-slate-700">
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {mechanicProductivity.map((mech, i) => (
+                <div key={mech.id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold"
+                        style={{ backgroundColor: MECHANIC_COLORS[i % MECHANIC_COLORS.length] }}
+                      >
+                        {mech.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
+                      <p className="text-sm font-semibold text-slate-800">
                         {mech.name}
                       </p>
-                      <span className="text-xs text-slate-500">
-                        {mech.completed} job{mech.completed === 1 ? "" : "s"} ·{" "}
-                        {mech.laborHours.toFixed(1)} hrs
-                      </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-blue-500"
-                          style={{
-                            width: `${
-                              mechanicProductivity.length > 1
-                                ? (mech.revenue /
-                                    Math.max(
-                                      ...mechanicProductivity.map(
-                                        (m) => m.revenue,
-                                      ),
-                                    )) *
-                                  100
-                                : 100
-                            }%`,
-                          }}
-                        />
-                      </div>
-                      <span className="ml-3 text-sm font-semibold text-slate-700">
-                        ₱{mech.revenue.toLocaleString()}
-                      </span>
-                    </div>
+                    <span className="text-xs text-slate-400 font-medium tabular-nums">
+                      {mech.completed} job{mech.completed === 1 ? "" : "s"} ·{" "}
+                      {mech.laborHours.toFixed(1)} hrs
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${
+                            mechanicProductivity.length > 1
+                              ? (mech.revenue /
+                                  Math.max(
+                                    ...mechanicProductivity.map(
+                                      (m) => m.revenue,
+                                    ),
+                                  )) *
+                                100
+                              : 100
+                          }%`,
+                        }}
+                        transition={{ duration: 0.8, delay: 0.3 + i * 0.1, ease: "easeOut" }}
+                        className="h-2 rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, ${MECHANIC_COLORS[i % MECHANIC_COLORS.length]}, ${MECHANIC_COLORS[i % MECHANIC_COLORS.length]}99)`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 tabular-nums min-w-[70px] text-right">
+                      ₱{mech.revenue.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );

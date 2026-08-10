@@ -201,3 +201,194 @@ textarea:focus {
     @apply hidden;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD REDESIGN — Premium utility classes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Dark sidebar shared base */
+.sidebar-dark {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-dark-violet {
+  background: linear-gradient(180deg, #1e1038 0%, #2d1b69 50%, #1e1038 100%);
+  border-right: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+/* Sidebar nav item — active state with left accent */
+.sidebar-nav-active {
+  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.sidebar-nav-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #6366f1, #818cf8);
+}
+
+.sidebar-nav-active-violet::before {
+  background: linear-gradient(180deg, #8b5cf6, #c084fc);
+}
+
+.sidebar-nav-item {
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+}
+.sidebar-nav-item:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Dashboard card — elevated with subtle shadow layers */
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.dashboard-card:hover {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Stat card with left accent stripe */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 16px 0 0 16px;
+  background: var(--stat-accent, #6366f1);
+}
+.stat-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Tabular numbers for data values */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Gradient progress bar animation */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.progress-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Dashboard header with subtle shadow */
+.dashboard-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Dashboard scrollbar — thinner for dark sidebars */
+.sidebar-dark::-webkit-scrollbar,
+.sidebar-dark-violet::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-dark::-webkit-scrollbar-track,
+.sidebar-dark-violet::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-dark::-webkit-scrollbar-thumb,
+.sidebar-dark-violet::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Chart container refinement */
+.chart-container {
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Table refinement */
+.dashboard-table th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0.75rem 1rem;
+}
+.dashboard-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f8fafc;
+}
+.dashboard-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Status dot — pulsing indicator */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+.status-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0.2;
+}
+
+/* Floating notification badge */
+.notification-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px white;
+}

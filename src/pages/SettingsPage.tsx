@@ -13,8 +13,6 @@ import {
   Wrench,
   BellRing,
   Lock,
-  Plug,
-  ScrollText,
   Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -56,14 +54,18 @@ const SectionCard: React.FC<SectionCardProps> = ({
   subtitle,
   children,
 }) => (
-  <motion.div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="dashboard-card p-6"
+  >
     <div className="flex items-center gap-3 mb-6">
-      <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center">
-        <Icon size={24} />
+      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+        <Icon size={20} />
       </div>
       <div>
-        <h3 className="text-xl font-bold text-slate-800">{title}</h3>
-        <p className="text-slate-500 text-sm">{subtitle}</p>
+        <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>{title}</h3>
+        <p className="text-xs text-slate-400">{subtitle}</p>
       </div>
     </div>
     {children}
@@ -85,10 +87,10 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
   disabled,
   onChange,
 }) => (
-  <div className="flex items-start justify-between gap-4 py-3 border-b border-slate-100 last:border-b-0">
+  <div className="flex items-center justify-between gap-4 py-3.5 border-b border-slate-100 last:border-b-0">
     <div>
-      <p className="text-sm font-semibold text-slate-800">{label}</p>
-      {description && <p className="text-xs text-slate-500">{description}</p>}
+      <p className="text-xs font-bold text-slate-800">{label}</p>
+      {description && <p className="text-[11px] text-slate-400 mt-0.5">{description}</p>}
     </div>
     <button
       type="button"
@@ -97,12 +99,12 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
       aria-label={label}
       disabled={disabled}
       onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 disabled:opacity-50 ${
-        checked ? "bg-violet-600" : "bg-slate-300"
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+        checked ? "bg-indigo-600" : "bg-slate-200"
       }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
           checked ? "translate-x-6" : "translate-x-1"
         }`}
       />
@@ -110,35 +112,10 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
   </div>
 );
 
-interface StatusRowProps {
-  name: string;
-  status: string;
-}
-
-const StatusRow: React.FC<StatusRowProps> = ({ name, status }) => {
-  const meta =
-    status === "connected"
-      ? { dot: "bg-emerald-500", text: "text-emerald-600", label: "connected" }
-      : status === "checking"
-        ? { dot: "bg-amber-400", text: "text-amber-600", label: "checking..." }
-        : { dot: "bg-red-500", text: "text-red-500", label: "not responding" };
-  return (
-    <div className="flex items-center justify-between gap-4 py-3 border-b border-slate-100 last:border-b-0">
-      <p className="text-sm font-semibold text-slate-800">{name}</p>
-      <span
-        className={`inline-flex items-center gap-2 text-sm ${meta.text}`}
-      >
-        <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
-        {meta.label}
-      </span>
-    </div>
-  );
-};
-
 const selectClassName =
-  "px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-violet-500 transition disabled:opacity-50";
+  "px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition disabled:opacity-50";
 const inputClassName =
-  "w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition";
+  "w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition";
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
@@ -162,9 +139,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     type: "success" | "error";
   } | null>(null);
   const [lastSignInAt, setLastSignInAt] = useState<string | null>(null);
-  const [supabaseStatus, setSupabaseStatus] = useState<
-    "checking" | "connected" | "not_responding"
-  >("checking");
 
   // Account Repair state
   const [repairEmail, setRepairEmail] = useState("");
@@ -233,7 +207,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
       setSettingsStatus({
         text:
           err?.message ||
-          "Failed to load platform settings. Run the admin_platform_settings migration.",
+          "Failed to load platform settings.",
         type: "error",
       });
     } finally {
@@ -262,21 +236,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     if (authUser?.last_sign_in_at) setLastSignInAt(authUser.last_sign_in_at);
   };
 
-  const checkSupabase = async () => {
-    try {
-      const { error } = await supabase.from("platform_settings").select("id").limit(1);
-      setSupabaseStatus(error ? "not_responding" : "connected");
-    } catch {
-      setSupabaseStatus("not_responding");
-    }
-  };
-
   useEffect(() => {
     if (!isAdmin) return;
     loadAdminSettings();
     loadAuditLog();
     loadLastSignIn();
-    checkSupabase();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
@@ -292,7 +256,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         );
       if (error) throw error;
       setPlatformSettings((prev) => ({ ...prev, [key]: value }));
-      setSettingsStatus({ text: "Settings saved.", type: "success" });
+      setSettingsStatus({ text: "Settings saved successfully.", type: "success" });
       await logAudit(`Changed setting ${key} to ${JSON.stringify(value)}`, key);
     } catch (err: any) {
       setSettingsStatus({
@@ -319,7 +283,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
       if (error) throw error;
       if (!data) {
         setSettingsStatus({
-          text: "No user found with that email.",
+          text: "No user found with that email address.",
           type: "error",
         });
         return;
@@ -417,478 +381,390 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto"
-      >
-        <h1 className="text-2xl font-bold text-slate-800 mb-1">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
           System Settings
         </h1>
-        <p className="text-slate-500 mb-10">
+        <p className="text-xs text-slate-500 mt-0.5">
           {user.role === "admin"
-            ? "Admin account and platform-level settings."
-            : "Owner-only system configuration and monitoring."}
+            ? "Admin account credentials and platform-wide configurations."
+            : "Shop owner system settings and shortcuts."}
         </p>
+      </div>
 
-        {user.role === "owner" && (
-          <>
-            {/* Settings cards */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="bg-white p-6 rounded-xl border border-slate-200 hover:border-violet-500/60 cursor-pointer transition-colors shadow-sm"
-                onClick={() => setShowInviteModal(true)}
-              >
-                <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center mb-4">
-                  <Users size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">
-                  Staff Management
-                </h3>
-                <p className="text-slate-500 text-sm">
-                  Invite mechanics to join the system and manage their access.
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="bg-white p-6 rounded-xl border border-slate-200 hover:border-violet-500/60 cursor-pointer transition-colors shadow-sm"
-                onClick={handleOpenShopSettings}
-              >
-                <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center mb-4">
-                  <Store size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">
-                  Shop Profile
-                </h3>
-                <p className="text-slate-500 text-sm">
-                  Edit the details customers see on the MotoLink landing page.
-                </p>
-              </motion.div>
-            </div>
-
-            <AddMechanicModal
-              isOpen={showInviteModal}
-              onClose={() => setShowInviteModal(false)}
-            />
-          </>
-        )}
-
-        {user.role === "admin" && (
-          <>
-            <motion.div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-violet-50 text-violet-600 rounded-lg flex items-center justify-center">
-                  <ShieldCheck size={24} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">
-                    Account &amp; Security
-                  </h3>
-                  <p className="text-slate-500 text-sm">
-                    Manage your admin account credentials.
-                  </p>
-                </div>
+      {user.role === "owner" && (
+        <>
+          {/* Quick Action Cards for Shop Owner */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <motion.div
+              whileHover={{ y: -2 }}
+              className="dashboard-card p-6 cursor-pointer"
+              onClick={() => setShowInviteModal(true)}
+            >
+              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-4">
+                <Users size={20} />
               </div>
-
-              {statusMsg && (
-                <div
-                  className={`mb-4 px-4 py-2.5 rounded-lg text-sm ${
-                    statusMsg.type === "success"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {statusMsg.text}
-                </div>
-              )}
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
-                    Account Details
-                  </p>
-                  <p className="text-sm text-slate-800 mb-1">
-                    <span className="font-semibold">Name:</span> {user.name}
-                  </p>
-                  <p className="text-sm text-slate-800">
-                    <span className="font-semibold">Email:</span> {user.email}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
-                    Change Password
-                  </p>
-                  <input
-                    type="password"
-                    placeholder="New password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full mb-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
-                  />
-                  <input
-                    type="password"
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full mb-3 px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
-                  />
-                  <button
-                    onClick={handleChangePassword}
-                    disabled={changingPassword}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
-                  >
-                    {changingPassword ? (
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <KeyRound size={16} />
-                    )}
-                    Update Password
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-5 border-t border-slate-200 flex items-center justify-between">
-                <p className="text-sm text-slate-500">
-                  Sign out of the admin platform
-                </p>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-semibold transition"
-                >
-                  <LogOut size={16} /> Logout
-                </button>
-              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                Staff & Mechanics
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Invite mechanics to join your shop and manage team access.
+              </p>
             </motion.div>
 
-            {/* Admin platform sections */}
-            <div className="mt-6 space-y-6">
-              {settingsStatus && (
-                <div
-                  className={`px-4 py-2.5 rounded-lg text-sm ${
-                    settingsStatus.type === "success"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {settingsStatus.text}
-                </div>
-              )}
+            <motion.div
+              whileHover={{ y: -2 }}
+              className="dashboard-card p-6 cursor-pointer"
+              onClick={handleOpenShopSettings}
+            >
+              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-4">
+                <Store size={20} />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                Shop Profile
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Edit public shop information shown on MotoLink landing page.
+              </p>
+            </motion.div>
+          </div>
 
-              {settingsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                </div>
+          <AddMechanicModal
+            isOpen={showInviteModal}
+            onClose={() => setShowInviteModal(false)}
+          />
+        </>
+      )}
+
+      {/* Account Security Card (Admin & Owner) */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="dashboard-card p-6"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              Account &amp; Security
+            </h3>
+            <p className="text-xs text-slate-400">Manage account credentials and session security</p>
+          </div>
+        </div>
+
+        {statusMsg && (
+          <div
+            className={`mb-4 px-4 py-3 rounded-xl text-xs font-semibold ${
+              statusMsg.type === "success"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                : "bg-red-50 text-red-600 border border-red-200/60"
+            }`}
+          >
+            {statusMsg.text}
+          </div>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+              Profile Summary
+            </p>
+            <p className="text-xs font-semibold text-slate-800 mb-1">
+              Name: <span className="font-normal text-slate-600">{user.name}</span>
+            </p>
+            <p className="text-xs font-semibold text-slate-800 mb-1">
+              Email: <span className="font-normal text-slate-600">{user.email}</span>
+            </p>
+            <p className="text-xs font-semibold text-slate-800">
+              Role: <span className="font-bold text-indigo-600 capitalize">{user.role}</span>
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+              Update Password
+            </p>
+            <input
+              type="password"
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={`${inputClassName} mb-2`}
+            />
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`${inputClassName} mb-3`}
+            />
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+            >
+              {changingPassword ? (
+                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               ) : (
-                <>
-                  {/* 1. Platform Configuration */}
-                  <SectionCard
-                    icon={SlidersHorizontal}
-                    title="Platform Configuration"
-                    subtitle="Platform-wide operational toggles."
-                  >
-                    <ToggleRow
-                      label="New shop registration"
-                      description="Allow shop owners to register new shops on the platform."
-                      checked={getSetting("registration_open", true)}
-                      disabled={savingKey !== null}
-                      onChange={() =>
-                        saveSetting(
-                          "registration_open",
-                          !getSetting("registration_open", true),
-                        )
-                      }
-                    />
-                    <ToggleRow
-                      label="Maintenance mode"
-                      description="Temporarily disable shop registration and checkout flows."
-                      checked={getSetting("maintenance_mode", false)}
-                      disabled={savingKey !== null}
-                      onChange={() =>
-                        saveSetting(
-                          "maintenance_mode",
-                          !getSetting("maintenance_mode", false),
-                        )
-                      }
-                    />
-                    <div className="pt-3">
-                      <p className="text-sm font-semibold text-slate-800 mb-1">
-                        Default timezone
-                      </p>
-                      <p className="text-xs text-slate-500 mb-2">
-                        Timezone used for scheduling and reports.
-                      </p>
-                      <select
-                        value={getSetting("default_timezone", "Asia/Manila")}
-                        disabled={savingKey !== null}
-                        onChange={(e) =>
-                          saveSetting("default_timezone", e.target.value)
-                        }
-                        className={selectClassName}
-                      >
-                        {TIMEZONES.map((tz) => (
-                          <option key={tz} value={tz}>
-                            {tz}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </SectionCard>
+                <KeyRound size={14} />
+              )}
+              Update Password
+            </button>
+          </div>
+        </div>
 
-                  {/* 2. Account Repair Tools */}
-                  <SectionCard
-                    icon={Wrench}
-                    title="Account Repair Tools"
-                    subtitle="Find a user and correct their role or shop link."
+        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
+          <p className="text-xs text-slate-400">
+            Sign out of your MotoLink account session
+          </p>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition"
+          >
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Admin platform sections */}
+      {isAdmin && (
+        <div className="space-y-6">
+          {settingsStatus && (
+            <div
+              className={`px-4 py-3 rounded-xl text-xs font-semibold ${
+                settingsStatus.type === "success"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                  : "bg-red-50 text-red-600 border border-red-200/60"
+              }`}
+            >
+              {settingsStatus.text}
+            </div>
+          )}
+
+          {settingsLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* 1. Platform Configuration */}
+              <SectionCard
+                icon={SlidersHorizontal}
+                title="Platform Configuration"
+                subtitle="Platform-wide operational controls."
+              >
+                <ToggleRow
+                  label="New shop registration"
+                  description="Allow new shop owners to register on MotoLink."
+                  checked={getSetting("registration_open", true)}
+                  disabled={savingKey !== null}
+                  onChange={() =>
+                    saveSetting(
+                      "registration_open",
+                      !getSetting("registration_open", true),
+                    )
+                  }
+                />
+                <ToggleRow
+                  label="Maintenance mode"
+                  description="Disable shop registration and checkout flows temporarily."
+                  checked={getSetting("maintenance_mode", false)}
+                  disabled={savingKey !== null}
+                  onChange={() =>
+                    saveSetting(
+                      "maintenance_mode",
+                      !getSetting("maintenance_mode", false),
+                    )
+                  }
+                />
+                <div className="pt-3">
+                  <p className="text-xs font-bold text-slate-800 mb-1">
+                    Default Timezone
+                  </p>
+                  <p className="text-[11px] text-slate-400 mb-2">
+                    Used for scheduling, appointments, and report timestamps.
+                  </p>
+                  <select
+                    value={getSetting("default_timezone", "Asia/Manila")}
+                    disabled={savingKey !== null}
+                    onChange={(e) =>
+                      saveSetting("default_timezone", e.target.value)
+                    }
+                    className={selectClassName}
                   >
-                    <div className="flex gap-2 mb-4">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    {TIMEZONES.map((tz) => (
+                      <option key={tz} value={tz}>
+                        {tz}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </SectionCard>
+
+              {/* 2. Account Repair Tools */}
+              <SectionCard
+                icon={Wrench}
+                title="Account Repair Tools"
+                subtitle="Search for a user by email to correct their role or shop linkage."
+              >
+                <div className="flex gap-2 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      placeholder="Search user by email address..."
+                      value={repairEmail}
+                      onChange={(e) => setRepairEmail(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") searchRepairUser();
+                      }}
+                      className={`${inputClassName} pl-10`}
+                    />
+                  </div>
+                  <button
+                    onClick={searchRepairUser}
+                    disabled={repairSearching}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                  >
+                    {repairSearching ? (
+                      <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Search size={14} />
+                    )}
+                    Search
+                  </button>
+                </div>
+
+                {repairResult && (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                      Edit Account Details
+                    </p>
+                    <p className="text-xs text-slate-800 mb-3">
+                      <span className="font-bold">{repairResult.name}</span> · {repairResult.email}
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2 mb-4">
+                      <div>
+                        <label
+                          htmlFor="repair-role"
+                          className="block text-[11px] font-bold text-slate-500 mb-1"
+                        >
+                          Role
+                        </label>
+                        <select
+                          id="repair-role"
+                          value={repairRole}
+                          onChange={(e) => setRepairRole(e.target.value)}
+                          className={`${selectClassName} w-full`}
+                        >
+                          {ROLE_OPTIONS.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="repair-shop-id"
+                          className="block text-[11px] font-bold text-slate-500 mb-1"
+                        >
+                          Shop UUID (blank to unlink)
+                        </label>
                         <input
-                          type="email"
-                          placeholder="Search user by email..."
-                          value={repairEmail}
-                          onChange={(e) => setRepairEmail(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") searchRepairUser();
-                          }}
-                          className={inputClassName + " pl-9"}
+                          id="repair-shop-id"
+                          type="text"
+                          value={repairShopId}
+                          onChange={(e) => setRepairShopId(e.target.value)}
+                          placeholder="Shop UUID"
+                          className={inputClassName}
                         />
                       </div>
-                      <button
-                        onClick={searchRepairUser}
-                        disabled={repairSearching}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
-                      >
-                        {repairSearching ? (
-                          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        ) : (
-                          <Search size={16} />
-                        )}
-                        Search
-                      </button>
                     </div>
-
-                    {repairResult && (
-                      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-3">
-                          Repair User
-                        </p>
-                        <p className="text-sm text-slate-800 mb-3">
-                          <span className="font-semibold">
-                            {repairResult.name}
-                          </span>{" "}
-                          · {repairResult.email}
-                        </p>
-                        <div className="grid gap-3 sm:grid-cols-2 mb-4">
-                          <div>
-                            <label
-                              htmlFor="repair-role"
-                              className="block text-xs font-medium text-slate-500 mb-1"
-                            >
-                              Role
-                            </label>
-                            <select
-                              id="repair-role"
-                              value={repairRole}
-                              onChange={(e) => setRepairRole(e.target.value)}
-                              className={selectClassName + " w-full"}
-                            >
-                              {ROLE_OPTIONS.map((r) => (
-                                <option key={r} value={r}>
-                                  {r}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label
-                              htmlFor="repair-shop-id"
-                              className="block text-xs font-medium text-slate-500 mb-1"
-                            >
-                              Shop ID (leave blank to unlink)
-                            </label>
-                            <input
-                              id="repair-shop-id"
-                              type="text"
-                              value={repairShopId}
-                              onChange={(e) => setRepairShopId(e.target.value)}
-                              placeholder="Shop UUID"
-                              className={inputClassName}
-                            />
-                          </div>
-                        </div>
-                        <button
-                          onClick={saveRepairUser}
-                          disabled={repairSaving}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
-                        >
-                          {repairSaving ? (
-                            <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <Wrench size={16} />
-                          )}
-                          Save
-                        </button>
-                      </div>
-                    )}
-                  </SectionCard>
-
-                  {/* 3. Notifications & Alerts */}
-                  <SectionCard
-                    icon={BellRing}
-                    title="Notifications & Alerts"
-                    subtitle="Admin alert preferences."
-                  >
-                    <ToggleRow
-                      label="New shop registration"
-                      description="Alert admins when a new shop registers."
-                      checked={getSetting("notif_new_shop_registration", true)}
-                      disabled={savingKey !== null}
-                      onChange={() =>
-                        saveSetting(
-                          "notif_new_shop_registration",
-                          !getSetting("notif_new_shop_registration", true),
-                        )
-                      }
-                    />
-                    <ToggleRow
-                      label="Flagged account"
-                      description="Alert admins when an account is flagged."
-                      checked={getSetting("notif_flagged_account", true)}
-                      disabled={savingKey !== null}
-                      onChange={() =>
-                        saveSetting(
-                          "notif_flagged_account",
-                          !getSetting("notif_flagged_account", true),
-                        )
-                      }
-                    />
-                    <ToggleRow
-                      label="Low-stock threshold"
-                      description="Platform-wide alert when a shop hits its low-stock threshold."
-                      checked={getSetting("notif_low_stock", true)}
-                      disabled={savingKey !== null}
-                      onChange={() =>
-                        saveSetting(
-                          "notif_low_stock",
-                          !getSetting("notif_low_stock", true),
-                        )
-                      }
-                    />
-                  </SectionCard>
-
-                  {/* 4. Security */}
-                  <SectionCard
-                    icon={Lock}
-                    title="Security"
-                    subtitle="Session and login security."
-                  >
-                    <div className="flex items-center justify-between gap-4 py-3 border-b border-slate-100">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          Last login
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Your most recent sign-in.
-                        </p>
-                      </div>
-                      <p className="text-sm text-slate-800 shrink-0">
-                        {lastSignInAt
-                          ? new Date(lastSignInAt).toLocaleString()
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 py-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          Session timeout
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Auto sign-out after inactivity.
-                        </p>
-                      </div>
-                      <select
-                        aria-label="Session timeout"
-                        value={String(getSetting("admin_session_timeout", 60))}
-                        disabled={savingKey !== null}
-                        onChange={(e) =>
-                          saveSetting(
-                            "admin_session_timeout",
-                            Number(e.target.value),
-                          )
-                        }
-                        className={selectClassName}
-                      >
-                        <option value="30">30 minutes</option>
-                        <option value="60">1 hour</option>
-                        <option value="240">4 hours</option>
-                      </select>
-                    </div>
-                  </SectionCard>
-
-                  {/* 5. Integrations Status */}
-                  <SectionCard
-                    icon={Plug}
-                    title="Integrations Status"
-                    subtitle="Connection status for platform services. No keys are stored or shown."
-                  >
-                    <StatusRow name="Supabase" status={supabaseStatus} />
-                    <StatusRow
-                      name="SendGrid"
-                      status={getSetting(
-                        "integration_sendgrid_status",
-                        "not_configured",
-                      )}
-                    />
-                    <StatusRow
-                      name="Groq API"
-                      status={getSetting(
-                        "integration_groq_status",
-                        "not_configured",
-                      )}
-                    />
-                  </SectionCard>
-
-                  {/* 6. Audit Log */}
-                  <SectionCard
-                    icon={ScrollText}
-                    title="Audit Log"
-                    subtitle="Recent admin actions across the platform."
-                  >
-                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 rounded-lg border border-slate-200">
-                      {auditLog.length === 0 ? (
-                        <p className="text-sm text-slate-500 p-4">
-                          No admin actions recorded yet.
-                        </p>
+                    <button
+                      onClick={saveRepairUser}
+                      disabled={repairSaving}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                    >
+                      {repairSaving ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                       ) : (
-                        auditLog.map((entry) => (
-                          <div key={entry.id} className="px-4 py-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs text-slate-400 font-medium">
-                                {new Date(entry.created_at).toLocaleString()}
-                              </p>
-                              <p className="text-xs text-slate-500 truncate">
-                                {entry.actor_email}
-                              </p>
-                            </div>
-                            <p className="text-sm text-slate-800 mt-0.5">
-                              {entry.action}
-                            </p>
-                          </div>
-                        ))
+                        <Wrench size={14} />
                       )}
-                    </div>
-                  </SectionCard>
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </motion.div>
+                      Save Changes
+                    </button>
+                  </div>
+                )}
+              </SectionCard>
+
+              {/* 3. Notifications & Alerts */}
+              <SectionCard
+                icon={BellRing}
+                title="Notifications & Alerts"
+                subtitle="Admin alert distribution settings."
+              >
+                <ToggleRow
+                  label="New shop registration alerts"
+                  description="Notify admins when a new shop registers."
+                  checked={getSetting("notif_new_shop_registration", true)}
+                  disabled={savingKey !== null}
+                  onChange={() =>
+                    saveSetting(
+                      "notif_new_shop_registration",
+                      !getSetting("notif_new_shop_registration", true),
+                    )
+                  }
+                />
+                <ToggleRow
+                  label="Flagged account alerts"
+                  description="Notify admins when an account activity is flagged."
+                  checked={getSetting("notif_flagged_account", true)}
+                  disabled={savingKey !== null}
+                  onChange={() =>
+                    saveSetting(
+                      "notif_flagged_account",
+                      !getSetting("notif_flagged_account", true),
+                    )
+                  }
+                />
+                <ToggleRow
+                  label="Low-stock threshold alerts"
+                  description="Notify when a shop inventory drops below safety levels."
+                  checked={getSetting("notif_low_stock", true)}
+                  disabled={savingKey !== null}
+                  onChange={() =>
+                    saveSetting(
+                      "notif_low_stock",
+                      !getSetting("notif_low_stock", true),
+                    )
+                  }
+                />
+              </SectionCard>
+
+              {/* 4. Session & Security */}
+              <SectionCard
+                icon={Lock}
+                title="Security Log"
+                subtitle="Account authentication logs."
+              >
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Last Sign-in</p>
+                    <p className="text-[11px] text-slate-400">Timestamp of your most recent session login.</p>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 tabular-nums">
+                    {lastSignInAt ? new Date(lastSignInAt).toLocaleString() : "Active Session"}
+                  </p>
+                </div>
+              </SectionCard>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
