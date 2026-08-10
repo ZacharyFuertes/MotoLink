@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Info, Wrench, CheckCircle, XCircle, Mail } from "lucide-react";
+import { Clock, Wrench, CheckCircle, XCircle, Mail } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { Appointment, AppointmentStatus } from "../types";
@@ -160,8 +160,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   const getFilteredAppointments = (): Appointment[] => {
     if (user?.role === "owner" || user?.role === "admin") return appointments;
-    if (user?.role === "mechanic")
-      return appointments.filter((apt) => apt.mechanic_id === user.id);
     if (user?.role === "customer")
       return appointments.filter((apt) => apt.customer_id === user.id);
     return [];
@@ -173,7 +171,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     appointmentId: string,
     newStatus: AppointmentStatus,
   ) => {
-    if (user?.role === "owner" || user?.role === "admin" || user?.role === "mechanic") {
+    if (user?.role === "owner" || user?.role === "admin") {
       try {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
@@ -413,10 +411,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   };
 
   const isOwner = user?.role === "owner" || user?.role === "admin";
-  const isMechanic = user?.role === "mechanic";
   const isCustomer = user?.role === "customer";
   const canBookAppointments = isCustomer;
-  const canUpdateStatus = isOwner || isMechanic;
+  const canUpdateStatus = isOwner;
 
   const upcomingAppointments = filteredAppointments.filter(
     (a) =>
@@ -501,25 +498,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             )}
           </div>
 
-          {isMechanic && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8 bg-red-50 border border-red-300 p-4 flex items-start gap-4"
-            >
-              <Info className="w-5 h-5 text-slate-900 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-bold text-slate-900 tracking-[0.2em] text-[10px] uppercase mb-1">
-                  Mechanic View
-                </h3>
-                <p className="text-gray-500 text-xs font-light">
-                  You can only see appointments assigned to you. Update
-                  assignment status to track service progress.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
           <div className="mb-12">
             <h2 className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em] mb-6">
               ACTIVE & UPCOMING
@@ -592,11 +570,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                             >
                               {Object.entries(statusConfig).map(
                                 ([status, config]) => {
-                                  // Simple logic to hide confusing options from mechanics
-                                  if (isMechanic && status === "completed")
-                                    return null;
-                                  if (isMechanic && status === "cancelled")
-                                    return null;
                                   return (
                                     <option
                                       key={status}

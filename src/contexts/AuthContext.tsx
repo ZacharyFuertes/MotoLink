@@ -35,7 +35,6 @@ interface AuthContextType {
   canManageUsers: () => boolean;
   canViewReports: () => boolean;
   canAccessAdminDashboard: () => boolean;
-  canRecordServiceProgress: () => boolean;
   canAccessCustomerPortal: () => boolean;
   refreshUser: () => Promise<User | null>;
 }
@@ -342,16 +341,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // RBAC Permission Methods
   const canManageInventory = (): boolean => user?.role === "owner" || user?.role === "admin";
-  const canViewInventory = (): boolean =>
-    user?.role === "owner" || user?.role === "mechanic" || user?.role === "admin";
+  const canViewInventory = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canManageAppointments = (): boolean => user?.role === "owner" || user?.role === "admin";
-  const canViewOwnAppointments = (): boolean =>
-    user?.role === "mechanic" || user?.role === "customer";
+  const canViewOwnAppointments = (): boolean => user?.role === "customer";
   const canManageUsers = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canViewReports = (): boolean => user?.role === "owner" || user?.role === "admin";
-  const canAccessAdminDashboard = (): boolean =>
-    user?.role === "owner" || user?.role === "mechanic" || user?.role === "admin";
-  const canRecordServiceProgress = (): boolean => user?.role === "mechanic";
+  const canAccessAdminDashboard = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canAccessCustomerPortal = (): boolean => user?.role === "customer";
 
   const refreshUser = async (): Promise<User | null> => {
@@ -376,7 +371,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     canManageUsers,
     canViewReports,
     canAccessAdminDashboard,
-    canRecordServiceProgress,
     canAccessCustomerPortal,
     refreshUser,
   };

@@ -315,6 +315,12 @@ This is the ONLY path that creates a shop (no admin approval)
 - KEPT data layer (unchanged): mechanic role in DB, AddMechanicModal, AdminMechanicAvailability, mechanic_availability slot scheduling in BookAppointmentModal, job_order mechanic_id assignment, Dashboard mechanic productivity, AdminChatbot mechanic workload
 - Verify: npx tsc --noEmit clean + npm run build passes (2813 modules)
 
+### TASK: Phase 1 follow-up — purge lingering mechanic UI logic (owner dashboard + RBAC)
+- AuthContext.tsx: removed `canRecordServiceProgress` (mechanic-only method); narrowed `canViewInventory`, `canViewOwnAppointments`, `canAccessAdminDashboard` to owner/admin only (dropped mechanic)
+- AppointmentCalendarPage.tsx: removed mechanic appointment filtering (was `apt.mechanic_id === user.id`), mechanic delete/status-update permission (`canUpdateStatus = isOwner || isMechanic` → owner only), `isMechanic` consts, the "Mechanic View" red banner, mechanic status-option hiding, and now-unused `Info` icon import
+- KEPT intentional data-layer mechanic references: BookAppointmentModal mechanic slot selection, AdminChatbot mechanic workload, AdminPlatformDashboard mechanic stats, wrong-portal messages in the 3 login pages
+- Verify: npx tsc --noEmit clean + npm run build passes (2813 modules); no `isMechanic` symbols remain in src
+
 ---
 
 ## CURRENT STATE
@@ -339,7 +345,7 @@ This is the ONLY path that creates a shop (no admin approval)
 - Reservations scoping: reservations table has NO shop_id column live yet — scoped via parts.shop_id join until migration is run
 - Seed data: no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
 - Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug (no shop either) — fix in DB (UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>') or re-register
-- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. Follow-up: AddMechanicModal still issues passwords mechanics can no longer use — consider making mechanic account creation passwordless (no login needed)
+- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. AddMechanicModal password field KEPT as-is (decision 2026-08-10): mechanic auth account is created with a never-used password, matching the data-layer-only mechanic role; no service-role key exposure in the frontend bundle
 - Capstone doc: verify/replace the DRAFTED sections in MotoLink_Capstone_Documentation.docx (title page, problem statement, formal objectives, methodology framing) against the actual capstone proposal before submission
 
 ---
