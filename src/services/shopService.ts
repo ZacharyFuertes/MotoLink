@@ -46,6 +46,23 @@ export const getShopById = async (shopId: string): Promise<Shop | null> => {
   } as Shop;
 };
 
+export const getShopByOwnerId = async (ownerId: string): Promise<Shop | null> => {
+  const { data, error } = await supabase
+    .from("shops")
+    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    ...data,
+    specialties: Array.isArray(data.specialties) ? data.specialties : [],
+  } as Shop;
+};
+
 export const updateShop = async (
   shopId: string,
   updates: Partial<
