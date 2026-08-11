@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, FileText, Plus, Trash2 } from "lucide-react";
 import { getShopById } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
@@ -36,6 +36,49 @@ interface ShopService {
   is_active: boolean;
 }
 
+const defaultMechanics: ShopMechanic[] = [
+  { id: "bot-1", name: "Bot 1", email: "bot1@motolink.local" },
+  { id: "bot-2", name: "Bot 2", email: "bot2@motolink.local" },
+];
+
+const suggestedProducts: ShopProduct[] = [
+  {
+    id: "suggestion-oil",
+    name: "Oil",
+    description: "Premium engine oil for motorcycles.",
+    unit_price: 0,
+    category: "Lubricants",
+  },
+  {
+    id: "suggestion-wheel",
+    name: "Wheel",
+    description: "High-quality motorcycle wheel replacements.",
+    unit_price: 0,
+    category: "Wheels",
+  },
+  {
+    id: "suggestion-brake-pads",
+    name: "Brake Pads",
+    description: "Durable brake pads for safe stopping power.",
+    unit_price: 0,
+    category: "Brakes",
+  },
+  {
+    id: "suggestion-mirror",
+    name: "Mirror",
+    description: "Side mirrors for improved visibility.",
+    unit_price: 0,
+    category: "Accessories",
+  },
+  {
+    id: "suggestion-mags",
+    name: "Mags",
+    description: "Stylish motorcycle mags and accessories.",
+    unit_price: 0,
+    category: "Accessories",
+  },
+];
+
 const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConnect }) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -43,6 +86,58 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
   const [services, setServices] = useState<ShopService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [receiptItems, setReceiptItems] = useState<{
+    id: string;
+    name: string;
+    quantity: number;
+    unit_price: number;
+  }[]>([]);
+  const [selectedMechanic, setSelectedMechanic] = useState<ShopMechanic | null>(null);
+  const [showInvoice, setShowInvoice] = useState(true);
+
+  const displayedMechanics = useMemo(
+    () => [...defaultMechanics, ...mechanics],
+    [mechanics],
+  );
+
+  const displayedProducts = useMemo(
+    () => [...suggestedProducts, ...products],
+    [products],
+  );
+
+  const addToReceipt = (product: ShopProduct) => {
+    setReceiptItems((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === product.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1,
+        };
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          id: product.id,
+          name: product.name,
+          quantity: 1,
+          unit_price: product.unit_price,
+        },
+      ];
+    });
+  };
+
+  const removeReceiptItem = (itemId: string) => {
+    setReceiptItems((prev) => prev.filter((item) => item.id !== itemId));
+  };
+
+  const clearReceipt = () => setReceiptItems([]);
+
+  const invoiceTotal = receiptItems.reduce(
+    (sum, item) => sum + item.quantity * item.unit_price,
+    0,
+  );
 
   useEffect(() => {
     if (!shopId) return;
@@ -138,7 +233,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
           animate={{ opacity: 1, y: 0 }}
           className="bg-white border border-slate-200 rounded-xl p-8 mb-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
             <img
               src={shop.logo_url || "/favicon.svg"}
               alt={`${shop.name} logo`}
@@ -168,14 +263,19 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
                 )}
               </div>
             </div>
-            {onConnect && (
-              <button
-                onClick={() => onConnect(shop.id)}
-                className="shrink-0 bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-8 py-3 font-bold text-xs uppercase tracking-widest transition"
-              >
-                Connect
-              </button>
-            )}
+            <div className="flex flex-col gap-4 min-w-[220px]">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-2">
+                  Invoice Total
+                </p>
+                <p className="text-2xl font-display font-black text-slate-900">
+                  ₱{invoiceTotal.toLocaleString()}
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-2">
+                  {receiptItems.length} item(s)
+                </p>
+              </div>
+            </div>
           </div>
           {shop.specialties.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
@@ -191,7 +291,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
           )}
         </motion.div>
 
-        {/* Services */}
+        <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8">
+          <div className="space-y-10">
+            {/* Services */}
         <section className="mb-10">
           <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
             <Wrench size={16} className="text-slate-900" /> Services
@@ -227,23 +329,31 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
           <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
             <Users size={16} className="text-slate-900" /> Mechanics
           </h2>
-          {mechanics.length === 0 ? (
-            <p className="text-slate-500 text-sm">No mechanics listed yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mechanics.map((mech) => (
-                <div
-                  key={mech.id}
-                  className="bg-white border border-slate-200 rounded-xl p-5"
-                >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayedMechanics.map((mech) => (
+              <div
+                key={mech.id}
+                className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col"
+              >
+                <div>
                   <p className="text-slate-900 font-bold text-sm uppercase tracking-wider">
                     {mech.name}
                   </p>
                   <p className="text-slate-500 text-xs mt-1">{mech.email}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMechanic(mech);
+                    setShowInvoice(true);
+                  }}
+                  className="mt-auto inline-flex items-center justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition"
+                >
+                  Select mechanic
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* Products */}
@@ -251,22 +361,15 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
           <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
             <Package size={16} className="text-slate-900" /> Products
           </h2>
-          {products.length === 0 ? (
+          {displayedProducts.length === 0 ? (
             <p className="text-slate-500 text-sm">No products listed yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {products.map((p) => (
+              {displayedProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="bg-white border border-slate-200 rounded-xl p-5"
+                  className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col"
                 >
-                  {p.image_url && (
-                    <img
-                      src={p.image_url}
-                      alt={p.name}
-                      className="h-32 w-full object-contain mb-3"
-                    />
-                  )}
                   <p className="text-slate-900 font-bold text-sm">{p.name}</p>
                   <p className="text-slate-500 text-xs mt-1 line-clamp-2">
                     {p.description}
@@ -274,13 +377,119 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConne
                   <p className="text-slate-900 font-bold mt-3">
                     PHP {Number(p.unit_price).toLocaleString()}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => addToReceipt(p)}
+                    className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition"
+                  >
+                    <Plus size={14} /> Add to receipt
+                  </button>
                 </div>
               ))}
             </div>
           )}
         </section>
       </div>
+
+      {showInvoice && (
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl shadow-slate-900/10">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-2">
+                  Invoice
+                </p>
+                <h2 className="text-2xl font-display font-black text-slate-900 tracking-wide">
+                  Receipt
+                </h2>
+                <p className="text-sm text-slate-500 mt-2">
+                  Mechanic: {selectedMechanic ? selectedMechanic.name : "None selected"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
+                  {receiptItems.length} item(s)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowInvoice(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
+                  aria-label="Close invoice"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {receiptItems.length === 0 ? (
+                <p className="text-slate-500 text-sm">
+                  Add products to the receipt using the buttons above.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {receiptItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-slate-900 font-bold text-sm">
+                            {item.name}
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1">
+                            Qty: {item.quantity} &middot; ₱{item.unit_price.toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeReceiptItem(item.id)}
+                          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 transition"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-slate-200 pt-4">
+              <div className="flex items-center justify-between text-sm text-slate-500 uppercase tracking-[0.2em] font-bold mb-2">
+                <span>Invoice Total</span>
+                <span>PHP</span>
+              </div>
+              <p className="text-3xl font-display font-black text-slate-900">
+                ₱{invoiceTotal.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={clearReceipt}
+                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-bold uppercase tracking-widest py-3 hover:bg-slate-50 transition"
+              >
+                Clear Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setShowInvoice(true)}
+        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-xs uppercase tracking-widest text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
+      >
+        <FileText size={16} /> Invoice
+      </button>
     </div>
+  </div>
+</div>
   );
 };
 
