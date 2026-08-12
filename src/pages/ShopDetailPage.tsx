@@ -79,7 +79,7 @@ const suggestedProducts: ShopProduct[] = [
   },
 ];
 
-const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack, onConnect }) => {
+const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [mechanics, setMechanics] = useState<ShopMechanic[]>([]);
