@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, FileText, Plus, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car } from "lucide-react";
 import { getShopById } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
 import { Shop } from "../types/shop";
+import { filterPhMakes, filterPhModels } from "../utils/vehicleData";
 
 interface ShopDetailPageProps {
   shopId: string;
@@ -36,48 +37,13 @@ interface ShopService {
   is_active: boolean;
 }
 
-const defaultMechanics: ShopMechanic[] = [
-  { id: "bot-1", name: "Bot 1", email: "bot1@motolink.local" },
-  { id: "bot-2", name: "Bot 2", email: "bot2@motolink.local" },
-];
-
-const suggestedProducts: ShopProduct[] = [
-  {
-    id: "suggestion-oil",
-    name: "Oil",
-    description: "Premium engine oil for motorcycles.",
-    unit_price: 0,
-    category: "Lubricants",
-  },
-  {
-    id: "suggestion-wheel",
-    name: "Wheel",
-    description: "High-quality motorcycle wheel replacements.",
-    unit_price: 0,
-    category: "Wheels",
-  },
-  {
-    id: "suggestion-brake-pads",
-    name: "Brake Pads",
-    description: "Durable brake pads for safe stopping power.",
-    unit_price: 0,
-    category: "Brakes",
-  },
-  {
-    id: "suggestion-mirror",
-    name: "Mirror",
-    description: "Side mirrors for improved visibility.",
-    unit_price: 0,
-    category: "Accessories",
-  },
-  {
-    id: "suggestion-mags",
-    name: "Mags",
-    description: "Stylish motorcycle mags and accessories.",
-    unit_price: 0,
-    category: "Accessories",
-  },
-];
+interface AppointmentDraft {
+  mechanic: ShopMechanic;
+  services: ShopService[];
+  make: string;
+  model: string;
+  year: string;
+}
 
 const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [shop, setShop] = useState<Shop | null>(null);
@@ -92,18 +58,17 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     quantity: number;
     unit_price: number;
   }[]>([]);
-  const [selectedMechanic, setSelectedMechanic] = useState<ShopMechanic | null>(null);
-  const [showInvoice, setShowInvoice] = useState(true);
-
-  const displayedMechanics = useMemo(
-    () => [...defaultMechanics, ...mechanics],
-    [mechanics],
-  );
-
-  const displayedProducts = useMemo(
-    () => [...suggestedProducts, ...products],
-    [products],
-  );
+  const [appointment, setAppointment] = useState<AppointmentDraft | null>(null);
+  const [bookingMechanic, setBookingMechanic] = useState<ShopMechanic | null>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [modalServices, setModalServices] = useState<ShopService[]>([]);
+  const [modalMake, setModalMake] = useState("");
+  const [modalModel, setModalModel] = useState("");
+  const [modalYear, setModalYear] = useState("");
+  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
+  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
+  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
+  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
 
   const addToReceipt = (product: ShopProduct) => {
     setReceiptItems((prev) => {
@@ -134,10 +99,17 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
 
   const clearReceipt = () => setReceiptItems([]);
 
-  const invoiceTotal = receiptItems.reduce(
+  const servicesTotal = (appointment?.services || []).reduce(
+    (sum, svc) => sum + (Number(svc.price) || 0),
+    0,
+  );
+
+  const productsTotal = receiptItems.reduce(
     (sum, item) => sum + item.quantity * item.unit_price,
     0,
   );
+
+  const invoiceTotal = servicesTotal + productsTotal;
 
   useEffect(() => {
     if (!shopId) return;
@@ -184,12 +156,100 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     }
   };
 
+  const openBooking = (mech: ShopMechanic) => {
+    setBookingMechanic(mech);
+    if (appointment && appointment.mechanic.id === mech.id) {
+      setModalServices(appointment.services);
+      setModalMake(appointment.make);
+      setModalModel(appointment.model);
+      setModalYear(appointment.year);
+    } else {
+      setModalServices([]);
+      setModalMake("");
+      setModalModel("");
+      setModalYear("");
+    }
+    setMakeSuggestions([]);
+    setShowMakeSuggestions(false);
+    setModelSuggestions([]);
+    setShowModelSuggestions(false);
+    setShowBookingModal(true);
+  };
+
+  const toggleModalService = (svc: ShopService) => {
+    setModalServices((prev) =>
+      prev.some((s) => s.id === svc.id)
+        ? prev.filter((s) => s.id !== svc.id)
+        : [...prev, svc],
+    );
+  };
+
+  const modalTotal = modalServices.reduce(
+    (sum, svc) => sum + (Number(svc.price) || 0),
+    0,
+  );
+
+  const handleMakeChange = (value: string) => {
+    setModalMake(value);
+    setModalModel("");
+    setModelSuggestions([]);
+    setShowModelSuggestions(false);
+    if (value.trim()) {
+      setMakeSuggestions(filterPhMakes(value));
+      setShowMakeSuggestions(true);
+    } else {
+      setMakeSuggestions([]);
+      setShowMakeSuggestions(false);
+    }
+  };
+
+  const handleSelectMake = (make: string) => {
+    setModalMake(make);
+    setMakeSuggestions([]);
+    setShowMakeSuggestions(false);
+    setModalModel("");
+    setModelSuggestions([]);
+    setShowModelSuggestions(false);
+  };
+
+  const handleModelChange = (value: string) => {
+    setModalModel(value);
+    if (value.trim() && modalMake) {
+      setModelSuggestions(filterPhModels(modalMake, value));
+      setShowModelSuggestions(true);
+    } else {
+      setModelSuggestions([]);
+      setShowModelSuggestions(false);
+    }
+  };
+
+  const handleSelectModel = (model: string) => {
+    setModalModel(model);
+    setModelSuggestions([]);
+    setShowModelSuggestions(false);
+  };
+
+  const canConfirmBooking =
+    modalServices.length > 0 && modalMake.trim() !== "" && modalModel.trim() !== "";
+
+  const confirmBooking = () => {
+    if (!bookingMechanic || !canConfirmBooking) return;
+    setAppointment({
+      mechanic: bookingMechanic,
+      services: modalServices,
+      make: modalMake.trim(),
+      model: modalModel.trim(),
+      year: modalYear.trim(),
+    });
+    setShowBookingModal(false);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-slate-500 text-xs uppercase tracking-widest font-bold">
+          <div className="animate-spin w-10 h-10 border-4 border-moto-gray border-t-moto-accent rounded-full mx-auto mb-4" />
+          <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">
             Loading shop...
           </p>
         </div>
@@ -199,15 +259,15 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
 
   if (error || !shop) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <AlertCircle className="w-12 h-12 text-slate-900 mx-auto mb-4" />
-          <p className="text-slate-900 text-sm font-bold uppercase tracking-widest mb-2">
+          <AlertCircle className="w-12 h-12 text-moto-accent mx-auto mb-4" />
+          <p className="text-slate-100 text-sm font-bold uppercase tracking-widest mb-2">
             {error || "Shop not found"}
           </p>
           <button
             onClick={onBack}
-            className="mt-4 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-widest rounded-xl"
+            className="mt-4 px-6 py-3 bg-[#12172B] hover:bg-[#1c2544] text-white font-bold text-xs uppercase tracking-widest rounded-xl border border-moto-gray"
           >
             Back to shops
           </button>
@@ -216,280 +276,641 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     );
   }
 
+  const sectionHeading =
+    "flex items-center gap-2 text-slate-100 font-bold uppercase tracking-widest text-sm mb-5";
+  const sectionIcon = "text-moto-accent";
+  const inputClass =
+    "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent transition";
+
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
+    <div className="min-h-screen bg-moto-darker">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 text-xs font-bold uppercase tracking-widest mb-6 transition"
+          className="inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker/60 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-moto-accent hover:text-white transition mb-6"
         >
           <ArrowLeft size={16} /> Back to shops
         </button>
 
         {/* Shop header */}
-        <motion.div
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-slate-200 rounded-xl p-8 mb-8"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-black/20"
         >
-          <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-            <img
-              src={shop.logo_url || "/favicon.svg"}
-              alt={`${shop.name} logo`}
-              className="h-20 w-20 rounded-xl border border-slate-100 object-contain p-1 bg-white"
-            />
-            <div className="flex-1">
-              <h1 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase tracking-wide">
-                {shop.name}
-              </h1>
-              <p className="text-slate-400 text-sm mt-2">{shop.description}</p>
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5">
-                  <MapPin size={14} /> {shop.address}, {shop.city}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock3 size={14} /> {shop.operating_hours}
-                </span>
-                {shop.phone && (
-                  <span className="flex items-center gap-1.5">
-                    <Phone size={14} /> {shop.phone}
-                  </span>
-                )}
-                {shop.email && (
-                  <span className="flex items-center gap-1.5">
-                    <Mail size={14} /> {shop.email}
-                  </span>
-                )}
+          <div className="relative bg-gradient-to-br from-moto-dark to-moto-darker px-6 sm:px-8 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+              <div className="flex items-center gap-5">
+                <img
+                  src={shop.logo_url || "/favicon.svg"}
+                  alt={`${shop.name} logo`}
+                  className="h-20 w-20 rounded-2xl border border-moto-gray bg-white object-contain p-1 shrink-0"
+                />
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="font-display text-3xl sm:text-4xl text-white uppercase tracking-wide">
+                      {shop.name}
+                    </h1>
+                    {typeof shop.rating === "number" && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-moto-accent/15 border border-moto-accent/30 px-2.5 py-1 text-xs font-bold text-moto-accent">
+                        <Star size={12} className="fill-moto-accent" />{" "}
+                        {shop.rating.toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-300 text-sm mt-1.5 max-w-2xl">
+                    {shop.description}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-4 min-w-[220px]">
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-2">
-                  Invoice Total
-                </p>
-                <p className="text-2xl font-display font-black text-slate-900">
-                  ₱{invoiceTotal.toLocaleString()}
-                </p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mt-2">
-                  {receiptItems.length} item(s)
-                </p>
-              </div>
-            </div>
-          </div>
-          {shop.specialties.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {shop.specialties.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-        </motion.div>
 
-        <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8">
+              <div className="lg:ml-auto flex flex-col gap-4 min-w-[220px]">
+                <div className="rounded-2xl bg-white/5 border border-moto-gray px-5 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
+                    Invoice Total
+                  </p>
+                  <p className="text-2xl font-display font-black text-white">
+                    ₱{invoiceTotal.toLocaleString()}
+                  </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1">
+                    {receiptItems.length + (appointment?.services.length || 0)} item(s)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact / meta */}
+            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-300">
+              <span className="flex items-center gap-1.5">
+                <MapPin size={14} className="text-moto-accent" /> {shop.address},{" "}
+                {shop.city}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock3 size={14} className="text-moto-accent" /> {shop.operating_hours}
+              </span>
+              {shop.phone && (
+                <span className="flex items-center gap-1.5">
+                  <Phone size={14} className="text-moto-accent" /> {shop.phone}
+                </span>
+              )}
+              {shop.email && (
+                <span className="flex items-center gap-1.5">
+                  <Mail size={14} className="text-moto-accent" /> {shop.email}
+                </span>
+              )}
+            </div>
+
+            {shop.specialties.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                {shop.specialties.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-moto-accent/15 border border-moto-accent/30 px-3 py-1 text-xs font-medium text-moto-accent"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.section>
+
+        <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8 mt-8">
           <div className="space-y-10">
             {/* Services */}
-        <section className="mb-10">
-          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
-            <Wrench size={16} className="text-slate-900" /> Services
-          </h2>
-          {services.length === 0 ? (
-            <p className="text-slate-500 text-sm">No services listed yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.map((svc) => (
-                <div
-                  key={svc.id}
-                  className="bg-white border border-slate-200 rounded-xl p-5"
-                >
-                  <p className="text-slate-900 font-bold text-sm uppercase tracking-wider">
-                    {svc.label}
-                  </p>
-                  {svc.description && (
-                    <p className="text-slate-500 text-xs mt-1">
-                      {svc.description}
-                    </p>
-                  )}
-                  <p className="text-slate-900 font-bold mt-3">
-                    PHP {Number(svc.price).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Mechanics */}
-        <section className="mb-10">
-          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
-            <Users size={16} className="text-slate-900" /> Mechanics
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedMechanics.map((mech) => (
-              <div
-                key={mech.id}
-                className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col"
-              >
-                <div>
-                  <p className="text-slate-900 font-bold text-sm uppercase tracking-wider">
-                    {mech.name}
-                  </p>
-                  <p className="text-slate-500 text-xs mt-1">{mech.email}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedMechanic(mech);
-                    setShowInvoice(true);
-                  }}
-                  className="mt-auto inline-flex items-center justify-center rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition"
-                >
-                  Select mechanic
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Products */}
-        <section>
-          <h2 className="flex items-center gap-2 text-slate-900 font-bold uppercase tracking-widest text-sm mb-4">
-            <Package size={16} className="text-slate-900" /> Products
-          </h2>
-          {displayedProducts.length === 0 ? (
-            <p className="text-slate-500 text-sm">No products listed yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {displayedProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col"
-                >
-                  <p className="text-slate-900 font-bold text-sm">{p.name}</p>
-                  <p className="text-slate-500 text-xs mt-1 line-clamp-2">
-                    {p.description}
-                  </p>
-                  <p className="text-slate-900 font-bold mt-3">
-                    PHP {Number(p.unit_price).toLocaleString()}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => addToReceipt(p)}
-                    className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition"
-                  >
-                    <Plus size={14} /> Add to receipt
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {showInvoice && (
-        <div className="fixed bottom-6 right-6 z-50 w-full max-w-md">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl shadow-slate-900/10">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500 mb-2">
-                  Invoice
-                </p>
-                <h2 className="text-2xl font-display font-black text-slate-900 tracking-wide">
-                  Receipt
-                </h2>
-                <p className="text-sm text-slate-500 mt-2">
-                  Mechanic: {selectedMechanic ? selectedMechanic.name : "None selected"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-slate-100 text-[10px] uppercase tracking-[0.2em] font-bold text-slate-600">
-                  {receiptItems.length} item(s)
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowInvoice(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
-                  aria-label="Close invoice"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {receiptItems.length === 0 ? (
-                <p className="text-slate-500 text-sm">
-                  Add products to the receipt using the buttons above.
-                </p>
+            <section>
+              <h2 className={sectionHeading}>
+                <Wrench size={16} className={sectionIcon} /> Services
+              </h2>
+              {services.length === 0 ? (
+                <p className="text-slate-400 text-sm">No services listed yet.</p>
               ) : (
-                <div className="space-y-3">
-                  {receiptItems.map((item) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {services.map((svc) => (
                     <div
-                      key={item.id}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                      key={svc.id}
+                      className="group rounded-2xl border border-moto-gray bg-moto-dark p-5 transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-slate-900 font-bold text-sm">
-                            {item.name}
-                          </p>
-                          <p className="text-[11px] text-slate-500 mt-1">
-                            Qty: {item.quantity} &middot; ₱{item.unit_price.toLocaleString()}
-                          </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-slate-100 font-bold text-sm uppercase tracking-wider">
+                          {svc.label}
+                        </p>
+                        {svc.icon && (
+                          <span className="text-moto-accent text-lg leading-none">
+                            {svc.icon}
+                          </span>
+                        )}
+                      </div>
+                      {svc.description && (
+                        <p className="text-slate-400 text-xs mt-1.5">
+                          {svc.description}
+                        </p>
+                      )}
+                      <p className="font-display text-xl text-moto-accent mt-3">
+                        ₱{Number(svc.price).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Mechanics */}
+            <section>
+              <h2 className={sectionHeading}>
+                <Users size={16} className={sectionIcon} /> Mechanics
+              </h2>
+              {mechanics.length === 0 ? (
+                <p className="text-slate-400 text-sm">No mechanics listed yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {mechanics.map((mech) => {
+                    const isAssigned = appointment?.mechanic.id === mech.id;
+                    return (
+                      <div
+                        key={mech.id}
+                        className={`group rounded-2xl border bg-moto-dark p-5 flex flex-col transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30 ${
+                          isAssigned
+                            ? "border-moto-accent"
+                            : "border-moto-gray hover:border-moto-accent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-moto-accent/20 to-moto-accent/5 border border-moto-accent/30 flex items-center justify-center text-moto-accent font-bold text-sm uppercase">
+                            {mech.name.slice(0, 1)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-slate-100 font-bold text-sm uppercase tracking-wider truncate">
+                              {mech.name}
+                            </p>
+                            <p className="text-slate-400 text-xs mt-0.5 truncate">
+                              {mech.email}
+                            </p>
+                          </div>
+                          {isAssigned && (
+                            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-moto-accent/15 border border-moto-accent/30 px-2.5 py-1 text-[10px] font-bold text-moto-accent uppercase tracking-wider">
+                              <Check size={11} /> Assigned
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"
-                          onClick={() => removeReceiptItem(item.id)}
-                          className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-900 transition"
-                          aria-label="Remove item"
+                          onClick={() => openBooking(mech)}
+                          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray"
                         >
-                          <Trash2 size={16} />
+                          <Wrench size={13} className="text-moto-accent" /> Select
+                          mechanic
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Products */}
+            <section>
+              <h2 className={sectionHeading}>
+                <Package size={16} className={sectionIcon} /> Products
+              </h2>
+              {products.length === 0 ? (
+                <p className="text-slate-400 text-sm">No products listed yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {products.map((p) => (
+                    <div
+                      key={p.id}
+                      className="group overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark flex flex-col transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
+                    >
+                      <div className="h-32 bg-moto-dark flex items-center justify-center overflow-hidden border-b border-moto-gray/50">
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            className="w-full h-full object-contain p-3 transition duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <Package
+                            size={36}
+                            className="text-moto-gray group-hover:text-moto-accent transition"
+                          />
+                        )}
+                      </div>
+                      <div className="p-4 flex flex-col flex-1">
+                        <p className="text-slate-100 font-bold text-sm group-hover:text-moto-accent transition truncate">
+                          {p.name}
+                        </p>
+                        {p.description && (
+                          <p className="text-slate-400 text-xs mt-1 line-clamp-2">
+                            {p.description}
+                          </p>
+                        )}
+                        <p className="font-display text-lg text-moto-accent mt-2">
+                          ₱{Number(p.unit_price).toLocaleString()}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => addToReceipt(p)}
+                          className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray"
+                        >
+                          <Plus size={13} className="text-moto-accent" /> Add to
+                          receipt
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
-
-            <div className="mt-6 border-t border-slate-200 pt-4">
-              <div className="flex items-center justify-between text-sm text-slate-500 uppercase tracking-[0.2em] font-bold mb-2">
-                <span>Invoice Total</span>
-                <span>PHP</span>
-              </div>
-              <p className="text-3xl font-display font-black text-slate-900">
-                ₱{invoiceTotal.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={clearReceipt}
-                className="w-full rounded-xl border border-slate-300 bg-white text-slate-900 text-xs font-bold uppercase tracking-widest py-3 hover:bg-slate-50 transition"
-              >
-                Clear Receipt
-              </button>
-            </div>
+            </section>
           </div>
-        </div>
-      )}
 
-      <button
-        type="button"
-        onClick={() => setShowInvoice(true)}
-        className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-xs uppercase tracking-widest text-white shadow-2xl shadow-slate-900/20 transition hover:bg-slate-800"
-      >
-        <FileText size={16} /> Invoice
-      </button>
+          {/* Receipt side panel */}
+          <aside className="lg:sticky lg:top-6 h-fit space-y-4">
+            <div className="rounded-2xl border border-moto-gray bg-moto-dark p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400 mb-1">
+                    Invoice
+                  </p>
+                  <h2 className="font-display text-2xl text-white uppercase tracking-wide">
+                    Receipt
+                  </h2>
+                </div>
+                <span className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-[10px] uppercase tracking-[0.2em] font-bold text-moto-accent">
+                  {receiptItems.length + (appointment?.services.length || 0)} item(s)
+                </span>
+              </div>
+
+              {/* Appointment summary */}
+              <div className="rounded-2xl border border-moto-gray bg-moto-darker p-4 mb-5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider">
+                    Mechanic
+                  </span>
+                  <span className="text-slate-100 font-bold">
+                    {appointment ? appointment.mechanic.name : "Not selected"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-2.5">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider">
+                    Motorcycle
+                  </span>
+                  <span className="text-slate-100 font-bold truncate ml-3">
+                    {appointment
+                      ? [appointment.year, appointment.make, appointment.model]
+                          .filter(Boolean)
+                          .join(" ")
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Services */}
+              {appointment && appointment.services.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Services
+                  </p>
+                  <div className="space-y-2.5">
+                    {appointment.services.map((svc) => (
+                      <div
+                        key={svc.id}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <p className="text-sm text-slate-200">{svc.label}</p>
+                        <p className="text-sm font-bold text-slate-100 tabular-nums">
+                          ₱{(Number(svc.price) || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Products */}
+              {receiptItems.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Parts &amp; Products
+                  </p>
+                  <div className="space-y-3">
+                    {receiptItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl border border-moto-gray bg-moto-darker p-4"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-slate-100 font-bold text-sm truncate">
+                              {item.name}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              Qty: {item.quantity} &middot; ₱
+                              {item.unit_price.toLocaleString()}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeReceiptItem(item.id)}
+                            className="p-2 rounded-xl bg-moto-dark border border-moto-gray text-slate-400 hover:text-red-400 transition shrink-0"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!appointment && receiptItems.length === 0 && (
+                <p className="text-slate-400 text-sm mb-5">
+                  Select a mechanic to build your appointment, or add products to
+                  the receipt.
+                </p>
+              )}
+
+              <div className="border-t border-moto-gray pt-4">
+                <div className="flex items-center justify-between text-xs text-slate-400 uppercase tracking-[0.2em] font-bold mb-1.5">
+                  <span>Services</span>
+                  <span className="tabular-nums">₱{servicesTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-400 uppercase tracking-[0.2em] font-bold mb-2">
+                  <span>Parts</span>
+                  <span className="tabular-nums">₱{productsTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] font-bold text-slate-400 mb-1">
+                  <span>Invoice Total</span>
+                  <span>PHP</span>
+                </div>
+                <p className="font-display text-3xl text-moto-accent">
+                  ₱{invoiceTotal.toLocaleString()}
+                </p>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => appointment && openBooking(appointment.mechanic)}
+                  disabled={!appointment}
+                  className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold uppercase tracking-widest py-3 hover:brightness-110 transition disabled:opacity-40"
+                >
+                  Edit Appointment
+                </button>
+                <button
+                  type="button"
+                  onClick={clearReceipt}
+                  className="w-full rounded-xl border border-moto-gray bg-moto-dark text-slate-200 text-xs font-bold uppercase tracking-widest py-3 hover:border-moto-accent hover:text-white transition"
+                >
+                  Clear Receipt
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* Booking Modal */}
+      <AnimatePresence>
+        {showBookingModal && bookingMechanic && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowBookingModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 30 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-2xl flex flex-col"
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-moto-gray bg-moto-darker">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-moto-accent/20 to-moto-accent/5 border border-moto-accent/30 flex items-center justify-center text-moto-accent font-bold text-sm uppercase">
+                    {bookingMechanic.name.slice(0, 1)}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
+                      Book with
+                    </p>
+                    <h2 className="font-display text-xl text-white uppercase tracking-wide">
+                      {bookingMechanic.name}
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowBookingModal(false)}
+                  className="p-2 rounded-xl hover:bg-moto-dark text-slate-400 hover:text-white transition"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal body */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+                {/* Services */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Select services ({modalServices.length} selected)
+                  </p>
+                  {services.length === 0 ? (
+                    <p className="text-slate-400 text-sm">
+                      This shop has no services listed yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {services.map((svc) => {
+                        const isSelected = modalServices.some(
+                          (s) => s.id === svc.id,
+                        );
+                        return (
+                          <button
+                            key={svc.id}
+                            type="button"
+                            onClick={() => toggleModalService(svc)}
+                            className={`w-full flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition ${
+                              isSelected
+                                ? "border-moto-accent bg-moto-accent/10"
+                                : "border-moto-gray bg-moto-darker hover:border-moto-gray-light"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <p className="text-slate-100 font-bold text-sm uppercase tracking-wider">
+                                {svc.label}
+                              </p>
+                              {svc.description && (
+                                <p className="text-slate-400 text-xs mt-0.5 line-clamp-1">
+                                  {svc.description}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="font-display text-lg text-moto-accent tabular-nums">
+                                ₱{(Number(svc.price) || 0).toLocaleString()}
+                              </span>
+                              <span
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center transition ${
+                                  isSelected
+                                    ? "bg-moto-accent border-moto-accent text-slate-950"
+                                    : "border-moto-gray text-transparent"
+                                }`}
+                              >
+                                <Check size={14} />
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Motorcycle */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Your motorcycle
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="relative">
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                        Make
+                      </label>
+                      <input
+                        type="text"
+                        value={modalMake}
+                        onChange={(e) => handleMakeChange(e.target.value)}
+                        onFocus={() =>
+                          modalMake && setShowMakeSuggestions(true)
+                        }
+                        placeholder="e.g. Honda, Yamaha"
+                        className={inputClass}
+                      />
+                      <AnimatePresence>
+                        {showMakeSuggestions &&
+                          makeSuggestions.length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute top-full left-0 right-0 mt-1 bg-moto-darker border border-moto-gray max-h-48 overflow-y-auto z-20 rounded-xl shadow-xl"
+                            >
+                              {makeSuggestions.map((make) => (
+                                <button
+                                  key={make}
+                                  type="button"
+                                  onClick={() => handleSelectMake(make)}
+                                  className="w-full text-left px-4 py-2 hover:bg-moto-accent/10 text-slate-100 text-xs font-medium tracking-widest uppercase transition border-b border-moto-gray last:border-b-0"
+                                >
+                                  {make}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                      </AnimatePresence>
+                    </div>
+                    <div className="relative">
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                        Model
+                      </label>
+                      <input
+                        type="text"
+                        value={modalModel}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        onFocus={() =>
+                          modalModel && modalMake && setShowModelSuggestions(true)
+                        }
+                        placeholder={
+                          modalMake ? "Type model name..." : "Select make first"
+                        }
+                        disabled={!modalMake}
+                        className={inputClass}
+                      />
+                      <AnimatePresence>
+                        {showModelSuggestions &&
+                          modelSuggestions.length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute top-full left-0 right-0 mt-1 bg-moto-darker border border-moto-gray max-h-48 overflow-y-auto z-20 rounded-xl shadow-xl"
+                            >
+                              {modelSuggestions.map((model) => (
+                                <button
+                                  key={model}
+                                  type="button"
+                                  onClick={() => handleSelectModel(model)}
+                                  className="w-full text-left px-4 py-2 hover:bg-moto-accent/10 text-slate-100 text-xs font-medium tracking-widest uppercase transition border-b border-moto-gray last:border-b-0"
+                                >
+                                  {model}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                      </AnimatePresence>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                        Year
+                      </label>
+                      <input
+                        type="number"
+                        value={modalYear}
+                        onChange={(e) => setModalYear(e.target.value)}
+                        placeholder="e.g. 2022"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal footer */}
+              <div className="px-6 py-5 border-t border-moto-gray bg-moto-darker">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs uppercase tracking-widest font-bold text-slate-400">
+                    Selected total
+                  </span>
+                  <span className="font-display text-2xl text-moto-accent tabular-nums">
+                    ₱{modalTotal.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowBookingModal(false)}
+                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmBooking}
+                    disabled={!canConfirmBooking}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold rounded-xl transition disabled:opacity-40"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <Car size={14} /> Add to receipt
+                    </span>
+                  </button>
+                </div>
+                {!canConfirmBooking && (
+                  <p className="text-[11px] text-slate-500 mt-3 text-center">
+                    Select at least one service and fill in your motorcycle make
+                    &amp; model.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  </div>
-</div>
   );
 };
 
