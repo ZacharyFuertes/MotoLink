@@ -110,19 +110,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Utility: generate 30-minute time options between 00:00 and 23:30
-  const generateTimeOptions = () => {
-    const opts: string[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (let m = 0; m < 60; m += 30) {
-        const hh = String(h).padStart(2, "0");
-        const mm = String(m).padStart(2, "0");
-        opts.push(`${hh}:${mm}`);
-      }
-    }
-    return opts;
-  };
-
   const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
   // UI states for schedule dropdowns
