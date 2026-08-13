@@ -141,9 +141,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     setError("");
     setLoading(true);
 
-    let createdAuthUserId: string | null = null;
-    let profileCreatedAsOwner = false;
-
     try {
       // Parse "lat, lng" into numeric latitude/longitude FIRST so invalid input
       // can't strand an account with a created user profile but no shop row
@@ -166,7 +163,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       });
       if (authError) throw authError;
       if (!authData?.user?.id) throw new Error("Signup failed");
-      createdAuthUserId = authData.user.id;
 
       if (!authData.session) {
         throw new Error(
@@ -174,12 +170,53 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         );
       }
 
-      // Create the user profile FIRST so the shops.owner_id FK (→ users.id)
-      // is satisfied when the shop is inserted below. Creating the shop before
-      // the users row causes a 409 FK violation whenever the auth listener's
-      // async profile-create loses the race (it usually does) — which left
-      // accounts stuck at role 'customer'. shop_id is intentionally omitted
-      // here because users.shop_id → shops.id must exist first.
+      // PREFERRED PATH: register the owner + shop in ONE server-side transaction
+      // via the register_shop_owner RPC (supabase/migrations/20260813_*.sql).
+      // The function upserts the profile as 'owner', inserts the shop, and links
+      // shop_id atomically — no partial state, no client race, no demotion.
+      const slug = `${signupData.shop_name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`;
+
+      const { data: rpcShopId, error: rpcError } = await supabase.rpc(
+        "register_shop_owner",
+        {
+          p_user_id: authData.user.id,
+          p_email: signupData.email,
+          p_name: signupData.name,
+          p_shop_name: signupData.shop_name,
+          p_slug: slug,
+          p_description: signupData.shop_description || "",
+          p_address: signupData.shop_address || "",
+          p_city: signupData.shop_city || "",
+          p_latitude: latitude,
+          p_longitude: longitude,
+          p_phone: signupData.shop_phone || null,
+          p_is_active: false,
+        },
+      );
+
+      if (!rpcError && rpcShopId) {
+        // Log the new owner in
+        await login(signupData.email, formData.password);
+        await refreshUser();
+        roleCheckedRef.current = false;
+        setLoginAttempted(true);
+        return;
+      }
+
+      // If the RPC doesn't exist yet (migration not applied), fall through to
+      // the step-by-step flow below. Any OTHER error is a real failure.
+      if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") {
+        throw rpcError;
+      }
+
+      // FALLBACK PATH (pre-migration): create the user profile FIRST so the
+      // shops.owner_id FK (→ users.id) is satisfied when the shop is inserted
+      // below. shop_id is intentionally omitted here because users.shop_id →
+      // shops.id must exist first.
       const { error: profileError } = await supabase
         .from("users")
         .upsert(
@@ -193,19 +230,14 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           { onConflict: "id" },
         );
       if (profileError) throw profileError;
-      profileCreatedAsOwner = true;
 
       // Create the shop (owner_id FK now resolves to the users row above)
       const { data: shopData, error: shopError } = await supabase
         .from("shops")
         .insert({
           name: signupData.shop_name,
-          slug: `${signupData.shop_name
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`,
-          description: signupData.shop_description || null,
+          slug,
+          description: signupData.shop_description || "",
           address: signupData.shop_address || "",
           city: signupData.shop_city || "",
           latitude,
@@ -238,21 +270,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       roleCheckedRef.current = false;
       setLoginAttempted(true);
     } catch (err) {
-      // Best-effort rollback: if anything fails after the profile was set to
-      // role 'owner' but before the shop row existed, revert the profile to a
-      // plain customer. Otherwise we strand an "owner awaiting approval"
-      // account that never appears in the admin approval queue.
-      if (createdAuthUserId && profileCreatedAsOwner) {
-        try {
-          await supabase
-            .from("users")
-            .update({ role: "customer", shop_id: null })
-            .eq("id", createdAuthUserId);
-        } catch (rollbackErr) {
-          console.error("Signup rollback failed:", rollbackErr);
-        }
-      }
-
+      // NOTE: we deliberately do NOT demote the profile to 'customer' on
+      // failure. The auth user already exists, so the account can never be
+      // re-registered under the same email; flipping it to a customer silently
+      // corrupted failed registrations. If the shop row is missing, the profile
+      // stays 'owner' (no shop linked) so the admin can repair it, and the
+      // user can sign in to retry. See MEMORY.md.
       let errorMessage = "Registration failed. Please try again.";
       if (err instanceof Error) {
         if (err.message.includes("User already registered")) {

@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
   name            TEXT NOT NULL,
   slug            TEXT NOT NULL UNIQUE,
   logo_url        TEXT,
-  description     TEXT NOT NULL DEFAULT '',
+  description     TEXT DEFAULT '',
   address         TEXT NOT NULL,
   city            TEXT NOT NULL,
   latitude        DOUBLE PRECISION CHECK (latitude BETWEEN -90 AND 90),
@@ -617,7 +617,103 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customer_notification_sett
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- ============================================================================
--- PHASE 10: SEED DATA (optional defaults)
+-- PHASE 10: SIGNUP HELPERS (owner registration + auto profile creation)
+-- ============================================================================
+
+-- Auto-create public.users profile the moment an auth.users row is inserted.
+-- Eliminates the client-side auth-listener race that could leave a new owner
+-- stuck at role 'customer' (the profile always exists before client code runs).
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1), 'User'),
+    'customer'
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Atomic shop-owner registration: owner profile + shop + shop_id link in ONE
+-- transaction (SECURITY DEFINER). No partial state, no FK race, no demotion.
+CREATE OR REPLACE FUNCTION public.register_shop_owner(
+  p_user_id      uuid,
+  p_email        text,
+  p_name         text,
+  p_shop_name    text,
+  p_slug         text,
+  p_description  text  DEFAULT '',
+  p_address      text  DEFAULT '',
+  p_city         text  DEFAULT '',
+  p_latitude     double precision DEFAULT NULL,
+  p_longitude    double precision DEFAULT NULL,
+  p_phone        text  DEFAULT NULL,
+  p_is_active    boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_shop_id uuid;
+BEGIN
+  -- Only the authenticated user may register for their own account
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+    RAISE EXCEPTION 'Not allowed';
+  END IF;
+
+  -- 1) Upsert the owner profile (handle_new_user may have created it as customer)
+  INSERT INTO public.users (id, email, name, role, phone)
+  VALUES (p_user_id, p_email, p_name, 'owner', p_phone)
+  ON CONFLICT (id) DO UPDATE
+    SET email   = EXCLUDED.email,
+        name    = EXCLUDED.name,
+        role    = 'owner',
+        phone   = EXCLUDED.phone,
+        updated_at = now();
+
+  -- 2) Insert the shop (FK owner_id → users.id now always resolves)
+  INSERT INTO public.shops (
+    owner_id, name, slug, description, address, city,
+    latitude, longitude, phone, email, is_active
+  )
+  VALUES (
+    p_user_id, p_shop_name, p_slug,
+    COALESCE(NULLIF(p_description, ''), ''),
+    COALESCE(p_address, ''), COALESCE(p_city, ''),
+    p_latitude, p_longitude, p_phone, p_email,
+    p_is_active
+  )
+  RETURNING id INTO v_shop_id;
+
+  -- 3) Link the owner to their shop
+  UPDATE public.users
+  SET shop_id = v_shop_id, updated_at = now()
+  WHERE id = p_user_id;
+
+  RETURN v_shop_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.register_shop_owner TO authenticated;
+
+-- ============================================================================
+-- PHASE 11: SEED DATA (optional defaults)
 -- ============================================================================
 
 -- Default services pricing
