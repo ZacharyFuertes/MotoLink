@@ -165,6 +165,119 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     return `${hh}:${mm}`;
   };
 
+  // Render separate time selectors (hour/minute/meridiem) for a day
+  const renderTimeSelectors = (day: { open: boolean; openTime: string; closeTime: string }, idx: number) => {
+    const parsedOpen = parse24To12(day.openTime || "09:00");
+    const parsedClose = parse24To12(day.closeTime || "17:00");
+
+    const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+    const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+    const meridiems = ["AM", "PM"];
+
+    return (
+      <div className="flex items-center gap-1">
+        <select
+          value={parsedOpen.hour}
+          onChange={(e) => {
+            const hour = parseInt(e.target.value, 10);
+            const newOpen = convert12To24(hour, parsedOpen.minute, parsedOpen.meridiem);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], openTime: newOpen };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {hourOptions.map((h) => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+
+        <select
+          value={parsedOpen.minute}
+          onChange={(e) => {
+            const minute = e.target.value;
+            const newOpen = convert12To24(parsedOpen.hour, minute, parsedOpen.meridiem);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], openTime: newOpen };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {minuteOptions.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        <select
+          value={parsedOpen.meridiem}
+          onChange={(e) => {
+            const mer = e.target.value;
+            const newOpen = convert12To24(parsedOpen.hour, parsedOpen.minute, mer);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], openTime: newOpen };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {meridiems.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        <span className="text-sm text-slate-400 px-2">to</span>
+
+        <select
+          value={parsedClose.hour}
+          onChange={(e) => {
+            const hour = parseInt(e.target.value, 10);
+            const newClose = convert12To24(hour, parsedClose.minute, parsedClose.meridiem);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], closeTime: newClose };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {hourOptions.map((h) => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+
+        <select
+          value={parsedClose.minute}
+          onChange={(e) => {
+            const minute = e.target.value;
+            const newClose = convert12To24(parsedClose.hour, minute, parsedClose.meridiem);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], closeTime: newClose };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {minuteOptions.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        <select
+          value={parsedClose.meridiem}
+          onChange={(e) => {
+            const mer = e.target.value;
+            const newClose = convert12To24(parsedClose.hour, parsedClose.minute, mer);
+            const next = [...signupData.operating_schedule];
+            next[idx] = { ...next[idx], closeTime: newClose };
+            setSignupData({ ...signupData, operating_schedule: next });
+          }}
+          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
+        >
+          {meridiems.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -558,120 +671,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                         {day.open && (
                           <div className="flex items-center gap-2 ml-2">
                             {/* Open time: separate hour / minute / AM-PM */}
-                            {(() => {
-                              const parsedOpen = parse24To12(day.openTime || "09:00");
-                              const parsedClose = parse24To12(day.closeTime || "17:00");
-
-                              const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-                              const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
-                              const meridiems = ["AM", "PM"];
-
-                              return (
-                                <>
-                                  <div className="flex items-center gap-1">
-                                    <select
-                                      value={parsedOpen.hour}
-                                      onChange={(e) => {
-                                        const hour = parseInt(e.target.value, 10);
-                                        const newOpen = convert12To24(hour, parsedOpen.minute, parsedOpen.meridiem);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], openTime: newOpen };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {hourOptions.map((h) => (
-                                        <option key={h} value={h}>{h}</option>
-                                      ))}
-                                    </select>
-
-                                    <select
-                                      value={parsedOpen.minute}
-                                      onChange={(e) => {
-                                        const minute = e.target.value;
-                                        const newOpen = convert12To24(parsedOpen.hour, minute, parsedOpen.meridiem);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], openTime: newOpen };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {minuteOptions.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                      ))}
-                                    </select>
-
-                                    <select
-                                      value={parsedOpen.meridiem}
-                                      onChange={(e) => {
-                                        const mer = e.target.value;
-                                        const newOpen = convert12To24(parsedOpen.hour, parsedOpen.minute, mer);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], openTime: newOpen };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {meridiems.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                      ))}
-                                    </select>
-
-                                    <span className="text-sm text-slate-400 px-2">to</span>
-
-                                    {/* Close time selectors */}
-
-                                    <select
-                                      value={parsedClose.hour}
-                                      onChange={(e) => {
-                                        const hour = parseInt(e.target.value, 10);
-                                        const newClose = convert12To24(hour, parsedClose.minute, parsedClose.meridiem);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], closeTime: newClose };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {hourOptions.map((h) => (
-                                        <option key={h} value={h}>{h}</option>
-                                      ))}
-                                    </select>
-
-                                    <select
-                                      value={parsedClose.minute}
-                                      onChange={(e) => {
-                                        const minute = e.target.value;
-                                        const newClose = convert12To24(parsedClose.hour, minute, parsedClose.meridiem);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], closeTime: newClose };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {minuteOptions.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                      ))}
-                                    </select>
-
-                                    <select
-                                      value={parsedClose.meridiem}
-                                      onChange={(e) => {
-                                        const mer = e.target.value;
-                                        const newClose = convert12To24(parsedClose.hour, parsedClose.minute, mer);
-                                        const next = [...signupData.operating_schedule];
-                                        next[idx] = { ...next[idx], closeTime: newClose };
-                                        setSignupData({ ...signupData, operating_schedule: next });
-                                      }}
-                                      className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-                                    >
-                                      {meridiems.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </>
-                              );
-                            })()}
+{renderTimeSelectors(day, idx)}
                           </div>
                         )}
                       </div>
