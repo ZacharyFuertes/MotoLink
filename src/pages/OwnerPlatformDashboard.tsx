@@ -12,6 +12,9 @@ import {
   Menu,
   X,
   Bell,
+  BellRing,
+  CheckCheck,
+  Inbox,
   MapPin,
   Shield,
   Globe,
@@ -24,11 +27,19 @@ import {
   Pencil,
   Loader,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { supabase } from "../services/supabaseClient";
-import { getShopById, getShopByOwnerId } from "../services/shopService";
+import { getShopById, getShopByOwnerId, updateShop } from "../services/shopService";
+import {
+  getMyNotifications,
+  getUnreadNotificationCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../services/notificationService";
+import { AppNotification } from "../services/notificationService";
 import { Shop } from "../types/shop";
 import Dashboard from "./Dashboard";
 import { getRoleLabel } from "../utils/roleAccess";
@@ -50,6 +61,14 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLoading, setShopLoading] = useState(true);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
+  const [availabilityMessage, setAvailabilityMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const isPendingApproval = !!shop && !shop.is_active;
   // Owner with no resolvable shop (missing/linked-after signup) is treated as
@@ -89,6 +108,84 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     setShopLoading(true);
     fetchShop().finally(() => setShopLoading(false));
   }, [user?.shop_id, user?.role]);
+
+  const refreshNotifications = async () => {
+    const [list, unread] = await Promise.all([
+      getMyNotifications(20),
+      getUnreadNotificationCount(),
+    ]);
+    setNotifications(list);
+    setUnreadCount(unread);
+  };
+
+  useEffect(() => {
+    if (user?.role !== "owner") return;
+    refreshNotifications();
+
+    const channel = supabase
+      .channel("owner-notifications-live")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        () => {
+          setUnreadCount((prev) => prev + 1);
+          refreshNotifications();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.role, user?.id]);
+
+  const handleOpenNotifications = () => {
+    setNotificationsOpen((prev) => !prev);
+  };
+
+  const handleNotificationClick = async (notificationId: string) => {
+    await markNotificationRead(notificationId);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
+
+  const handleToggleAvailability = async () => {
+    if (!shop?.id) return;
+    setTogglingAvailability(true);
+    setAvailabilityMessage(null);
+    try {
+      const updated = await updateShop(shop.id, { is_open: !shop.is_open });
+      if (!updated) throw new Error("Update failed.");
+      setShop((prev) => (prev ? { ...prev, is_open: updated.is_open } : prev));
+      setAvailabilityMessage({
+        type: "success",
+        text: updated.is_open
+          ? "Your shop is now open. Customers can book appointments and place orders."
+          : "Your shop is now closed. Customers can still browse, but bookings and purchases are paused.",
+      });
+    } catch (err) {
+      console.error("Error toggling availability:", err);
+      setAvailabilityMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to update availability.",
+      });
+    } finally {
+      setTogglingAvailability(false);
+    }
+  };
 
   // Live view: reflect shop edits / approval in real time. Filtered on the
   // resolved shop id so it also works for accounts whose users.shop_id is null.
@@ -305,10 +402,121 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             >
               <Globe className="w-[18px] h-[18px]" />
             </button>
-            <button className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors relative">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={handleOpenNotifications}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors relative"
+                title="Notifications"
+                aria-label="Notifications"
+              >
+                {unreadCount > 0 ? (
+                  <BellRing className="w-[18px] h-[18px]" />
+                ) : (
+                  <Bell className="w-[18px] h-[18px]" />
+                )}
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {notificationsOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setNotificationsOpen(false)}
+                      aria-hidden="true"
+                    />
+                    <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden z-50"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          Notifications
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {unreadCount > 0
+                            ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"} for your shop`
+                            : "You're all caught up"}
+                        </p>
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 px-2.5 py-1.5 rounded-lg hover:bg-violet-50 transition"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-12 text-center">
+                          <Inbox className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                          <p className="text-sm font-semibold text-slate-600">
+                            No notifications yet
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            New bookings and shop updates will appear here.
+                          </p>
+                        </div>
+                      ) : (
+                        notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            onClick={() =>
+                              handleNotificationClick(notification.id)
+                            }
+                            className={`w-full text-left px-4 py-3.5 transition ${
+                              notification.read
+                                ? "bg-white hover:bg-slate-50"
+                                : "bg-violet-50/60 hover:bg-violet-50"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span
+                                className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                                  notification.read
+                                    ? "bg-transparent"
+                                    : "bg-violet-500"
+                                }`}
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-slate-900">
+                                  {notification.subject || "Shop update"}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                  {notification.message || "New activity for your shop."}
+                                </p>
+                                <p className="text-[10px] text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
+                                  {new Date(
+                                    notification.created_at,
+                                  ).toLocaleString(undefined, {
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-slate-200/60">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-sm">
                 <span className="text-white font-semibold text-xs">
@@ -408,7 +616,87 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       <span className={`w-2 h-2 rounded-full ${shop?.is_active ? "bg-emerald-400" : "bg-amber-400"}`} />
                       {shop?.is_active ? "Live on MotoLink" : "Awaiting approval"}
                     </span>
+                    <span className={`bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 ${shop?.is_open === false ? "bg-amber-500/90" : ""}`}>
+                      <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-200" : "bg-emerald-400 animate-pulse"}`} />
+                      {shop?.is_open === false ? "Closed to bookings" : "Open"}
+                    </span>
                   </div>
+                </div>
+              </motion.div>
+
+              {/* Store Availability Toggle */}
+              {availabilityMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-semibold ${
+                    availabilityMessage.type === "success"
+                      ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
+                      : "bg-red-50 border-red-200/80 text-red-700"
+                  }`}
+                >
+                  {availabilityMessage.type === "success" ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                  )}
+                  {availabilityMessage.text}
+                </motion.div>
+              )}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="rounded-2xl p-6 mb-8 border"
+                style={{
+                  background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+                  border: "1px solid rgba(16, 185, 129, 0.25)",
+                }}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={shop?.is_open !== false}
+                      aria-label="Store availability"
+                      onClick={handleToggleAvailability}
+                      disabled={togglingAvailability || shop?.is_open === undefined}
+                      className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
+                        shop?.is_open === false ? "bg-slate-300" : "bg-emerald-500"
+                      } disabled:opacity-60 disabled:cursor-not-allowed`}
+                    >
+                      <span
+                        className={`inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-1 ring-black/5 transition-transform duration-200 ${
+                          shop?.is_open === false ? "translate-x-1" : "translate-x-8"
+                        }`}
+                      >
+                        {togglingAvailability && (
+                          <Loader className="w-4 h-4 animate-spin text-slate-500 absolute left-1.5 top-1.5" />
+                        )}
+                      </span>
+                    </button>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {shop?.is_open === false ? "Shop is currently closed" : "Shop is open"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {shop?.is_open === false
+                          ? "Customers can still browse your services, mechanics and products, but they won't be able to book appointments or purchase items."
+                          : "Customers can view your shop and book appointments or purchase items normally."}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold self-start sm:self-auto ${
+                      shop?.is_open === false
+                        ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
+                    {shop?.is_open === false ? "Closed" : "Open"}
+                  </span>
                 </div>
               </motion.div>
 

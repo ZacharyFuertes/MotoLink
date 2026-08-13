@@ -13,6 +13,7 @@ export interface Shop {
   specialties: string[];
   operating_hours: string;
   is_active: boolean;
+  is_open?: boolean;
   rating?: number;
   available?: boolean;
 }

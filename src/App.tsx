@@ -338,6 +338,10 @@ const AppContent: React.FC = () => {
               isAuthenticated={true}
               onLoginRequired={() => {}}
               onBook={(shop) => {
+                if (shop.is_open === false) {
+                  openShopDetail(shop);
+                  return;
+                }
                 selectShop(shop);
                 setShowBookingModal(true);
               }}

@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
   specialties     TEXT[] NOT NULL DEFAULT '{}',
   operating_hours TEXT NOT NULL DEFAULT 'Hours unavailable',
   is_active       BOOLEAN NOT NULL DEFAULT true,
+  is_open         BOOLEAN NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -301,6 +302,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   subject         TEXT,
   message         TEXT,
   status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),
+  read            BOOLEAN NOT NULL DEFAULT false,
   sent_at         TIMESTAMPTZ,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -573,6 +575,10 @@ CREATE POLICY "Users can view own notifications"
 CREATE POLICY "System can insert notifications"
   ON public.notifications FOR INSERT WITH CHECK (true);
 
+CREATE POLICY "Recipients can mark own notifications read"
+  ON public.notifications FOR UPDATE USING (auth.uid() = recipient_id)
+  WITH CHECK (auth.uid() = recipient_id);
+
 -- CUSTOMER NOTIFICATION SETTINGS
 CREATE POLICY "Users can view own notification settings"
   ON public.customer_notification_settings FOR SELECT USING (auth.uid() = user_id);
@@ -615,6 +621,43 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.reservations
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customer_notification_settings
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+-- Trigger: notify shop owner when a customer books an appointment
+CREATE OR REPLACE FUNCTION public.notify_shop_owner_on_appointment()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_owner_id   UUID;
+  v_customer   TEXT;
+BEGIN
+  SELECT owner_id INTO v_owner_id
+  FROM public.shops WHERE id = NEW.shop_id;
+
+  IF v_owner_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COALESCE(u.name, 'A customer') INTO v_customer
+  FROM public.users u WHERE u.id = NEW.customer_id;
+
+  INSERT INTO public.notifications (
+    recipient_id, appointment_id, type, subject, message, status
+  ) VALUES (
+    v_owner_id,
+    NEW.id,
+    'appointment',
+    'New appointment booked',
+    v_customer || ' booked ' || COALESCE(NEW.service_type, 'a service') ||
+    ' for ' || NEW.scheduled_date::text || '.',
+    'pending'
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER notify_shop_owner_on_appointment
+  AFTER INSERT ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.notify_shop_owner_on_appointment();
 
 -- ============================================================================
 -- PHASE 10: SIGNUP HELPERS (owner registration + auto profile creation)

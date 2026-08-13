@@ -22,6 +22,7 @@ interface AdminShopRow {
   slug: string;
   city: string;
   is_active: boolean;
+  is_open: boolean;
   created_at: string;
   owner_id: string | null;
   owner_name: string;
@@ -59,11 +60,36 @@ const AdminShopsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data: shopRows, error: shopError } = await supabase
-        .from("shops")
-        .select("id, name, slug, city, is_active, created_at, owner_id")
-        .order("created_at", { ascending: false });
-      if (shopError) throw shopError;
+      const runQuery = async (select: string) => {
+        const { data: shopRows, error: shopError } = await supabase
+          .from("shops")
+          .select(select)
+          .order("created_at", { ascending: false });
+        if (shopError) throw shopError;
+        return (shopRows || []) as any[];
+      };
+
+      let rawShopRows: any[];
+      try {
+        rawShopRows = await runQuery(
+          "id, name, slug, city, is_active, is_open, created_at, owner_id",
+        );
+      } catch (err: any) {
+        const message = err?.message || "";
+        const code = err?.code;
+        if (
+          code === 42703 ||
+          (typeof message === "string" &&
+            /is_open/i.test(message) &&
+            /column|schema cache|not found|could not find/i.test(message))
+        ) {
+          rawShopRows = await runQuery(
+            "id, name, slug, city, is_active, created_at, owner_id",
+          );
+        } else {
+          throw err;
+        }
+      }
 
       const { data: owners, error: ownerError } = await supabase
         .from("users")
@@ -95,7 +121,7 @@ const AdminShopsPage: React.FC = () => {
       });
 
       setShops(
-        (shopRows || []).map((s: any) => {
+        (rawShopRows || []).map((s: any) => {
           const owner = ownersById.get(s.owner_id);
           return {
             id: s.id,
@@ -103,6 +129,7 @@ const AdminShopsPage: React.FC = () => {
             slug: s.slug,
             city: s.city,
             is_active: s.is_active,
+            is_open: s.is_open !== false,
             created_at: s.created_at,
             owner_id: s.owner_id,
             owner_name: owner?.name || "N/A",
@@ -341,6 +368,7 @@ const AdminShopsPage: React.FC = () => {
                   <th className="text-center">Customers</th>
                   <th className="text-left">Registered</th>
                   <th className="text-center">Status</th>
+                  <th className="text-center">Availability</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
@@ -405,6 +433,19 @@ const AdminShopsPage: React.FC = () => {
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-amber-500"}`} />
                         {shop.is_active ? "Active" : "Pending"}
+                      </span>
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          shop.is_open
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}
+                        title={`Set by the shop owner. ${shop.is_open ? "Open — accepting bookings & orders" : "Closed — browse only"}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${shop.is_open ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        {shop.is_open ? "Open" : "Closed"}
                       </span>
                     </td>
                     <td>

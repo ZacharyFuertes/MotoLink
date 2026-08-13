@@ -14,6 +14,8 @@ import {
   Globe,
   Image as ImageIcon,
   Sparkles,
+  Power,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop } from "../services/shopService";
@@ -44,6 +46,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   const [specialtiesText, setSpecialtiesText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -122,6 +125,33 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleAvailability = async () => {
+    if (!user?.shop_id) return;
+    setTogglingAvailability(true);
+    setMessage(null);
+    try {
+      const updated = await updateShop(user.shop_id, {
+        is_open: !shop.is_open,
+      });
+      if (!updated) throw new Error("Update failed.");
+      setShop((prev) => ({ ...prev, is_open: updated.is_open }));
+      setMessage({
+        type: "success",
+        text: updated.is_open
+          ? "Your shop is now open. Customers can book appointments and place orders."
+          : "Your shop is now closed. Customers can still view your shop but cannot book or buy.",
+      });
+    } catch (err) {
+      console.error("Error toggling availability:", err);
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to update availability.",
+      });
+    } finally {
+      setTogglingAvailability(false);
     }
   };
 
@@ -400,6 +430,78 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                 ? "Live on Directory"
                 : "Awaiting Admin Approval"}
             </span>
+          </motion.div>
+
+          {/* Store Availability Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+                <Power className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Store Availability
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Control whether your shop accepts bookings and orders right now.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={shop.is_open !== false}
+                  aria-label="Store availability"
+                  onClick={handleToggleAvailability}
+                  disabled={togglingAvailability}
+                  className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
+                    shop.is_open === false
+                      ? "bg-slate-300"
+                      : "bg-emerald-500"
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
+                >
+                  <span
+                    className={`inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-1 ring-black/5 transition-transform duration-200 ${
+                      shop.is_open === false ? "translate-x-1" : "translate-x-8"
+                    }`}
+                  >
+                    {togglingAvailability && (
+                      <Loader2 className="w-4 h-4 animate-spin text-slate-500 absolute left-1.5 top-1.5" />
+                    )}
+                  </span>
+                </button>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {shop.is_open === false ? "Shop is currently closed" : "Shop is open"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {shop.is_open === false
+                      ? "Customers can still browse your services, mechanics and products, but they won't be able to book appointments or purchase items."
+                      : "Customers can view your shop and book appointments or purchase items normally."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 pl-2 sm:pl-0">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
+                    shop.is_open === false
+                      ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+                      : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${shop.is_open === false ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
+                  {shop.is_open === false ? "Closed" : "Open"}
+                </span>
+              </div>
+            </div>
           </motion.div>
 
           {/* Form Action */}

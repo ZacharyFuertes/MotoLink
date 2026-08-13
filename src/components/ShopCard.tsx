@@ -10,6 +10,7 @@ interface ShopCardProps {
 
 const getShopStatus = (shop: ShopSearchResult) => {
   if (!shop.is_active) return { label: "Closed", dot: "bg-slate-400", text: "text-slate-600", background: "bg-slate-100" };
+  if (shop.is_open === false) return { label: "Unavailable", dot: "bg-amber-500", text: "text-amber-800", background: "bg-amber-100" };
   if (shop.available === false) return { label: "Limited", dot: "bg-amber-500", text: "text-amber-800", background: "bg-amber-50" };
   return { label: "Open now", dot: "bg-emerald-500", text: "text-emerald-800", background: "bg-emerald-50" };
 };

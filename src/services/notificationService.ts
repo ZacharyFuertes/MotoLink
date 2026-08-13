@@ -41,6 +41,53 @@ export interface NotificationLogEntry {
   sent_at?: string;
 }
 
+// ─── In-App Notifications (owner/shop bell) ───────────────────────────────────
+
+export interface AppNotification {
+  id: string;
+  recipient_id: string;
+  appointment_id?: string | null;
+  type: string;
+  subject?: string | null;
+  message?: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export const getMyNotifications = async (
+  limit = 20,
+): Promise<AppNotification[]> => {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, recipient_id, appointment_id, type, subject, message, read, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data?.length) return [];
+  return data as AppNotification[];
+};
+
+export const getUnreadNotificationCount = async (): Promise<number> => {
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("read", false);
+
+  if (error) return 0;
+  return count || 0;
+};
+
+export const markNotificationRead = async (notificationId: string): Promise<void> => {
+  await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
+};
+
+export const markAllNotificationsRead = async (): Promise<void> => {
+  await supabase.from("notifications").update({ read: true }).eq("read", false);
+};
+
 // ─── Email HTML Template ──────────────────────────────────────────────────────
 
 const buildServiceCompletionHtml = (data: ServiceCompletionData): string => {

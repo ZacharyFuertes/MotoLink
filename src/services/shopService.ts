@@ -16,51 +16,87 @@ export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
+const SHOP_SELECT = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active, is_open";
+const SHOP_SELECT_NO_IS_OPEN = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active";
+
+const isMissingIsOpenColumn = (error: unknown): boolean => {
+  const err = error as Record<string, unknown>;
+  if (err && err.code === "42703") return true;
+  const message = typeof err?.message === "string" ? err.message : typeof error === "string" ? error : "";
+  return /is_open/i.test(message) && /column|schema cache|not found|could not find/i.test(message);
+};
+
+type QueryResult<T = unknown> = { data: T; error: unknown };
+
+// Runs the query builder against a best-effort column set. If the live DB has
+// not yet applied the shops.is_open migration, PostgREST rejects the select
+// with a 400 — retry once without is_open so the app keeps working.
+const runShopQuery = async <T>(
+  buildQuery: (select: string) => PromiseLike<QueryResult<T>>,
+): Promise<QueryResult<T>> => {
+  const first = await buildQuery(SHOP_SELECT);
+  if (!first.error) return first;
+  if (isMissingIsOpenColumn(first.error)) {
+    return await buildQuery(SHOP_SELECT_NO_IS_OPEN);
+  }
+  return first;
+};
+
+const normalizeSpecialties = (shop: Record<string, unknown>): Shop => {
+  const specialties = shop.specialties && Array.isArray(shop.specialties) ? shop.specialties : [];
+  return { ...(shop as unknown as Shop), specialties };
+};
+
 export const getPublicShops = async (): Promise<Shop[]> => {
-  const { data, error } = await supabase
-    .from("shops")
-    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
-    .eq("is_active", true)
-    .order("name");
+  const { data, error } = await runShopQuery<unknown[]>(
+    (select) =>
+      supabase
+        .from("shops")
+        .select(select)
+        .eq("is_active", true)
+        .order("name") as PromiseLike<QueryResult<unknown[]>>,
+  );
 
   if (error || !data?.length) return [];
+  if (!Array.isArray(data)) return [];
 
-  return data.map((shop) => ({
-    ...shop,
-    specialties: Array.isArray(shop.specialties) ? shop.specialties : [],
-  })) as Shop[];
+  return data
+    .filter((shop): shop is Record<string, unknown> => typeof shop === "object" && shop !== null)
+    .map((shop) => normalizeSpecialties(shop));
 };
 
 export const getShopById = async (shopId: string): Promise<Shop | null> => {
-  const { data, error } = await supabase
-    .from("shops")
-    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
-    .eq("id", shopId)
-    .single();
+  const { data, error } = await runShopQuery<unknown>(
+    (select) =>
+      supabase
+        .from("shops")
+        .select(select)
+        .eq("id", shopId)
+        .single() as PromiseLike<QueryResult<unknown>>,
+  );
 
   if (error || !data) return null;
+  if (Array.isArray(data)) return null;
 
-  return {
-    ...data,
-    specialties: Array.isArray(data.specialties) ? data.specialties : [],
-  } as Shop;
+  return normalizeSpecialties(data as Record<string, unknown>);
 };
 
 export const getShopByOwnerId = async (ownerId: string): Promise<Shop | null> => {
-  const { data, error } = await supabase
-    .from("shops")
-    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
-    .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await runShopQuery<unknown>(
+    (select) =>
+      supabase
+        .from("shops")
+        .select(select)
+        .eq("owner_id", ownerId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle() as PromiseLike<QueryResult<unknown>>,
+  );
 
   if (error || !data) return null;
+  if (Array.isArray(data)) return null;
 
-  return {
-    ...data,
-    specialties: Array.isArray(data.specialties) ? data.specialties : [],
-  } as Shop;
+  return normalizeSpecialties(data as Record<string, unknown>);
 };
 
 export const updateShop = async (
@@ -81,22 +117,54 @@ export const updateShop = async (
       | "specialties"
       | "operating_hours"
       | "is_active"
+      | "is_open"
     >
   >,
 ): Promise<Shop | null> => {
-  const { data, error } = await supabase
-    .from("shops")
-    .update(updates)
-    .eq("id", shopId)
-    .select("id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active")
-    .single();
+  // Only send is_open in the UPDATE payload if the migration is live.
+  const safeUpdates: Record<string, unknown> = { ...updates };
+  const isOpenUpdate = "is_open" in updates;
+  if (isOpenUpdate) delete safeUpdates.is_open;
 
-  if (error || !data) return null;
+  const attempt = async (
+    select: string,
+    includeIsOpenInUpdate: boolean,
+  ): Promise<QueryResult<unknown>> => {
+    const payload =
+      isOpenUpdate && includeIsOpenInUpdate
+        ? { ...updates, is_open: updates.is_open }
+        : safeUpdates;
+    return (supabase
+      .from("shops")
+      .update(payload)
+      .eq("id", shopId)
+      .select(select)
+      .single()) as PromiseLike<QueryResult<unknown>>;
+  };
 
-  return {
-    ...data,
-    specialties: Array.isArray(data.specialties) ? data.specialties : [],
-  } as Shop;
+  const first = await attempt(SHOP_SELECT, true);
+  if (!first.error && first.data) {
+    return normalizeSpecialties(first.data as Record<string, unknown>);
+  }
+
+  if (isMissingIsOpenColumn(first.error) && isOpenUpdate) {
+    const { data, error } = await attempt(SHOP_SELECT_NO_IS_OPEN, false);
+    if (error || !data) return null;
+    // Column not live yet — keep the requested value in memory so the UI
+    // reflects the intended state; it will persist after the migration runs.
+    return normalizeSpecialties({
+      ...(data as Record<string, unknown>),
+      is_open: updates.is_open,
+    });
+  }
+
+  if (isMissingIsOpenColumn(first.error) && !isOpenUpdate) {
+    const { data, error } = await attempt(SHOP_SELECT_NO_IS_OPEN, false);
+    if (error || !data) return null;
+    return normalizeSpecialties(data as Record<string, unknown>);
+  }
+
+  return null;
 };
 
 export const sortByDistance = (

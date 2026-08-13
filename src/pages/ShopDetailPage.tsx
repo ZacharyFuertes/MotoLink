@@ -71,6 +71,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
 
   const addToReceipt = (product: ShopProduct) => {
+    if (shop?.is_open === false) return;
     setReceiptItems((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === product.id);
       if (existingIndex >= 0) {
@@ -157,6 +158,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   };
 
   const openBooking = (mech: ShopMechanic) => {
+    if (shop?.is_open === false) return;
     setBookingMechanic(mech);
     if (appointment && appointment.mechanic.id === mech.id) {
       setModalServices(appointment.services);
@@ -376,6 +378,25 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           </div>
         </motion.section>
 
+        {shop.is_open === false && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 flex items-start gap-3"
+          >
+            <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-amber-300 font-bold text-sm uppercase tracking-widest">
+                This shop is currently closed
+              </p>
+              <p className="text-slate-300 text-sm mt-1">
+                You can still browse its services, mechanics and products, but
+                bookings and purchases are temporarily unavailable.
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8 mt-8">
           <div className="space-y-10">
             {/* Services */}
@@ -457,7 +478,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                         <button
                           type="button"
                           onClick={() => openBooking(mech)}
-                          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray"
+                          disabled={shop.is_open === false}
+                          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Wrench size={13} className="text-moto-accent" /> Select
                           mechanic
@@ -512,7 +534,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                         <button
                           type="button"
                           onClick={() => addToReceipt(p)}
-                          className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray"
+                          disabled={shop.is_open === false}
+                          className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <Plus size={13} className="text-moto-accent" /> Add to
                           receipt
@@ -627,8 +650,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
 
               {!appointment && receiptItems.length === 0 && (
                 <p className="text-slate-400 text-sm mb-5">
-                  Select a mechanic to build your appointment, or add products to
-                  the receipt.
+                  {shop.is_open === false
+                    ? "This shop is currently closed and is not accepting bookings or purchases."
+                    : "Select a mechanic to build your appointment, or add products to the receipt."}
                 </p>
               )}
 
