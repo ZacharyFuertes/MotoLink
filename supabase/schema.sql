@@ -358,6 +358,14 @@ CREATE POLICY "Shop owners can view shop members"
     shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
   );
 
+-- Customers/marketplace: anyone can view mechanics of active shops
+-- (ShopDetailPage fetches users WHERE role='mechanic' AND shop_id=<shop>).
+CREATE POLICY "Anyone can view shop mechanics"
+  ON public.users FOR SELECT USING (
+    role = 'mechanic'
+    AND shop_id IN (SELECT id FROM public.shops WHERE is_active = true)
+  );
+
 -- ADMIN RLS: Helper function
 CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
