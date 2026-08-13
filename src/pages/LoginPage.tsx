@@ -251,18 +251,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   // Input field style shared between login and signup
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 transition-all duration-300 text-sm";
+    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4 text-slate-100">
       {/* Back Button */}
       <motion.button
         onClick={onBack}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:text-slate-900 shadow-sm transition-all z-30"
+        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark border border-moto-accent rounded-lg text-slate-950 shadow-sm transition-all z-30"
         whileHover={{ scale: 1.05, x: -4 }}
       >
         <ArrowLeft size={18} />
@@ -275,7 +275,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           onClick={onHome}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-all z-30"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white rounded-xl shadow-sm transition-all z-30"
           whileHover={{ scale: 1.05, x: 4 }}
         >
           <span className="hidden sm:inline text-sm font-semibold">Home</span>
@@ -290,7 +290,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-moto-gray bg-moto-darker shadow-sm overflow-hidden">
 
           <div className="relative p-8 sm:p-10">
             {/* Logo */}
@@ -316,10 +316,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h1 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">
+                  <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                     {isSignup ? "Create account" : "Welcome back"}
                   </h1>
-                  <p className="text-slate-500 text-sm">
+                  <p className="text-slate-300 text-sm">
                     {isSignup
                       ? "Register to book appointments & track repairs"
                       : "Sign in to your account"}
@@ -463,7 +463,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.32 }}
                     >
-                      <label className="text-xs text-slate-500 ml-1 mb-1 block">
+                      <label className="text-xs text-slate-300 ml-1 mb-1 block">
                         Vehicle Information
                       </label>
                       <div className="relative">

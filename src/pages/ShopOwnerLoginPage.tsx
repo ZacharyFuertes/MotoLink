@@ -498,7 +498,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           onClick={onHome}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-sm transition-all z-30"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white rounded-xl shadow-sm transition-all z-30"
           whileHover={{ scale: 1.05, x: 4 }}
         >
           <span className="hidden sm:inline text-sm font-semibold">Home</span>
@@ -513,7 +513,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-moto-gray bg-moto-darker shadow-sm overflow-hidden">
 
           <div className="relative p-8 sm:p-10">
             {/* Logo */}
@@ -532,10 +532,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">
+                <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                   {isSignup ? "Open your shop" : "Welcome back"}
                 </h1>
-                <p className="text-slate-500 text-sm">
+                <p className="text-slate-300 text-sm">
                   {isSignup ? "Register your shop on MotoLink" : "Sign in to your shop account"}
                 </p>
               </motion.div>

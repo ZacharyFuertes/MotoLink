@@ -12,10 +12,10 @@ interface LoginChoicePageProps {
 }
 
 const cardClass =
-  "group relative p-8 bg-slate-50 border border-slate-200 hover:border-slate-300 hover:shadow-lg rounded-xl overflow-hidden transition-all text-left";
+  "group relative p-8 bg-moto-darker border border-moto-gray hover:border-moto-accent hover:shadow-[0_0_0_1px_rgba(248,113,113,0.25)] rounded-xl overflow-hidden transition-all text-left text-slate-100";
 const iconTileClass =
-  "w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-slate-200 transition";
-const iconClass = "w-8 h-8 text-slate-600";
+  "w-16 h-16 bg-moto-dark rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-moto-accent/10 transition";
+const iconClass = "w-8 h-8 text-moto-accent";
 
 const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onChooseCustomer,
@@ -24,12 +24,12 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onChooseRegister,
   onBack,
 }) => (
-  <div className="min-h-screen bg-white flex items-center justify-center p-4">
+  <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4 text-slate-100">
     <motion.button
       onClick={onBack}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-900 rounded-xl text-white shadow-sm transition"
+      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark border border-moto-accent rounded-xl text-slate-950 shadow-sm transition"
       whileHover={{ scale: 1.05, x: -4 }}
     >
       <Home size={18} />
@@ -52,7 +52,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             className="h-full w-auto object-contain"
           />
         </div>
-        <p className="text-slate-500">Select your portal</p>
+        <p className="text-slate-300 font-medium">Select your portal</p>
       </div>
 
       {/* PUBLIC ACCESS */}
@@ -73,11 +73,11 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             <div className={iconTileClass}>
               <Users className={iconClass} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Customer</h3>
-            <p className="text-slate-500 text-sm mb-6">
+            <h3 className="text-xl font-bold text-slate-100 mb-2">Customer</h3>
+            <p className="text-slate-300 text-sm mb-6">
               Book appointments and track repairs
             </p>
-            <div className="flex items-center gap-2 text-slate-600 font-semibold group-hover:gap-3 transition-all">
+            <div className="flex items-center gap-2 text-moto-accent font-semibold group-hover:gap-3 transition-all">
               Login
               <ChevronRight className="w-5 h-5" />
             </div>
@@ -103,20 +103,20 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             <div className={iconTileClass}>
               <Store className={iconClass} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Shop Owner</h3>
-            <p className="text-slate-500 text-sm mb-6">
+            <h3 className="text-xl font-bold text-slate-100 mb-2">Shop Owner</h3>
+            <p className="text-slate-300 text-sm mb-6">
               Manage your shop and all operations
             </p>
             <div className="flex gap-3">
               <button
                 onClick={onChooseOwner}
-                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-lg transition"
+                className="flex-1 px-4 py-2.5 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white text-sm font-semibold rounded-lg transition"
               >
                 Log in
               </button>
               <button
                 onClick={onChooseRegister}
-                className="flex-1 px-4 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition"
+                className="flex-1 px-4 py-2.5 border border-moto-gray hover:bg-moto-accent/10 text-slate-200 text-sm font-semibold rounded-lg transition"
               >
                 Register shop
               </button>
@@ -140,11 +140,11 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             <div className={iconTileClass}>
               <ShieldCheck className={iconClass} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Platform Admin</h3>
-            <p className="text-slate-500 text-sm mb-6">
+            <h3 className="text-xl font-bold text-slate-100 mb-2">Platform Admin</h3>
+            <p className="text-slate-300 text-sm mb-6">
               Manage the MotoLink platform
             </p>
-            <div className="flex items-center gap-2 text-slate-600 font-semibold group-hover:gap-3 transition-all">
+            <div className="flex items-center gap-2 text-moto-accent font-semibold group-hover:gap-3 transition-all">
               Login
               <ChevronRight className="w-5 h-5" />
             </div>
