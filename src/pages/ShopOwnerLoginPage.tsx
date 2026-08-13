@@ -174,105 +174,57 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
     const meridiems = ["AM", "PM"];
 
+    const renderTimeColumn = (value: { hour: number; minute: string; meridiem: string }, onChange: (nextValue: { hour: number; minute: string; meridiem: string }) => void) => (
+      <div className="flex items-center justify-center gap-2">
+        <select
+          value={value.hour}
+          onChange={(e) => onChange({ ...value, hour: parseInt(e.target.value, 10) })}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[48px]"
+        >
+          {hourOptions.map((h) => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+
+        <select
+          value={value.minute}
+          onChange={(e) => onChange({ ...value, minute: e.target.value })}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[48px]"
+        >
+          {minuteOptions.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        <select
+          value={value.meridiem}
+          onChange={(e) => onChange({ ...value, meridiem: e.target.value })}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[56px]"
+        >
+          {meridiems.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    );
+
     return (
-      <div className="flex items-center gap-1">
-        <select
-          value={parsedOpen.hour}
-          onChange={(e) => {
-            const hour = parseInt(e.target.value, 10);
-            const newOpen = convert12To24(hour, parsedOpen.minute, parsedOpen.meridiem);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], openTime: newOpen };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {hourOptions.map((h) => (
-            <option key={h} value={h}>{h}</option>
-          ))}
-        </select>
+      <div className="flex flex-col items-center gap-2">
+        <div>{renderTimeColumn(parsedOpen, (nextValue) => {
+          const nextOpen = convert12To24(nextValue.hour, nextValue.minute, nextValue.meridiem);
+          const next = [...signupData.operating_schedule];
+          next[idx] = { ...next[idx], openTime: nextOpen };
+          setSignupData({ ...signupData, operating_schedule: next });
+        })}</div>
 
-        <select
-          value={parsedOpen.minute}
-          onChange={(e) => {
-            const minute = e.target.value;
-            const newOpen = convert12To24(parsedOpen.hour, minute, parsedOpen.meridiem);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], openTime: newOpen };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {minuteOptions.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        <div className="text-sm text-slate-400">To</div>
 
-        <select
-          value={parsedOpen.meridiem}
-          onChange={(e) => {
-            const mer = e.target.value;
-            const newOpen = convert12To24(parsedOpen.hour, parsedOpen.minute, mer);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], openTime: newOpen };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {meridiems.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-
-        <span className="text-sm text-slate-400 px-2">to</span>
-
-        <select
-          value={parsedClose.hour}
-          onChange={(e) => {
-            const hour = parseInt(e.target.value, 10);
-            const newClose = convert12To24(hour, parsedClose.minute, parsedClose.meridiem);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], closeTime: newClose };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {hourOptions.map((h) => (
-            <option key={h} value={h}>{h}</option>
-          ))}
-        </select>
-
-        <select
-          value={parsedClose.minute}
-          onChange={(e) => {
-            const minute = e.target.value;
-            const newClose = convert12To24(parsedClose.hour, minute, parsedClose.meridiem);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], closeTime: newClose };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {minuteOptions.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-
-        <select
-          value={parsedClose.meridiem}
-          onChange={(e) => {
-            const mer = e.target.value;
-            const newClose = convert12To24(parsedClose.hour, parsedClose.minute, mer);
-            const next = [...signupData.operating_schedule];
-            next[idx] = { ...next[idx], closeTime: newClose };
-            setSignupData({ ...signupData, operating_schedule: next });
-          }}
-          className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-black"
-        >
-          {meridiems.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        <div>{renderTimeColumn(parsedClose, (nextValue) => {
+          const nextClose = convert12To24(nextValue.hour, nextValue.minute, nextValue.meridiem);
+          const next = [...signupData.operating_schedule];
+          next[idx] = { ...next[idx], closeTime: nextClose };
+          setSignupData({ ...signupData, operating_schedule: next });
+        })}</div>
       </div>
     );
   };
@@ -622,7 +574,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <label className="text-sm font-medium text-slate-700">Shop Schedule</label>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-slate-400 mb-2">Check the day(s) your shop is open and set open/close times (5 minute increments).</p>
+                      <p className="text-xs text-slate-400 mb-2 text-center">Set open days & times.</p>
                     </div>
                     <div>
                       <button type="button" onClick={() => setScheduleOpen(!scheduleOpen)} className="text-sm text-moto-accent hover:underline">
@@ -639,8 +591,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           <div key={idx}>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="w-32 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
-                                <label className={`inline-flex items-center rounded-full p-2 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
+                                <div className="w-28 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
+                                <label className={`inline-flex items-center rounded-full p-1 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
                                   <input
                                     type="checkbox"
                                     checked={day.open}
@@ -666,8 +618,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                             </div>
 
                             {isExpanded && day.open && (
-                              <div className="mt-2 ml-12">
-                                {renderTimeSelectors(day, idx)}
+                              <div className="mt-2 ml-0 sm:ml-12">
+                                <div className="flex flex-wrap items-center justify-center">
+                                  {renderTimeSelectors(day, idx)}
+                                </div>
                               </div>
                             )}
 
