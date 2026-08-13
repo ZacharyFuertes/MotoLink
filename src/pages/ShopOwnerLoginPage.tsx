@@ -61,6 +61,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     shop_city: "",
     shop_coordinates: "",
     shop_phone: "",
+    // Operating schedule: index 0=Sunday ... 6=Saturday
+    operating_schedule: Array.from({ length: 7 }, () => ({ open: false, openTime: "09:00", closeTime: "17:00" })),
+    // Human-readable summary that will be saved to the shop.operating_hours field
+    operating_hours: "",
   });
 
   const selectRef = useRef<HTMLSelectElement | null>(null);
@@ -104,6 +108,32 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Utility: generate 30-minute time options between 00:00 and 23:30
+  const generateTimeOptions = () => {
+    const opts: string[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const hh = String(h).padStart(2, "0");
+        const mm = String(m).padStart(2, "0");
+        opts.push(`${hh}:${mm}`);
+      }
+    }
+    return opts;
+  };
+
+  const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+  // Convert the operating_schedule into a compact human-readable string saved in operating_hours
+  const generateOperatingHoursString = (schedule: { open: boolean; openTime: string; closeTime: string }[]) => {
+    // Format: "Sun: closed; Mon: 09:00-17:30; Tue: 09:00-17:30; ..."
+    return schedule
+      .map((d, i) => {
+        if (!d || !d.open) return `${WEEK_DAYS[i].slice(0,3)}: closed`;
+        return `${WEEK_DAYS[i].slice(0,3)}: ${d.openTime}-${d.closeTime}`;
+      })
+      .join("; ");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -180,6 +210,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         .replace(/^-+|-+$/g, "")
         .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`;
 
+      // Convert schedule into a human-readable operating_hours string
+      const opHours = generateOperatingHoursString(signupData.operating_schedule);
       const { data: rpcShopId, error: rpcError } = await supabase.rpc(
         "register_shop_owner",
         {
@@ -195,6 +227,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           p_longitude: longitude,
           p_phone: signupData.shop_phone || null,
           p_is_active: false,
+          // Pass operating hours to the server-side helper (if it accepts this param)
+          p_operating_hours: opHours,
         },
       );
 
@@ -246,6 +280,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           email: signupData.email,
           owner_id: authData.user.id,
           is_active: false,
+          // persist the human-readable operating hours
+          operating_hours: opHours,
         })
         .select("id")
         .maybeSingle();
@@ -439,7 +475,66 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   ))}
                 </select>
                 <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address" required className={inputClass} />
-                <input type="text" value={signupData.shop_city} onChange={(e) => setSignupData({ ...signupData, shop_city: e.target.value })} placeholder="City" className={inputClass} />
+                {/* Shop Schedule UI (replaces City) */}
+                <div className="rounded-xl border border-slate-300 p-3 bg-white">
+                  <label className="text-sm font-medium text-slate-700">Shop Schedule</label>
+                  <p className="text-xs text-slate-400 mb-2">Check the day(s) your shop is open and set open/close times (30 min increments).</p>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {signupData.operating_schedule.map((day, idx) => (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-32 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
+                        <label className={`inline-flex items-center rounded-full p-2 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
+                          <input
+                            type="checkbox"
+                            checked={day.open}
+                            onChange={(e) => {
+                              const next = [...signupData.operating_schedule];
+                              next[idx] = { ...next[idx], open: e.target.checked };
+                              setSignupData({ ...signupData, operating_schedule: next });
+                            }}
+                          />
+                        </label>
+
+                        {day.open && (
+                          <div className="flex items-center gap-2 ml-2">
+                            <select
+                              value={day.openTime}
+                              onChange={(e) => {
+                                const next = [...signupData.operating_schedule];
+                                next[idx] = { ...next[idx], openTime: e.target.value };
+                                setSignupData({ ...signupData, operating_schedule: next });
+                              }}
+                              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                            >
+                              {generateTimeOptions().map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+
+                            <span className="text-sm text-slate-400">to</span>
+
+                            <select
+                              value={day.closeTime}
+                              onChange={(e) => {
+                                const next = [...signupData.operating_schedule];
+                                next[idx] = { ...next[idx], closeTime: e.target.value };
+                                setSignupData({ ...signupData, operating_schedule: next });
+                              }}
+                              className="rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                            >
+                              {generateTimeOptions().map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+                {/* End Shop Schedule UI */}
                 <div>
                   <div className="relative">
                     <MapPin size={18} className={iconClass} />

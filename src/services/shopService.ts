@@ -42,9 +42,69 @@ const runShopQuery = async <T>(
   return first;
 };
 
+// Parse operating_hours strings like "Sun: closed; Mon: 09:00-17:30; Tue: 09:00-17:30; ..."
+const parseOperatingHoursString = (oh?: string) => {
+  const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const emptySchedule = WEEK_DAYS.map(() => ({ open: false, openTime: "00:00", closeTime: "00:00" }));
+  if (!oh || typeof oh !== "string") return emptySchedule;
+  const parts = oh.split(";").map((p) => p.trim()).filter(Boolean);
+  const schedule = emptySchedule.slice();
+  parts.forEach((part) => {
+    const [dayLabel, rest] = part.split(":").map((s) => s.trim());
+    if (!dayLabel) return;
+    const dayIndex = WEEK_DAYS.findIndex((d) => d.slice(0,3).toLowerCase() === dayLabel.slice(0,3).toLowerCase());
+    if (dayIndex === -1) return;
+    if (!rest || rest.toLowerCase().includes("closed")) {
+      schedule[dayIndex] = { open: false, openTime: "00:00", closeTime: "00:00" };
+    } else {
+      const times = rest.split("-").map((s) => s.trim());
+      if (times.length === 2) {
+        schedule[dayIndex] = { open: true, openTime: times[0], closeTime: times[1] };
+      }
+    }
+  });
+  return schedule;
+};
+
+const timeToMinutes = (t: string) => {
+  const [hh, mm] = t.split(":").map((s) => parseInt(s, 10));
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
+  return hh * 60 + mm;
+};
+
+const isOpenNowFromOperatingHours = (oh?: string) => {
+  if (!oh) return undefined;
+  try {
+    const schedule = parseOperatingHoursString(oh);
+    const now = new Date();
+    const day = now.getDay();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const d = schedule[day];
+    if (!d || !d.open) return false;
+    const openMin = timeToMinutes(d.openTime);
+    const closeMin = timeToMinutes(d.closeTime);
+    // handle overnight ranges (e.g., open 22:00 to 02:00)
+    if (closeMin <= openMin) {
+      // if now >= open OR now < close
+      return minutes >= openMin || minutes < closeMin;
+    }
+    return minutes >= openMin && minutes < closeMin;
+  } catch (e) {
+    return undefined;
+  }
+};
+
 const normalizeSpecialties = (shop: Record<string, unknown>): Shop => {
   const specialties = shop.specialties && Array.isArray(shop.specialties) ? shop.specialties : [];
-  return { ...(shop as unknown as Shop), specialties };
+  const base = { ...(shop as unknown as Shop), specialties };
+  // If the DB didn't provide is_open, try to infer it from operating_hours
+  if (typeof (base as any).is_open === "undefined") {
+    const inferred = isOpenNowFromOperatingHours((base as any).operating_hours as string | undefined);
+    if (typeof inferred === "boolean") {
+      (base as any).is_open = inferred;
+    }
+  }
+  return base;
 };
 
 export const getPublicShops = async (): Promise<Shop[]> => {
