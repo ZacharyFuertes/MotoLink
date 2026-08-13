@@ -2,9 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import AccessDenied from "../components/AccessDenied";
-import AddMechanicModal from "../components/AddMechanicModal";
 import {
-  Users,
   Store,
   ShieldCheck,
   KeyRound,
@@ -119,7 +117,6 @@ const inputClassName =
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -401,22 +398,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             <motion.div
               whileHover={{ y: -2 }}
               className="dashboard-card p-6 cursor-pointer"
-              onClick={() => setShowInviteModal(true)}
-            >
-              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-4">
-                <Users size={20} />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                Staff & Mechanics
-              </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Invite mechanics to join your shop and manage team access.
-              </p>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ y: -2 }}
-              className="dashboard-card p-6 cursor-pointer"
               onClick={handleOpenShopSettings}
             >
               <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-4">
@@ -430,11 +411,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
               </p>
             </motion.div>
           </div>
-
-          <AddMechanicModal
-            isOpen={showInviteModal}
-            onClose={() => setShowInviteModal(false)}
-          />
         </>
       )}
 

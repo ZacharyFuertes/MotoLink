@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Plus, Trash2, X } from 'lucide-react'
+import { Calendar, Clock, Plus, Trash2, X, UserPlus, Mail, User } from 'lucide-react'
 
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../services/supabaseClient'
@@ -34,6 +34,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   const [loading, setLoading] = useState(true)
   const [selectedMechanic, setSelectedMechanic] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [showAddMechanic, setShowAddMechanic] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<Mechanic | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [confirmationInput, setConfirmationInput] = useState('')
@@ -43,6 +44,15 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     start_time: '08:00',
     end_time: '17:00',
   })
+  const [mechanicForm, setMechanicForm] = useState({
+    name: '',
+    email: '',
+    day_of_week: 'Monday',
+    start_time: '08:00',
+    end_time: '17:00',
+  })
+  const [creatingMechanic, setCreatingMechanic] = useState(false)
+  const [mechanicError, setMechanicError] = useState('')
 
   useEffect(() => {
     if (user?.role === 'admin') return;
@@ -173,6 +183,92 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     }
   }
 
+  const handleCreateMechanic = async () => {
+    setMechanicError('')
+    if (!mechanicForm.name || !mechanicForm.email) {
+      setMechanicError('Please fill in the name and email.')
+      return
+    }
+
+    setCreatingMechanic(true)
+    const ownerShopId = user?.shop_id || null
+    try {
+      // Capture the owner's session BEFORE signUp — creating the mechanic's
+      // auth account swaps the active session to the new user, so we restore
+      // the owner's session afterwards.
+      const { data: ownerSess } = await supabase.auth.getSession()
+      const ownerSession = ownerSess.session
+
+      // The mechanic role is data-layer only (no login portal), so the
+      // password is auto-generated and never shown/used.
+      const autoPassword = 'MotoLink_' + Math.random().toString(36).slice(2, 14)
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: mechanicForm.email,
+        password: autoPassword,
+        options: { data: { full_name: mechanicForm.name } },
+      })
+      if (authError) throw authError
+      if (!authData.user) throw new Error('Failed to create mechanic account')
+
+      // NOTE: the handle_new_user trigger already inserted a public.users row
+      // with role 'customer'. A plain insert would 23505 (duplicate key) and
+      // leave the mechanic stuck as customer. Replace it via upsert while the
+      // mechanic's own session is active (RLS "update own profile" passes),
+      // forcing role=mechanic + the owner's shop_id.
+      const { error: insertError } = await supabase
+        .from('users')
+        .upsert(
+          {
+            id: authData.user.id,
+            email: mechanicForm.email,
+            name: mechanicForm.name,
+            role: 'mechanic',
+            shop_id: ownerShopId,
+          },
+          { onConflict: 'id' },
+        )
+      if (insertError) throw insertError
+
+      const dayIdx = daysOfWeek.indexOf(mechanicForm.day_of_week)
+      const { error: availError } = await supabase.from('mechanic_availability').insert({
+        mechanic_id: authData.user.id,
+        day_of_week: dayIdx,
+        start_time: mechanicForm.start_time,
+        end_time: mechanicForm.end_time,
+        is_available: true,
+        shop_id: ownerShopId,
+      })
+      if (availError) throw availError
+
+      // Restore the owner's session (signUp replaced it with the mechanic's)
+      if (ownerSession) {
+        await supabase.auth.setSession({
+          access_token: ownerSession.access_token,
+          refresh_token: ownerSession.refresh_token,
+        })
+      }
+
+      setShowAddMechanic(false)
+      setMechanicForm({
+        name: '',
+        email: '',
+        day_of_week: 'Monday',
+        start_time: '08:00',
+        end_time: '17:00',
+      })
+      await fetchData()
+    } catch (err: any) {
+      let message = err?.message || 'Failed to create mechanic'
+      if (message.includes('User already registered')) {
+        message = 'This email is already registered.'
+      }
+      setMechanicError(message)
+    } finally {
+      setCreatingMechanic(false)
+    }
+  }
+
   const handleDeleteMechanic = async () => {
     if (!deleteConfirm) return
 
@@ -272,12 +368,26 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
             Manage mechanics list, work shift schedules, and availability status.
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
-        >
-          <Plus size={16} /> Add Shift Schedule
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => {
+              setShowAddMechanic(!showAddMechanic)
+              setShowAddForm(false)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+          >
+            <UserPlus size={16} /> Add New Mechanic
+          </button>
+          <button
+            onClick={() => {
+              setShowAddForm(!showAddForm)
+              setShowAddMechanic(false)
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
+          >
+            <Plus size={16} /> Add Shift Schedule
+          </button>
+        </div>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -332,6 +442,126 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
         {/* Main Content */}
         <div className="lg:col-span-3 space-y-4">
+          {/* Add New Mechanic Form */}
+          <AnimatePresence>
+            {showAddMechanic && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="dashboard-card p-6"
+              >
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    Add New Mechanic
+                  </h3>
+                  <button
+                    onClick={() => setShowAddMechanic(false)}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {mechanicError && (
+                    <div className="px-4 py-3 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-200/60">
+                      {mechanicError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Full Name</label>
+                      <div className="relative">
+                        <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={mechanicForm.name}
+                          onChange={(e) => setMechanicForm({ ...mechanicForm, name: e.target.value })}
+                          placeholder="e.g. Juan Dela Cruz"
+                          className={`${inputClass} pl-9`}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Email Address</label>
+                      <div className="relative">
+                        <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="email"
+                          value={mechanicForm.email}
+                          onChange={(e) => setMechanicForm({ ...mechanicForm, email: e.target.value })}
+                          placeholder="mechanic@shop.com"
+                          className={`${inputClass} pl-9`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-600 mb-2">
+                      Initial Availability
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Day of Week</label>
+                        <select
+                          value={mechanicForm.day_of_week}
+                          onChange={(e) => setMechanicForm({ ...mechanicForm, day_of_week: e.target.value })}
+                          className={inputClass}
+                        >
+                          {daysOfWeek.map((day) => (
+                            <option key={day} value={day}>
+                              {day}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={mechanicForm.start_time}
+                          onChange={(e) => setMechanicForm({ ...mechanicForm, start_time: e.target.value })}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          value={mechanicForm.end_time}
+                          onChange={(e) => setMechanicForm({ ...mechanicForm, end_time: e.target.value })}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Add more shift schedules later with the "Add Shift Schedule" button.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShowAddMechanic(false)}
+                      className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateMechanic}
+                      disabled={creatingMechanic}
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20 disabled:opacity-60"
+                    >
+                      {creatingMechanic ? 'Creating...' : 'Create Mechanic'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Add Shift Form */}
           <AnimatePresence>
             {showAddForm && (
