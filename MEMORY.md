@@ -21,7 +21,7 @@ Log in to Admin Dashboard → Monitor all shops & users (platform-wide view) →
 - **Customer → Owner**: every booking/reservation is a request that lands directly on the Owner's dashboard.
 - **Owner → Customer**: every status update and invoice flows back to the customer automatically via notifications (no manual calls).
 - **Owner → Admin**: account, role, or shop-linking problems (e.g. the FK-race bug, wrong-role users) get escalated up to Admin to fix at the platform/database level.
-- **Admin → Owner**: Admin can also proactively fix broken shop/owner accounts (e.g. beloy123@gmail.com, jbmshop@gmail.com stuck as customer) without the owner needing to ask.
+- **Admin → Owner**: Admin can also proactively fix broken shop/owner accounts (e.g. shop-linking or wrong-role issues from the FK-race bug) without the owner needing to ask. Note: accounts like beloy123@gmail.com/jbmshop@gmail.com that ended up customer with NO shop row can't be patched via UPDATE — resolution is re-registration through the fixed atomic signup path.
 - **Mechanic role**: exists in the DB/roles system (mechanic_availability, job_order assignment) but is NOT a top-level POV — folded into the Owner's job-order management step. Mechanic portal REMOVED in the app (Phase 1, Option B): no MechanicLoginPage/dashboard; owners handle all job-order work in their own pages.
 
 ---
@@ -252,7 +252,7 @@ This is the ONLY path that creates a shop (no admin approval)
 - Fix (ShopOwnerLoginPage.tsx handleSignup — REORDERED): (1) signUp → (2) users upsert role:"owner" WITHOUT shop_id (omitted because users.shop_id → shops.id must exist first) → (3) shops insert (FK now resolves) → (4) users update { role: "owner", shop_id: shop.id } → (5) login() + refreshUser()
 - Proven end-to-end via REST (fresh account, exact app order incl. Prefer: return=representation): users upsert OK → shop insert OK (got id) → update shop_id OK → FINAL role=owner + shop linked
 - Test accounts created (owners with live shops): diag-register-7624@test.local / DiagOwner123! (Diag Test Shop); repro-1059798197@test.local / ReproTest123! (Repro Shop); e2e-1984807849@test.local / E2eTest123! (E2E Shop). The diag account's password was reset + shop linked via service role (it previously had role=owner but shop_id null)
-- Existing broken registrations: beloy123@gmail.com + jbmshop@gmail.com are stuck as customer — fix via UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>' (or re-register)
+- Existing broken registrations: beloy123@gmail.com + jbmshop@gmail.com are stuck as customer AND have NO shop row (the shop INSERT itself failed) — they cannot be fixed via UPDATE (no shop_id to link). Correct resolution is re-registration through the fixed atomic signup path
 - Verify: npx tsc --noEmit clean + npm run build passes
 - STILL NEEDS MANUAL BROWSER TEST: register a new shop → expect role owner + straight to the owner dashboard
 
@@ -332,6 +332,68 @@ This is the ONLY path that creates a shop (no admin approval)
 
 ---
 
+### TASK: Empirically verified per-owner data isolation (cross-shop write test)
+- Ran a scripted end-to-end isolation test against the LIVE DB: created 2 throwaway owner accounts (iso-a/iso-b-<stamp>@test.local) + shops, seeded 9 rows under shop B (services_pricing, parts, products, featured_products, appointments, job_orders, part_sales, reservations, mechanic_availability), then signed in as owner A and attempted UPDATE + DELETE on every row owned by B
+- RESULT: all 9 WRITE probes + 5 DELETE probes returned 0 rows/blocked (ISOLATED); CONTROL test confirmed owner A CAN insert + read own shop data. RLS multitenancy confirmed working live — no 403/leak anywhere
+- Cleanup: test users + shops deleted via service role (cleanup filter bug caught + fixed: email is iso-a-<stamp>, filter was iso-<stamp>)
+- Note: reads on active services/parts/products are intentionally PUBLIC (marketplace browse, "Anyone can browse/create policy"); isolation is enforced on writes + owner-scoped rows
+- Removed temp test scripts (isolation_test_tmp.mjs, isolation_cleanup_tmp.mjs, isolation_tmp.mjs, isolation2_tmp.mjs)
+
+### TASK: Explore page fully live (removed hardcoded shop data)
+- Confirmed landing/Explore already fetches live shops via getPublicShops() (shops table, is_active=true) + map via ShopMap
+- Found remaining static data in src/pages/ShopDetailPage.tsx: hardcoded defaultMechanics (Bot 1/Bot 2) + suggestedProducts (Oil/Wheel/Brake Pads/Mirror/Mags) were always merged into the real, shop-scoped data (displayedMechanics/displayedProducts)
+- FIX: deleted both constant arrays + the merge memos; sections now render only live rows from services_pricing, users (role=mechanic, shop_id=shopId), products (via productService.getAllProducts(shopId)); added "No mechanics listed yet." empty state for the Mechanics section (Services + Products already had empty states); removed now-unused useMemo import
+- Confirmed the full owner-edit → Explore-read wiring already points at the same live tables: ShopSettingsPage → shops (updateShop), AdminServicesPage → services_pricing (scoped), InventoryPage/UpdatePartsPage → parts, AddMechanicModal → users, AdminMechanicAvailability → mechanic_availability
+- Verify: npx tsc --noEmit clean + npm run build passes (built in 21.41s)
+
+### TASK: Fix owner signup — "Registration Failed" + owner becomes customer (the bug is BACK)
+- User reported: shop owner registers → "Registration Failed" → trying the same email again says "already registered" → account ends up as customer, not owner
+- REPRODUCED live (scripted REST): signUp OK → users upsert role=owner OK → shops insert FAILS with `23502 null value in column "description" of relation "shops" violates not-null constraint` → catch block demoted profile to role=customer. Auth user already exists → retry = "email already registered". EXACT reported symptom chain
+- ROOT CAUSE (2 layers):
+  1. Client sent `description: signupData.shop_description || null` — when no specialty selected, shop_description is "" → `"" || null` = null → violates shops.description NOT NULL → shop insert fails
+  2. The old catch-block rollback set `role: "customer"` on ANY mid-flow failure — permanently corrupting failed registrations into customer accounts (irreversible since auth user can't be re-registered)
+- FIXES:
+  - Client (ShopOwnerLoginPage.tsx): description now `signupData.shop_description || ""` (never null); REMOVED the customer-demotion rollback (profile stays owner if shop row missing, so admin can repair + user can retry login); signup now tries atomic `register_shop_owner` RPC first, falls back to step-by-step only on PGRST202 (function missing = migration not applied)
+  - Migration supabase/migrations/20260813_fix_owner_signup.sql: shops.description DROP NOT NULL + DEFAULT ''; `handle_new_user()` SECURITY DEFINER trigger auto-creates public.users on auth.users insert (kills the client auth-listener profile race permanently — profile exists before any client code); `register_shop_owner()` SECURITY DEFINER RPC = owner profile upsert + shop insert + shop_id link in ONE transaction (no partial state, no FK race, no demotion), GRANT EXECUTE to authenticated
+  - schema.sql synced: shops.description now `TEXT DEFAULT ''`; added PHASE 10 with trigger + RPC
+- VERIFIED live: fixed fallback path passes end-to-end (signUp → owner profile → shop insert OK → role owner + shop_id linked, cleanup done); RPC returns PGRST202 on live DB (correct → client falls back) — USER MUST RUN 20260813_fix_owner_signup.sql in Supabase SQL Editor to activate the atomic path
+- Verify: npx tsc --noEmit clean + npm run build passes (7.27s)
+
+### TASK: Move "Add mechanic" from Settings into Manage Mechanics (info + availability in one form)
+- SettingsPage.tsx: REMOVED the "Staff & Mechanics / Invite mechanics" quick-action card + its AddMechanicModal trigger + showInviteModal state + now-unused Users lucide import. Shop Profile card remains the only quick action for owners
+- DELETED src/components/AddMechanicModal.tsx (was only imported by SettingsPage) — mechanic creation now lives in the Manage Mechanics page
+- AdminMechanicAvailability.tsx (Manage Mechanics): added "Add New Mechanic" header button (UserPlus) that reveals an inline form collecting mechanic info (full name, email, temporary password ≥6 chars) AND initial availability (day of week, start time, end time) in one submit
+  - handleCreateMechanic(): supabase.auth.signUp → users insert (role mechanic, shop_id) → mechanic_availability insert (day_of_week int, start/end, is_available true, shop_id) → fetchData() refresh; handles "User already registered" error; validates required fields + password length
+  - New header buttons are mutually exclusive toggles (opening one closes the other); "Add Shift Schedule" (existing) unchanged for adding more shifts to existing mechanics
+  - New icons imported: UserPlus, KeyRound, Mail, User
+- Verify: npx tsc --noEmit clean + npm run build passes (10.42s)
+
+### TASK: Fix mechanic registration — owner-adds-mechanic fails + mechanic ends up customer; removed password field
+- User reported: shop owner adds a new mechanic → registration fails → the account gets created as role='customer' instead of 'mechanic'. Also asked to remove the password field from mechanic registration.
+- ROOT CAUSE (3 layers, reproduced live with disposable test accounts):
+  1. supabase.auth.signUp() while logged in swaps the session — after signUp the active session is the NEW mechanic, not the owner (owner would be silently logged out of their dashboard).
+  2. The handle_new_user trigger (migration 20260813) auto-inserts public.users with role='customer' the instant the auth user is created — so a plain client insert({role:'mechanic'}) then fails with 23505 duplicate key (users_pkey) and the mechanic stays 'customer'.
+  3. The trigger-created customer row also breaks the plain client insert at the RLS layer (owner can't UPDATE another user's row) — an upsert must run as the mechanic's own session to pass "update own profile".
+- VERIFIED live (scripted REST, cleanup done): upsert as the mechanic's OWN session bypasses the RLS wall — "update own profile" (auth.uid()=id) passes, forcing role='mechanic' + shop_id. Availability insert passes ("Mechanics can manage own availability"). Then restore the owner's session via setSession(owner tokens). Final state: role=mechanic, shop linked, availability row present.
+- FIX (AdminMechanicAvailability.tsx handleCreateMechanic): (1) capture ownerSession BEFORE signUp; (2) generate an autoPassword (never shown — mechanic is data-layer-only, no login portal); (3) signUp with options.data.full_name; (4) upsert users {onConflict:'id', role:'mechanic', shop_id: ownerShopId} while the mechanic session is active; (5) insert mechanic_availability; (6) restore the owner's session; (7) removed password field + KeyRound import + password validation from the Add New Mechanic form. No migration change needed — the fix is purely client-side.
+- Verify: npx tsc --noEmit clean + npm run build passes (7.44s)
+
+### TASK: Mechanics not visible on customer-facing shop page (RLS gap on users)
+- User reported: newly added mechanics (via owner's Add New Mechanic) don't show on the customer's shop POV (ShopDetailPage shows "No mechanics listed yet").
+- ShopDetailPage query is correct: users WHERE role='mechanic' AND shop_id=<shopId>. Verified live: mechanic jae@gmail.com EXISTS on shop new-SHOP-TEST-123456 (service role sees it), but an ANONYMOUS/customer client gets 0 rows → pure RLS block.
+- ROOT CAUSE: public.users SELECT policies were only "view own profile" (auth.uid()=id), "shop owners can view shop members", "admin can view all users". No policy lets customers/anon read mechanic profiles. Owners could see mechanics (owner policy) which is why it passed manual testing in Manage Mechanics but failed on the customer Explore→shop page.
+- FIX: added "Anyone can view shop mechanics" SELECT policy on public.users (role='mechanic' AND shop_id IN active shops) — mirrors "Anyone can browse active shops" / "Anyone can view mechanic availability". Applied to schema.sql + migration supabase/migrations/20260813_public_mechanic_view.sql (DROP IF EXISTS + CREATE). USER MUST RUN the migration in Supabase SQL Editor to activate live.
+- Also cleaned up BugHunt Shop + bughunt-owner-95163972@test.local (crash debris from the earlier mechanic-bug REST test session) — owner had been demoted to customer by the trigger when the test script crashed pre-cleanup.
+- Verify: npx tsc --noEmit clean + npm run build passes (8.61s)
+
+### TASK: Data audit + repair — accounts corrupted by the demote-rollback bug window
+- Bug window established via git: the demote rollback (`role: "customer", shop_id: null` catch block) was introduced in commit 18f87c1 (2026-08-10) and removed in the current uncommitted fix (2026-08-13). Window = 2026-08-10 → 2026-08-13.
+- Suspect rule: public.users WHERE role='customer' AND shop_id IS NULL AND created in window → 4 hits live: SHOP-TEST-677@motolink.com, SHOP-TEST-67@motolink.com, SHOP-TEST-123@motolink.com, nigga@gmail.com.
+- Cross-reference (STEP 3): the old signup wrote NO user_metadata (only email/email_verified/phone_verified/sub) so no signup-intent field exists to check; NONE of the 4 own a shop, have a reservation, appointment, job order, or part sale — zero activity/data. The 3 SHOP-TEST-* addresses are unambiguous test leftovers; nigga@gmail.com was also fully inactive/junk.
+- REPAIRED (STEP 4, per user choice): deleted all 4 accounts from BOTH public.users and auth.users via service role. Post-delete: auth.users total 11, public.users total 10.
+- Post-delete state: no orphan shops remain (all 3 shops have role=owner owners); remaining customers (pre-window, NOT corrupted by rollback): zachfuertes@gmail.com, beloy123@gmail.com, jbmshop@gmail.com, alwyn@gmail.com, jae123@gmail.com.
+- CLOSING NOTE: all accounts flagged in this audit are now resolved — the 4 rollback-window accounts (SHOP-TEST-677/67/123 + nigga) were deleted, SHOP-TEST-1@motolink.com (owner, shop_id=NULL legacy test) was deleted, race-test-1786369115617@test.local (auth-only stray) was deleted, and beloy123/jbmshop were verified to have NO shop row and are explicitly LEFT for user re-registration via the now-fixed atomic register_shop_owner signup path (cannot be patched with UPDATE role='owner' since there is no shop to link — see open item below).
+
 ## CURRENT STATE
 
 - Build: passes clean (tsc + vite build) ✅
@@ -339,8 +401,8 @@ This is the ONLY path that creates a shop (no admin approval)
 - Code: multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built; landing/login white-slate theme + new logo + favicon done
 - Admin portal: pure platform oversight — sidebar = Dashboard / Shops / Appointments / Settings; new shop registrations land as PENDING (is_active:false) and must be approved by admin (Shops page or dashboard "New Shop Approvals" card); admin can deactivate + delete shops; no owner operational tools in admin UI
 - Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar; shop NOT live until platform admin approves
-- DB: 20260731 migration CONFIRMED applied live (REST-verified: users/shops INSERT 201, owner-role upsert 200); RLS INSERT policies working; autoconfirm working; services_pricing/mechanic_availability confirmed to have shop_id live; appointments + job_orders tables confirmed empty
-- Owner data isolation: audit done — all owner queries scoped by shop_id (per-shop data separation); 20260731_owner_data_isolation.sql (reservations.shop_id + owner RLS for reservations/services) NOT yet applied live (user must run in SQL Editor); admin UPDATE/DELETE shop policies in admin_rls.sql ALSO not yet applied live
+- DB: 20260731 migration CONFIRMED applied live — reservations.shop_id column EXISTS live (verified via REST column check); services_pricing/mechanic_availability confirmed to have shop_id live; owner RLS policies for services_pricing + reservations CONFIRMED live via empirical cross-shop write test (all 9 tables write-isolated per owner); admin UPDATE/DELETE shop policies in admin_rls.sql applied in schema (owner/admin flows verified)
+- Owner data isolation: PROVEN live — empirical cross-shop test (owner A vs owner B) showed 0 cross-shop writes across services_pricing/parts/products/featured_products/appointments/job_orders/part_sales/reservations/mechanic_availability; owner CRUD on own shop confirmed working
 - Role model: 3 connected top-level POVs (customer, owner, admin) now IMPLEMENTED in app routing — mechanic portal (login/dashboard) REMOVED (Phase 1, Option B); mechanic role remains only at the data layer (mechanic_availability, job_order assignment) managed by owners
 - Docs: MEMORY.md updated with full merged history + revised role-flow diagrams + consolidated documentation (this file); all other .md files are gitignored/local-only
 
@@ -351,11 +413,11 @@ This is the ONLY path that creates a shop (no admin approval)
 - Backfill decision: existing services_pricing/mechanic_availability rows have shop_id = NULL — pick option A/B/C from migration file
 - NOT NULL decision: optional ALTER TABLE ... SET NOT NULL on the two new shop_id columns after backfill
 - Run supabase/migrations/20260731_owner_data_isolation.sql in Supabase SQL Editor — REQUIRED before owner reservations/services CRUD works (adds reservations.shop_id + owner RLS policies)
-- Runtime verification: browser testing of cross-shop isolation not yet done — need manual test of Owner1/Owner2/Admin/customer flows (esp. owner signup → role owner + redirect to dashboard, no 406/409 in console)
-- Reservations scoping: reservations table has NO shop_id column live yet — scoped via parts.shop_id join until migration is run
+- Runtime verification: ~~browser testing of cross-shop isolation~~ RESOLVED — scripted cross-shop write test against live DB (all tables ISOLATED, owner control CRUD OK)
+- ~~Reservations scoping: reservations table has NO shop_id column live yet~~ RESOLVED — reservations.shop_id CONFIRMED live + empirically write-isolated
 - Seed data: no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
-- Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug (no shop either) — fix in DB (UPDATE public.users SET role='owner', shop_id=<id> WHERE id='<uid>') or re-register
-- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. AddMechanicModal password field KEPT as-is (decision 2026-08-10): mechanic auth account is created with a never-used password, matching the data-layer-only mechanic role; no service-role key exposure in the frontend bundle
+- Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug and have NO shop row — they CANNOT be patched (no shop_id to link). Correct resolution: the owners re-register through the now-fixed atomic signup path (register_shop_owner RPC), which creates a fresh, correctly-linked owner account. Accounts left untouched pending that.
+- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. Mechanic auth account uses an auto-generated never-used password (password field REMOVED from the Add New Mechanic form 2026-08-13, see task below)
 - Capstone doc: verify/replace the DRAFTED sections in MotoLink_Capstone_Documentation.docx (title page, problem statement, formal objectives, methodology framing) against the actual capstone proposal before submission
 
 ---
