@@ -125,6 +125,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+  // UI states for schedule dropdowns
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<boolean[]>(Array(7).fill(false));
+
   // Convert the operating_schedule into a compact human-readable string saved in operating_hours
   const generateOperatingHoursString = (schedule: { open: boolean; openTime: string; closeTime: string }[]) => {
     // Format: "Sun: closed; Mon: 09:00-17:30; Tue: 09:00-17:30; ..."
@@ -503,23 +507,53 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {/* Shop Schedule UI (replaces City) */}
                 <div className="rounded-xl border border-slate-300 p-3 bg-white">
                   <label className="text-sm font-medium text-slate-700">Shop Schedule</label>
-                  <p className="text-xs text-slate-400 mb-2">Check the day(s) your shop is open and set open/close times (30 min increments).</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-400 mb-2">Check the day(s) your shop is open and set open/close times (5 minute increments).</p>
+                    </div>
+                    <div>
+                      <button type="button" onClick={() => setScheduleOpen(!scheduleOpen)} className="text-sm text-moto-accent hover:underline">
+                        {scheduleOpen ? "Hide schedule" : "Edit schedule"}
+                      </button>
+                    </div>
+                  </div>
 
-                  <div className="grid grid-cols-1 gap-2">
-                    {signupData.operating_schedule.map((day, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className="w-32 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
-                        <label className={`inline-flex items-center rounded-full p-2 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
-                          <input
-                            type="checkbox"
-                            checked={day.open}
-                            onChange={(e) => {
-                              const next = [...signupData.operating_schedule];
-                              next[idx] = { ...next[idx], open: e.target.checked };
-                              setSignupData({ ...signupData, operating_schedule: next });
-                            }}
-                          />
-                        </label>
+                  {scheduleOpen && (
+                    <div className="grid grid-cols-1 gap-2">
+                      {signupData.operating_schedule.map((day, idx) => (
+                        <div key={idx}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-32 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
+                              <label className={`inline-flex items-center rounded-full p-2 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
+                                <input
+                                  type="checkbox"
+                                  checked={day.open}
+                                  onChange={(e) => {
+                                    const next = [...signupData.operating_schedule];
+                                    next[idx] = { ...next[idx], open: e.target.checked };
+                                    setSignupData({ ...signupData, operating_schedule: next });
+                                    // auto-expand when enabling a day
+                                    if (e.target.checked) {
+                                      const ex = [...expandedDays];
+                                      ex[idx] = true;
+                                      setExpandedDays(ex);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+
+                            <div>
+                              <button type="button" onClick={() => { const ex = [...expandedDays]; ex[idx] = !ex[idx]; setExpandedDays(ex); }} className="text-sm text-slate-500 hover:text-slate-700">
+                                {expandedDays[idx] ? '▾' : '▸'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {expandedDays[idx] && (
+                            <div className="mt-2 ml-12">
+
 
                         {day.open && (
                           <div className="flex items-center gap-2 ml-2">
@@ -529,7 +563,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                               const parsedClose = parse24To12(day.closeTime || "17:00");
 
                               const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-                              const minuteOptions = ["00", "30"];
+                              const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
                               const meridiems = ["AM", "PM"];
 
                               return (
@@ -641,8 +675,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
+
+                      ))}
+                    </div>
+                  )}
 
                 </div>
                 {/* End Shop Schedule UI */}
