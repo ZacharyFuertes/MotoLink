@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home, MapPin, Info, CheckCircle2, AlertCircle } from "lucide-react";
-import motolinkLogo from "../pictures/public/Motolink.png";
+import { Mail, Lock, Loader, ArrowLeft, Home, User, Store, Phone, MapPin, Check } from "lucide-react";
+import motolinkLogo from "../../public/favicon.svg";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getRoleLabel } from "../utils/roleAccess";
 import InlineError from "../components/InlineError";
+import LocationPicker from "../components/LocationPicker";
 
 interface ShopOwnerLoginPageProps {
   onLoginSuccess: () => void;
@@ -13,28 +14,6 @@ interface ShopOwnerLoginPageProps {
   onHome?: () => void;
   initialIsSignup?: boolean;
 }
-
-const parseCoordinates = (
-  raw: string,
-): { latitude: number | null; longitude: number | null; valid: boolean } => {
-  const trimmed = raw.trim();
-  if (!trimmed) return { latitude: null, longitude: null, valid: true };
-  const [rawLat, rawLng] = trimmed.split(",");
-  const latitude = parseFloat(rawLat?.trim() ?? "");
-  const longitude = parseFloat(rawLng?.trim() ?? "");
-  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
-    return { latitude: null, longitude: null, valid: false };
-  }
-  if (
-    latitude < -90 ||
-    latitude > 90 ||
-    longitude < -180 ||
-    longitude > 180
-  ) {
-    return { latitude: null, longitude: null, valid: false };
-  }
-  return { latitude, longitude, valid: true };
-};
 
 const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   onLoginSuccess,
@@ -59,15 +38,15 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     shop_description: "",
     shop_address: "",
     shop_city: "",
-    shop_coordinates: "",
+    shop_latitude: null as number | null,
+    shop_longitude: null as number | null,
     shop_phone: "",
     // Operating schedule: index 0=Sunday ... 6=Saturday
     operating_schedule: Array.from({ length: 7 }, () => ({ open: false, openTime: "09:00", closeTime: "17:00" })),
     // Human-readable summary that will be saved to the shop.operating_hours field
     operating_hours: "",
   });
-
-  const selectRef = useRef<HTMLSelectElement | null>(null);
+  const [specialtiesText, setSpecialtiesText] = useState("");
 
   const SPECIALTY_OPTIONS = [
     "Engine Repair",
@@ -82,29 +61,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     "Towing",
   ];
 
-  useEffect(() => {
-    const $ = (window as any).$ || (window as any).jQuery;
-    const sel = selectRef.current;
-    if ($ && sel) {
-      const $sel = $(sel as any);
-      if ($sel.chosen) {
-        $sel.chosen({ width: "100%", placeholder_text_multiple: "Shop's Specialty Services" });
-        $sel.on("change", function (this: any) {
-          const val = $sel.val();
-          const specialties = Array.isArray(val) ? val : val ? [val] : [];
-          setSignupData((prev) => ({ ...prev, shop_description: specialties.join(", ") }));
-        });
-      }
-      return () => {
-        if ($sel.chosen) {
-          try {
-            $sel.off("change");
-            $sel.chosen("destroy");
-          } catch (error) {}
-        }
-      };
-    }
-  }, []);
+  // 3-step registration wizard: 0 = Details, 1 = Location, 2 = Hours
+  const STEPS = ["Details", "Location", "Hours"];
+  const [currentStep, setCurrentStep] = useState(0);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -112,9 +72,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-  // UI states for schedule dropdowns
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [expandedDays, setExpandedDays] = useState<boolean[]>(Array(7).fill(false));
+  // UI states for schedule section (schedule is always visible)
+
 
   // Convert the operating_schedule into a compact human-readable string saved in operating_hours
   const generateOperatingHoursString = (schedule: { open: boolean; openTime: string; closeTime: string }[]) => {
@@ -125,95 +84,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         return `${WEEK_DAYS[i].slice(0,3)}: ${d.openTime}-${d.closeTime}`;
       })
       .join("; ");
-  };
-
-  // Parse a 24-hour "HH:MM" string into 12-hour components
-  const parse24To12 = (t: string) => {
-    if (!t) return { hour: 12, minute: "00", meridiem: "AM" };
-    const parts = t.split(":");
-    const hh = parseInt(parts[0] ?? "0", 10);
-    const mm = (parts[1] ?? "00").padStart(2, '0');
-    const meridiem = hh >= 12 ? "PM" : "AM";
-    let hour12 = hh % 12;
-    if (hour12 === 0) hour12 = 12;
-    return { hour: hour12, minute: mm, meridiem };
-  };
-
-  // Convert 12-hour components into a 24-hour "HH:MM" string
-  const convert12To24 = (hour12: number | string, minute: string, meridiem: string) => {
-    let h = typeof hour12 === "string" ? parseInt(hour12, 10) : hour12;
-    if (meridiem === "AM") {
-      if (h === 12) h = 0;
-    } else {
-      if (h !== 12) h = h + 12;
-    }
-    const hh = String(h).padStart(2, "0");
-    const mm = String(minute).padStart(2, '0');
-    return `${hh}:${mm}`;
-  };
-
-  // Render separate time selectors (hour/minute/meridiem) for a day
-  const renderTimeSelectors = (day: { open: boolean; openTime: string; closeTime: string }, idx: number) => {
-    const parsedOpen = parse24To12(day.openTime || "09:00");
-    const parsedClose = parse24To12(day.closeTime || "17:00");
-
-    const hourOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-    const minuteOptions = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
-    const meridiems = ["AM", "PM"];
-
-    const renderTimeColumn = (value: { hour: number; minute: string; meridiem: string }, onChange: (nextValue: { hour: number; minute: string; meridiem: string }) => void) => (
-      <div className="flex items-center justify-center gap-2">
-        <select
-          value={value.hour}
-          onChange={(e) => onChange({ ...value, hour: parseInt(e.target.value, 10) })}
-          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[48px]"
-        >
-          {hourOptions.map((h) => (
-            <option key={h} value={h}>{h}</option>
-          ))}
-        </select>
-
-        <select
-          value={value.minute}
-          onChange={(e) => onChange({ ...value, minute: e.target.value })}
-          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[48px]"
-        >
-          {minuteOptions.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-
-        <select
-          value={value.meridiem}
-          onChange={(e) => onChange({ ...value, meridiem: e.target.value })}
-          className="rounded-md border border-slate-300 px-2 py-1 text-sm text-black min-w-[56px]"
-        >
-          {meridiems.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-      </div>
-    );
-
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <div>{renderTimeColumn(parsedOpen, (nextValue) => {
-          const nextOpen = convert12To24(nextValue.hour, nextValue.minute, nextValue.meridiem);
-          const next = [...signupData.operating_schedule];
-          next[idx] = { ...next[idx], openTime: nextOpen };
-          setSignupData({ ...signupData, operating_schedule: next });
-        })}</div>
-
-        <div className="text-sm text-slate-400">To</div>
-
-        <div>{renderTimeColumn(parsedClose, (nextValue) => {
-          const nextClose = convert12To24(nextValue.hour, nextValue.minute, nextValue.meridiem);
-          const next = [...signupData.operating_schedule];
-          next[idx] = { ...next[idx], closeTime: nextClose };
-          setSignupData({ ...signupData, operating_schedule: next });
-        })}</div>
-      </div>
-    );
   };
 
 
@@ -253,20 +123,14 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     setLoading(true);
 
     try {
-      // Parse "lat, lng" into numeric latitude/longitude FIRST so invalid input
-      // can't strand an account with a created user profile but no shop row
-      // (the shop insert below never runs, yet the account already exists as
-      // role 'owner' — the admin approval queue then never sees a shop).
-      let latitude: number | null = null;
-      let longitude: number | null = null;
-      const parsed = parseCoordinates(signupData.shop_coordinates);
-      if (!parsed.valid) {
+      // The shop location is captured from the map pin — no manual coords typing.
+      const latitude = signupData.shop_latitude;
+      const longitude = signupData.shop_longitude;
+      if (latitude === null || longitude === null) {
         throw new Error(
-          "Invalid coordinates. Use the format: Latitude, Longitude — e.g. 14.5712, 121.1051.",
+          "Please pin your shop location on the map before registering.",
         );
       }
-      latitude = parsed.latitude;
-      longitude = parsed.longitude;
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: signupData.email,
@@ -406,6 +270,37 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     }
   };
 
+  // Validate only the fields belonging to a given wizard step.
+  const validateStep = (step: number): string => {
+    if (step === 0) {
+      if (!signupData.email.trim()) return "Please enter your email address.";
+      if (!formData.password) return "Please create a password.";
+      if (!signupData.name.trim()) return "Please enter your name.";
+      if (!signupData.shop_name.trim()) return "Please enter your shop name.";
+    }
+    if (step === 1) {
+      if (signupData.shop_latitude === null || signupData.shop_longitude === null) {
+        return "Please pin your shop location on the map.";
+      }
+    }
+    return "";
+  };
+
+  const handleNext = () => {
+    setError("");
+    const msg = validateStep(currentStep);
+    if (msg) {
+      setError(msg);
+      return;
+    }
+    setCurrentStep((s) => Math.min(s + 1, 2));
+  };
+
+  const handleBack = () => {
+    setError("");
+    setCurrentStep((s) => Math.max(s - 1, 0));
+  };
+
   // Check role after login completes
   useEffect(() => {
     if (!loginAttempted || isLoading || !user) {
@@ -471,21 +366,22 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 transition-all duration-300 text-sm";
+    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
-  const coordsCheck = parseCoordinates(signupData.shop_coordinates);
-  const coordsTouched = signupData.shop_coordinates.trim().length > 0;
+  const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5";
+
+  const fieldWrapperClass = "relative";
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4">
       {/* Back Button */}
       <motion.button
         onClick={onBack}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:text-slate-900 shadow-sm transition-all z-30"
+        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-darker hover:bg-moto-dark border border-moto-gray rounded-lg text-slate-300 hover:text-slate-100 shadow-sm transition-all z-30"
         whileHover={{ scale: 1.05, x: -4 }}
       >
         <ArrowLeft size={18} />
@@ -511,9 +407,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md relative z-10"
+        className={`w-full relative z-10 ${isSignup ? "max-w-4xl" : "max-w-md"}`}
       >
-        <div className="rounded-2xl border border-moto-gray bg-moto-darker shadow-sm overflow-hidden">
+        <div className="rounded-3xl border border-moto-gray bg-moto-darker shadow-xl shadow-black/30 overflow-hidden">
 
           <div className="relative p-8 sm:p-10">
             {/* Logo */}
@@ -523,8 +419,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <div className="w-full flex items-center justify-center mx-auto mb-5 bg-transparent">
-                <img src={motolinkLogo} alt="Motolink logo" className="max-h-36 w-auto object-contain" />
+              <div className="w-full flex items-center justify-center mx-auto mb-6">
+                <img src={motolinkLogo} alt="Motolink logo" className="max-h-32 w-auto object-contain" />
               </div>
 
               <motion.div
@@ -535,7 +431,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight">
                   {isSignup ? "Open your shop" : "Welcome back"}
                 </h1>
-                <p className="text-slate-300 text-sm">
+                <p className="text-slate-400 text-sm">
                   {isSignup ? "Register your shop on MotoLink" : "Sign in to your shop account"}
                 </p>
               </motion.div>
@@ -544,126 +440,306 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
             {/* Form */}
             <InlineError message={error} onClose={() => setError("")} />
             {isSignup ? (
-              <form onSubmit={handleSignup} className="space-y-4">
-                <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="Email" required className={inputClass} />
-                <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Password" required className={inputClass} />
-                <input type="text" value={signupData.name} onChange={(e) => setSignupData({ ...signupData, name: e.target.value })} placeholder="Your Name" required className={inputClass} />
-                <input type="text" value={signupData.shop_name} onChange={(e) => setSignupData({ ...signupData, shop_name: e.target.value })} placeholder="Shop Name" required className={inputClass} />
-                <select ref={selectRef} multiple className={`${inputClass} chosen-select`}>
-                  <option value=""></option>
-                  {SPECIALTY_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-                <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Shop Address" required className={inputClass} />
-                {/* Shop Schedule UI (replaces City) */}
-                <div className="rounded-xl border border-slate-300 p-3 bg-white">
-                  <label className="text-sm font-medium text-slate-700">Shop Schedule</label>
-                  <div className="flex items-center justify-between">
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (currentStep === 2) {
+                    handleSignup(e);
+                  } else {
+                    handleNext();
+                  }
+                }}
+                className="space-y-6"
+              >
+                {/* Step progress indicator */}
+                <div className="mb-8">
+                  <div className="flex items-start justify-center">
+                    {STEPS.map((label, i) => (
+                      <Fragment key={label}>
+                        <div className="flex flex-col items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => i < currentStep && setCurrentStep(i)}
+                            disabled={i > currentStep}
+                            aria-current={i === currentStep ? "step" : undefined}
+                            className="flex flex-col items-center gap-1.5"
+                          >
+                            <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all ${
+                              i < currentStep
+                                ? "border-moto-accent bg-moto-accent text-slate-950"
+                                : i === currentStep
+                                  ? "border-moto-accent bg-moto-darker text-moto-accent shadow-lg"
+                                  : "border-moto-gray bg-moto-dark text-slate-500"
+                            }`}>
+                              {i < currentStep ? <Check size={16} /> : i + 1}
+                            </span>
+                            <span className={`text-xs font-semibold ${i <= currentStep ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+                          </button>
+                        </div>
+                        {i < STEPS.length - 1 && (
+                          <div className={`mt-5 mx-1 sm:mx-3 h-0.5 w-8 sm:w-14 rounded-full ${i < currentStep ? "bg-moto-accent" : "bg-moto-gray"}`} />
+                        )}
+                      </Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {currentStep === 0 && (
+                  <>
+                {/* Account section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">1</span>
+                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Account</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-slate-400 mb-2 text-center">Set open days & times.</p>
+                      <label className={labelClass}>Email</label>
+                      <div className={fieldWrapperClass}>
+                        <Mail size={18} className={iconClass} />
+                        <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="you@example.com" required className={inputClass} />
+                      </div>
                     </div>
                     <div>
-                      <button type="button" onClick={() => setScheduleOpen(!scheduleOpen)} className="text-sm text-moto-accent hover:underline">
-                        {scheduleOpen ? "Hide schedule" : "Edit schedule"}
+                      <label className={labelClass}>Password</label>
+                      <div className={fieldWrapperClass}>
+                        <Lock size={18} className={iconClass} />
+                        <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Create a password" required className={inputClass} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Shop details section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">2</span>
+                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Shop details</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Shop Name</label>
+                      <div className={fieldWrapperClass}>
+                        <Store size={18} className={iconClass} />
+                        <input type="text" value={signupData.shop_name} onChange={(e) => setSignupData({ ...signupData, shop_name: e.target.value })} placeholder="e.g. MotoFix Garage" required className={inputClass} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Your Name</label>
+                      <div className={fieldWrapperClass}>
+                        <User size={18} className={iconClass} />
+                        <input type="text" value={signupData.name} onChange={(e) => setSignupData({ ...signupData, name: e.target.value })} placeholder="Full name" required className={inputClass} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Phone Number <span className="text-slate-400 normal-case">(optional)</span></label>
+                      <div className={fieldWrapperClass}>
+                        <Phone size={18} className={iconClass} />
+                        <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="0917 123 4567" className={inputClass} />
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className={labelClass}>Specialty Services</label>
+                      <div className="flex flex-wrap gap-2">
+                        {SPECIALTY_OPTIONS.map((option) => {
+                          const isSelected = specialtiesText.split(",").map(s => s.trim()).includes(option);
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                const specialties = specialtiesText.split(",").map(s => s.trim()).filter(Boolean);
+                                let updated: string[];
+                                if (isSelected) {
+                                  updated = specialties.filter(s => s !== option);
+                                } else {
+                                  updated = [...specialties, option];
+                                }
+                                const newText = updated.join(", ");
+                                setSpecialtiesText(newText);
+                                setSignupData((prev) => ({ ...prev, shop_description: newText }));
+                              }}
+                              className={isSelected ? "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-moto-accent text-slate-950 border border-moto-accent" : "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-moto-dark border border-moto-gray text-slate-300 hover:border-moto-accent"}
+                            >
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2">
+                        Select one or more specialties your shop offers.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                  </>
+                )}
+
+                {currentStep === 1 && (
+                  <>
+                {/* Location section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">3</span>
+                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Location</h2>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelClass}>Shop Address</label>
+                      <div className={fieldWrapperClass}>
+                        <MapPin size={18} className={iconClass} />
+                        <input type="text" value={signupData.shop_address} onChange={(e) => setSignupData({ ...signupData, shop_address: e.target.value })} placeholder="Street, barangay, city" required className={inputClass} />
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2">
+                        Enter your shop's address then pin the location on the map below.
+                      </p>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Shop Location Map</label>
+                      <LocationPicker
+                        value={
+                          signupData.shop_latitude !== null && signupData.shop_longitude !== null
+                            ? { lat: signupData.shop_latitude, lng: signupData.shop_longitude }
+                            : null
+                        }
+                        onChange={(v) =>
+                          setSignupData({ ...signupData, shop_latitude: v.lat, shop_longitude: v.lng })
+                        }
+                        onReverseGeocode={(address) =>
+                          setSignupData((prev) =>
+                            prev.shop_address ? prev : { ...prev, shop_address: address },
+                          )
+                        }
+                        heightClass="h-80"
+                        hideSearch={true}
+                      />
+                    </div>
+                  </div>
+                </div>
+                  </>
+                )}
+
+                {currentStep === 2 && (
+                  <>
+                {/* Schedule section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">3</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-400">Set your shop's open days and hours.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const firstOpenIdx = signupData.operating_schedule.findIndex(d => d.open);
+                          if (firstOpenIdx === -1) return;
+                          const firstOpen = signupData.operating_schedule[firstOpenIdx];
+                          const next = signupData.operating_schedule.map((d) => 
+                            d.open ? { ...d, openTime: firstOpen.openTime, closeTime: firstOpen.closeTime } : d
+                          );                          setSignupData({ ...signupData, operating_schedule: next });
+                        }}
+                        className="text-xs text-moto-accent hover:text-moto-accent/80 font-semibold uppercase tracking-wide transition"
+                      >
+                        Apply to all open days
                       </button>
                     </div>
-                  </div>
-
-                  {scheduleOpen && (
-                    <div className="grid grid-cols-1 gap-2">
-                      {signupData.operating_schedule.map((day, idx) => {
-                        const isExpanded = expandedDays[idx];
-                        return (
-                          <div key={idx}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-28 text-sm text-slate-700">{WEEK_DAYS[idx]}</div>
-                                <label className={`inline-flex items-center rounded-full p-1 ${day.open ? 'bg-sky-100' : 'bg-white'} border border-slate-200`}>
-                                  <input
-                                    type="checkbox"
-                                    checked={day.open}
-                                    onChange={(e) => {
-                                      const next = [...signupData.operating_schedule];
-                                      next[idx] = { ...next[idx], open: e.target.checked };
-                                      setSignupData({ ...signupData, operating_schedule: next });
-                                      if (e.target.checked) {
-                                        const ex = [...expandedDays];
-                                        ex[idx] = true;
-                                        setExpandedDays(ex);
-                                      }
-                                    }}
-                                  />
-                                </label>
-                              </div>
-
-                              <div>
-                                <button type="button" onClick={() => { const ex = [...expandedDays]; ex[idx] = !ex[idx]; setExpandedDays(ex); }} className="text-sm text-slate-500 hover:text-slate-700">
-                                  {isExpanded ? '▾' : '▸'}
-                                </button>
-                              </div>
-                            </div>
-
-                            {isExpanded && day.open && (
-                              <div className="mt-2 ml-0 sm:ml-12">
-                                <div className="flex flex-wrap items-center justify-center">
-                                  {renderTimeSelectors(day, idx)}
-                                </div>
-                              </div>
+                    <div className="space-y-2">
+                      {signupData.operating_schedule.map((day, idx) => (
+                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-moto-gray bg-moto-darker p-3 transition">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = [...signupData.operating_schedule];
+                              next[idx] = { ...next[idx], open: !day.open };
+                              setSignupData({ ...signupData, operating_schedule: next });
+                            }}
+                            className={`flex-shrink-0 h-6 w-6 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${
+                              day.open
+                                ? "bg-moto-accent border-moto-accent shadow-lg shadow-moto-accent/40"
+                                : "border-moto-gray hover:border-moto-accent/50 bg-moto-dark hover:bg-moto-darker"
+                            }`}
+                          >
+                            {day.open && (
+                              <Check size={16} className="text-slate-950 font-bold" strokeWidth={3} />
                             )}
-
-                          </div>
-                        );
-                      })}
+                          </button>
+                          <div className="min-w-24 text-sm font-semibold text-slate-300">{WEEK_DAYS[idx]}</div>
+                          {day.open ? (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <input
+                                type="time"
+                                value={day.openTime}
+                                onChange={(e) => {
+                                  const next = [...signupData.operating_schedule];
+                                  next[idx] = { ...next[idx], openTime: e.target.value };
+                                  setSignupData({ ...signupData, operating_schedule: next });
+                                }}
+                                className="rounded-md border border-moto-gray bg-moto-dark px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all"
+                              />
+                              <span className="text-xs text-slate-400">to</span>
+                              <input
+                                type="time"
+                                value={day.closeTime}
+                                onChange={(e) => {
+                                  const next = [...signupData.operating_schedule];
+                                  next[idx] = { ...next[idx], closeTime: e.target.value };
+                                  setSignupData({ ...signupData, operating_schedule: next });
+                                }}
+                                className="rounded-md border border-moto-gray bg-moto-dark px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all"
+                              />
+                            </div>
+                          ) : (
+                            <div className="ml-auto text-sm text-slate-500">Closed</div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-
+                  </div>
                 </div>
                 {/* End Shop Schedule UI */}
-                <div>
-                  <div className="relative">
-                    <MapPin size={18} className={iconClass} />
-                    <input
-                      type="text"
-                      value={signupData.shop_coordinates}
-                      onChange={(e) =>
-                        setSignupData({ ...signupData, shop_coordinates: e.target.value })
-                      }
-                      placeholder="e.g. 14.5712, 121.1051"
-                      className={inputClass}
-                    />
-                  </div>
-                  <p className="mt-1.5 text-xs text-slate-400 flex items-start gap-1.5 px-1">
-                    <Info size={13} className="mt-0.5 shrink-0" />
-                    <span>
-                      Format: <span className="font-mono text-slate-500">Latitude, Longitude</span>{" "}
-                      (decimal degrees). Copy from Google Maps, e.g.{" "}
-                      <span className="font-mono text-slate-500">14.5712, 121.1051</span>
-                    </span>
-                  </p>
-                  {coordsTouched && !coordsCheck.valid && (
-                    <p className="mt-1 text-xs text-red-500 flex items-center gap-1 px-1">
-                      <AlertCircle size={13} className="shrink-0" />
-                      Invalid format — enter Latitude, Longitude (e.g. 14.5712, 121.1051)
-                    </p>
+                  </>
+                )}
+
+                {/* Wizard navigation */}
+                <div className="flex flex-col gap-3 pt-6">
+                  {currentStep < 2 ? (
+                    <button
+                      type="submit"
+                      className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 font-bold rounded-xl transition-all duration-300 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm"
+                    >
+                      Next <ArrowLeft size={16} className="rotate-180" />
+                    </button>
+                  ) : (
+                    <motion.button
+                      type="submit"
+                      disabled={loading}
+                      whileHover={{ scale: loading ? 1 : 1.02 }}
+                      whileTap={{ scale: loading ? 1 : 0.98 }}
+                      className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 font-bold rounded-xl transition-all duration-300 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading && <Loader size={18} className="animate-spin" />}
+                      Register Shop
+                    </motion.button>
                   )}
-                  {coordsTouched && coordsCheck.valid && (
-                    <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1 px-1">
-                      <CheckCircle2 size={13} className="shrink-0" />
-                      Format looks good!
-                    </p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    disabled={currentStep === 0}
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-moto-gray bg-transparent text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-moto-dark/50 hover:border-moto-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ArrowLeft size={16} /> Back
+                  </button>
                 </div>
-                <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="Phone Number (optional)" className={inputClass} />
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                  {loading && <Loader size={18} className="animate-spin" />}
-                  Register Shop
-                </motion.button>
-                <p className="text-center text-slate-400 text-xs mt-4">
-                  Your shop will be reviewed by the MotoLink platform admin
-                  before it goes live. You can sign in and set up your dashboard
-                  right away.
-                </p>
+
+                {currentStep === 2 && (
+                  <p className="text-center text-slate-400 text-xs mt-4">
+                    Your shop will be reviewed by the MotoLink platform admin
+                    before it goes live. You can sign in and set up your dashboard
+                    right away.
+                  </p>
+                )}
               </form>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -679,7 +755,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                   </div>
                 </motion.div>
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>
@@ -688,7 +764,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
             {/* Toggle between login / signup */}
             <div className="mt-6 text-center">
-              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); }} className="text-slate-400 hover:text-white text-sm transition-colors">
+              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); }} className="text-slate-400 hover:text-moto-accent font-medium text-sm transition-colors">
                 {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
               </button>
             </div>
