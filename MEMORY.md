@@ -430,6 +430,41 @@ This is the ONLY path that creates a shop (no admin approval)
 - IMPORTANT: live DB still does NOT have shops.is_open (migration `20260813_shop_availability_and_notifications.sql` not yet run). Until applied: owner/admin toggle switches flip the UI momentarily (in-memory only) and won't persist — the column must exist for persistence. All shopService queries are already resilient so nothing 400s pre-migration.
 - Verify: npx tsc --noEmit clean + npm run build passes (8s).
 
+### TASK: Map pin-picker replaces manual Latitude/Longitude inputs (registration + settings)
+- User request: during shop registration, remove the manual "Latitude, Longitude" text field (with the "copy from Google Maps" hint) — owners instead pin their shop on a map; the system captures lat/lng automatically.
+- Decisions (user-confirmed): (1) apply to BOTH registration (ShopOwnerLoginPage) AND Shop Profile settings (ShopSettingsPage); (2) auto-fill the shop address from the pin via free OpenStreetMap Nominatim reverse geocoding (best-effort, skips if address already filled); (3) map centers on browser geolocation when granted, else falls back to Manila default (14.5712, 121.1051).
+- NEW `src/components/LocationPicker.tsx`: Leaflet map (OSM tiles, same as ShopMap; L is global via index.html CDN). Click or drag a draggable marker → onDragend/onClick reads lat/lng and fires onChange({lat,lng}). Live coordinate chip readout (6 decimals), "Finding address…" spinner while reverse-geocoding, "Locating you…" chip during geolocation attempt. Props: value?: LocationValue|null, onChange, onReverseGeocode(address), heightClass.
+- `src/pages/ShopOwnerLoginPage.tsx`: signupData now stores shop_latitude/shop_longitude (numbers|null) instead of shop_coordinates string; the coords text input block replaced with LocationPicker (label "Shop Location"); onReverseGeocode prefills shop_address ONLY if empty; handleSignup throws "Please pin your shop location on the map before registering." if no pin; removed parseCoordinates, coordsCheck/coordsTouched, and unused MapPin/Info/CheckCircle2/AlertCircle imports.
+- `src/pages/ShopSettingsPage.tsx`: the two Latitude/Longitude number inputs replaced with a single full-width LocationPicker (label "Location"), initialized from shop.latitude/longitude; onChange sets both fields via handleField; onReverseGeocode fills address only when empty.
+- Caveats: Nominatim is a free public API — rate-limited (~1 req/sec) and may occasionally fail; reverse geocode is best-effort and the address stays editable. Geolocation is optional: if denied, map just starts at Manila center and the owner pins manually.
+- Verify: npx tsc --noEmit clean + npm run build passes (13.6s).
+
+### TASK: Modernized map pin-picker UI (Grab/Foodpanda/Lalamove style)
+- User request: make the map pin-picker look/feel modern and simple like the ride-hailing/delivery apps (Lalamove, Foodpanda, Grab), still free-only tools.
+- REDESIGNED `src/components/LocationPicker.tsx` (API unchanged: value/onChange/onReverseGeocode/heightClass; default height h-80):
+  - Full-bleed map (rounded-2xl, shadow) with NO marker dragging — instead a FIXED CENTER DROP-PIN overlay (animated pin-drop on mount, pointer-events-none) + you PAN THE MAP to place the pin (Grab pattern). moveend → onChange({lat,lng}) + reverse geocode.
+  - Top search bar (white pill): Nominatim free search API (debounced 500ms, limit 5), dropdown results, tap to fly map there. Clear (X) button.
+  - Locate-me FAB (Crosshair, bottom-right): navigator.geolocation → setView(zoom 16).
+  - Bottom address card: rose check chip + live address (reverse-geocoded, "Finding address…" spinner) + mono coords + "Pinned"/"Place pin" status pill.
+  - Removed Leaflet zoomControl (cleaner); scrollWheelZoom kept.
+  - Reverse geocode debounced 350ms to respect Nominatim rate limits.
+- Usage unchanged: ShopOwnerLoginPage (signup) + ShopSettingsPage both keep the same props, so no call-site edits needed.
+- Verify: npx tsc --noEmit clean + npm run build passes (8.1s).
+
+### TASK: 3-step registration wizard (Details → Location → Hours)
+- User request: convert the single-page "Open Your Shop" registration form into a 3-step wizard with a step progress indicator, per-step validation, persistent state across steps, keyboard-navigable, final submit only on step 3. Presentation/flow change only — submission logic untouched.
+- Inspection confirmed (before implementation): form is `ShopOwnerLoginPage.tsx` (login+signup dual mode); single `signupData` object + separate `formData{email,password}`; map = `LocationPicker.tsx` (Leaflet via CDN, fixed-center-pin + drag-map, Nominatim search, geolocation FAB); schedule = REAL model `operating_schedule[7]{open,openTime,closeTime}` (Sun..Sat) → `operating_hours` string → DB. No migration needed.
+- Implementation:
+  - `currentStep` state (0/1/2) + `STEPS=["Details","Location","Hours"]`; `Fragment` import.
+  - Step progress indicator: numbered circles (completed=emerald+Check, current=slate-900, upcoming=slate-300) + labels + connector lines; completed steps are clickable to jump back; `aria-current` for accessibility.
+  - Step 0 = Account (email/password) + Shop details (shop name/your name/phone/specialty); Step 1 = Location (address + LocationPicker); Step 2 = Hours (schedule, default-open now).
+  - `validateStep(step)` validates ONLY that step's fields (step0: email/password/name/shop_name; step1: lat/lng pinned). `handleNext`/`handleBack` use functional setState — state persists across navigation (data never cleared).
+  - Form `noValidate` + onSubmit: if currentStep===2 → `handleSignup(e)` (unchanged full submission); else `handleNext()`. Next/Back are real buttons (keyboard/Tab navigable); final "Register Shop" submit button only on step 3.
+  - Chosen (specialty) plugin effect now keyed on `[isSignup, currentStep]` so it re-initializes when returning to step 0.
+  - LocationPicker already implements fixed-center-pin + drag-map natively via Leaflet (no custom drag math) — reused unchanged.
+- Self-check: [x] submission outcome unchanged (handleSignup untouched) [x] state persists across steps [x] map behavior unchanged [x] per-step validation [x] keyboard navigable [x] only ShopOwnerLoginPage.tsx edited.
+- Verify: npx tsc --noEmit clean + npm run build passes (7.3s).
+
 ## CURRENT STATE
 
 - Build: passes clean (tsc + vite build) ✅
