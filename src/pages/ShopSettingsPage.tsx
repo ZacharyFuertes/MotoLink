@@ -21,6 +21,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop } from "../services/shopService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
+import LocationPicker from "../components/LocationPicker";
 
 interface ShopSettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -336,28 +337,23 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   className={inputClass}
                 />
               </div>
-              <div>
-                <label className={labelClass}>Latitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={shop.latitude || 0}
-                  onChange={(e) =>
-                    handleField("latitude", parseFloat(e.target.value) || 0)
+              <div className="md:col-span-2">
+                <label className={labelClass}>
+                  <MapPin className="w-3.5 h-3.5 text-fuchsia-500" /> Location
+                </label>
+                <LocationPicker
+                  value={
+                    typeof shop.latitude === "number" && typeof shop.longitude === "number"
+                      ? { lat: shop.latitude, lng: shop.longitude }
+                      : null
                   }
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Longitude</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={shop.longitude || 0}
-                  onChange={(e) =>
-                    handleField("longitude", parseFloat(e.target.value) || 0)
-                  }
-                  className={inputClass}
+                  onChange={(v) => {
+                    handleField("latitude", v.lat);
+                    handleField("longitude", v.lng);
+                  }}
+                  onReverseGeocode={(address) => {
+                    if (address && !shop.address) handleField("address", address);
+                  }}
                 />
               </div>
               <div>
