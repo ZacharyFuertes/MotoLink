@@ -109,7 +109,7 @@ const TIME_SLOTS = [
   "17:00",
 ];
 
-const STEPS = ["Service", "Mechanic", "Date & Time", "Parts", "Confirm"];
+const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
 
 const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   isOpen,
@@ -133,8 +133,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [mechanicAvailability, setMechanicAvailability] = useState<any[]>([]);
-  const [loadingMechanics, setLoadingMechanics] = useState(false);
-  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [, setLoadingMechanics] = useState(false);
+  const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -357,12 +357,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       case 0:
         return selectedServices.length > 0;
       case 1:
-        return !!selectedMechanic;
+        return true; // Parts step is optional
       case 2:
         return !!selectedDate && !!selectedTime;
       case 3:
-        return true; // Parts step is optional
-      case 4:
         return !!(selectedVehicleId || vehicleInfo.trim());
       default:
         return false;
@@ -736,71 +734,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Step 2: Select Mechanic */}
-                  {currentStep === 1 && (
-                    <motion.div
-                      key="mechanic"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                    >
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-8">
-                        Choose your preferred mechanic
-                      </p>
-                      {loadingMechanics ? (
-                        <div className="flex items-center justify-center py-12">
-                          <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                      ) : mechanics.length === 0 ? (
-                        <p className="text-slate-500 text-center py-12 text-sm italic">
-                          No mechanics available.
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {mechanics.map((mech) => {
-                            const isActive = selectedMechanic === mech.id;
-                            return (
-                              <button
-                                key={mech.id}
-                                onClick={() => setSelectedMechanic(mech.id)}
-                                className={`p-5 border text-left transition-all flex items-center gap-4 ${
-                                  isActive
-                                    ? "bg-slate-100 border-slate-900"
-                                    : "border-slate-300 hover:border-slate-400 bg-transparent"
-                                }`}
-                              >
-                                <div
-                                  className={`w-12 h-12 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                    isActive
-                                      ? "bg-slate-900"
-                                      : "bg-slate-50 border border-slate-300"
-                                  }`}
-                                >
-                                  <span
-                                    className={`font-display text-2xl leading-none ${isActive ? "text-white" : "text-slate-500"}`}
-                                  >
-                                    {mech.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                  <p className="font-display text-xl text-slate-900 tracking-wide uppercase truncate leading-none mb-1">
-                    {mech.name}
-                  </p>
-                                  <p className="text-slate-500 text-xs font-light truncate">
-                                    {mech.email}
-                                  </p>
-                                </div>
-                                {isActive && (
-                                  <div className="w-2 h-2 rounded-full bg-slate-900 shrink-0" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
                   {/* Step 3: Date & Time */}
                   {currentStep === 2 && (
                     <motion.div
@@ -893,8 +826,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Step 4: Parts Selection */}
-                  {currentStep === 3 && (
+                  {/* Step 2: Parts Selection */}
+                  {currentStep === 1 && (
                     <motion.div
                       key="parts"
                       initial={{ opacity: 0, x: 20 }}
@@ -1095,8 +1028,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Step 5: Confirm */}
-                  {currentStep === 4 && (
+                  {/* Step 4: Confirm */}
+                  {currentStep === 3 && (
                     <motion.div
                       key="confirm"
                       initial={{ opacity: 0, x: 20 }}
@@ -1168,84 +1101,58 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       </div>
 
                       <div className="space-y-6">
-                        {/* Vehicle Selection */}
+                        {/* Motorcycle Selection */}
                         <div className="space-y-4">
                           <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-500">
-                            Vehicle Information *
+                            Select Your Motorcycle *
                           </label>
-                          {loadingVehicles ? (
-                            <div className="flex items-center justify-center py-4">
-                              <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                            </div>
-                          ) : vehicles.length > 0 ? (
-                            <div className="space-y-3">
-                              {vehicles.map((v) => {
-                                const isActive = selectedVehicleId === v.id;
-                                return (
-                                  <button
-                                    key={v.id}
-                                    onClick={() => {
-                                      setSelectedVehicleId(v.id);
-                                      setVehicleInfo(
-                                        `${v.make} ${v.model} (${v.year})`,
-                                      );
-                                    }}
-                                    className={`w-full text-left p-4 border flex items-center justify-between transition-all ${
-                                      isActive
-                                        ? "bg-slate-100 border-slate-900"
-                                        : "border-slate-300 bg-transparent hover:border-slate-400"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div
-                                        className={`w-10 h-10 border flex items-center justify-center ${isActive ? "border-slate-900 text-slate-900" : "border-slate-300 text-slate-500"}`}
-                                      >
-                                        <Car size={18} strokeWidth={1} />
-                                      </div>
-                                      <div>
-                                        <p className="text-slate-900 font-display text-xl uppercase tracking-wide leading-none mb-1">
-                                          {v.make} {v.model}
-                                        </p>
-                                        <p className="text-slate-500 text-xs font-light">
-                                          {v.year}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {isActive && (
-                                      <div className="w-2 h-2 rounded-full bg-slate-900" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                              <button
-                                onClick={() => {
-                                  setSelectedVehicleId("manual");
-                                  setVehicleInfo("");
-                                }}
-                                className={`w-full text-left p-4 border flex items-center justify-center transition-all text-xs tracking-widest uppercase font-bold ${
-                                  selectedVehicleId === "manual"
-                                    ? "bg-slate-100 border-slate-900 text-slate-900"
-                                    : "border-slate-300 bg-transparent hover:border-slate-400 text-slate-500"
-                                }`}
-                              >
-                                ENTER MANUALLY
-                              </button>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-slate-500 italic">
-                              No saved vehicles. Enter manually below.
-                            </p>
-                          )}
+                          <select
+                            value={vehicleInfo}
+                            onChange={(e) => {
+                              setVehicleInfo(e.target.value);
+                              setSelectedVehicleId(e.target.value);
+                            }}
+                            className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-900 focus:outline-none transition rounded-xl uppercase text-xs font-medium appearance-none cursor-pointer"
+                            style={{
+                              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                              backgroundRepeat: "no-repeat",
+                              backgroundPosition: "right 0.75rem center",
+                              backgroundSize: "1.5em 1.5em",
+                              paddingRight: "2.5rem",
+                            }}
+                          >
+                            <option value="">-- Choose a Motorcycle --</option>
+                            <option value="Honda CB150R">Honda CB150R</option>
+                            <option value="Honda CB150 Deluxe">Honda CB150 Deluxe</option>
+                            <option value="Honda XRM 125">Honda XRM 125</option>
+                            <option value="Honda Wave 100">Honda Wave 100</option>
+                            <option value="Honda Click 150i">Honda Click 150i</option>
+                            <option value="Yamaha YZF-R15">Yamaha YZF-R15</option>
+                            <option value="Yamaha MT-15">Yamaha MT-15</option>
+                            <option value="Yamaha NMAX 155">Yamaha NMAX 155</option>
+                            <option value="Suzuki Raider 150">Suzuki Raider 150</option>
+                            <option value="Suzuki Smash 110">Suzuki Smash 110</option>
+                            <option value="Suzuki GSX-R150">Suzuki GSX-R150</option>
+                            <option value="Kawasaki Ninja 400">Kawasaki Ninja 400</option>
+                            <option value="KTM Duke 200">KTM Duke 200</option>
+                            <option value="Bajaj Pulsar 150">Bajaj Pulsar 150</option>
+                            <option value="TVS Apache RTR 160">TVS Apache RTR 160</option>
+                            <option value="Royal Enfield Bullet 350">Royal Enfield Bullet 350</option>
+                            <option value="Hero MotoCorp HF Deluxe">Hero MotoCorp HF Deluxe</option>
+                            <option value="Zongshen ZS 200">Zongshen ZS 200</option>
+                            <option value="manual">-- TYPE YOUR MOTORCYCLE MANUALLY --</option>
+                          </select>
 
-                          {/* Manual input */}
-                          {(vehicles.length === 0 ||
-                            selectedVehicleId === "manual") && (
+                          {/* Manual Input Field */}
+                          {selectedVehicleId === "manual" && (
                             <input
                               type="text"
-                              value={vehicleInfo}
-                              onChange={(e) => setVehicleInfo(e.target.value)}
+                              value={vehicleInfo === "manual" ? "" : vehicleInfo}
+                              onChange={(e) => {
+                                setVehicleInfo(e.target.value);
+                              }}
                               placeholder="E.G. HONDA CLICK 150I"
-                              className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs"
+                              className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-900 focus:outline-none transition rounded-xl uppercase text-xs"
                             />
                           )}
                         </div>

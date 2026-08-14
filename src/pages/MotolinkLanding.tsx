@@ -17,11 +17,12 @@ interface MotolinkLandingProps {
   onBook: (shop: ShopSearchResult) => void;
   onLogout?: () => void;
   onViewShop?: (shop: ShopSearchResult) => void;
+  onAppointments?: () => void;
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, onViewShop }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, onViewShop, onAppointments }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates>();
   const [specialty, setSpecialty] = useState("");
@@ -99,7 +100,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
   };
 
   return <div className="min-h-screen bg-moto-dark text-slate-100">
-    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} onLogout={onLogout} />
+    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} onLogout={onLogout} onAppointments={() => { if (onAppointments) onAppointments(); else onLoginRequired(selectedShop); }} />
     <main>
       {/* Top hero slideshow (original heroslide images) */}
       <HeroSlideshow />

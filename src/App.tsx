@@ -257,6 +257,7 @@ const AppContent: React.FC = () => {
             }}
             onBook={() => handleOpenLogin()}
             onViewShop={openShopDetail}
+            onAppointments={() => handleOpenLogin()}
           />
         ) : currentLoginType === "choice" ? (
           <LoginChoicePage
@@ -352,6 +353,7 @@ const AppContent: React.FC = () => {
                 });
               }}
               onViewShop={openShopDetail}
+              onAppointments={() => setShowAppointmentsModal(true)}
             />
             <BookAppointmentModal
               isOpen={showBookingModal}

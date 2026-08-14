@@ -10,11 +10,12 @@ interface MotolinkNavbarProps {
   onLogin: () => void;
   onSignup: () => void;
   onLogout?: () => void;
+  onAppointments: () => void;
 }
 
-const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, onSignup, onLogout }: MotolinkNavbarProps) => {
+const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, onSignup, onLogout, onAppointments }: MotolinkNavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const links = [{ label: "Browse shops", action: onBrowse }, { label: "Map", action: onMap }, { label: "About", action: onAbout }];
+  const links = [{ label: "Browse shops", action: onBrowse }, { label: "Map", action: onMap }, { label: "About", action: onAbout }, { label: "My Appointments", action: isAuthenticated ? onAppointments : onLogin }];
   const activate = (action: () => void) => { action(); setMenuOpen(false); };
 
   return <header className="fixed inset-x-0 top-0 z-40 border-b border-moto-gray bg-moto-darker/95 backdrop-blur-sm">

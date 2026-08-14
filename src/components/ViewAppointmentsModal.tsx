@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import BookAppointmentModal from "./BookAppointmentModal";
 
 interface AppointmentItem {
   id: string;
@@ -86,6 +87,8 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [, setRebookingAptId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && user?.id) fetchAppointments();
@@ -209,6 +212,10 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
       (apt.status === "pending" || apt.status === "confirmed") &&
       apt.scheduled_date >= today
     );
+  };
+
+  const canRebook = (apt: AppointmentItem) => {
+    return ["completed", "cancelled"].includes(apt.status);
   };
 
   if (!isOpen) return null;
@@ -457,6 +464,19 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                             <Ban size={10} /> CANCEL
                           </button>
                         )}
+
+                        {/* Rebook Button */}
+                        {canRebook(apt) && !isConfirmingCancel && (
+                          <button
+                            onClick={() => {
+                              setRebookingAptId(apt.id);
+                              setShowBookModal(true);
+                            }}
+                            className="flex items-center gap-2 text-[9px] font-bold tracking-[0.14em] uppercase text-blue-400 hover:text-white transition px-3 py-1.5 bg-blue-50 hover:bg-blue-600 border border-blue-300 hover:border-blue-500"
+                          >
+                            <RefreshCw size={10} /> REBOOK
+                          </button>
+                        )}
                       </div>
 
                       {/* Cancel Confirmation */}
@@ -508,6 +528,19 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
             )}
           </div>
         </motion.div>
+
+        {/* Book Appointment Modal for Rebook */}
+        <BookAppointmentModal
+          isOpen={showBookModal}
+          onClose={() => {
+            setShowBookModal(false);
+            setRebookingAptId(null);
+          }}
+          onAppointmentBooked={() => {
+            fetchAppointments();
+            setShowBookModal(false);
+          }}
+        />
       </motion.div>
     </AnimatePresence>
   );
