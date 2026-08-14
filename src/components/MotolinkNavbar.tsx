@@ -1,6 +1,6 @@
 import { Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
-import motolinkLogo from "../pictures/public/motolink-new-logo.svg";
+import motolinkLogo from "../../public/favicon.svg";
 
 interface MotolinkNavbarProps {
   isAuthenticated: boolean;

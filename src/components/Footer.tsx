@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Facebook, Instagram, Twitter, Linkedin, Mail, MapPin, Phone } from 'lucide-react'
-import motolinkLogo from '../pictures/public/motolink-new-logo.svg'
+import motolinkLogo from '../../public/favicon.svg'
 
 /**
  * Footer Component
