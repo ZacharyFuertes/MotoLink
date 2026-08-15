@@ -269,9 +269,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           </p>
           <button
             onClick={onBack}
-            className="mt-4 px-6 py-3 bg-[#12172B] hover:bg-[#1c2544] text-white font-bold text-xs uppercase tracking-widest rounded-xl border border-moto-gray"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-accent px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-950 transition hover:brightness-110"
           >
-            Back to shops
+            <ArrowLeft size={16} /> Back to shops
           </button>
         </div>
       </div>
@@ -290,9 +290,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
         {/* Back button */}
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker/60 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-moto-accent hover:text-white transition mb-6"
+          className="group mb-6 inline-flex items-center gap-2.5 rounded-xl border border-moto-gray bg-moto-darker/80 px-4 py-2.5 text-sm font-semibold text-slate-300 backdrop-blur transition hover:border-moto-accent hover:bg-moto-accent/10 hover:text-white"
         >
-          <ArrowLeft size={16} /> Back to shops
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/15 text-moto-accent transition group-hover:bg-moto-accent group-hover:text-slate-950">
+            <ArrowLeft size={13} />
+          </span>
+          Back to shops
         </button>
 
         {/* Shop header */}
