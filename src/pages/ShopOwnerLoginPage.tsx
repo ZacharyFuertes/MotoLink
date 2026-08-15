@@ -612,7 +612,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           )
                         }
                         heightClass="h-80"
-                        hideSearch={true}
                       />
                     </div>
                   </div>
