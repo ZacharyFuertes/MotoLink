@@ -104,7 +104,38 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
     <main>
       {/* Top hero slideshow (original heroslide images) */}
       <HeroSlideshow />
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8 flex flex-wrap items-end justify-between gap-5"><div><p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Discover nearby</p><h2 className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">Explore Partner Shops<span className="text-moto-accent">.</span></h2><p className="mt-3 text-sm text-slate-300">{results.length} live partner shop{results.length === 1 ? "" : "s"} in the network.</p></div><a href="#map" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-200 underline decoration-slate-600 underline-offset-4 transition hover:text-moto-accent hover:decoration-moto-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-4">View all shops <ArrowUpRight size={16} /></a></div>{results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops match these filters. Try a broader search.</div>}</div></motion.section>
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <motion.p initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-moto-accent">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-moto-accent" /> Discover nearby
+              </motion.p>
+              <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">
+                Explore Partner Shops<span className="text-moto-accent">.</span>
+              </motion.h2>
+              <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }} className="mt-3 flex items-center gap-2 text-sm text-slate-300">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-xs font-bold text-moto-accent">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-moto-accent" /> {results.length} live partner shop{results.length === 1 ? "" : "s"}
+                </span>
+                in the network
+              </motion.p>
+            </div>
+            <motion.a
+              href="#map"
+              whileHover={{ x: 4 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="group inline-flex w-fit items-center gap-2 rounded-xl border border-moto-gray bg-moto-dark px-4 py-2.5 text-sm font-semibold text-slate-200 shadow-sm transition hover:border-moto-accent hover:text-white"
+            >
+              View all shops
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/15 text-moto-accent transition group-hover:bg-moto-accent group-hover:text-slate-950">
+                <ArrowUpRight size={13} />
+              </span>
+            </motion.a>
+          </div>
+          {results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops match these filters. Try a broader search.</div>}
+        </div>
+      </motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Discover nearby</p><h2 className="mt-2 text-3xl font-bold text-slate-100">Explore shops on the map</h2><p className="mt-2 text-slate-300">Browse freely. Login is only required when you connect or book.</p></div><div className="flex flex-wrap gap-3"><button onClick={requestLocation} className="inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-dark px-4 py-2.5 text-sm font-semibold text-slate-100 hover:border-moto-accent hover:text-white"><Navigation size={16} /> Use my location</button><button onClick={suggestShop} className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-moto-dark"><Search size={16} /> Suggest a shop</button></div></div><div className="mb-6 rounded-2xl border border-moto-gray bg-moto-darker px-4 py-4 text-sm text-slate-300 shadow-sm">
             {selectedShop ? (
               <p><span className="font-semibold">Search result:</span> {selectedShop.name} {selectedShop.city ? `in ${selectedShop.city}` : ""}. Select it on the map or use the shop card below to connect.</p>
