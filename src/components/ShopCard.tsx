@@ -20,6 +20,7 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   const status = getShopStatus(shop);
 
   const handleView = () => (onViewShop ? onViewShop(shop) : onSelect(shop));
+  const handlePrimaryAction = () => (onViewShop ? handleView() : onConnect(shop));
 
   return (
     <motion.article
@@ -63,25 +64,51 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
           <span className="flex items-center gap-1">
             <Star size={15} className="fill-amber-400 text-amber-400" /> {shop.rating?.toFixed(1) ?? "New"}
           </span>
-
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-moto-accent/10 px-3 py-1 text-xs font-medium text-moto-accent flex items-center gap-2">
-              <Clock3 size={14} /> Schedule
-            </div>
-            <div className="text-sm text-slate-400">
-              <div className="font-semibold text-slate-200">{shop.operating_hours}</div>
-            </div>
-          </div>
-
           {shop.distanceKm !== undefined && (
             <span className="font-semibold text-slate-200">{shop.distanceKm.toFixed(1)} km away</span>
           )}
         </div>
 
+        <div className="mt-4 rounded-2xl border border-moto-gray bg-moto-darker/70 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <Clock3 size={12} className="text-moto-accent" />
+              Schedule
+            </div>
+            <span className="text-[11px] font-medium text-slate-300">{shop.operating_hours || "Mon-Fri • 9:00 AM - 5:00 PM"}</span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {[
+              { day: "Mon", open: true },
+              { day: "Tue", open: true },
+              { day: "Wed", open: true },
+              { day: "Thu", open: true },
+              { day: "Fri", open: true },
+              { day: "Sat", open: false },
+              { day: "Sun", open: false },
+            ].map(({ day, open }) => (
+              <div key={day} className="flex flex-col items-center gap-1.5">
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full border text-[11px] font-bold ${
+                    open
+                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                      : "border-slate-600 bg-slate-800 text-slate-400"
+                  }`}
+                  aria-label={`${day} ${open ? "open" : "closed"}`}
+                >
+                  {open ? "✓" : "✕"}
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-5">
           <button
             type="button"
-            onClick={() => (onConnect ? onConnect(shop) : handleView())}
+            onClick={handlePrimaryAction}
             className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
           >
             {shop.is_open === false ? "View shop" : "Connect"}
