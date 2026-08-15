@@ -23,6 +23,8 @@ interface MotolinkLandingProps {
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+const NEARBY_RADIUS_KM = 1.5;
+
 const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, onViewShop, onAppointments }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates>();
@@ -36,6 +38,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
 
   useEffect(() => { getPublicShops().then(setShops); }, []);
   const results = useMemo(() => sortByDistance(shops, location).filter((shop) => (!specialty || shop.specialties.includes(specialty)) && (!availabilityOnly || shop.available) && (!city || `${shop.name} ${shop.city} ${shop.address}`.toLowerCase().includes(city.toLowerCase()))), [shops, location, specialty, availabilityOnly, city]);
+  const nearbyShops = useMemo(
+    () => (location ? results.filter((shop) => shop.distanceKm !== undefined && shop.distanceKm <= NEARBY_RADIUS_KM) : []),
+    [results, location],
+  );
   const DEFAULT_SPECIALTIES = [
     "Engine Repair",
     "Brake Service",
@@ -118,9 +124,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
               </motion.h2>
               <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }} className="mt-3 flex items-center gap-2 text-sm text-slate-300">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-xs font-bold text-moto-accent">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-moto-accent" /> {results.length} live partner shop{results.length === 1 ? "" : "s"}
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-moto-accent" />
+                  {location ? `${nearbyShops.length} nearby shop${nearbyShops.length === 1 ? "" : "s"} within ${NEARBY_RADIUS_KM} km` : `${results.length} partner shop${results.length === 1 ? "" : "s"}`}
                 </span>
-                in the network
+                {location ? "of you" : "in the network"}
               </motion.p>
             </div>
             <motion.a
