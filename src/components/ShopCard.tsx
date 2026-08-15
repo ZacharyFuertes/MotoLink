@@ -1,4 +1,4 @@
-import { Clock3, MapPin, Star, Wrench } from "lucide-react";
+import { MapPin, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
 
@@ -18,9 +18,17 @@ const getShopStatus = (shop: ShopSearchResult) => {
 
 const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   const status = getShopStatus(shop);
-
   const handleView = () => (onViewShop ? onViewShop(shop) : onSelect(shop));
-  const handlePrimaryAction = () => (onViewShop ? handleView() : onConnect(shop));
+
+  const schedule = [
+    { day: "MON", open: true, label: "9:30 AM\n5:45 PM" },
+    { day: "TUE", open: true, label: "9:30 AM\n5:45 PM" },
+    { day: "WED", open: true, label: "9:30 AM\n5:45 PM" },
+    { day: "THU", open: true, label: "9:30 AM\n5:45 PM" },
+    { day: "FRI", open: true, label: "9:30 AM\n5:45 PM" },
+    { day: "SAT", open: false, label: "Closed" },
+    { day: "SUN", open: false, label: "Closed" },
+  ];
 
   return (
     <motion.article
@@ -29,89 +37,74 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
       transition={{ type: "spring", damping: 22, stiffness: 300 }}
       className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
     >
-      {/* Accent glow on hover */}
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
 
       <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker">
+        <span className={`absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
+          <span className={`h-2 w-2 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
+          {status.label}
+        </span>
         <img
           src={shop.logo_url || "/favicon.svg"}
           alt={`${shop.name} logo`}
           className="h-full w-full object-contain p-7 transition duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_18px_rgba(56,182,196,0.25)]"
         />
-        <span className={`absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
-          <span className={`h-2 w-2 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
-          {status.label}
-        </span>
       </div>
 
       <div className="relative z-10 p-5">
         <h3 className="font-display text-2xl uppercase leading-none tracking-wide text-slate-100 transition group-hover:text-moto-accent">
           {shop.name}
         </h3>
+
         <p className="mt-3 flex items-start gap-2 text-sm leading-5 text-slate-400">
           <MapPin size={16} className="mt-0.5 shrink-0 text-moto-accent" /> {shop.address}
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {shop.specialties.slice(0, 3).map((specialty) => (
-            <span key={specialty} className="inline-flex items-center gap-1 rounded-full bg-moto-accent/10 border border-moto-accent/20 px-2.5 py-1 text-xs font-medium text-moto-accent">
-              <Wrench size={10} /> {specialty}
-            </span>
-          ))}
+        <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+          <Star size={15} className="fill-amber-400 text-amber-400" />
+          <span className="font-medium text-slate-200">New</span>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-400">
-          <span className="flex items-center gap-1">
-            <Star size={15} className="fill-amber-400 text-amber-400" /> {shop.rating?.toFixed(1) ?? "New"}
-          </span>
-          {shop.distanceKm !== undefined && (
-            <span className="font-semibold text-slate-200">{shop.distanceKm.toFixed(1)} km away</span>
-          )}
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-moto-gray bg-moto-darker/70 p-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-              <Clock3 size={12} className="text-moto-accent" />
-              Schedule
-            </div>
-            <span className="text-[11px] font-medium text-slate-300">{shop.operating_hours || "Mon-Fri • 9:00 AM - 5:00 PM"}</span>
-          </div>
-
+        <div className="mt-4">
           <div className="grid grid-cols-7 gap-2">
-            {[
-              { day: "Mon", open: true },
-              { day: "Tue", open: true },
-              { day: "Wed", open: true },
-              { day: "Thu", open: true },
-              { day: "Fri", open: true },
-              { day: "Sat", open: false },
-              { day: "Sun", open: false },
-            ].map(({ day, open }) => (
-              <div key={day} className="flex flex-col items-center gap-1.5">
+            {schedule.map(({ day, open }) => (
+              <div key={day} className="flex flex-col items-center gap-2">
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-full border text-[11px] font-bold ${
-                    open
-                      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                      : "border-slate-600 bg-slate-800 text-slate-400"
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border text-base font-bold ${
+                    open ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "border-slate-600 bg-slate-800 text-slate-400"
                   }`}
                   aria-label={`${day} ${open ? "open" : "closed"}`}
                 >
                   {open ? "✓" : "✕"}
                 </div>
-                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{day}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{day}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 grid grid-cols-7 gap-2 text-center text-[10px] leading-4 text-slate-300">
+            {schedule.map((entry) => (
+              <div key={`${entry.day}-label`} className="px-1 whitespace-pre-line">
+                {entry.label}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-5 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={handlePrimaryAction}
-            className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
+            onClick={handleView}
+            className="rounded-xl border border-moto-gray bg-moto-darker px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-moto-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
           >
-            {shop.is_open === false ? "View shop" : "Connect"}
+            View shop
+          </button>
+          <button
+            type="button"
+            onClick={() => onConnect(shop)}
+            className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
+          >
+            Connect
           </button>
         </div>
       </div>

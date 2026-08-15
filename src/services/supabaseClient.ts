@@ -1,21 +1,81 @@
 import { createClient } from "@supabase/supabase-js";
 
-// @ts-ignore - Vite environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-// @ts-ignore - Vite environment variables
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const hasSupabaseConfig = Boolean(supabaseUrl && supabaseAnonKey);
 
-// Validate environment variables
 if (!supabaseUrl) {
-  console.error("❌ VITE_SUPABASE_URL is not set in .env.local");
+  console.warn("⚠️ VITE_SUPABASE_URL is not set in .env.local");
 }
 if (!supabaseAnonKey) {
-  console.error("❌ VITE_SUPABASE_ANON_KEY is not set in .env.local");
+  console.warn("⚠️ VITE_SUPABASE_ANON_KEY is not set in .env.local");
 }
 
-// Create and export Supabase client
-export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
-console.log("✅ Supabase client initialized on app startup");
+const createMockQueryBuilder = () => {
+  const response = {
+    data: null,
+    error: new Error(
+      "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local to enable auth and database features.",
+    ),
+  };
+
+  return {
+    select: () => createMockQueryBuilder(),
+    eq: () => createMockQueryBuilder(),
+    order: () => createMockQueryBuilder(),
+    limit: () => createMockQueryBuilder(),
+    single: async () => response,
+    maybeSingle: async () => response,
+    insert: async () => response,
+    update: async () => response,
+    upsert: async () => response,
+    delete: async () => response,
+    then: undefined,
+  };
+};
+
+const mockSupabase = {
+  auth: {
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({
+      data: { subscription: { unsubscribe: () => undefined } },
+      error: null,
+    }),
+    signInWithPassword: async () => ({
+      data: null,
+      error: new Error(
+        "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.",
+      ),
+    }),
+    signOut: async () => ({ error: null }),
+    signUp: async () => ({
+      data: null,
+      error: new Error(
+        "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.",
+      ),
+    }),
+  },
+  from: () => createMockQueryBuilder(),
+  rpc: async () => ({
+    data: null,
+    error: new Error(
+      "Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.",
+    ),
+  }),
+  storage: {
+    from: () => ({}) as any,
+  },
+} as any;
+
+export const supabase = hasSupabaseConfig
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : mockSupabase;
+
+console.log(
+  hasSupabaseConfig
+    ? "✅ Supabase client initialized on app startup"
+    : "⚠️ Supabase not configured; running app without auth/database features",
+);
 
 /**
  * Test database connection with detailed error messages
