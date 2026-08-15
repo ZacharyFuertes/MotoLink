@@ -63,28 +63,28 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
           <span className="flex items-center gap-1">
             <Star size={15} className="fill-amber-400 text-amber-400" /> {shop.rating?.toFixed(1) ?? "New"}
           </span>
-          <span className="flex items-center gap-1">
-            <Clock3 size={15} className="text-moto-accent" /> {shop.operating_hours}
-          </span>
+
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-moto-accent/10 px-3 py-1 text-xs font-medium text-moto-accent flex items-center gap-2">
+              <Clock3 size={14} /> Schedule
+            </div>
+            <div className="text-sm text-slate-400">
+              <div className="font-semibold text-slate-200">{shop.operating_hours}</div>
+            </div>
+          </div>
+
           {shop.distanceKm !== undefined && (
             <span className="font-semibold text-slate-200">{shop.distanceKm.toFixed(1)} km away</span>
           )}
         </div>
 
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5">
           <button
             type="button"
-            onClick={handleView}
-            className="flex-1 rounded-xl border border-moto-gray bg-moto-darker px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-moto-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
+            onClick={() => (onConnect ? onConnect(shop) : handleView())}
+            className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
           >
-            View shop
-          </button>
-          <button
-            type="button"
-            onClick={() => onConnect(shop)}
-            className="flex-1 rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
-          >
-            Connect
+            {shop.is_open === false ? "View shop" : "Connect"}
           </button>
         </div>
       </div>
