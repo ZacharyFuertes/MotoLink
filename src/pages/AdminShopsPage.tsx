@@ -97,6 +97,12 @@ const AdminShopsPage: React.FC = () => {
         .eq("role", "owner");
       if (ownerError) throw ownerError;
 
+      const ownersList = (owners || []) as Array<{
+        id: string;
+        name: string;
+        email: string;
+      }>;
+
       const { data: appts, error: apptError } = await supabase
         .from("appointments")
         .select("shop_id");
@@ -109,7 +115,7 @@ const AdminShopsPage: React.FC = () => {
       if (custError) throw custError;
 
       const ownersById = new Map(
-        (owners || []).map((o: any) => [o.id, o as { name: string; email: string }]),
+        ownersList.map((owner) => [owner.id, owner]),
       );
       const apptCount: Record<string, number> = {};
       (appts || []).forEach((a: any) => {

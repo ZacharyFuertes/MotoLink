@@ -68,7 +68,7 @@ const mockSupabase = {
 } as any;
 
 export const supabase = hasSupabaseConfig
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
   : mockSupabase;
 
 console.log(
