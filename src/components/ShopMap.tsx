@@ -55,11 +55,24 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
 
     shops.forEach((shop) => {
       if (typeof shop.latitude === "number" && typeof shop.longitude === "number") {
-        const marker = Leaflet.marker([shop.latitude, shop.longitude]).addTo(map);
+        const isSelected = selectedShopId === shop.id;
+        const logoHtml = shop.logo_url
+          ? `<img src="${shop.logo_url}" alt="" class="shop-map-logo" onerror="this.style.display='none';this.parentNode.innerHTML='${(shop.name.charAt(0) || "S").replace(/'/g, "")}'"/>`
+          : `<span class="shop-map-logo-fallback">${(shop.name.charAt(0) || "S").replace(/'/g, "")}</span>`;
+
+        const icon = Leaflet.divIcon({
+          className: "shop-map-pin",
+          html: `<div class="shop-map-pin-inner ${isSelected ? "shop-map-pin-selected" : ""}">${logoHtml}</div><div class="shop-map-pin-tip"></div>`,
+          iconSize: [34, 42],
+          iconAnchor: [17, 40],
+          popupAnchor: [0, -38],
+        });
+
+        const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
         marker.bindPopup(`<strong>${shop.name}</strong><br/>${shop.address || ""}`);
         marker.on("click", () => onSelect(shop));
 
-        if (selectedShopId === shop.id) {
+        if (isSelected) {
           marker.openPopup();
         }
       }
@@ -103,6 +116,40 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
           {locationGranted ? "Shops are ordered by approximate distance from your location within a 1.5km service radius." : "Enable location to unlock the map view and distance sorting."}
         </p>
       </div>
+      <style>{`
+        .shop-map-pin { background: transparent; border: none; }
+        .shop-map-pin-inner {
+          width: 34px; height: 34px;
+          border-radius: 50%;
+          border: 2.5px solid #fff;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .shop-map-pin-inner:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.45); }
+        .shop-map-pin-selected {
+          border-color: #0f766e;
+          box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.35);
+        }
+        .shop-map-logo { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .shop-map-logo-fallback {
+          font-size: 15px; font-weight: 700; color: #fff;
+          background: #0f766e;
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .shop-map-pin-tip {
+          width: 0; height: 0;
+          margin: -1px auto 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 8px solid #fff;
+          filter: drop-shadow(0 2px 2px rgba(15,23,42,0.25));
+        }
+        .shop-map-pin-selected + .shop-map-pin-tip { border-top-color: #0f766e; }
+      `}</style>
     </motion.div>
   );
 };
