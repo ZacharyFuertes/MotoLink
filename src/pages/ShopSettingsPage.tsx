@@ -352,7 +352,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                     handleField("longitude", v.lng);
                   }}
                   onReverseGeocode={(address) => {
-                    if (address && !shop.address) handleField("address", address);
+                    if (address) handleField("address", address);
                   }}
                 />
               </div>
