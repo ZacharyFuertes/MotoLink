@@ -1,7 +1,7 @@
-import { LocateFixed } from "lucide-react";
+import { LocateFixed, MapPin, Store } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare const L: any;
 
@@ -12,24 +12,44 @@ interface ShopMapProps {
   location?: GeolocationCoordinates;
   onRequestLocation: () => void;
   onSelect: (shop: ShopSearchResult) => void;
+  onViewShop?: (shop: ShopSearchResult) => void;
 }
 
 const MAP_CENTER_LAT = 14.5712431655223;
 const MAP_CENTER_LNG = 121.10514957211315;
 const CIRCLE_RADIUS_METERS = 1500;
 
-const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect }: ShopMapProps) => {
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const mapHeight = isMobile ? "h-[52vh]" : "h-[480px]";
 
   useEffect(() => {
     const Leaflet = (typeof L !== "undefined") ? L : (window as any).L;
     if (!Leaflet || !mapRef.current) return;
 
-    const map = Leaflet.map(mapRef.current).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
+    const map = Leaflet.map(mapRef.current, {
+      zoomControl: false,
+      scrollWheelZoom: true,
+    }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
     Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    const zoomIn = Leaflet.control.zoom({ position: "topright" });
+    zoomIn.addTo(map);
 
     if (locationGranted && location) {
       const userLatLng = [location.latitude, location.longitude] as [number, number];
@@ -37,118 +57,238 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
 
       const userMarker = Leaflet.marker(userLatLng, {
         icon: Leaflet.divIcon({
-          html: '<div style="width: 14px; height: 14px; border-radius: 9999px; border: 2px solid white; background: #0f766e; box-shadow: 0 0 0 6px rgba(15, 118, 110, 0.2);"></div>',
+          html: '<div class="shop-map-you"><span class="shop-map-you-ping"></span></div>',
           className: "",
-          iconSize: [14, 14],
-          iconAnchor: [7, 7],
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
         }),
       }).addTo(map);
-      userMarker.bindPopup("You are here");
+      userMarker.bindPopup("<strong>You are here</strong>");
 
       Leaflet.circle(userLatLng, {
-        color: "skyblue",
-        fillColor: "rgba(135, 206, 235, 0.3)",
+        color: "#0f766e",
+        fillColor: "rgba(15, 118, 110, 0.12)",
         fillOpacity: 0.35,
         radius: CIRCLE_RADIUS_METERS,
+        weight: 1.5,
+        dashArray: "4 6",
       }).addTo(map);
     }
 
-    shops.forEach((shop) => {
+    shops.forEach((shop, index) => {
       if (typeof shop.latitude === "number" && typeof shop.longitude === "number") {
         const isSelected = selectedShopId === shop.id;
+        const safeName = escapeHtml(shop.name.charAt(0) || "S");
         const logoHtml = shop.logo_url
-          ? `<img src="${shop.logo_url}" alt="" class="shop-map-logo" onerror="this.style.display='none';this.parentNode.innerHTML='${(shop.name.charAt(0) || "S").replace(/'/g, "")}'"/>`
-          : `<span class="shop-map-logo-fallback">${(shop.name.charAt(0) || "S").replace(/'/g, "")}</span>`;
+          ? `<img src="${shop.logo_url}" alt="" class="shop-map-logo" onerror="this.style.display='none';this.parentNode.innerHTML='<span class=&quot;shop-map-logo-fallback&quot;>${safeName}</span>'"/>`
+          : `<span class="shop-map-logo-fallback">${safeName}</span>`;
 
         const icon = Leaflet.divIcon({
           className: "shop-map-pin",
-          html: `<div class="shop-map-pin-inner ${isSelected ? "shop-map-pin-selected" : ""}">${logoHtml}</div><div class="shop-map-pin-tip"></div>`,
-          iconSize: [34, 42],
-          iconAnchor: [17, 40],
-          popupAnchor: [0, -38],
+          html: `<div class="shop-map-pin-inner ${isSelected ? "shop-map-pin-selected" : ""}" style="animation-delay:${Math.min(index * 0.06, 0.6)}s">${logoHtml}${isSelected ? '<span class="shop-map-pin-ring"></span>' : ""}</div><div class="shop-map-pin-tip"></div>`,
+          iconSize: [38, 46],
+          iconAnchor: [19, 44],
+          popupAnchor: [0, -42],
         });
 
         const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
-        marker.bindPopup(`<strong>${shop.name}</strong><br/>${shop.address || ""}`);
+        marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
         marker.on("click", () => onSelect(shop));
+        if (onViewShop) {
+          marker.on("popupopen", () => {
+            const popup = marker.getPopup();
+            if (!popup) return;
+            popup.setContent(
+              `<div class="shop-map-popup">
+                <div class="shop-map-popup-name">${escapeHtml(shop.name)}</div>
+                <div class="shop-map-popup-address">${escapeHtml(shop.address || "")}</div>
+                <button data-motolink-view-shop="${shop.id}" class="shop-map-popup-btn">VIEW SHOP</button>
+              </div>`,
+            );
+          });
+        }
+        marker.on("popupclose", () => {
+          if (onViewShop) {
+            marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
+          }
+        });
 
         if (isSelected) {
+          map.setView([shop.latitude, shop.longitude], 14);
           marker.openPopup();
         }
       }
     });
 
-    const selectedShop = shops.find((shop) => shop.id === selectedShopId);
-    if (selectedShop && typeof selectedShop.latitude === "number" && typeof selectedShop.longitude === "number") {
-      map.setView([selectedShop.latitude, selectedShop.longitude], 14);
-    }
+    const viewShopHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest<HTMLElement>("[data-motolink-view-shop]");
+      if (!btn || !onViewShop) return;
+      const shopId = btn.dataset.motolinkViewShop;
+      const shop = shops.find((s) => s.id === shopId);
+      if (shop) {
+        e.stopPropagation();
+        onViewShop(shop);
+      }
+    };
 
-    return () => { map.remove(); };
-  }, [locationGranted, location, onSelect, selectedShopId, shops]);
+    const mapContainer = map.getContainer();
+    mapContainer.addEventListener("click", viewShopHandler);
+
+    return () => {
+      mapContainer.removeEventListener("click", viewShopHandler);
+      map.remove();
+    };
+  }, [locationGranted, location, onSelect, onViewShop, selectedShopId, shops]);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="relative min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)]">
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-100/70 via-white/50 to-emerald-100/60" />
-      <div className="relative flex h-full min-h-[360px] flex-col justify-between">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Interactive map</p>
-            <p className="text-xs text-slate-500">Your location unlocks a live 1.5km radius view.</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
+    >
+      <div className={`relative w-full ${mapHeight}`}>
+        {locationGranted ? (
+          <div id="map" ref={mapRef} className="absolute inset-0" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center rounded-none border-0 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] bg-slate-100 px-6 text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-sm rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl backdrop-blur"
+            >
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+                <MapPin size={28} strokeWidth={1.8} />
+              </div>
+              <p className="text-lg font-bold text-slate-900">Location access required</p>
+              <p className="mt-2 text-sm text-slate-500">Allow the app to use your location to unlock the live map, your marker and the 1.5km service circle.</p>
+              <button onClick={onRequestLocation} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-800">
+                <LocateFixed size={16} /> Enable location
+              </button>
+            </motion.div>
           </div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onRequestLocation} className="flex items-center gap-2 rounded-xl bg-[#fffdf7] px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-[#f6f0e4]">
-            <LocateFixed size={16} /> {locationGranted ? "Location enabled" : "Use my location"}
+        )}
+
+        {/* Top header overlay */}
+        <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex items-center justify-between gap-3">
+          <div className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-white/90 px-4 py-2.5 shadow-lg backdrop-blur">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-700 text-white">
+              <Store size={16} />
+            </div>
+            <div>
+              <p className="text-sm font-bold leading-none text-slate-900">
+                {shops.length} shop{shops.length === 1 ? "" : "s"} nearby
+              </p>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={onRequestLocation}
+            className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/90 px-3.5 py-2.5 text-sm font-semibold text-slate-700 shadow-lg backdrop-blur transition hover:bg-white"
+          >
+            <LocateFixed size={16} className={locationGranted ? "text-teal-700" : "text-slate-400"} />
+            <span className="hidden sm:inline">{locationGranted ? "Location enabled" : "Use my location"}</span>
           </motion.button>
         </div>
-        <div className="relative mx-auto h-96 w-full max-w-xl">
-          {locationGranted ? (
-            <div id="map" ref={mapRef} className="h-full w-full rounded-lg" />
-          ) : (
-            <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white/70 px-6 text-center shadow-inner">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">Location access required</p>
-                <p className="mt-2 text-sm text-slate-600">Allow the app to use your location to unlock the live map, your marker and the 1.5km service circle.</p>
-                <button onClick={onRequestLocation} className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Enable location</button>
-              </div>
-            </div>
-          )}
+
+        {/* Bottom info bar */}
+        <div className="absolute bottom-3 left-3 right-3 z-[1000]">
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
+            <p className="text-xs text-slate-600">
+              {locationGranted ? "Tap a logo pin to view its shop." : ""}
+            </p>
+            <span className="shrink-0 rounded-full bg-teal-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+              {locationGranted ? "Live" : "Idle"}
+            </span>
+          </div>
         </div>
-        <p className="rounded-xl bg-[#fffdf7]/85 p-3 text-xs text-slate-600 backdrop-blur">
-          {locationGranted ? "Shops are ordered by approximate distance from your location within a 1.5km service radius." : "Enable location to unlock the map view and distance sorting."}
-        </p>
       </div>
+
       <style>{`
         .shop-map-pin { background: transparent; border: none; }
         .shop-map-pin-inner {
-          width: 34px; height: 34px;
+          width: 38px; height: 38px;
           border-radius: 50%;
-          border: 2.5px solid #fff;
+          border: 3px solid #fff;
           background: #fff;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.4);
           display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          overflow: visible;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          animation: shop-pin-drop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
-        .shop-map-pin-inner:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.45); }
+        .shop-map-pin-inner:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.5); }
         .shop-map-pin-selected {
           border-color: #0f766e;
-          box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.35);
+          box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.3);
+          z-index: 2;
         }
-        .shop-map-logo { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .shop-map-logo { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
         .shop-map-logo-fallback {
-          font-size: 15px; font-weight: 700; color: #fff;
+          font-size: 16px; font-weight: 700; color: #fff;
           background: #0f766e;
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
+          border-radius: 50%;
         }
         .shop-map-pin-tip {
           width: 0; height: 0;
-          margin: -1px auto 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 8px solid #fff;
-          filter: drop-shadow(0 2px 2px rgba(15,23,42,0.25));
+          margin: -2px auto 0;
+          border-left: 7px solid transparent;
+          border-right: 7px solid transparent;
+          border-top: 9px solid #fff;
+          filter: drop-shadow(0 2px 2px rgba(15,23,42,0.3));
         }
         .shop-map-pin-selected + .shop-map-pin-tip { border-top-color: #0f766e; }
+        .shop-map-pin-ring {
+          position: absolute; inset: -6px;
+          border-radius: 50%;
+          border: 2px solid rgba(15, 118, 110, 0.5);
+          animation: shop-pin-ring-pulse 1.8s ease-out infinite;
+        }
+        .shop-map-you {
+          position: relative;
+          width: 22px; height: 22px;
+          border-radius: 9999px;
+          border: 3px solid #fff;
+          background: #0f766e;
+          box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.25);
+        }
+        .shop-map-you-ping {
+          position: absolute; inset: -8px;
+          border-radius: 9999px;
+          background: rgba(15, 118, 110, 0.25);
+          animation: shop-map-you-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        .shop-map-popup { font-family: Inter, system-ui, sans-serif; text-align: center; padding: 4px 6px 2px; }
+        .shop-map-popup-name { font-weight: 700; color: #0f172a; font-size: 14px; margin-bottom: 2px; }
+        .shop-map-popup-address { color: #64748b; font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+        .shop-map-popup-btn {
+          cursor: pointer; width: 100%; border: none; border-radius: 10px;
+          background: #0f766e; color: #fff; font-weight: 700; font-size: 12px;
+          letter-spacing: 0.04em; padding: 9px 12px;
+          transition: background 0.15s ease;
+        }
+        .shop-map-popup-btn:hover { background: #115e59; }
+        @keyframes shop-pin-drop {
+          0% { opacity: 0; transform: translateY(-24px) scale(0.7); }
+          60% { opacity: 1; transform: translateY(3px) scale(1.05); }
+          80% { transform: translateY(-1px) scale(0.99); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes shop-pin-ring-pulse {
+          0% { transform: scale(0.8); opacity: 0.9; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+        @keyframes shop-map-you-ping {
+          0% { transform: scale(0.8); opacity: 0.9; }
+          75%, 100% { transform: scale(2.2); opacity: 0; }
+        }
+        .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: 0 12px 34px rgba(15,23,42,0.25); }
+        .leaflet-popup-content { margin: 12px 14px; }
       `}</style>
     </motion.div>
   );
