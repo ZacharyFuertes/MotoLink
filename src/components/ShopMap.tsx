@@ -13,6 +13,7 @@ interface ShopMapProps {
   onRequestLocation: () => void;
   onSelect: (shop: ShopSearchResult) => void;
   onViewShop?: (shop: ShopSearchResult) => void;
+  onNavigate?: (shop: ShopSearchResult) => void;
 }
 
 const MAP_CENTER_LAT = 14.5712431655223;
@@ -22,7 +23,7 @@ const CIRCLE_RADIUS_METERS = 1500;
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop }: ShopMapProps) => {
+const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop, onNavigate }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -94,21 +95,29 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
         const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
         marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
         marker.on("click", () => onSelect(shop));
-        if (onViewShop) {
+        if (onViewShop || onNavigate) {
           marker.on("popupopen", () => {
             const popup = marker.getPopup();
             if (!popup) return;
+            const buttons = [
+              onViewShop
+                ? `<button data-motolink-view-shop="${shop.id}" class="shop-map-popup-btn">VIEW SHOP</button>`
+                : "",
+              onNavigate
+                ? `<button data-motolink-navigate-shop="${shop.id}" class="shop-map-popup-btn shop-map-popup-btn-outline"><span class="shop-map-popup-btn-icon">&#10148;</span> NAVIGATE</button>`
+                : "",
+            ].filter(Boolean).join("");
             popup.setContent(
               `<div class="shop-map-popup">
                 <div class="shop-map-popup-name">${escapeHtml(shop.name)}</div>
                 <div class="shop-map-popup-address">${escapeHtml(shop.address || "")}</div>
-                <button data-motolink-view-shop="${shop.id}" class="shop-map-popup-btn">VIEW SHOP</button>
+                <div class="shop-map-popup-actions">${buttons}</div>
               </div>`,
             );
           });
         }
         marker.on("popupclose", () => {
-          if (onViewShop) {
+          if (onViewShop || onNavigate) {
             marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
           }
         });
@@ -123,12 +132,23 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
     const viewShopHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const btn = target.closest<HTMLElement>("[data-motolink-view-shop]");
-      if (!btn || !onViewShop) return;
-      const shopId = btn.dataset.motolinkViewShop;
-      const shop = shops.find((s) => s.id === shopId);
-      if (shop) {
-        e.stopPropagation();
-        onViewShop(shop);
+      if (btn && onViewShop) {
+        const shopId = btn.dataset.motolinkViewShop;
+        const shop = shops.find((s) => s.id === shopId);
+        if (shop) {
+          e.stopPropagation();
+          onViewShop(shop);
+        }
+        return;
+      }
+      const navBtn = target.closest<HTMLElement>("[data-motolink-navigate-shop]");
+      if (navBtn && onNavigate) {
+        const shopId = navBtn.dataset.motolinkNavigateShop;
+        const shop = shops.find((s) => s.id === shopId);
+        if (shop) {
+          e.stopPropagation();
+          onNavigate(shop);
+        }
       }
     };
 
@@ -139,7 +159,7 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
       mapContainer.removeEventListener("click", viewShopHandler);
       map.remove();
     };
-  }, [locationGranted, location, onSelect, onViewShop, selectedShopId, shops]);
+  }, [locationGranted, location, onSelect, onViewShop, onNavigate, selectedShopId, shops]);
 
   return (
     <motion.div
@@ -273,6 +293,13 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
           transition: background 0.15s ease;
         }
         .shop-map-popup-btn:hover { background: #115e59; }
+        .shop-map-popup-actions { display: flex; flex-direction: column; gap: 8px; }
+        .shop-map-popup-btn-outline {
+          background: transparent; color: #0f766e;
+          border: 1.5px solid #0f766e;
+        }
+        .shop-map-popup-btn-outline:hover { background: #0f766e; color: #fff; }
+        .shop-map-popup-btn-icon { display: inline-block; margin-right: 4px; font-size: 13px; }
         @keyframes shop-pin-drop {
           0% { opacity: 0; transform: translateY(-24px) scale(0.7); }
           60% { opacity: 1; transform: translateY(3px) scale(1.05); }

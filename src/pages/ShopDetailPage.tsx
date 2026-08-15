@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car } from "lucide-react";
+import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car, Navigation } from "lucide-react";
 import { getShopById } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
 import { Shop } from "../types/shop";
 import { filterPhMakes, filterPhModels } from "../utils/vehicleData";
+import NavigationModal from "../components/NavigationModal";
 
 interface ShopDetailPageProps {
   shopId: string;
@@ -69,6 +70,28 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
+  const [showNavigation, setShowNavigation] = useState(false);
+
+  const handleNavigate = () => {
+    if (!shop) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setNavigateOrigin({ lat: position.coords.latitude, lng: position.coords.longitude });
+          setShowNavigation(true);
+        },
+        () => {
+          setNavigateOrigin(null);
+          setShowNavigation(true);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    } else {
+      setNavigateOrigin(null);
+      setShowNavigation(true);
+    }
+  };
+  const [navigateOrigin, setNavigateOrigin] = useState<{ lat: number; lng: number } | null>(null);
 
   const addToReceipt = (product: ShopProduct) => {
     if (shop?.is_open === false) return;
@@ -288,15 +311,25 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     <div className="min-h-screen bg-moto-darker">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Back button */}
-        <button
-          onClick={onBack}
-          className="group mb-6 inline-flex items-center gap-2.5 rounded-xl border border-moto-gray bg-moto-darker/80 px-4 py-2.5 text-sm font-semibold text-slate-300 backdrop-blur transition hover:border-moto-accent hover:bg-moto-accent/10 hover:text-white"
-        >
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/15 text-moto-accent transition group-hover:bg-moto-accent group-hover:text-slate-950">
-            <ArrowLeft size={13} />
-          </span>
-          Back to shops
-        </button>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <button
+            onClick={onBack}
+            className="group inline-flex items-center gap-2.5 rounded-xl border border-moto-gray bg-moto-darker/80 px-4 py-2.5 text-sm font-semibold text-slate-300 backdrop-blur transition hover:border-moto-accent hover:bg-moto-accent/10 hover:text-white"
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/15 text-moto-accent transition group-hover:bg-moto-accent group-hover:text-slate-950">
+              <ArrowLeft size={13} />
+            </span>
+            Back to shops
+          </button>
+          {typeof shop.latitude === "number" && typeof shop.longitude === "number" && (
+            <button
+              onClick={handleNavigate}
+              className="group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-moto-accent/20 transition hover:brightness-110"
+            >
+              <Navigation size={16} /> Get Directions
+            </button>
+          )}
+        </div>
 
         {/* Shop header */}
         <motion.section
@@ -937,6 +970,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           </motion.div>
         )}
       </AnimatePresence>
+      <NavigationModal
+        isOpen={showNavigation}
+        onClose={() => setShowNavigation(false)}
+        shop={shop}
+        origin={navigateOrigin}
+        onRequestLocation={handleNavigate}
+      />
     </div>
   );
 };

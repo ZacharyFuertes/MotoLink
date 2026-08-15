@@ -7,6 +7,7 @@ import HeroSlideshow from "../components/HeroSlideshow";
 import ShopFilters from "../components/ShopFilters";
 import ShopGallery from "../components/ShopGallery";
 import ShopMap from "../components/ShopMap";
+import NavigationModal from "../components/NavigationModal";
 import Footer from "../components/Footer";
 import { getPublicShops, sortByDistance } from "../services/shopService";
 import { Shop, ShopSearchResult } from "../types/shop";
@@ -31,6 +32,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
   const [selectedShop, setSelectedShop] = useState<ShopSearchResult>();
   const [showAIChat, setShowAIChat] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+  const [navigateShop, setNavigateShop] = useState<ShopSearchResult | null>(null);
 
   useEffect(() => { getPublicShops().then(setShops); }, []);
   const results = useMemo(() => sortByDistance(shops, location).filter((shop) => (!specialty || shop.specialties.includes(specialty)) && (!availabilityOnly || shop.available) && (!city || `${shop.name} ${shop.city} ${shop.address}`.toLowerCase().includes(city.toLowerCase()))), [shops, location, specialty, availabilityOnly, city]);
@@ -146,7 +148,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             ) : (
               <p><span className="font-semibold">Search result:</span> No matching shops yet. Try a broader city, specialty, or availability filter.</p>
             )}
-          </div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} selectedShopId={selectedShop?.id} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} onViewShop={onViewShop} /></div>{locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}{suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}</div></motion.section>
+          </div><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /><div className="mt-5"><ShopMap shops={results} selectedShopId={selectedShop?.id} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} onViewShop={onViewShop} onNavigate={setNavigateShop} /></div>{locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}{suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}</div></motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8 text-center"><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Why choose</p><h2 className="mt-2 text-3xl font-bold text-slate-100">MOTOLINK</h2><p className="mt-3 max-w-2xl mx-auto text-slate-300">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p></div><div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { title: "Easy Shop Discovery", description: "Find nearby motor shops with ease." },
@@ -171,6 +173,13 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
     <button onClick={() => setShowAIChat(true)} className="fixed bottom-6 right-6 z-40 flex items-center gap-3 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-900/40 transition hover:-translate-y-0.5 hover:bg-slate-700"><Bot size={18} /> Motolink AI</button>
     <Footer />
     <AIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
+    <NavigationModal
+      isOpen={Boolean(navigateShop)}
+      onClose={() => setNavigateShop(null)}
+      shop={navigateShop}
+      origin={location ? { lat: location.latitude, lng: location.longitude } : null}
+      onRequestLocation={requestLocation}
+    />
   </div>;
 };
 
