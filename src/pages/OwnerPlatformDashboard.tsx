@@ -552,19 +552,20 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               <p className="text-slate-500 text-sm max-w-md leading-relaxed">
                 {shop ? (
                   <>
-                    Your shop{" "}
+                    Thank you for registering{" "}
                     <span className="font-semibold text-slate-700">
                       {shop.name}
                     </span>{" "}
-                    has been registered and is currently under review. The
-                    dashboard will unlock automatically once a MotoLink admin
-                    approves your shop.
+                    on MotoLink! Your shop is now under review. A MotoLink
+                    admin will approve it shortly, and your dashboard will
+                    unlock automatically once approved.
                   </>
                 ) : (
                   <>
-                    Your shop registration is being reviewed by the MotoLink
-                    platform admin. The dashboard will unlock automatically
-                    once your shop is approved.
+                    Thank you for registering your shop on MotoLink! Your
+                    registration is being reviewed by the platform admin, and
+                    your dashboard will unlock automatically once your shop is
+                    approved.
                   </>
                 )}
               </p>
