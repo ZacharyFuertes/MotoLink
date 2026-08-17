@@ -28,6 +28,8 @@ interface SearchResult {
   lat: string;
   lon: string;
   display_name: string;
+  countrycode?: string;
+  placeId?: string;
 }
 
 const DEFAULT_CENTER: [number, number] = [14.5712, 121.1051];
@@ -41,12 +43,158 @@ const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   return (data?.display_name as string) || "";
 };
 
+const searchPhoton = async (query: string): Promise<SearchResult[]> => {
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6&lat=14.5995&lon=121.0627&location_bias_scale=0.15`,
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return ((data?.features as any[]) || []).map((f: any) => {
+      const p = f.properties || {};
+      const [lon, lat] = f.geometry?.coordinates || [0, 0];
+      const parts = [
+        p.housenumber,
+        p.street,
+        p.district || p.county,
+        p.city || p.town || p.village,
+        p.state,
+        p.country,
+      ].filter(Boolean);
+      const display = parts.length ? parts.join(", ") : (p.name || "");
+      return {
+        lat: String(lat),
+        lon: String(lon),
+        display_name: display,
+        countrycode: p.countrycode,
+      };
+    });
+  } catch {
+    return [];
+  }
+};
+
+const searchNominatim = async (query: string): Promise<SearchResult[]> => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=ph&q=${encodeURIComponent(query)}`,
+    );
+    if (!res.ok) return [];
+    return ((await res.json()) as any[]).map((r: any) => ({
+      lat: r.lat,
+      lon: r.lon,
+      display_name: r.display_name || "",
+      countrycode: r.address?.country_code,
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || "";
+
+let googleScriptPromise: Promise<void> | null = null;
+let googlePlacesInstance: any = null;
+
+const loadGooglePlaces = (): Promise<any> => {
+  if (googlePlacesInstance) return Promise.resolve(googlePlacesInstance);
+  if (!GOOGLE_MAPS_KEY) return Promise.reject(new Error("no key"));
+
+  if (!googleScriptPromise) {
+    googleScriptPromise = new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>(
+        `script[src*="maps.googleapis.com/maps/api/js"]`,
+      );
+      if (existing) {
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", () => reject(new Error("google load failed")));
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places&callback=__motolinkGoogleReady`;
+      script.async = true;
+      script.defer = true;
+      const onError = () => reject(new Error("google load failed"));
+      script.addEventListener("error", onError);
+      (window as any).__motolinkGoogleReady = () => {
+        script.removeEventListener("error", onError);
+        resolve();
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return googleScriptPromise.then(() => {
+    googlePlacesInstance = (window as any).google?.maps?.places;
+    if (!googlePlacesInstance) throw new Error("google places unavailable");
+    return googlePlacesInstance;
+  });
+};
+
+const searchGooglePlaces = async (query: string): Promise<SearchResult[]> => {
+  const places = await loadGooglePlaces();
+  if (!places || !places.AutocompleteService || !places.PlacesService) return [];
+
+  return new Promise<SearchResult[]>((resolve) => {
+    const autocomplete = new places.AutocompleteService();
+    autocomplete.getPlacePredictions(
+      {
+        input: query,
+        types: ["geocode"],
+        componentRestrictions: { country: "ph" },
+      },
+      (predictions: any[], status: string) => {
+        if (status !== "OK" || !predictions || !predictions.length) {
+          resolve([]);
+          return;
+        }
+        const service = new places.PlacesService(document.createElement("div"));
+        const results: SearchResult[] = [];
+        let pending = predictions.length;
+        predictions.forEach((pred) => {
+          service.getDetails(
+            { placeId: pred.place_id, fields: ["geometry", "formatted_address"] },
+            (place: any, st: string) => {
+              if (st === "OK" && place?.geometry?.location) {
+                results.push({
+                  lat: String(place.geometry.location.lat()),
+                  lon: String(place.geometry.location.lng()),
+                  display_name: place.formatted_address || pred.description || "",
+                  countrycode: "ph",
+                  placeId: pred.place_id,
+                });
+              }
+              pending -= 1;
+              if (pending === 0) {
+                resolve(results.length ? results : predictions.map((p) => ({
+                  lat: "",
+                  lon: "",
+                  display_name: p.description || "",
+                  countrycode: "ph",
+                  placeId: p.place_id,
+                })));
+              }
+            },
+          );
+        });
+      },
+    );
+  });
+};
+
 const searchPlaces = async (query: string): Promise<SearchResult[]> => {
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`,
-  );
-  if (!res.ok) return [];
-  return (await res.json()) as SearchResult[];
+  if (GOOGLE_MAPS_KEY) {
+    try {
+      const google = await searchGooglePlaces(query);
+      if (google.length) return google;
+    } catch {
+      // Google unavailable/offline — fall through to OSM geocoders.
+    }
+  }
+  const photon = await searchPhoton(query);
+  const preferred = photon.filter((r) => r.countrycode === "PH" || r.countrycode === "ph");
+  if (preferred.length) return preferred;
+  if (photon.length) return photon;
+  return searchNominatim(query);
 };
 
 const LocationPicker = ({
@@ -100,12 +248,27 @@ const LocationPicker = ({
     }, 350);
   };
 
-  const handlePin = () => {
+  const handlePin = async () => {
     if (!draft) return;
     setCoords(draft);
     onChangeRef.current(draft);
-    if (onReverseGeocodeRef.current && draftAddress) {
-      onReverseGeocodeRef.current(draftAddress);
+    // Resolve the address for the pinned spot. Prefer the already-resolved
+    // draftAddress, but always try a fresh reverse geocode so pinning fills the
+    // address even when the debounced lookup hadn't finished yet.
+    let address = draftAddress;
+    if (!address) {
+      setGeocoding(true);
+      try {
+        address = await reverseGeocode(draft.lat, draft.lng);
+        if (address) setDraftAddress(address);
+      } catch {
+        address = "";
+      } finally {
+        setGeocoding(false);
+      }
+    }
+    if (onReverseGeocodeRef.current && address) {
+      onReverseGeocodeRef.current(address);
     }
   };
 
@@ -182,10 +345,19 @@ const LocationPicker = ({
     }, 500);
   };
 
-  const handleSelectResult = (r: SearchResult) => {
+  const handleSelectResult = async (r: SearchResult) => {
     const map = leafletMapRef.current;
-    if (map) {
-      map.setView([parseFloat(r.lat), parseFloat(r.lon)], 16);
+    let lat = r.lat;
+    let lon = r.lon;
+    if ((!lat || !lon) && map) {
+      const geocoded = await searchNominatim(r.display_name);
+      if (geocoded.length) {
+        lat = geocoded[0].lat;
+        lon = geocoded[0].lon;
+      }
+    }
+    if (map && lat && lon) {
+      map.setView([parseFloat(lat), parseFloat(lon)], 16);
       updatePreviewFromMapCenter(map);
     }
     setQuery(r.display_name);
@@ -249,7 +421,10 @@ const LocationPicker = ({
                   <Loader2 size={14} className="animate-spin" /> Searching…
                 </div>
               ) : results.length === 0 ? (
-                <div className="px-4 py-4 text-sm text-slate-400">No results found</div>
+                <div className="px-4 py-4 text-sm text-slate-400">
+                  No exact match found. Pan the map to your exact spot and use{" "}
+                  <span className="font-semibold text-rose-600">Pin location</span> below.
+                </div>
               ) : (
                 results.map((r, i) => (
                   <button
