@@ -13,8 +13,12 @@ import {
   ShieldCheck,
   Clock,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
+import AdminShopReviewModal, {
+  ReviewShop,
+} from "../components/AdminShopReviewModal";
 
 interface AdminShopRow {
   id: string;
@@ -55,6 +59,7 @@ const AdminShopsPage: React.FC = () => {
   const [viewingShop, setViewingShop] = useState<AdminShopRow | null>(null);
   const [shopCustomers, setShopCustomers] = useState<ShopCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
+  const [reviewingShop, setReviewingShop] = useState<AdminShopRow | null>(null);
 
   const fetchShops = useCallback(async () => {
     setLoading(true);
@@ -207,6 +212,15 @@ const AdminShopsPage: React.FC = () => {
   const closeShopCustomers = () => {
     setViewingShop(null);
     setShopCustomers([]);
+  };
+
+  const openShopReview = (shop: AdminShopRow) => {
+    setReviewingShop(shop);
+    setError(null);
+  };
+
+  const closeShopReview = () => {
+    setReviewingShop(null);
   };
 
   const handleDelete = async () => {
@@ -394,8 +408,8 @@ const AdminShopsPage: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <button
-                            onClick={() => openShopCustomers(shop)}
-                            title="View customers"
+                            onClick={() => openShopReview(shop)}
+                            title="Review shop details"
                             className="font-bold text-slate-900 text-sm truncate text-left hover:text-indigo-600 transition-colors block"
                           >
                             {shop.name}
@@ -456,6 +470,13 @@ const AdminShopsPage: React.FC = () => {
                     </td>
                     <td>
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openShopReview(shop)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition disabled:opacity-50"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Review
+                        </button>
                         {!shop.is_active && (
                           <button
                             onClick={() => setShopActive(shop, true)}
@@ -506,6 +527,52 @@ const AdminShopsPage: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Shop Review Modal */}
+      <AnimatePresence>
+        {reviewingShop && (
+          <AdminShopReviewModal
+            shop={{
+              id: reviewingShop.id,
+              name: reviewingShop.name,
+              owner_name: reviewingShop.owner_name,
+              owner_email: reviewingShop.owner_email,
+              is_active: reviewingShop.is_active,
+              is_open: reviewingShop.is_open,
+              customer_count: reviewingShop.customer_count,
+            }}
+            onClose={closeShopReview}
+            onApprove={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setShopActive(row, true);
+                closeShopReview();
+              }
+            }}
+            onDeactivate={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setShopActive(row, false);
+                closeShopReview();
+              }
+            }}
+            onViewCustomers={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                openShopCustomers(row);
+                closeShopReview();
+              }
+            }}
+            onDelete={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setDeleteTarget(row);
+                closeShopReview();
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Shop Customers Modal */}
       <AnimatePresence>
