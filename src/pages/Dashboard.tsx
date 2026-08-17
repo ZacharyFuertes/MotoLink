@@ -119,7 +119,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           .eq("shop_id", user.shop_id),
         supabase
           .from("appointments")
-          .select("id, scheduled_date, scheduled_time, service_type, status, customer_name, customer_phone")
+          .select("id, scheduled_date, scheduled_time, service_type, status, customer:users!customer_id (name, phone)")
           .eq("shop_id", user.shop_id)
           .in("status", ["pending", "confirmed"])
           .order("scheduled_date", { ascending: true })
@@ -349,7 +349,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <div key={apt.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{apt.service_type || "Service"}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{apt.customer_name || "Walk-in"} · {apt.scheduled_date}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{apt.customer?.name || "Walk-in"} · {apt.scheduled_date}</p>
                   </div>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
                     apt.status === "pending" ? "bg-amber-50 text-amber-700" : "bg-indigo-50 text-indigo-700"
