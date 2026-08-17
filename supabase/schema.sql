@@ -392,6 +392,14 @@ CREATE POLICY "Shop owners can manage own shop"
 CREATE POLICY "Admin can view all shops"
   ON public.shops FOR SELECT USING (public.is_admin());
 
+-- Admin can update any shop (approve / deactivate / edit)
+CREATE POLICY "Admin can update all shops"
+  ON public.shops FOR UPDATE USING (public.is_admin());
+
+-- Admin can delete any shop (cascades to dependent rows; users.shop_id is SET NULL)
+CREATE POLICY "Admin can delete all shops"
+  ON public.shops FOR DELETE USING (public.is_admin());
+
 -- CUSTOMERS
 CREATE POLICY "Users can view own customer profile"
   ON public.customers FOR SELECT USING (auth.uid() = user_id);
