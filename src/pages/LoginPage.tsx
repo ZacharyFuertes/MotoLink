@@ -38,14 +38,34 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-    phone: "",
-    address: "",
-    vehicle_make: "",
-    vehicle_model: "",
+  const [formData, setFormData] = useState(() => {
+    // Restore the customer form after a reload (password is never saved).
+    try {
+      const raw = localStorage.getItem("moto_customer_login_draft");
+      if (raw) {
+        const saved = JSON.parse(raw);
+        return {
+          email: saved.email || "",
+          password: "",
+          name: saved.name || "",
+          phone: saved.phone || "",
+          address: saved.address || "",
+          vehicle_make: saved.vehicle_make || "",
+          vehicle_model: saved.vehicle_model || "",
+        };
+      }
+    } catch {
+      /* ignore malformed draft */
+    }
+    return {
+      email: "",
+      password: "",
+      name: "",
+      phone: "",
+      address: "",
+      vehicle_make: "",
+      vehicle_model: "",
+    };
   });
   const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
   const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
@@ -54,6 +74,24 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   // Refs so the loginAttempted useEffect can read signup context
   const wasSignupRef = React.useRef(false);
   const notifPrefRef = React.useRef(true);
+
+  // Save the customer form draft (no password) so a reload restores it.
+  useEffect(() => {
+    localStorage.setItem(
+      "moto_customer_login_draft",
+      JSON.stringify({
+        email: formData.email,
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        vehicle_make: formData.vehicle_make,
+        vehicle_model: formData.vehicle_model,
+      }),
+    );
+  }, [formData]);
+
+  const clearLoginDraft = () =>
+    localStorage.removeItem("moto_customer_login_draft");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -246,6 +284,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     // Role is correct, login succeeded
     setLoading(false);
     setLoginAttempted(false);
+    clearLoginDraft();
     onLoginSuccess();
   }, [loginAttempted, isLoading, user]);
 

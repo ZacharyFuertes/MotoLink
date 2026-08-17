@@ -21,15 +21,25 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
+  const [formData, setFormData] = useState(() => ({
+    // Restore the email after a reload (password is never saved).
+    email: localStorage.getItem("moto_admin_login_email") || "",
     password: "",
-  });
+  }));
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  // Persist the email only so a reload keeps the admin on the same login page.
+  useEffect(() => {
+    if (formData.email) {
+      localStorage.setItem("moto_admin_login_email", formData.email);
+    } else {
+      localStorage.removeItem("moto_admin_login_email");
+    }
+  }, [formData.email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +96,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
     // Role is correct, login succeeded
     setLoading(false);
     setLoginAttempted(false);
+    localStorage.removeItem("moto_admin_login_email");
     onLoginSuccess();
   }, [loginAttempted, isLoading, user]);
 

@@ -1,5 +1,5 @@
 import "./globals.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { PartsListProvider } from "./contexts/PartsListContext";
@@ -68,7 +68,13 @@ const AppContent: React.FC = () => {
     return savedPage || "landing";
   });
   const [currentLoginType, setCurrentLoginType] =
-    useState<LoginType>("landing");
+    useState<LoginType>(() => {
+      // Restore the login/registration screen the user was on before a reload
+      // (e.g. mid shop-owner registration), so they stay on the same page.
+      const saved = localStorage.getItem("moto_login_type") as LoginType;
+      return saved || "landing";
+    });
+  const [loginCompleted, setLoginCompleted] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
   const [showPartsModal, setShowPartsModal] = useState(false);
@@ -161,15 +167,32 @@ const AppContent: React.FC = () => {
     navigateTo(newPage);
   };
 
-  // Reset page to landing when user logs out - use useEffect to avoid render conflicts
+  // Reset page to landing when user logs out - use useEffect to avoid render conflicts.
+  // Use a ref so we only reset on a REAL logout transition (authenticated → not),
+  // not on initial mount while the Supabase session is still being restored.
+  const wasAuthenticatedRef = useRef(isAuthenticated);
   useEffect(() => {
-    if (!isAuthenticated) {
+    const wasAuthenticated = wasAuthenticatedRef.current;
+    wasAuthenticatedRef.current = isAuthenticated;
+    if (wasAuthenticated && !isAuthenticated) {
       console.log("🚪 User logged out, resetting to landing");
       localStorage.removeItem("moto_last_page");
+      localStorage.removeItem("moto_login_type");
       setCurrentPage("landing");
       setCurrentLoginType("landing");
+      setLoginCompleted(false);
     }
   }, [isAuthenticated]);
+
+  // Persist the current login/registration screen so a browser reload returns
+  // the user to the same page (login form, signup wizard, portal choice, etc.).
+  useEffect(() => {
+    if (currentLoginType === "landing") {
+      localStorage.removeItem("moto_login_type");
+    } else {
+      localStorage.setItem("moto_login_type", currentLoginType);
+    }
+  }, [currentLoginType]);
 
   // Clear stale "dashboard" page for admin on mount
   useEffect(() => {
@@ -201,8 +224,46 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, user?.role, currentPage]);
 
-  // If auth loading, show a spinner placeholder
-  if (isLoading) {
+  // Authoritative portal-role enforcement while on a login screen. If the
+  // authenticated user's role doesn't match the portal they signed into, force
+  // a full logout (clears the persisted Supabase session + localStorage) so the
+  // wrong role can never land on or persist into the wrong dashboard — even on
+  // a browser refresh.
+  useEffect(() => {
+    if (!isAuthenticated || !user?.role || loginCompleted) return;
+    const expectedRole =
+      currentLoginType === "customer" || currentLoginType === "customer-signup"
+        ? "customer"
+        : currentLoginType === "admin"
+        ? "admin"
+        : currentLoginType === "owner" || currentLoginType === "owner-signup"
+        ? "owner"
+        : null;
+    if (!expectedRole) return;
+    if (user.role !== expectedRole) {
+      console.log(
+        `⚠️ [App] Role '${user.role}' doesn't match portal '${currentLoginType}', forcing logout`,
+      );
+      logout();
+    }
+  }, [isAuthenticated, user?.role, currentLoginType, loginCompleted, logout]);
+
+  // A login/signup screen is active when we're unauthenticated, or authenticated
+  // but the current login type hasn't confirmed completion yet.
+  const isLoginScreen = [
+    "choice",
+    "customer",
+    "customer-signup",
+    "admin",
+    "owner",
+    "owner-signup",
+  ].includes(currentLoginType);
+
+  // If auth loading and we're NOT on a login screen, show a spinner placeholder.
+  // On a login screen we let the login page manage its own loading UI so it stays
+  // mounted through login — this lets its role guard + onLoginSuccess fire (the
+  // wrong-portal guard is dead code if the login page unmounts mid-login).
+  if (isLoading && !isLoginScreen) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] text-slate-900">
         <div className="text-center">
@@ -215,13 +276,20 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // If not authenticated, show landing page or login
-  if (!isAuthenticated) {
+  // If not authenticated, or still on a login screen awaiting role confirmation,
+  // show landing page or login. The login page stays mounted until onLoginSuccess
+  // fires so its role guard can reject wrong-portal logins (e.g. admin creds on
+  // the customer form) instead of silently dropping into a dashboard.
+  if (!isAuthenticated || (!loginCompleted && isLoginScreen)) {
     const handleLoginSuccess = () => {
       // Role-based destination: owners/admins go straight to their own
       // dashboard; everyone else goes to the splash/landing page
+      setLoginCompleted(true);
+      localStorage.removeItem("moto_login_type");
       if (user?.role === "owner") {
         navigateTo("dashboard");
+      } else if (user?.role === "admin") {
+        navigateTo("admin-dashboard");
       } else {
         navigateTo("landing");
         if (localStorage.getItem("motolink_selected_shop_id")) {
@@ -231,6 +299,7 @@ const AppContent: React.FC = () => {
     };
 
     const handleOpenLogin = () => {
+      setLoginCompleted(false);
       setCurrentLoginType("choice");
     };
 
