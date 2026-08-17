@@ -109,6 +109,15 @@ const TIME_SLOTS = [
   "17:00",
 ];
 
+// Normalize DB TIME values ("09:00:00") and "9:00" forms to "HH:MM" so they can
+// be compared against TIME_SLOTS reliably.
+const normalizeTime = (t?: string | null): string => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  if (!h) return "";
+  return `${h.padStart(2, "0")}:${(m || "00").slice(0, 2)}`;
+};
+
 const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
 
 const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
@@ -321,7 +330,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
       const { data, error } = await query;
       if (error) throw error;
-      setBookedSlots((data || []).map((a: any) => a.scheduled_time));
+      setBookedSlots((data || []).map((a: any) => normalizeTime(a.scheduled_time)));
     } catch {
       setBookedSlots([]);
     }
@@ -349,7 +358,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     const schedule = mechanicAvailability.find((a) => a.is_available);
     // No schedule set for this day — treat as open (backwards compatible)
     if (!schedule) return true;
-    return time >= schedule.start_time && time <= schedule.end_time;
+    const slot = normalizeTime(time);
+    return slot >= normalizeTime(schedule.start_time) && slot <= normalizeTime(schedule.end_time);
   };
 
   const canGoNext = () => {
