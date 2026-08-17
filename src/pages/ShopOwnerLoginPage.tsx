@@ -27,26 +27,49 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [isSignup, setIsSignup] = useState(initialIsSignup);
   const roleCheckedRef = useRef(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+
+  // Persist the owner registration wizard so a browser reload returns the owner
+  // to the same step with their data intact (password is intentionally never saved).
+  const SIGNUP_DRAFT_KEY = "moto_owner_signup_draft";
+  const loadSignupDraft = () => {
+    try {
+      const raw = localStorage.getItem(SIGNUP_DRAFT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const [formData, setFormData] = useState(() => {
+    const draft = loadSignupDraft();
+    return {
+      email: draft?.email || "",
+      password: "",
+    };
   });
-  const [signupData, setSignupData] = useState({
-    email: "",
-    name: "",
-    shop_name: "",
-    shop_description: "",
-    shop_address: "",
-    shop_city: "",
-    shop_latitude: null as number | null,
-    shop_longitude: null as number | null,
-    shop_phone: "",
-    // Operating schedule: index 0=Sunday ... 6=Saturday
-    operating_schedule: Array.from({ length: 7 }, () => ({ open: false, openTime: "09:00", closeTime: "17:00" })),
-    // Human-readable summary that will be saved to the shop.operating_hours field
-    operating_hours: "",
+  const [signupData, setSignupData] = useState(() => {
+    const draft = loadSignupDraft();
+    const defaults = {
+      email: "",
+      name: "",
+      shop_name: "",
+      shop_description: "",
+      shop_address: "",
+      shop_city: "",
+      shop_latitude: null as number | null,
+      shop_longitude: null as number | null,
+      shop_phone: "",
+      // Operating schedule: index 0=Sunday ... 6=Saturday
+      operating_schedule: Array.from({ length: 7 }, () => ({ open: false, openTime: "09:00", closeTime: "17:00" })),
+      // Human-readable summary that will be saved to the shop.operating_hours field
+      operating_hours: "",
+    };
+    return draft?.signupData ? { ...defaults, ...draft.signupData } : defaults;
   });
-  const [specialtiesText, setSpecialtiesText] = useState("");
+  const [specialtiesText, setSpecialtiesText] = useState(() => {
+    const draft = loadSignupDraft();
+    return draft?.specialtiesText || "";
+  });
 
   const SPECIALTY_OPTIONS = [
     "Engine Repair",
@@ -63,7 +86,27 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // 3-step registration wizard: 0 = Details, 1 = Location, 2 = Hours
   const STEPS = ["Details", "Location", "Hours"];
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    const draft = loadSignupDraft();
+    const step = draft?.currentStep;
+    return typeof step === "number" && step >= 0 && step <= 2 ? step : 0;
+  });
+
+  // Save the wizard draft (step + data, never the password) so reloads restore it.
+  useEffect(() => {
+    if (!isSignup) return;
+    localStorage.setItem(
+      SIGNUP_DRAFT_KEY,
+      JSON.stringify({
+        currentStep,
+        signupData,
+        specialtiesText,
+        email: formData.email,
+      }),
+    );
+  }, [isSignup, currentStep, signupData, specialtiesText, formData.email]);
+
+  const clearSignupDraft = () => localStorage.removeItem(SIGNUP_DRAFT_KEY);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -172,12 +215,20 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           p_longitude: longitude,
           p_phone: signupData.shop_phone || null,
           p_is_active: false,
-          // Pass operating hours to the server-side helper (if it accepts this param)
-          p_operating_hours: opHours,
         },
       );
 
       if (!rpcError && rpcShopId) {
+        // The register_shop_owner RPC doesn't accept p_operating_hours, so
+        // persist the human-readable schedule with a follow-up update. RLS
+        // "Shop owners can manage own shop" allows the owner to update it.
+        const { error: hoursError } = await supabase
+          .from("shops")
+          .update({ operating_hours: opHours })
+          .eq("id", rpcShopId);
+        if (hoursError) {
+          console.warn("Failed to save operating hours:", hoursError.message);
+        }
         // Log the new owner in
         await login(signupData.email, formData.password);
         await refreshUser();
@@ -277,6 +328,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       if (!formData.password) return "Please create a password.";
       if (!signupData.name.trim()) return "Please enter your name.";
       if (!signupData.shop_name.trim()) return "Please enter your shop name.";
+      const phoneDigits = signupData.shop_phone.replace(/\D/g, "");
+      if (phoneDigits && phoneDigits.length < 7) {
+        return "Please enter a valid phone number (numbers only, e.g. 0917 123 4567).";
+      }
     }
     if (step === 1) {
       if (signupData.shop_latitude === null || signupData.shop_longitude === null) {
@@ -316,6 +371,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           if (fresh && fresh.role === "owner") {
             setLoading(false);
             setLoginAttempted(false);
+            clearSignupDraft();
             onLoginSuccess();
             return;
           }
@@ -361,6 +417,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     // Role is correct, login succeeded
     setLoading(false);
     setLoginAttempted(false);
+    clearSignupDraft();
     onLoginSuccess();
   }, [loginAttempted, isLoading, user]);
 
@@ -536,7 +593,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       <label className={labelClass}>Phone Number <span className="text-slate-400 normal-case">(optional)</span></label>
                       <div className={fieldWrapperClass}>
                         <Phone size={18} className={iconClass} />
-                        <input type="tel" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value })} placeholder="0917 123 4567" className={inputClass} />
+                        <input type="tel" inputMode="numeric" value={signupData.shop_phone} onChange={(e) => setSignupData({ ...signupData, shop_phone: e.target.value.replace(/[^0-9+\s]/g, "") })} placeholder="0917 123 4567" className={inputClass} />
                       </div>
                     </div>
                     <div className="md:col-span-2">
@@ -607,9 +664,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           setSignupData({ ...signupData, shop_latitude: v.lat, shop_longitude: v.lng })
                         }
                         onReverseGeocode={(address) =>
-                          setSignupData((prev) =>
-                            prev.shop_address ? prev : { ...prev, shop_address: address },
-                          )
+                          setSignupData((prev) => ({ ...prev, shop_address: address }))
                         }
                         heightClass="h-80"
                       />
