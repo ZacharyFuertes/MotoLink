@@ -51,14 +51,14 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Low Stock Alerts
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-[13px] text-slate-300 mt-0.5">
               Items at or below their reorder threshold requiring restock.
             </p>
           </div>
@@ -66,13 +66,13 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => fetchLowStock()}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition"
           >
             <RefreshCw size={14} /> Refresh List
           </button>
           <button
             onClick={() => onNavigate?.("inventory")}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
           >
             <Package size={14} /> Full Inventory
           </button>
@@ -82,7 +82,7 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="relative w-10 h-10">
-            <div className="absolute inset-0 rounded-full border-4 border-red-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-red-500/20" />
             <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin" />
           </div>
         </div>
@@ -92,13 +92,13 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
           animate={{ opacity: 1, y: 0 }}
           className="dashboard-card p-12 text-center"
         >
-          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-7 h-7" />
           </div>
-          <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <h3 className="text-base font-bold text-slate-100 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
             All Stock Levels Healthy
           </h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+          <p className="text-sm text-slate-300 max-w-sm mx-auto leading-relaxed">
             No items in your inventory are currently below their reorder threshold.
           </p>
         </motion.div>
@@ -122,25 +122,25 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    <h3 className="font-bold text-slate-100 text-sm truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                       {part.name}
                     </h3>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5 capitalize">
+                    <p className="text-xs text-slate-300 font-mono mt-0.5 capitalize">
                       {part.category} {part.sku ? `· ${part.sku}` : ""}
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold tabular-nums shrink-0 ${
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[13px] font-bold tabular-nums shrink-0 ${
                       isCritical
-                        ? "bg-red-100 text-red-700"
-                        : "bg-amber-50 text-amber-700"
+                        ? "bg-red-500/15 text-red-400"
+                        : "bg-amber-500/15 text-amber-400"
                     }`}
                   >
                     {part.quantity_in_stock} / {part.reorder_level}
                   </span>
                 </div>
 
-                <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
+                <div className="w-full bg-moto-gray/40 rounded-full h-1.5 mb-4">
                   <div
                     className={`h-1.5 rounded-full transition-all ${
                       isCritical ? "bg-red-600" : stockPct < 50 ? "bg-red-500" : "bg-amber-500"
@@ -149,20 +149,20 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs mb-4">
-                  <span className="font-extrabold text-slate-900 tabular-nums">
+                <div className="flex items-center justify-between text-[13px] mb-4">
+                  <span className="font-extrabold text-slate-100 tabular-nums">
                     ₱{Number(part.unit_price).toLocaleString()}
                   </span>
                   <span
-                    className={`text-[11px] font-bold ${
-                      isCritical ? "text-red-600" : "text-amber-600"
+                    className={`text-xs font-bold ${
+                      isCritical ? "text-red-400" : "text-amber-400"
                     }`}
                   >
                     {isCritical ? "Out of Stock" : "Low Stock"}
                   </span>
                 </div>
 
-                <div className="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
+                <div className="mt-auto flex items-center gap-2 pt-3 border-t border-moto-gray">
                   <input
                     type="number"
                     min="1"
@@ -174,12 +174,12 @@ const LowStockPage: React.FC<LowStockPageProps> = ({ onNavigate }) => {
                         [part.id]: parseInt(e.target.value, 10) || 0,
                       })
                     }
-                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition"
+                    className="flex-1 px-3 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
                   />
                   <button
                     onClick={() => handleRestock(part)}
                     disabled={restocking === part.id || qty <= 0}
-                    className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-40 shrink-0"
+                    className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-40 shrink-0"
                   >
                     {restocking === part.id ? "Restocking..." : "Restock"}
                   </button>
