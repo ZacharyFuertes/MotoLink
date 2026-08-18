@@ -157,19 +157,19 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   };
 
   const inputClass =
-    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition";
+    "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
 
   const labelClass =
-    "flex items-center gap-1.5 text-[11px] font-bold text-slate-600 mb-1.5";
+    "flex items-center gap-1.5 text-xs font-bold text-slate-200 mb-1.5";
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
           Shop Profile &amp; Listing
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-[13px] text-slate-300 mt-0.5">
           Public information shown on the MotoLink platform directory.
         </p>
       </div>
@@ -177,20 +177,20 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="relative w-10 h-10">
-            <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
             <div className="absolute inset-0 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
           </div>
         </div>
       ) : !user.shop_id ? (
         <div className="dashboard-card p-8 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h3 className="text-slate-900 font-bold text-sm mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h3 className="text-slate-100 font-bold text-base mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               No shop linked to account
             </h3>
-            <p className="text-slate-500 text-xs leading-relaxed">
+            <p className="text-slate-300 text-[13px] leading-relaxed">
               Your owner account is not linked to a registered shop yet. Please contact a platform admin to complete the setup.
             </p>
           </div>
@@ -201,16 +201,16 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-semibold ${
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px] font-semibold ${
                 message.type === "success"
-                  ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
-                  : "bg-red-50 border-red-200/80 text-red-700"
+                  ? "bg-emerald-500/15 border-emerald-200/80 text-emerald-400"
+                  : "bg-red-500/15 border-red-200/80 text-red-400"
               }`}
             >
               {message.type === "success" ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
               ) : (
-                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <AlertTriangle className="w-5 h-5 shrink-0" />
               )}
               {message.text}
             </motion.div>
@@ -223,21 +223,21 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             className="dashboard-card p-6"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 bg-violet-500/15 text-violet-400 rounded-xl flex items-center justify-center shrink-0">
                 <Store className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Identity &amp; Branding
                 </h2>
-                <p className="text-xs text-slate-400">Shop name, logo, description and tags</p>
+                <p className="text-[13px] text-slate-400">Shop name, logo, description and tags</p>
               </div>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
                 <label className={labelClass}>
-                  <Tag className="w-3.5 h-3.5 text-violet-500" /> Shop Name
+                  <Tag className="w-4 h-4 text-violet-500" /> Shop Name
                 </label>
                 <input
                   type="text"
@@ -249,7 +249,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <label className={labelClass}>
-                  <Globe className="w-3.5 h-3.5 text-violet-500" /> URL Slug
+                  <Globe className="w-4 h-4 text-violet-500" /> URL Slug
                 </label>
                 <input
                   type="text"
@@ -261,7 +261,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>
-                  <ImageIcon className="w-3.5 h-3.5 text-violet-500" /> Logo Image URL
+                  <ImageIcon className="w-4 h-4 text-violet-500" /> Logo Image URL
                 </label>
                 <input
                   type="text"
@@ -283,7 +283,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>
-                  <Sparkles className="w-3.5 h-3.5 text-violet-500" /> Specialties
+                  <Sparkles className="w-4 h-4 text-violet-500" /> Specialties
                 </label>
                 <input
                   type="text"
@@ -292,7 +292,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   placeholder="e.g. Engine Overhaul, Oil Change, Brake Service, Electrical"
                   className={inputClass}
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1">
                   Separate tags with commas.
                 </p>
               </div>
@@ -307,14 +307,14 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             className="dashboard-card p-6"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-fuchsia-50 text-fuchsia-600 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 bg-fuchsia-500/15 text-fuchsia-400 rounded-xl flex items-center justify-center shrink-0">
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Location &amp; Contact Details
                 </h2>
-                <p className="text-xs text-slate-400">Address, coordinates, phone and operating hours</p>
+                <p className="text-[13px] text-slate-400">Address, coordinates, phone and operating hours</p>
               </div>
             </div>
 
@@ -339,7 +339,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>
-                  <MapPin className="w-3.5 h-3.5 text-fuchsia-500" /> Location
+                  <MapPin className="w-4 h-4 text-fuchsia-500" /> Location
                 </label>
                 <LocationPicker
                   value={
@@ -358,7 +358,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <label className={labelClass}>
-                  <Phone className="w-3.5 h-3.5 text-fuchsia-500" /> Phone Number
+                  <Phone className="w-4 h-4 text-fuchsia-500" /> Phone Number
                 </label>
                 <input
                   type="text"
@@ -369,7 +369,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <label className={labelClass}>
-                  <Mail className="w-3.5 h-3.5 text-fuchsia-500" /> Contact Email
+                  <Mail className="w-4 h-4 text-fuchsia-500" /> Contact Email
                 </label>
                 <input
                   type="email"
@@ -380,7 +380,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>
-                  <Clock className="w-3.5 h-3.5 text-fuchsia-500" /> Operating Hours
+                  <Clock className="w-4 h-4 text-fuchsia-500" /> Operating Hours
                 </label>
                 <input
                   type="text"
@@ -403,18 +403,18 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             className="dashboard-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
             <div>
-              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 Listing Visibility Status
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[13px] text-slate-400 mt-0.5">
                 New shop registrations are reviewed and approved by MotoLink platform administrators.
               </p>
             </div>
             <span
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-bold shrink-0 ${
                 shop.is_active
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                  : "bg-amber-50 text-amber-700 border border-amber-200/60"
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                  : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
               }`}
             >
               <span
@@ -436,20 +436,20 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             className="dashboard-card p-6"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 bg-emerald-500/15 text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                 <Power className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Store Availability
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-[13px] text-slate-400">
                   Control whether your shop accepts bookings and orders right now.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+            <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-moto-gray bg-moto-dark p-5">
               <div className="flex items-center gap-4">
                 <button
                   type="button"
@@ -460,7 +460,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   disabled={togglingAvailability}
                   className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
                     shop.is_open === false
-                      ? "bg-slate-300"
+                      ? "bg-moto-gray"
                       : "bg-emerald-500"
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
@@ -475,10 +475,10 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   </span>
                 </button>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-base font-semibold text-slate-100">
                     {shop.is_open === false ? "Shop is currently closed" : "Shop is open"}
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-[13px] text-slate-400 mt-0.5">
                     {shop.is_open === false
                       ? "Customers can still browse your services, mechanics and products, but they won't be able to book appointments or purchase items."
                       : "Customers can view your shop and book appointments or purchase items normally."}
@@ -487,10 +487,10 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="flex items-center gap-2 shrink-0 pl-2 sm:pl-0">
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold ${
                     shop.is_open === false
-                      ? "bg-amber-50 text-amber-700 border border-amber-200/60"
-                      : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                      ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                      : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${shop.is_open === false ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
@@ -505,16 +505,16 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-violet-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white font-bold rounded-xl text-[13px] transition-all shadow-md shadow-violet-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
-                  <Loader className="w-4 h-4 animate-spin" />
+                  <Loader className="w-5 h-5 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
+                  <Save className="w-5 h-5" />
                   Save Changes
                 </>
               )}
