@@ -308,6 +308,35 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     }
   }, [isOpen, fetchShopData]);
 
+  // Restore previous conversation when the chat opens
+  useEffect(() => {
+    if (isOpen) {
+      const saved = sessionStorage.getItem("motolink_admin_ai_chat");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(
+              parsed.map((m: any) => ({
+                ...m,
+                timestamp: new Date(m.timestamp),
+              })),
+            );
+          }
+        } catch {
+          // corrupted storage → start fresh
+        }
+      }
+    }
+  }, [isOpen]);
+
+  // Persist the conversation so it survives closing / re-opening the chat
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem("motolink_admin_ai_chat", JSON.stringify(messages));
+    }
+  }, [messages]);
+
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

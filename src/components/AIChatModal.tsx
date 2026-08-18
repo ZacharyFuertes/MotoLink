@@ -362,7 +362,25 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
       setShopCtx(shop);
       setCustomerCtx(customer);
 
-      // Set personalized greeting
+      // Restore previous conversation if one exists; otherwise seed a greeting
+      const storageKey = `motolink_ai_chat_${user?.id ?? "guest"}`;
+      const saved = sessionStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMessages(
+              parsed.map((m: any) => ({
+                ...m,
+                timestamp: new Date(m.timestamp),
+              })),
+            );
+            return;
+          }
+        } catch {
+          // corrupted storage → fall through to greeting
+        }
+      }
       setMessages([buildGreeting(customer)]);
     } catch {
       setMessages([buildGreeting(null)]);
@@ -370,6 +388,14 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
       setCtxLoading(false);
     }
   }, [isAuthenticated, user?.id, user?.role]);
+
+  // Persist the conversation so it survives closing / re-opening the chat
+  useEffect(() => {
+    const storageKey = `motolink_ai_chat_${user?.id ?? "guest"}`;
+    if (messages.length > 0) {
+      sessionStorage.setItem(storageKey, JSON.stringify(messages));
+    }
+  }, [messages, user?.id]);
 
   useEffect(() => {
     if (isOpen) loadContext();
