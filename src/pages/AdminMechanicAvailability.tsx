@@ -339,13 +339,13 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     : availability
 
   const inputClass =
-    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition"
+    "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+          <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
           <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
         </div>
       </div>
@@ -361,10 +361,10 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
             Mechanics &amp; Availability
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[13px] text-slate-300 mt-0.5">
             Manage mechanics list, work shift schedules, and availability status.
           </p>
         </div>
@@ -374,7 +374,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               setShowAddMechanic(!showAddMechanic)
               setShowAddForm(false)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
           >
             <UserPlus size={16} /> Add New Mechanic
           </button>
@@ -383,7 +383,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               setShowAddForm(!showAddForm)
               setShowAddMechanic(false)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
           >
             <Plus size={16} /> Add Shift Schedule
           </button>
@@ -397,17 +397,17 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           animate={{ opacity: 1, x: 0 }}
           className="dashboard-card p-4 h-fit"
         >
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">
+          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 px-2">
             Team Members ({mechanics.length})
           </h2>
 
           <div className="space-y-1.5 mb-4">
             <button
               onClick={() => setSelectedMechanic(null)}
-              className={`w-full p-2.5 rounded-xl text-xs font-bold text-left transition ${
+              className={`w-full p-2.5 rounded-xl text-[13px] font-bold text-left transition ${
                 selectedMechanic === null
-                  ? 'bg-violet-50 text-violet-700 border border-violet-200/60'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                  : 'text-slate-300 hover:bg-moto-gray/40'
               }`}
             >
               All Mechanics
@@ -418,19 +418,19 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   onClick={() => setSelectedMechanic(mechanic.id)}
                   className={`flex-1 p-2.5 rounded-xl text-left transition border ${
                     selectedMechanic === mechanic.id
-                      ? 'bg-violet-50 text-violet-700 border-violet-200/60 font-bold'
-                      : 'border-transparent text-slate-600 hover:bg-slate-50'
+                      ? 'bg-violet-500/15 text-violet-400 border-violet-500/30 font-bold'
+                      : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
                   }`}
                 >
-                  <p className="text-xs font-semibold text-slate-900 truncate">{mechanic.name}</p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{mechanic.email}</p>
+                  <p className="text-[13px] font-semibold text-slate-100 truncate">{mechanic.name}</p>
+                  <p className="text-xs text-slate-300 truncate mt-0.5">{mechanic.email}</p>
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     setDeleteConfirm(mechanic)
                   }}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition"
+                  className="p-1.5 rounded-lg hover:bg-red-500/15 text-slate-300 hover:text-red-400 transition"
                   title="Remove Mechanic"
                 >
                   <Trash2 size={14} />
@@ -451,13 +451,13 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                 exit={{ opacity: 0, y: -10 }}
                 className="dashboard-card p-6"
               >
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-moto-gray">
+                  <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     Add New Mechanic
                   </h3>
                   <button
                     onClick={() => setShowAddMechanic(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                    className="p-1 rounded-lg text-slate-300 hover:text-moto-accent transition"
                   >
                     <X size={16} />
                   </button>
@@ -465,16 +465,16 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
                 <div className="space-y-4">
                   {mechanicError && (
-                    <div className="px-4 py-3 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-200/60">
+                    <div className="px-4 py-3 rounded-xl text-[13px] font-semibold bg-red-500/15 text-red-400 border border-red-500/30">
                       {mechanicError}
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Full Name</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Full Name</label>
                       <div className="relative">
-                        <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                         <input
                           type="text"
                           value={mechanicForm.name}
@@ -485,9 +485,9 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Email Address</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Email Address</label>
                       <div className="relative">
-                        <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                         <input
                           type="email"
                           value={mechanicForm.email}
@@ -500,12 +500,12 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-bold text-slate-600 mb-2">
+                    <p className="text-xs font-bold text-slate-300 mb-2">
                       Initial Availability
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Day of Week</label>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">Day of Week</label>
                         <select
                           value={mechanicForm.day_of_week}
                           onChange={(e) => setMechanicForm({ ...mechanicForm, day_of_week: e.target.value })}
@@ -519,7 +519,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                         </select>
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">Start Time</label>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">Start Time</label>
                         <input
                           type="time"
                           value={mechanicForm.start_time}
@@ -528,7 +528,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-600 mb-1">End Time</label>
+                        <label className="block text-xs font-bold text-slate-300 mb-1">End Time</label>
                         <input
                           type="time"
                           value={mechanicForm.end_time}
@@ -537,7 +537,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                         />
                       </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-2">
+                    <p className="text-xs text-slate-300 mt-2">
                       Add more shift schedules later with the "Add Shift Schedule" button.
                     </p>
                   </div>
@@ -545,14 +545,14 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => setShowAddMechanic(false)}
-                      className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                      className="flex-1 px-4 py-2 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleCreateMechanic}
                       disabled={creatingMechanic}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20 disabled:opacity-60"
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20 disabled:opacity-60"
                     >
                       {creatingMechanic ? 'Creating...' : 'Create Mechanic'}
                     </button>
@@ -571,13 +571,13 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                 exit={{ opacity: 0, y: -10 }}
                 className="dashboard-card p-6"
               >
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-moto-gray">
+                  <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     Add Shift Schedule
                   </h3>
                   <button
                     onClick={() => setShowAddForm(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                    className="p-1 rounded-lg text-slate-300 hover:text-moto-accent transition"
                   >
                     <X size={16} />
                   </button>
@@ -585,7 +585,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Mechanic</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Mechanic</label>
                     <select
                       value={formData.mechanic_id}
                       onChange={(e) => setFormData({ ...formData, mechanic_id: e.target.value })}
@@ -601,7 +601,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Day of Week</label>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Day of Week</label>
                     <select
                       value={formData.day_of_week}
                       onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
@@ -617,7 +617,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Start Time</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">Start Time</label>
                       <input
                         type="time"
                         value={formData.start_time}
@@ -626,7 +626,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">End Time</label>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">End Time</label>
                       <input
                         type="time"
                         value={formData.end_time}
@@ -639,13 +639,13 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => setShowAddForm(false)}
-                      className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                      className="flex-1 px-4 py-2 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleAddAvailability}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
                     >
                       Save Shift
                     </button>
@@ -658,8 +658,8 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           {/* Availability Cards */}
           {filteredAvailability.length === 0 ? (
             <div className="dashboard-card p-12 text-center">
-              <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 text-xs font-semibold">
+              <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm font-semibold">
                 {selectedMechanic ? `No shift schedules set for ${selectedMechanicData?.name}` : 'No mechanic shift schedules added yet'}
               </p>
             </div>
@@ -674,16 +674,16 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-bold text-slate-900 text-sm">
+                      <span className="font-bold text-slate-100 text-sm">
                         {typeof slot.day_of_week === "number"
                           ? daysOfWeek[slot.day_of_week] || slot.day_of_week
                           : slot.day_of_week}
                       </span>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold ${
                           slot.is_available
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-slate-100 text-slate-500"
+                            ? "bg-emerald-500/15 text-emerald-400"
+                            : "bg-moto-gray/40 text-slate-400"
                         }`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${slot.is_available ? "bg-emerald-500" : "bg-slate-400"}`} />
@@ -691,30 +691,30 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 font-medium mb-3">
-                      Mechanic: <span className="font-semibold text-slate-700">{slot.mechanic_name}</span>
+                    <p className="text-[13px] text-slate-300 font-medium mb-3">
+                      Mechanic: <span className="font-semibold text-slate-200">{slot.mechanic_name}</span>
                     </p>
 
-                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl text-xs font-bold text-slate-800 tabular-nums">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="flex items-center gap-2 p-3 bg-moto-gray/40 rounded-xl text-[13px] font-bold text-slate-200 tabular-nums">
+                      <Clock className="w-4 h-4 text-slate-300" />
                       {slot.start_time} — {slot.end_time}
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-4 mt-4 border-t border-slate-100">
+                  <div className="flex gap-2 pt-4 mt-4 border-t border-moto-gray">
                     <button
                       onClick={() => handleToggleAvailability(slot.id, slot.is_available)}
-                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition ${
+                      className={`flex-1 py-1.5 rounded-xl text-[13px] font-bold transition ${
                         slot.is_available
-                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                          ? 'bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200'
+                          : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400'
                       }`}
                     >
                       {slot.is_available ? 'Mark Unavailable' : 'Mark Available'}
                     </button>
                     <button
                       onClick={() => handleDeleteAvailability(slot.id)}
-                      className="p-2 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 transition"
+                      className="p-2 rounded-xl hover:bg-red-500/15 text-slate-300 hover:text-red-400 transition"
                       title="Delete shift"
                     >
                       <Trash2 size={15} />
@@ -745,30 +745,30 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               className="dashboard-card max-w-md w-full p-6 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Delete Mechanic
                 </h3>
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               <div className="mb-6 space-y-3">
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Are you sure you want to delete mechanic <span className="font-bold text-slate-900">{deleteConfirm.name}</span>?
+                <p className="text-[13px] text-slate-200 leading-relaxed">
+                  Are you sure you want to delete mechanic <span className="font-bold text-slate-100">{deleteConfirm.name}</span>?
                 </p>
-                <p className="text-xs text-slate-400">
-                  To confirm, type <span className="font-mono font-bold text-slate-900">CONFIRM</span> below.
+                <p className="text-[13px] text-slate-300">
+                  To confirm, type <span className="font-mono font-bold text-slate-100">CONFIRM</span> below.
                 </p>
                 <input
                   type="text"
                   placeholder="Type CONFIRM"
                   value={confirmationInput}
                   onChange={(e) => setConfirmationInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-red-500 transition"
+                  className="w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm font-bold text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:bg-moto-darker transition"
                 />
               </div>
 
@@ -779,14 +779,14 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                     setConfirmationInput('')
                   }}
                   disabled={deleting}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteMechanic}
                   disabled={deleting || confirmationInput !== 'CONFIRM'}
-                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-red-600/20"
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-red-600/20"
                 >
                   {deleting ? 'Deleting...' : 'Delete Mechanic'}
                 </button>
