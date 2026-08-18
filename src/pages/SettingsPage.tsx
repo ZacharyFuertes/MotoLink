@@ -58,12 +58,12 @@ const SectionCard: React.FC<SectionCardProps> = ({
     className="dashboard-card p-6"
   >
     <div className="flex items-center gap-3 mb-6">
-      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+      <div className="w-10 h-10 bg-moto-accent/15 text-moto-accent rounded-xl flex items-center justify-center shrink-0">
         <Icon size={20} />
       </div>
       <div>
-        <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>{title}</h3>
-        <p className="text-xs text-slate-400">{subtitle}</p>
+        <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>{title}</h3>
+        <p className="text-sm text-slate-300">{subtitle}</p>
       </div>
     </div>
     {children}
@@ -85,10 +85,10 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
   disabled,
   onChange,
 }) => (
-  <div className="flex items-center justify-between gap-4 py-3.5 border-b border-slate-100 last:border-b-0">
+  <div className="flex items-center justify-between gap-4 py-3.5 border-b border-moto-gray last:border-b-0">
     <div>
-      <p className="text-xs font-bold text-slate-800">{label}</p>
-      {description && <p className="text-[11px] text-slate-400 mt-0.5">{description}</p>}
+      <p className="text-[13px] font-bold text-slate-200">{label}</p>
+      {description && <p className="text-xs text-slate-300 mt-0.5">{description}</p>}
     </div>
     <button
       type="button"
@@ -98,7 +98,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
       disabled={disabled}
       onClick={onChange}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-        checked ? "bg-indigo-600" : "bg-slate-200"
+        checked ? "bg-indigo-600" : "bg-moto-gray"
       }`}
     >
       <span
@@ -111,9 +111,9 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
 );
 
 const selectClassName =
-  "px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition disabled:opacity-50";
+  "px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition disabled:opacity-50";
 const inputClassName =
-  "w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white transition";
+  "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
@@ -381,10 +381,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
           System Settings
         </h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-[13px] text-slate-300 mt-0.5">
           {user.role === "admin"
             ? "Admin account credentials and platform-wide configurations."
             : "Shop owner system settings and shortcuts."}
@@ -400,13 +400,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
               className="dashboard-card p-6 cursor-pointer"
               onClick={handleOpenShopSettings}
             >
-              <div className="w-10 h-10 bg-violet-50 text-violet-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="w-10 h-10 bg-violet-500/15 text-violet-400 rounded-xl flex items-center justify-center mb-4">
                 <Store size={20} />
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h3 className="text-base font-bold text-slate-100 mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 Shop Profile
               </h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <p className="text-[13px] text-slate-300 leading-relaxed">
                 Edit public shop information shown on MotoLink landing page.
               </p>
             </motion.div>
@@ -421,23 +421,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         className="dashboard-card p-6"
       >
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 bg-moto-accent/15 text-moto-accent rounded-xl flex items-center justify-center shrink-0">
             <ShieldCheck size={20} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Account &amp; Security
             </h3>
-            <p className="text-xs text-slate-400">Manage account credentials and session security</p>
+            <p className="text-sm text-slate-300">Manage account credentials and session security</p>
           </div>
         </div>
 
         {statusMsg && (
           <div
-            className={`mb-4 px-4 py-3 rounded-xl text-xs font-semibold ${
+            className={`mb-4 px-4 py-3 rounded-xl text-[13px] font-semibold ${
               statusMsg.type === "success"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                : "bg-red-50 text-red-600 border border-red-200/60"
+                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                : "bg-red-500/15 text-red-400 border border-red-500/30"
             }`}
           >
             {statusMsg.text}
@@ -445,23 +445,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         )}
 
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+          <div className="p-4 rounded-xl bg-moto-gray/30 border border-moto-gray">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
               Profile Summary
             </p>
-            <p className="text-xs font-semibold text-slate-800 mb-1">
-              Name: <span className="font-normal text-slate-600">{user.name}</span>
+            <p className="text-[13px] font-semibold text-slate-200 mb-1">
+              Name: <span className="font-normal text-slate-200">{user.name}</span>
             </p>
-            <p className="text-xs font-semibold text-slate-800 mb-1">
-              Email: <span className="font-normal text-slate-600">{user.email}</span>
+            <p className="text-[13px] font-semibold text-slate-200 mb-1">
+              Email: <span className="font-normal text-slate-200">{user.email}</span>
             </p>
-            <p className="text-xs font-semibold text-slate-800">
-              Role: <span className="font-bold text-indigo-600 capitalize">{user.role}</span>
+            <p className="text-[13px] font-semibold text-slate-200">
+              Role: <span className="font-bold text-moto-accent capitalize">{user.role}</span>
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+          <div className="p-4 rounded-xl bg-moto-gray/30 border border-moto-gray">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
               Update Password
             </p>
             <input
@@ -481,7 +481,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             <button
               onClick={handleChangePassword}
               disabled={changingPassword}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
             >
               {changingPassword ? (
                 <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -493,13 +493,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-xs text-slate-400">
+        <div className="mt-6 pt-5 border-t border-moto-gray flex items-center justify-between">
+          <p className="text-[13px] text-slate-300">
             Sign out of your MotoLink account session
           </p>
           <button
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-xl text-[13px] font-bold transition"
           >
             <LogOut size={14} /> Logout
           </button>
@@ -511,10 +511,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         <div className="space-y-6">
           {settingsStatus && (
             <div
-              className={`px-4 py-3 rounded-xl text-xs font-semibold ${
+              className={`px-4 py-3 rounded-xl text-[13px] font-semibold ${
                 settingsStatus.type === "success"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
-                  : "bg-red-50 text-red-600 border border-red-200/60"
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                  : "bg-red-500/15 text-red-400 border border-red-500/30"
               }`}
             >
               {settingsStatus.text}
@@ -523,7 +523,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
 
           {settingsLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <>
@@ -558,10 +558,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                   }
                 />
                 <div className="pt-3">
-                  <p className="text-xs font-bold text-slate-800 mb-1">
+                  <p className="text-[13px] font-bold text-slate-200 mb-1">
                     Default Timezone
                   </p>
-                  <p className="text-[11px] text-slate-400 mb-2">
+                  <p className="text-xs text-slate-300 mb-2">
                     Used for scheduling, appointments, and report timestamps.
                   </p>
                   <select
@@ -589,7 +589,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
               >
                 <div className="flex gap-2 mb-4">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                     <input
                       type="email"
                       placeholder="Search user by email address..."
@@ -604,7 +604,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                   <button
                     onClick={searchRepairUser}
                     disabled={repairSearching}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
                   >
                     {repairSearching ? (
                       <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -616,18 +616,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                 </div>
 
                 {repairResult && (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                  <div className="p-4 rounded-xl bg-moto-gray/30 border border-moto-gray">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
                       Edit Account Details
                     </p>
-                    <p className="text-xs text-slate-800 mb-3">
+                    <p className="text-[13px] text-slate-200 mb-3">
                       <span className="font-bold">{repairResult.name}</span> · {repairResult.email}
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2 mb-4">
                       <div>
                         <label
                           htmlFor="repair-role"
-                          className="block text-[11px] font-bold text-slate-500 mb-1"
+                          className="block text-xs font-bold text-slate-300 mb-1"
                         >
                           Role
                         </label>
@@ -647,7 +647,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                       <div>
                         <label
                           htmlFor="repair-shop-id"
-                          className="block text-[11px] font-bold text-slate-500 mb-1"
+                          className="block text-xs font-bold text-slate-300 mb-1"
                         >
                           Shop UUID (blank to unlink)
                         </label>
@@ -664,7 +664,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                     <button
                       onClick={saveRepairUser}
                       disabled={repairSaving}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
                     >
                       {repairSaving ? (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -729,10 +729,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
               >
                 <div className="flex items-center justify-between gap-4 py-3">
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Last Sign-in</p>
-                    <p className="text-[11px] text-slate-400">Timestamp of your most recent session login.</p>
+                    <p className="text-[13px] font-bold text-slate-200">Last Sign-in</p>
+                    <p className="text-xs text-slate-300">Timestamp of your most recent session login.</p>
                   </div>
-                  <p className="text-xs font-semibold text-slate-700 tabular-nums">
+                  <p className="text-xs font-semibold text-slate-200 tabular-nums">
                     {lastSignInAt ? new Date(lastSignInAt).toLocaleString() : "Active Session"}
                   </p>
                 </div>
