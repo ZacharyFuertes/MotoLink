@@ -87,31 +87,31 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         className="dashboard-card w-full max-w-3xl overflow-hidden shadow-2xl"
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-moto-gray">
           <div className="flex items-center gap-3">
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                shop.is_active ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                shop.is_active ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"
               }`}
             >
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 {shop.name}
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    shop.is_active ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                    shop.is_active ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-amber-500"}`} />
                   {shop.is_active ? "Active" : "Pending Approval"}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    shop.is_open ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                    shop.is_open ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"
                   }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${shop.is_open ? "bg-emerald-500" : "bg-amber-500"}`} />
@@ -122,7 +122,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+            className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition"
           >
             <X size={18} />
           </button>
@@ -131,54 +131,54 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
         <div className="max-h-[75vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full animate-spin" />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-20">
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-red-400">{error}</p>
             </div>
           ) : details ? (
             <div className="p-6 space-y-5">
               {/* Description */}
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Description</p>
-                <p className="text-sm text-slate-700 leading-relaxed">
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1.5">Description</p>
+                <p className="text-base text-slate-200 leading-relaxed">
                   {details.description || "No description provided."}
                 </p>
               </div>
 
               {/* Key details grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Address</p>
-                  <p className="text-xs text-slate-800 font-semibold flex items-start gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-xl bg-moto-dark border border-moto-gray">
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1">Address</p>
+                  <p className="text-base text-slate-200 font-semibold flex items-start gap-1.5">
+                    <MapPin className="w-4 h-4 text-moto-accent shrink-0 mt-0.5" />
                     <span>{details.address}, {details.city}</span>
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Owner</p>
-                  <p className="text-xs text-slate-800 font-semibold">{shop.owner_name}</p>
-                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Mail className="w-3 h-3" /> {shop.owner_email || "—"}
+                <div className="p-4 rounded-xl bg-moto-dark border border-moto-gray">
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1">Owner</p>
+                  <p className="text-base text-slate-200 font-semibold">{shop.owner_name}</p>
+                  <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                    <Mail className="w-4 h-4" /> {shop.owner_email || "—"}
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Contact</p>
-                  <p className="text-xs text-slate-800 font-semibold flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <div className="p-4 rounded-xl bg-moto-dark border border-moto-gray">
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1">Contact</p>
+                  <p className="text-base text-slate-200 font-semibold flex items-center gap-1.5">
+                    <Phone className="w-4 h-4 text-moto-accent shrink-0" />
                     <span>{details.phone || "No phone"}</span>
                   </p>
-                  <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <Mail className="w-3 h-3" /> {details.email || "—"}
+                  <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                    <Mail className="w-4 h-4" /> {details.email || "—"}
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Registered</p>
-                  <p className="text-xs text-slate-800 font-semibold">
+                <div className="p-4 rounded-xl bg-moto-dark border border-moto-gray">
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1">Registered</p>
+                  <p className="text-base text-slate-200 font-semibold">
                     {new Date(details.created_at).toLocaleDateString()}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-300 mt-0.5">
                     Coordinates: {details.latitude?.toFixed(5)}, {details.longitude?.toFixed(5)}
                   </p>
                 </div>
@@ -187,10 +187,10 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
               {/* Specialties */}
               {details.specialties && details.specialties.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Specialties</p>
+                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1.5">Specialties</p>
                   <div className="flex flex-wrap gap-2">
                     {details.specialties.map((s: string) => (
-                      <span key={s} className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">
+                      <span key={s} className="px-3 py-1.5 rounded-full bg-moto-accent/15 text-moto-accent text-[13px] font-semibold">
                         {s}
                       </span>
                     ))}
@@ -200,10 +200,10 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
 
               {/* Operating hours */}
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Operating Hours</p>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                  <p className="text-xs text-slate-700 flex items-start gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1.5">Operating Hours</p>
+                <div className="p-4 rounded-xl bg-moto-dark border border-moto-gray">
+                  <p className="text-base text-slate-200 flex items-start gap-1.5">
+                    <Clock className="w-4 h-4 text-moto-accent shrink-0 mt-0.5" />
                     <span>{details.operating_hours || "Hours unavailable"}</span>
                   </p>
                 </div>
@@ -211,7 +211,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
 
               {/* Map */}
               <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Location</p>
+                <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1.5">Location</p>
                 <ReviewShopMap
                   lat={details.latitude}
                   lng={details.longitude}
@@ -225,36 +225,36 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                 {!shop.is_active && onApprove && (
                   <button
                     onClick={() => onApprove(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
                   >
-                    <BadgeCheck className="w-4 h-4" />
+                    <BadgeCheck className="w-5 h-5" />
                     Approve & Activate
                   </button>
                 )}
                 {shop.is_active && onDeactivate && (
                   <button
                     onClick={() => onDeactivate(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-amber-500/20"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-amber-500/20"
                   >
-                    <XCircle className="w-4 h-4" />
+                    <XCircle className="w-5 h-5" />
                     Deactivate
                   </button>
                 )}
                 {onViewCustomers && (
                   <button
                     onClick={() => onViewCustomers(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent text-[13px] font-bold rounded-xl transition"
                   >
-                    <Users className="w-4 h-4" />
+                    <Users className="w-5 h-5" />
                     View Customers ({shop.customer_count ?? 0})
                   </button>
                 )}
                 {onDelete && (
                   <button
                     onClick={() => onDelete(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl transition"
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[13px] font-bold rounded-xl transition"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                     Delete
                   </button>
                 )}
@@ -312,7 +312,7 @@ const ReviewShopMap: React.FC<{
   }, [lat, lng, name, address]);
 
   return (
-    <div className="rounded-xl overflow-hidden border border-slate-200">
+    <div className="rounded-xl overflow-hidden border border-moto-gray">
       <div ref={mapRef} className="h-64 w-full" />
       <style>{`
         .admin-shop-review-pin {
