@@ -213,15 +213,15 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
   if (user?.role !== "owner") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker flex items-center justify-center">
         <div className="text-center">
-          <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-10 h-10 text-red-400" />
+          <div className="w-20 h-20 rounded-2xl bg-red-500/15 flex items-center justify-center mx-auto mb-6">
+            <Shield className="w-12 h-12 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">
             Access Denied
           </h2>
-          <p className="text-slate-500 max-w-sm">
+          <p className="text-slate-300 max-w-sm">
             This page is only accessible to shop owners.
           </p>
         </div>
@@ -240,11 +240,11 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-              <Store className="w-5 h-5 text-white" />
+              <Store className="w-[22px] h-[22px] text-white" />
             </div>
             <div>
-              <span className="font-bold text-white text-sm tracking-wide">MOTOLINK</span>
-              <p className="text-[10px] text-violet-300/70 font-medium tracking-widest uppercase">Shop</p>
+              <span className="font-bold text-white text-[15px] tracking-wide">MOTOLINK</span>
+              <p className="text-xs text-violet-300/70 font-medium tracking-widest uppercase">Shop</p>
             </div>
           </div>
         )}
@@ -253,7 +253,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             onClick={() => setMobileSidebarOpen(false)}
             className="p-1.5 rounded-lg hover:bg-white/10 text-white/50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-[22px] h-[22px]" />
           </button>
         ) : (
           <button
@@ -287,14 +287,14 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               }}
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
               disabled={isLocked}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 ${
                 isActive
                   ? "sidebar-nav-active sidebar-nav-active-violet"
                   : "sidebar-nav-item"
               } ${isLocked ? "opacity-30 cursor-not-allowed" : ""}`}
             >
               <Icon
-                className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : ""}`}
+                className={`w-[22px] h-[22px] shrink-0 ${isActive ? "text-white" : ""}`}
               />
               {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
             </button>
@@ -306,12 +306,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center text-white text-[13px] font-bold shadow-lg">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white/90 truncate">{user?.name}</p>
-              <p className="text-[11px] text-white/40">{getRoleLabel(user.role)}</p>
+              <p className="text-[15px] font-medium text-white/90 truncate">{user?.name}</p>
+              <p className="text-xs text-white/40">{getRoleLabel(user.role)}</p>
             </div>
           </div>
         )}
@@ -323,7 +323,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
         >
-          <LogOut className="w-5 h-5 shrink-0" />
+          <LogOut className="w-[22px] h-[22px] shrink-0" />
           {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
         </button>
       </div>
@@ -331,7 +331,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-moto-darker flex">
       {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
@@ -372,22 +372,22 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
+              className="lg:hidden p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h1 className="text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 {currentLabel}
               </h1>
               {isLocked && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600">
-                  <Clock className="w-3 h-3" />
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-amber-400">
+                  <Clock className="w-4 h-4" />
                   Pending Approval
                 </span>
               )}
               {!isLocked && (
-                <p className="text-xs text-slate-400 font-medium hidden sm:block">
+                <p className="text-sm text-slate-400 font-medium hidden sm:block">
                   {shop?.name || "Shop management"}
                 </p>
               )}
@@ -397,25 +397,25 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
               title="Toggle language"
             >
-              <Globe className="w-[18px] h-[18px]" />
+              <Globe className="w-5 h-5" />
             </button>
             <div className="relative">
               <button
                 onClick={handleOpenNotifications}
-                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors relative"
+                className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors relative"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 {unreadCount > 0 ? (
-                  <BellRing className="w-[18px] h-[18px]" />
+                  <BellRing className="w-5 h-5" />
                 ) : (
-                  <Bell className="w-[18px] h-[18px]" />
+                  <Bell className="w-5 h-5" />
                 )}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -434,14 +434,14 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-moto-gray bg-moto-dark">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">
+                        <p className="text-base font-bold text-slate-100">
                           Notifications
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-xs text-slate-400">
                           {unreadCount > 0
                             ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"} for your shop`
                             : "You're all caught up"}
@@ -450,21 +450,21 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       {unreadCount > 0 && (
                         <button
                           onClick={handleMarkAllRead}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:text-violet-700 px-2.5 py-1.5 rounded-lg hover:bg-violet-50 transition"
+                          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-moto-accent hover:text-moto-accent px-2.5 py-1.5 rounded-lg hover:bg-moto-gray/40 transition"
                         >
-                          <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                          <CheckCheck className="w-4 h-4" /> Mark all read
                         </button>
                       )}
                     </div>
 
-                    <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+                    <div className="max-h-[360px] overflow-y-auto divide-y divide-moto-gray/40">
                       {notifications.length === 0 ? (
                         <div className="px-4 py-12 text-center">
-                          <Inbox className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                          <p className="text-sm font-semibold text-slate-600">
+                          <Inbox className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                          <p className="text-base font-semibold text-slate-200">
                             No notifications yet
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-sm text-slate-400 mt-1">
                             New bookings and shop updates will appear here.
                           </p>
                         </div>
@@ -477,26 +477,26 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                             }
                             className={`w-full text-left px-4 py-3.5 transition ${
                               notification.read
-                                ? "bg-white hover:bg-slate-50"
-                                : "bg-violet-50/60 hover:bg-violet-50"
+                                ? "bg-moto-darker hover:bg-moto-gray/30"
+                                : "bg-moto-accent/10 hover:bg-moto-accent/15"
                             }`}
                           >
                             <div className="flex items-start gap-3">
                               <span
-                                className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                                className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
                                   notification.read
                                     ? "bg-transparent"
-                                    : "bg-violet-500"
+                                    : "bg-moto-accent"
                                 }`}
                               />
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-900">
+                                <p className="text-[15px] font-bold text-slate-100">
                                   {notification.subject || "Shop update"}
                                 </p>
-                                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                <p className="text-[13px] text-slate-300 mt-0.5 leading-relaxed">
                                   {notification.message || "New activity for your shop."}
                                 </p>
-                                <p className="text-[10px] text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
+                                <p className="text-xs text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
                                   {new Date(
                                     notification.created_at,
                                   ).toLocaleString(undefined, {
@@ -517,17 +517,17 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 )}
               </AnimatePresence>
             </div>
-            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-slate-200/60">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-sm">
-                <span className="text-white font-semibold text-xs">
+            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-moto-gray/60">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-sm">
+                <span className="text-slate-950 font-semibold text-[13px]">
                   {user?.name?.charAt(0)?.toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 leading-none">
+                <p className="text-[15px] font-semibold text-slate-100 leading-none">
                   {user?.name}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   {getRoleLabel(user.role)}
                 </p>
               </div>
@@ -543,17 +543,17 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               animate={{ opacity: 1, y: 0 }}
               className="dashboard-card p-12 mb-6 flex flex-col items-center text-center"
             >
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200/50 flex items-center justify-center mb-8 shadow-sm">
-                <Clock className="w-12 h-12 text-amber-500" />
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-amber-500/15 to-amber-500/25 border border-amber-200/50 flex items-center justify-center mb-8 shadow-sm">
+                <Clock className="w-12 h-12 text-amber-400" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h2 className="text-xl font-bold text-slate-100 mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 Awaiting Admin Approval
               </h2>
-              <p className="text-slate-500 text-sm max-w-md leading-relaxed">
+              <p className="text-slate-300 text-sm max-w-md leading-relaxed">
                 {shop ? (
                   <>
                     Thank you for registering{" "}
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-slate-200">
                       {shop.name}
                     </span>{" "}
                     on MotoLink! Your shop is now under review. A MotoLink
@@ -569,9 +569,9 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   </>
                 )}
               </p>
-              <div className="mt-8 flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-50 border border-slate-200/60">
+              <div className="mt-8 flex items-center gap-3 px-5 py-3 rounded-2xl bg-moto-gray/40 border border-moto-gray">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-sm font-medium text-slate-500">Status: Pending Approval</span>
+                <span className="text-sm font-medium text-slate-200">Status: Pending Approval</span>
               </div>
             </motion.div>
           ) : currentPage === "dashboard" ? (
@@ -595,8 +595,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-violet-200" />
-                    <span className="text-xs font-medium text-violet-200 uppercase tracking-wider">Shop Overview</span>
+                    <Sparkles className="w-5 h-5 text-violet-200" />
+                    <span className="text-[13px] font-medium text-violet-200 uppercase tracking-wider">Shop Overview</span>
                   </div>
                   <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     Welcome back, {user?.name}!
@@ -610,7 +610,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   </p>
                   <div className="mt-5 flex flex-wrap items-center gap-3">
                     <span className="bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                      <MapPin className="w-3.5 h-3.5" />
+                      <MapPin className="w-4 h-4" />
                       {shop?.city || "—"}
                     </span>
                     <span className="bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
@@ -630,16 +630,16 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-xl border text-xs font-semibold ${
+                  className={`mb-4 flex items-center gap-2 px-4 py-3 rounded-xl border text-[13px] font-semibold ${
                     availabilityMessage.type === "success"
-                      ? "bg-emerald-50 border-emerald-200/80 text-emerald-700"
-                      : "bg-red-50 border-red-200/80 text-red-700"
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                      : "bg-red-500/15 border-red-500/30 text-red-400"
                   }`}
                 >
                   {availabilityMessage.type === "success" ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
                   ) : (
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
                   )}
                   {availabilityMessage.text}
                 </motion.div>
@@ -650,8 +650,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 transition={{ delay: 0.05 }}
                 className="rounded-2xl p-6 mb-8 border"
                 style={{
-                  background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
-                  border: "1px solid rgba(16, 185, 129, 0.25)",
+                  background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,78,59,0.25) 100%)",
+                  border: "1px solid rgba(16, 185, 129, 0.35)",
                 }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -664,7 +664,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       onClick={handleToggleAvailability}
                       disabled={togglingAvailability || shop?.is_open === undefined}
                       className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
-                        shop?.is_open === false ? "bg-slate-300" : "bg-emerald-500"
+                        shop?.is_open === false ? "bg-moto-gray" : "bg-emerald-500"
                       } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                       <span
@@ -678,10 +678,10 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       </span>
                     </button>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">
+                      <p className="text-base font-bold text-slate-100">
                         {shop?.is_open === false ? "Shop is currently closed" : "Shop is open"}
                       </p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-[13px] text-slate-300 mt-0.5">
                         {shop?.is_open === false
                           ? "Customers can still browse your services, mechanics and products, but they won't be able to book appointments or purchase items."
                           : "Customers can view your shop and book appointments or purchase items normally."}
@@ -689,10 +689,10 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold self-start sm:self-auto ${
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-bold self-start sm:self-auto ${
                       shop?.is_open === false
-                        ? "bg-amber-50 text-amber-700 border border-amber-200/60"
-                        : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                        : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
@@ -709,23 +709,23 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
-                      <Store className="w-4 h-4 text-violet-600" />
+                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                      <Store className="w-5 h-5 text-moto-accent" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                         Live Shop Info
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-[13px] text-slate-300 mt-0.5">
                         What customers see on the MotoLink listing
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => onNavigate?.("shop-settings")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold transition-all shadow-sm shadow-violet-600/20 hover:shadow-md hover:shadow-violet-600/30"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold transition-all shadow-sm shadow-violet-600/20 hover:shadow-md hover:shadow-violet-600/30"
                   >
-                    <Pencil className="w-3.5 h-3.5" /> Edit Shop Info
+                    <Pencil className="w-4 h-4" /> Edit Shop Info
                   </button>
                 </div>
 
@@ -736,7 +736,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 ) : shop ? (
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex items-center gap-4 shrink-0">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-50 to-fuchsia-50 border border-violet-100 flex items-center justify-center overflow-hidden shadow-sm">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-moto-gray to-moto-gray-light border border-violet-100 flex items-center justify-center overflow-hidden shadow-sm">
                         {shop.logo_url ? (
                           <img
                             src={shop.logo_url}
@@ -744,25 +744,25 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <Store className="w-8 h-8 text-violet-400" />
+                          <Store className="w-12 h-12 text-violet-400" />
                         )}
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                        <p className="text-xl font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                           {shop.name || "Unnamed shop"}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="flex items-center gap-2 text-[13px] text-slate-300 mt-1">
+                          <MapPin className="w-4 h-4 text-slate-300" />
                           <span>
                             {[shop.address, shop.city].filter(Boolean).join(", ") ||
                               "No address set"}
                           </span>
                         </div>
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mt-2 ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold mt-2 ${
                             shop.is_active
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-red-50 text-red-700"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-red-500/15 text-red-400"
                           }`}
                         >
                           <span
@@ -774,8 +774,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                         </span>
                       </div>
                     </div>
-                    <div className="md:border-l md:border-slate-100 md:pl-6 flex-1 min-w-0">
-                      <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+                    <div className="md:border-l md:border-moto-gray md:pl-6 flex-1 min-w-0">
+                      <p className="text-[15px] text-slate-200 line-clamp-3 leading-relaxed">
                         {shop.description || "No description yet."}
                       </p>
                       {(shop.specialties || []).length > 0 && (
@@ -783,21 +783,21 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                           {shop.specialties.slice(0, 6).map((s) => (
                             <span
                               key={s}
-                              className="px-3 py-1 rounded-lg bg-violet-50 text-violet-700 text-xs font-semibold"
+                              className="px-3 py-1 rounded-lg bg-violet-500/15 text-violet-400 text-[13px] font-semibold"
                             >
                               {s}
                             </span>
                           ))}
                         </div>
                       )}
-                      <p className="text-xs text-slate-400 mt-4 flex items-center gap-1.5">
-                        <ExternalLink className="w-3.5 h-3.5" />
+                      <p className="text-[13px] text-slate-300 mt-4 flex items-center gap-1.5">
+                        <ExternalLink className="w-4 h-4" />
                         Changes appear on the MotoLink landing page immediately.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-400 py-4">
+                  <p className="text-base text-slate-300 py-4">
                     No shop linked to this account yet. Contact a platform admin
                     or use Shop Profile to set one up.
                   </p>
