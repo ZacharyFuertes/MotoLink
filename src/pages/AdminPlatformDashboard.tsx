@@ -100,10 +100,10 @@ const COLORS = [
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl px-4 py-3 shadow-lg">
-      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+    <div className="bg-moto-dark/95 backdrop-blur-sm border border-moto-gray rounded-xl px-4 py-3 shadow-lg">
+      <p className="text-[13px] font-medium text-slate-300 mb-1">{label}</p>
       {payload.map((entry: any, i: number) => (
-        <p key={i} className="text-sm font-semibold text-slate-900">
+        <p key={i} className="text-sm font-semibold text-slate-100">
           {typeof entry.value === "number"
             ? `₱${entry.value.toLocaleString()}`
             : entry.value}
@@ -531,15 +531,15 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
   if (user?.role !== "admin") {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker flex items-center justify-center">
         <div className="text-center">
           <div className="w-20 h-20 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-6">
-            <Shield className="w-10 h-10 text-red-400" />
+            <Shield className="w-12 h-12 text-red-400" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">
             Access Denied
           </h2>
-          <p className="text-slate-500 max-w-sm">
+          <p className="text-slate-400 max-w-sm">
             This page is only accessible to platform administrators.
           </p>
         </div>
@@ -549,13 +549,13 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-12 h-12 mx-auto mb-4">
             <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
             <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
           </div>
-          <p className="text-slate-400 text-sm font-medium">Loading platform analytics…</p>
+          <p className="text-slate-300 text-sm font-medium">Loading platform analytics…</p>
         </div>
       </div>
     );
@@ -566,61 +566,61 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       label: "Total Shops",
       value: totalShops,
       sub: `${activeShops} active`,
-      icon: <Store className="w-5 h-5" />,
+      icon: <Store className="w-6 h-6" />,
       accent: "#6366f1",
-      bgTint: "bg-indigo-50/50",
-      iconBg: "bg-indigo-100",
-      iconColor: "text-indigo-600",
+      bgTint: "bg-moto-accent/15",
+      iconBg: "bg-moto-accent/15",
+      iconColor: "text-moto-accent",
     },
     {
       label: "Total Customers",
       value: totalCustomers,
       sub: "registered",
-      icon: <Users className="w-5 h-5" />,
+      icon: <Users className="w-6 h-6" />,
       accent: "#10b981",
-      bgTint: "bg-emerald-50/50",
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
+      bgTint: "bg-emerald-500/15",
+      iconBg: "bg-emerald-500/15",
+      iconColor: "text-emerald-400",
     },
     {
       label: "Total Mechanics",
       value: totalMechanics,
       sub: "on platform",
-      icon: <Wrench className="w-5 h-5" />,
+      icon: <Wrench className="w-6 h-6" />,
       accent: "#8b5cf6",
-      bgTint: "bg-violet-50/50",
-      iconBg: "bg-violet-100",
-      iconColor: "text-violet-600",
+      bgTint: "bg-violet-500/15",
+      iconBg: "bg-violet-500/15",
+      iconColor: "text-violet-400",
     },
     {
       label: "Appointments",
       value: totalAppointments,
       sub: "all shops",
-      icon: <Calendar className="w-5 h-5" />,
+      icon: <Calendar className="w-6 h-6" />,
       accent: "#f59e0b",
-      bgTint: "bg-amber-50/50",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
+      bgTint: "bg-amber-500/15",
+      iconBg: "bg-amber-500/15",
+      iconColor: "text-amber-400",
     },
     {
       label: "Platform Revenue",
       value: `₱${totalRevenue.toLocaleString()}`,
       sub: "combined",
-      icon: <DollarSign className="w-5 h-5" />,
+      icon: <DollarSign className="w-6 h-6" />,
       accent: "#06b6d4",
-      bgTint: "bg-cyan-50/50",
-      iconBg: "bg-cyan-100",
-      iconColor: "text-cyan-600",
+      bgTint: "bg-moto-accent/15",
+      iconBg: "bg-moto-accent/15",
+      iconColor: "text-moto-accent",
     },
     {
       label: "Active Shops",
       value: activeShops,
       sub: `${totalShops - activeShops} inactive`,
-      icon: <Activity className="w-5 h-5" />,
+      icon: <Activity className="w-6 h-6" />,
       accent: "#ec4899",
-      bgTint: "bg-pink-50/50",
-      iconBg: "bg-pink-100",
-      iconColor: "text-pink-600",
+      bgTint: "bg-pink-500/15",
+      iconBg: "bg-pink-500/15",
+      iconColor: "text-pink-400",
     },
   ];
 
@@ -632,11 +632,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Shield className="w-5 h-5 text-white" />
+              <Shield className="w-[22px] h-[22px] text-white" />
             </div>
             <div>
-              <span className="font-bold text-white text-sm tracking-wide">MOTOLINK</span>
-              <p className="text-[10px] text-indigo-300/70 font-medium tracking-widest uppercase">Admin</p>
+              <span className="font-bold text-white text-[15px] tracking-wide">MOTOLINK</span>
+              <p className="text-xs text-indigo-300/70 font-medium tracking-widest uppercase">Admin</p>
             </div>
           </div>
         )}
@@ -645,7 +645,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
             onClick={() => setMobileSidebarOpen(false)}
             className="p-1.5 rounded-lg hover:bg-white/10 text-white/50"
           >
-            <X className="w-5 h-5" />
+            <X className="w-[22px] h-[22px]" />
           </button>
         ) : (
           <button
@@ -677,14 +677,14 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 onNavigate?.(item.id);
               }}
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 ${
                 isActive
                   ? "sidebar-nav-active"
                   : "sidebar-nav-item"
               }`}
             >
               <Icon
-                className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : ""}`}
+                className={`w-[22px] h-[22px] shrink-0 ${isActive ? "text-white" : ""}`}
               />
               {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
             </button>
@@ -696,12 +696,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       <div className="px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-[13px] font-bold shadow-lg">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white/90 truncate">{user?.name}</p>
-              <p className="text-[11px] text-white/40">Administrator</p>
+              <p className="text-[15px] font-medium text-white/90 truncate">{user?.name}</p>
+              <p className="text-xs text-white/40">Administrator</p>
             </div>
           </div>
         )}
@@ -713,7 +713,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           }}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
         >
-          <LogOut className="w-5 h-5 shrink-0" />
+          <LogOut className="w-[22px] h-[22px] shrink-0" />
           {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
         </button>
       </div>
@@ -721,7 +721,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-moto-darker flex">
       {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:flex flex-col sidebar-dark transition-all duration-300 ${
@@ -762,15 +762,15 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-400 transition-colors"
+              className="lg:hidden p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h1 className="text-xl font-bold text-slate-100 tracking-tight font-display uppercase" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
                 {sidebarItems.find((i) => i.id === currentPage)?.label || "Dashboard"}
               </h1>
-              <p className="text-xs text-slate-400 font-medium hidden sm:block">
+              <p className="text-sm text-slate-400 font-medium hidden sm:block">
                 Platform overview and management
               </p>
             </div>
@@ -779,25 +779,25 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-              className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+              className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
               title="Toggle language"
             >
-              <Globe className="w-[18px] h-[18px]" />
+              <Globe className="w-5 h-5" />
             </button>
             <div className="relative">
               <button
                 onClick={handleOpenNotifications}
-                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors relative"
+                className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors relative"
                 title="Notifications"
                 aria-label="Notifications"
               >
                 {unreadCount > 0 ? (
-                  <BellRing className="w-[18px] h-[18px]" />
+                  <BellRing className="w-5 h-5" />
                 ) : (
-                  <Bell className="w-[18px] h-[18px]" />
+                  <Bell className="w-5 h-5" />
                 )}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -816,14 +816,14 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden z-50"
+                      className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
                     >
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-moto-gray bg-moto-dark">
                         <div>
-                          <p className="text-sm font-bold text-slate-900">
+                          <p className="text-base font-bold text-slate-100">
                             Notifications
                           </p>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-xs text-slate-400">
                             {unreadCount > 0
                               ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"} for the platform`
                               : "You're all caught up"}
@@ -832,21 +832,21 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         {unreadCount > 0 && (
                           <button
                             onClick={handleMarkAllRead}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 transition"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-moto-accent hover:text-moto-accent-dark px-2.5 py-1.5 rounded-lg hover:bg-moto-gray/40 transition"
                           >
-                            <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                            <CheckCheck className="w-4 h-4" /> Mark all read
                           </button>
                         )}
                       </div>
 
-                      <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+                      <div className="max-h-[360px] overflow-y-auto divide-y divide-moto-gray/40">
                         {notifications.length === 0 ? (
                           <div className="px-4 py-12 text-center">
-                            <Inbox className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-                            <p className="text-sm font-semibold text-slate-600">
+                            <Inbox className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                            <p className="text-base font-semibold text-slate-200">
                               No notifications yet
                             </p>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-sm text-slate-400 mt-1">
                               New shop registrations and platform updates will appear here.
                             </p>
                           </div>
@@ -859,26 +859,26 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               }
                               className={`w-full text-left px-4 py-3.5 transition ${
                                 notification.read
-                                  ? "bg-white hover:bg-slate-50"
-                                  : "bg-indigo-50/60 hover:bg-indigo-50"
+                                  ? "bg-moto-darker hover:bg-moto-gray/30"
+                                  : "bg-moto-accent/10 hover:bg-moto-accent/15"
                               }`}
                             >
                               <div className="flex items-start gap-3">
                                 <span
-                                  className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+                                  className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
                                     notification.read
                                       ? "bg-transparent"
-                                      : "bg-indigo-500"
+                                      : "bg-moto-accent"
                                   }`}
                                 />
                                 <div className="min-w-0">
-                                  <p className="text-sm font-bold text-slate-900">
+                                  <p className="text-[15px] font-bold text-slate-100">
                                     {notification.subject || "Platform update"}
                                   </p>
-                                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                                  <p className="text-[13px] text-slate-300 mt-0.5 leading-relaxed">
                                     {notification.message || "New platform activity."}
                                   </p>
-                                  <p className="text-[10px] text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
+                                  <p className="text-xs text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
                                     {new Date(
                                       notification.created_at,
                                     ).toLocaleString(undefined, {
@@ -899,17 +899,17 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 )}
               </AnimatePresence>
             </div>
-            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-slate-200/60">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-sm">
-                <span className="text-white font-semibold text-xs">
+            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-moto-gray/60">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-sm">
+                <span className="text-slate-950 font-semibold text-[13px]">
                   {user?.name?.charAt(0)?.toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900 leading-none">
+                <p className="text-[15px] font-semibold text-slate-100 leading-none">
                   {user?.name}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Admin</p>
+                <p className="text-xs text-slate-400 mt-0.5">Admin</p>
               </div>
             </div>
           </div>
@@ -926,23 +926,23 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   className="rounded-2xl p-6 mb-8"
                   style={{
-                    background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
-                    border: "1px solid rgba(245, 158, 11, 0.2)",
+                    background: "linear-gradient(135deg, rgba(180,83,9,0.18) 0%, rgba(146,64,14,0.28) 100%)",
+                    border: "1px solid rgba(245, 158, 11, 0.25)",
                   }}
                 >
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                        <ShieldCheck className="w-5 h-5 text-amber-600" />
+                      <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                        <ShieldCheck className="w-6 h-6 text-amber-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                        <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
                           Pending Approvals
                         </h3>
-                        <p className="text-xs text-amber-700/70">New shops waiting for review</p>
+                        <p className="text-sm text-amber-400/80">New shops waiting for review</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-amber-700 bg-amber-200/60 px-3 py-1.5 rounded-full">
+                    <span className="text-[13px] font-bold text-amber-300 bg-amber-500/15 px-3 py-1.5 rounded-full">
                       {pendingShops.length} pending
                     </span>
                   </div>
@@ -950,21 +950,21 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                     {pendingShops.map((shop) => (
                       <div
                         key={shop.id}
-                        className="bg-white/80 backdrop-blur-sm rounded-xl p-4 flex flex-col gap-3 border border-amber-200/40 hover:shadow-md transition-all"
+                        className="bg-moto-dark/80 backdrop-blur-sm rounded-xl p-4 flex flex-col gap-3 border border-amber-500/25 hover:border-amber-500/50 hover:shadow-md transition-all"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
-                            <Store className="w-5 h-5 text-amber-700" />
+                          <div className="w-10 h-10 bg-amber-500/15 rounded-xl flex items-center justify-center shrink-0">
+                            <Store className="w-6 h-6 text-amber-400" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-sm text-slate-900 truncate">
+                            <p className="font-semibold text-[15px] text-slate-100 truncate">
                               {shop.name}
                             </p>
-                            <p className="text-xs text-slate-500 truncate">
+                            <p className="text-[13px] text-slate-300 truncate">
                               {shop.owner_name}
                             </p>
-                            <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
-                              <MapPin className="w-3 h-3" /> {shop.city || "No city"}
+                            <p className="text-[13px] text-slate-400 flex items-center gap-1 mt-1">
+                              <MapPin className="w-4 h-4" /> {shop.city || "No city"}
                             </p>
                           </div>
                         </div>
@@ -979,24 +979,24 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               is_open: shop.is_open,
                               customer_count: shop.customer_count,
                             })}
-                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-amber-200 text-amber-700 hover:bg-amber-50 text-xs font-bold transition-all"
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-moto-dark border border-amber-500/30 text-amber-400 hover:bg-amber-500/15 text-[13px] font-bold transition-all"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-5 h-5" />
                             Review
                           </button>
                           <button
                             onClick={() => approveShop(shop.id)}
                             disabled={approvingId === shop.id}
-                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all disabled:opacity-50 shadow-sm shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30"
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold transition-all disabled:opacity-50 shadow-sm shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30"
                           >
                             {approvingId === shop.id ? (
                               <>
-                                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                                 Approving…
                               </>
                             ) : (
                               <>
-                                <CheckCircle2 className="w-4 h-4" />
+                                <CheckCircle2 className="w-5 h-5" />
                                 Approve Shop
                               </>
                             )}
@@ -1024,12 +1024,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         {stat.icon}
                       </div>
                     </div>
-                    <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
+                    <p className="text-3xl font-extrabold text-slate-100 tabular-nums leading-none">
                       {stat.value}
                     </p>
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{stat.sub}</span>
+                      <p className="text-[13px] font-semibold text-slate-300">{stat.label}</p>
+                      <span className="text-xs font-semibold text-slate-300 bg-moto-gray/50 px-2 py-0.5 rounded-full">{stat.sub}</span>
                     </div>
                   </motion.div>
                 ))}
@@ -1046,15 +1046,15 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-indigo-600" />
+                      <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-moto-accent" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Weekly Overview</h3>
-                        <p className="text-xs text-slate-400">Revenue this week</p>
+                        <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Weekly Overview</h3>
+                        <p className="text-sm text-slate-400">Revenue this week</p>
                       </div>
                     </div>
-                    <span className="text-xs font-medium text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full">This week</span>
+                    <span className="text-[13px] font-medium text-slate-300 bg-moto-gray/40 px-3 py-1.5 rounded-full">This week</span>
                   </div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={weeklyRevenue} barSize={32}>
@@ -1064,23 +1064,23 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <stop offset="100%" stopColor="#818cf8" />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#25334e" vertical={false} />
                       <XAxis
                         dataKey="day"
-                        stroke="#cbd5e1"
+                        stroke="#64748b"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                         fontWeight={500}
                       />
                       <YAxis
-                        stroke="#cbd5e1"
+                        stroke="#64748b"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => `₱${v.toLocaleString()}`}
                       />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(99, 102, 241, 0.04)' }} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(56, 182, 196, 0.06)' }} />
                       <Bar
                         dataKey="revenue"
                         fill="url(#barGradient)"
@@ -1098,10 +1098,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   className="dashboard-card p-6"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-emerald-600" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Appointment Status</h3>
+                    <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Appointment Status</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
@@ -1124,10 +1124,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   </ResponsiveContainer>
                   {/* Total in center overlay */}
                   <div className="text-center -mt-[120px] mb-[60px] pointer-events-none">
-                    <p className="text-2xl font-extrabold text-slate-900 tabular-nums">
+                    <p className="text-2xl font-extrabold text-slate-100 tabular-nums">
                       {appointmentsByStatus.reduce((s, i) => s + i.value, 0)}
                     </p>
-                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Total</p>
+                    <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Total</p>
                   </div>
                   <div className="space-y-2.5 mt-2">
                     {appointmentsByStatus.map((item) => (
@@ -1140,11 +1140,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                             className="w-2.5 h-2.5 rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-xs font-medium text-slate-600 capitalize">
+                          <span className="text-[13px] font-medium text-slate-300 capitalize">
                             {item.name.replace("_", " ")}
                           </span>
                         </div>
-                        <span className="text-xs font-bold text-slate-900 tabular-nums">
+                        <span className="text-[13px] font-bold text-slate-100 tabular-nums">
                           {item.value}
                         </span>
                       </div>
@@ -1163,12 +1163,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   className="lg:col-span-2 dashboard-card p-6"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-9 h-9 rounded-xl bg-cyan-50 flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 text-cyan-600" />
+                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-moto-accent" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Platform Revenue Trend</h3>
-                      <p className="text-xs text-slate-400">Last 14 days</p>
+                      <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Platform Revenue Trend</h3>
+                      <p className="text-sm text-slate-400">Last 14 days</p>
                     </div>
                   </div>
                   <ResponsiveContainer width="100%" height={280}>
@@ -1179,17 +1179,17 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#25334e" vertical={false} />
                       <XAxis
                         dataKey="date"
-                        stroke="#cbd5e1"
+                        stroke="#64748b"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
                         fontWeight={500}
                       />
                       <YAxis
-                        stroke="#cbd5e1"
+                        stroke="#64748b"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
@@ -1217,10 +1217,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   className="dashboard-card p-6"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-emerald-600" />
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Customers / Shop</h3>
+                    <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Customers / Shop</h3>
                   </div>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={customersPerShop} layout="vertical" barSize={14}>
@@ -1232,12 +1232,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#f1f5f9"
+                        stroke="#25334e"
                         horizontal={false}
                       />
                       <XAxis
                         type="number"
-                        stroke="#cbd5e1"
+                        stroke="#64748b"
                         fontSize={11}
                         tickLine={false}
                         axisLine={false}
@@ -1245,14 +1245,14 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       <YAxis
                         dataKey="name"
                         type="category"
-                        stroke="#94a3b8"
+                        stroke="#64748b"
                         fontSize={11}
                         width={90}
                         tickLine={false}
                         axisLine={false}
                         fontWeight={500}
                       />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.04)' }} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(16, 185, 129, 0.06)' }} />
                       <Bar
                         dataKey="count"
                         fill="url(#hBarGradient)"
@@ -1275,12 +1275,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="px-6 py-5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
-                        <Store className="w-4 h-4 text-slate-600" />
+                      <div className="w-10 h-10 rounded-xl bg-moto-gray/40 flex items-center justify-center">
+                        <Store className="w-5 h-5 text-slate-300" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>All Shops</h3>
-                        <p className="text-xs text-slate-400">{recentShops.length} registered</p>
+                        <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>All Shops</h3>
+                        <p className="text-sm text-slate-400">{recentShops.length} registered</p>
                       </div>
                     </div>
                   </div>
@@ -1301,41 +1301,41 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <tr key={shop.id}>
                             <td>
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                  <Store className="w-3.5 h-3.5 text-slate-500" />
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-moto-gray to-moto-gray-light flex items-center justify-center">
+                                  <Store className="w-4 h-4 text-slate-300" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-slate-900 text-sm">
+                                  <p className="font-semibold text-slate-100 text-[15px]">
                                     {shop.name}
                                   </p>
-                                  <p className="text-xs text-slate-400">
+                                  <p className="text-[13px] text-slate-300">
                                     {shop.owner_name}
                                   </p>
                                 </div>
                               </div>
                             </td>
-                            <td className="text-slate-600 text-sm">
+                            <td className="text-slate-300 text-sm">
                               {shop.city}
                             </td>
                             <td className="text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold tabular-nums">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-moto-accent/15 text-moto-accent text-[13px] font-bold tabular-nums">
                                 {shop.customer_count}
                               </span>
                             </td>
                             <td className="text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold tabular-nums">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 text-[13px] font-bold tabular-nums">
                                 {shop.appointment_count}
                               </span>
                             </td>
-                            <td className="text-right font-bold text-slate-900 tabular-nums text-sm">
+                            <td className="text-right font-bold text-slate-100 tabular-nums text-sm">
                               ₱{shop.total_revenue.toLocaleString()}
                             </td>
                             <td className="text-center">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${
                                   shop.is_active
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-red-50 text-red-600"
+                                    ? "bg-emerald-500/15 text-emerald-400"
+                                    : "bg-red-500/15 text-red-400"
                                 }`}
                               >
                                 <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-red-400"}`} />
@@ -1348,7 +1348,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           <tr>
                             <td
                               colSpan={6}
-                              className="py-12 text-center text-slate-400 text-sm"
+                              className="py-12 text-center text-slate-300 text-base"
                             >
                               No shops yet
                             </td>
@@ -1368,12 +1368,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
-                        <MapPin className="w-4 h-4 text-violet-600" />
+                      <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-violet-400" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Shops by City</h3>
-                        <p className="text-xs text-slate-400">Geographic distribution</p>
+                        <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Shops by City</h3>
+                        <p className="text-sm text-slate-400">Geographic distribution</p>
                       </div>
                     </div>
                   </div>
@@ -1386,14 +1386,14 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       return (
                         <div key={item.city}>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-slate-700">
+                            <span className="text-sm font-semibold text-slate-100">
                               {item.city}
                             </span>
-                            <span className="text-sm font-bold text-slate-900 tabular-nums">
+                            <span className="text-sm font-bold text-slate-100 tabular-nums">
                               {item.count}
                             </span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div className="w-full bg-moto-gray/40 rounded-full h-2">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(item.count / maxCount) * 100}%` }}
@@ -1408,7 +1408,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       );
                     })}
                     {shopsByCity.length === 0 && (
-                      <p className="text-center text-slate-400 text-sm py-6">
+                      <p className="text-center text-slate-300 text-base py-6">
                         No data yet
                       </p>
                     )}
@@ -1425,12 +1425,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               >
                 <div className="px-6 py-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                      <Users className="w-4 h-4 text-blue-600" />
+                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-moto-accent" />
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Recent Users</h3>
-                      <p className="text-xs text-slate-400">Newest registrations</p>
+                      <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Recent Users</h3>
+                      <p className="text-sm text-slate-400">Newest registrations</p>
                     </div>
                   </div>
                 </div>
@@ -1449,33 +1449,33 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         <tr key={u.id}>
                           <td>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
-                                <span className="text-slate-600 font-semibold text-xs">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-moto-gray to-moto-gray-light flex items-center justify-center">
+                                <span className="text-slate-300 font-semibold text-[13px]">
                                   {u.name?.charAt(0)?.toUpperCase()}
                                 </span>
                               </div>
-                              <span className="font-semibold text-slate-900 text-sm">
+                              <span className="font-semibold text-slate-100 text-[15px]">
                                 {u.name}
                               </span>
                             </div>
                           </td>
-                          <td className="text-slate-500 text-sm">{u.email}</td>
+                          <td className="text-slate-300 text-sm">{u.email}</td>
                           <td className="text-center">
                             <span
-                              className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-bold capitalize ${
+                              className={`inline-flex px-3 py-1.5 rounded-lg text-[13px] font-bold capitalize ${
                                 u.role === "admin"
-                                  ? "bg-purple-50 text-purple-700"
+                                  ? "bg-purple-500/15 text-purple-400"
                                   : u.role === "owner"
-                                    ? "bg-rose-50 text-rose-700"
+                                    ? "bg-rose-500/15 text-rose-400"
                                     : u.role === "mechanic"
-                                      ? "bg-blue-50 text-blue-700"
-                                      : "bg-emerald-50 text-emerald-700"
+                                      ? "bg-moto-accent/15 text-moto-accent"
+                                      : "bg-emerald-500/15 text-emerald-400"
                               }`}
                             >
                               {u.role}
                             </span>
                           </td>
-                          <td className="text-right text-slate-400 text-xs tabular-nums">
+                          <td className="text-right text-slate-300 text-[13px] tabular-nums">
                             {new Date(u.created_at).toLocaleDateString()}
                           </td>
                         </tr>
@@ -1484,7 +1484,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         <tr>
                           <td
                             colSpan={4}
-                            className="py-12 text-center text-slate-400"
+                            className="py-12 text-center text-slate-300"
                           >
                             No users yet
                           </td>
