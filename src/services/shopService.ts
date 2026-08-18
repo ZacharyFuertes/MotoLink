@@ -50,7 +50,11 @@ export const parseOperatingHoursString = (oh?: string) => {
   const parts = oh.split(";").map((p) => p.trim()).filter(Boolean);
   const schedule = emptySchedule.slice();
   parts.forEach((part) => {
-    const [dayLabel, rest] = part.split(":").map((s) => s.trim());
+    // split at the first ':' only — times themselves contain ':' characters
+    const idx = part.indexOf(":");
+    if (idx === -1) return;
+    const dayLabel = part.slice(0, idx).trim();
+    const rest = part.slice(idx + 1).trim();
     if (!dayLabel) return;
     const dayIndex = WEEK_DAYS.findIndex((d) => d.slice(0,3).toLowerCase() === dayLabel.slice(0,3).toLowerCase());
     if (dayIndex === -1) return;
@@ -67,9 +71,21 @@ export const parseOperatingHoursString = (oh?: string) => {
 };
 
 const timeToMinutes = (t: string) => {
-  const [hh, mm] = t.split(":").map((s) => parseInt(s, 10));
+  if (!t || typeof t !== "string") return 0;
+  const raw = t.trim().toLowerCase();
+  // detect am/pm
+  const ampmMatch = raw.match(/\b(am|pm)\b/);
+  let ampm = ampmMatch ? ampmMatch[1] : null;
+  // remove am/pm for parsing
+  const clean = raw.replace(/\s*(am|pm)\b/, "").trim();
+  const parts = clean.split(":").map((s) => s.trim());
+  const hh = parseInt(parts[0] || "0", 10);
+  const mm = parseInt(parts[1] || "0", 10);
   if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
-  return hh * 60 + mm;
+  let hour24 = hh;
+  if (ampm === "pm" && hour24 < 12) hour24 += 12;
+  if (ampm === "am" && hour24 === 12) hour24 = 0;
+  return hour24 * 60 + mm;
 };
 
 export const isOpenNowFromOperatingHours = (oh?: string) => {

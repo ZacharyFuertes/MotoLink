@@ -19,15 +19,15 @@ const getShopStatus = (shop: ShopSearchResult) => {
 
 const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   // Prefer inferring 'open now' from the shop.operating_hours string when available.
-  // Keep is_active semantics: inactive shops remain 'Closed'.
+  // If the operating_hours string can be parsed, use it to determine Open/Closed
+  // for the current time regardless of is_active. If parsing fails, fall back
+  // to the existing status rules (is_active, is_open, available).
   const inferredOpen = isOpenNowFromOperatingHours(shop.operating_hours);
   let status = getShopStatus(shop);
-  if (shop.is_active) {
-    if (typeof inferredOpen === "boolean") {
-      status = inferredOpen
-        ? { label: "Open now", dot: "bg-emerald-500", text: "text-emerald-300", background: "bg-emerald-500/15 border-emerald-400/30" }
-        : { label: "Closed", dot: "bg-slate-400", text: "text-slate-300", background: "bg-slate-500/15 border-slate-400/30" };
-    }
+  if (typeof inferredOpen === "boolean") {
+    status = inferredOpen
+      ? { label: "Open now", dot: "bg-emerald-500", text: "text-emerald-300", background: "bg-emerald-500/15 border-emerald-400/30" }
+      : { label: "Closed", dot: "bg-slate-400", text: "text-slate-300", background: "bg-slate-500/15 border-slate-400/30" };
   }
 
   const handleView = () => (onViewShop ? onViewShop(shop) : onSelect(shop));
