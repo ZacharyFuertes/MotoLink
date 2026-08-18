@@ -19,6 +19,8 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
@@ -346,6 +348,13 @@ RULES:
 7. When asked about trends, use available data to make reasonable inferences
 8. For questions outside the shop's scope, politely redirect to business topics
 
+=== STRICT TOPIC LIMITATION (CRITICAL) ===
+You may ONLY answer questions related to Motolink and this motor shop's business: revenue, inventory, parts, services, appointments, reservations, job orders, mechanics, customers, and shop operations.
+- If the admin asks about anything UNRELATED to Motolink or shop business (e.g., math, programming, cooking, general knowledge, news, politics, religion, sports, other businesses), DO NOT answer the question.
+- Instead, politely decline and redirect, for example: "I'm sorry, I can only help with questions about your Motolink shop's business data — revenue, inventory, appointments, mechanics, and operations. What would you like to know?"
+- NEVER provide answers, advice, or opinions on topics outside Motolink's business scope.
+- Stay on-topic at all times.
+
 === SERVICES INFORMATION (CRITICAL) ===
 WHEN ADMIN ASKS "What services do we offer?" or ANY similar question about services:
 1. Copy and display the EXACT list from the "SERVICES OFFERED" section above
@@ -407,7 +416,7 @@ ${shopData}`;
 
       let responseContent = "";
       const stream = await groqClient.current.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         messages: [
           { role: "system", content: systemPrompt },
           ...conversationHistory,
@@ -498,80 +507,92 @@ ${shopData}`;
     return suggestions.slice(0, 3);
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
+      {isOpen && (
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full max-w-[700px] h-[85vh] max-h-[700px] overflow-hidden shadow-xl flex flex-col"
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.96 }}
+          transition={{ type: "spring", damping: 26, stiffness: 320 }}
+          className="fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200 bg-slate-50 flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center">
-                <Bot size={24} className="text-white" strokeWidth={1.5} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-display text-lg text-slate-900 uppercase tracking-wide font-bold">
-                    Admin AI
-                  </h2>
-                  <Sparkles size={14} className="text-slate-900" />
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-lg shadow-moto-accent/20">
+                  <Bot
+                    size={18}
+                    className="text-slate-950"
+                    strokeWidth={2}
+                  />
                 </div>
-                <p className="text-[9px] text-slate-500 font-bold tracking-[0.2em] uppercase">
+                {/* Online indicator */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-moto-dark" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-slate-100 font-bold text-sm tracking-wide truncate">
+                    Admin AI
+                  </p>
+                  <Sparkles size={12} className="text-moto-accent shrink-0" />
+                  {dataLoading ? (
+                    <Loader2 size={11} className="text-moto-accent animate-spin shrink-0" />
+                  ) : (
+                    <span className="text-[9px] text-green-400 font-bold tracking-widest uppercase shrink-0">
+                      ● Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-[9px] text-slate-500 font-bold tracking-[0.16em] uppercase truncate">
                   Business Intelligence Assistant
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Refresh data button */}
-              <button
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                title="Refresh data"
                 onClick={fetchShopData}
-                disabled={dataLoading}
-                className="px-3 py-2 border border-slate-300 hover:border-slate-700 text-slate-500 hover:text-slate-700 transition text-[9px] font-bold tracking-widest uppercase disabled:opacity-50"
+                className="p-1.5 rounded-full text-slate-500 hover:text-moto-accent hover:bg-moto-gray/40 transition cursor-pointer"
               >
-                {dataLoading ? "LOADING..." : "REFRESH DATA"}
-              </button>
+                <RefreshCw size={13} />
+              </span>
               <button
                 onClick={onClose}
-                className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900"
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-moto-gray/40 transition"
               >
-                <X size={18} strokeWidth={1} />
+                <X size={16} />
               </button>
             </div>
           </div>
 
+          {/* ── Groq key warning ── */}
+          {!groqClient.current && (
+            <div className="bg-red-500/10 border-b border-red-500/30 px-4 py-2.5 flex items-center gap-2 text-red-400 text-[10px] font-bold tracking-widest uppercase flex-shrink-0">
+              <AlertCircle size={12} />
+              <span className="truncate">GROQ API KEY NOT CONFIGURED</span>
+            </div>
+          )}
+
           {/* ── Messages ── */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 bg-slate-50">
+          <div className="chat-scroll flex-1 px-3.5 py-4 bg-moto-darker space-y-4">
             {/* Welcome message */}
             {messages.length === 0 && (
-              <div className="space-y-6">
-                <div className="text-center py-4">
-                  <Bot size={40} className="text-slate-400 mx-auto mb-3" />
-                  <p className="text-slate-500 text-xs font-bold tracking-widest uppercase mb-1">
-                    MotoLink Admin AI
-                  </p>
-                  <p className="text-slate-500 text-[11px] max-w-sm mx-auto leading-relaxed">
-                    Ask me anything about your shop — revenue, inventory,
-                    appointments, mechanic workload, and more.
-                  </p>
-                </div>
-
-                {/* Quick prompt chips */}
-                <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="bg-moto-dark border border-moto-gray px-3.5 py-2.5 rounded-2xl rounded-bl-md text-slate-200 max-w-[88%]">
+                    <p className="chat-text font-light">
+                      Ask me anything about your shop — revenue, inventory,
+                      appointments, mechanic workload, and more.
+                    </p>
+                  </div>
+                </motion.div>
+                <div className="grid grid-cols-2 gap-1.5 pt-1">
                   {QUICK_PROMPTS.map((qp, idx) => {
                     const Icon = qp.icon;
                     return (
@@ -579,10 +600,10 @@ ${shopData}`;
                         key={idx}
                         onClick={() => handleSend(qp.prompt)}
                         disabled={loading || dataLoading || !groqClient.current}
-                        className="flex items-center gap-2 px-4 py-3 bg-slate-100 border border-slate-200 hover:border-slate-400 hover:bg-slate-100 transition text-left group disabled:opacity-50"
+                        className="flex items-center gap-2 px-3 py-2.5 bg-moto-dark border border-moto-gray hover:border-moto-accent hover:bg-moto-gray/30 transition text-left group disabled:opacity-40 rounded-xl"
                       >
-                        <Icon size={14} className="text-slate-900 shrink-0" />
-                        <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase group-hover:text-slate-700 transition">
+                        <Icon size={13} className="text-moto-accent shrink-0" />
+                        <span className="chat-chip text-slate-400 font-bold tracking-wider uppercase group-hover:text-moto-accent transition truncate">
                           {qp.label}
                         </span>
                       </button>
@@ -608,13 +629,13 @@ ${shopData}`;
                   className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`max-w-[85%] px-5 py-4 ${
+                    className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl ${
                       msg.role === "user"
-                        ? "bg-slate-900 text-white border border-slate-900"
-                        : "bg-slate-100 text-slate-600 border border-slate-200"
+                        ? "bg-moto-accent text-slate-950 rounded-br-md"
+                        : "bg-moto-dark border border-moto-gray text-slate-200 rounded-bl-md"
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    <p className="chat-text font-light whitespace-pre-wrap">
                       {msg.role === "assistant"
                         ? msg.content
                             .split(
@@ -624,22 +645,23 @@ ${shopData}`;
                         : msg.content}
                     </p>
                     <p
-                      className={`text-[9px] mt-2 ${
-                        msg.role === "user" ? "text-slate-500" : "text-slate-500"
-                      }`}
+                      className={`chat-text-xs mt-1.5 ${msg.role === "user" ? "text-slate-900/60" : "text-slate-500"}`}
                     >
-                      {msg.timestamp.toLocaleTimeString()}
+                      {msg.timestamp.toLocaleTimeString("en-PH", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                   {/* Inline follow-up suggestion buttons */}
                   {inlineSuggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {inlineSuggestions.map((s) => (
                         <button
                           key={s}
                           onClick={() => handleSend(s)}
                           disabled={loading}
-                          className="px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30"
+                          className="chat-chip px-3 py-1.5 font-bold tracking-wider uppercase rounded-full border border-moto-accent/40 text-moto-accent hover:bg-moto-accent hover:text-slate-950 transition-colors disabled:opacity-30"
                         >
                           {s}
                         </button>
@@ -657,12 +679,12 @@ ${shopData}`;
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="bg-slate-100 border border-slate-200 px-5 py-4 flex items-center gap-3">
+                <div className="bg-moto-dark border border-moto-gray px-3.5 py-3 rounded-2xl rounded-bl-md flex items-center gap-2">
                   <div className="flex gap-1">
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
                       transition={{ duration: 0.6, repeat: Infinity }}
-                      className="w-2 h-2 bg-slate-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -671,7 +693,7 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.2,
                       }}
-                      className="w-2 h-2 bg-slate-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -680,10 +702,10 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.4,
                       }}
-                      className="w-2 h-2 bg-slate-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                   </div>
-                  <span className="text-slate-400 text-xs font-bold tracking-widest uppercase">
+                  <span className="chat-text-xs uppercase tracking-widest font-bold text-slate-500">
                     Analyzing...
                   </span>
                 </div>
@@ -694,16 +716,8 @@ ${shopData}`;
           </div>
 
           {/* ── Input ── */}
-          <div className="border-t border-slate-200 px-6 py-4 bg-slate-50 flex-shrink-0">
-            {!groqClient.current && (
-              <div className="mb-3 flex items-center gap-2 bg-red-50 border border-red-200 px-4 py-2">
-                <AlertCircle size={14} className="text-red-600 shrink-0" />
-                <span className="text-[10px] text-red-600 font-bold tracking-widest uppercase">
-                  GROQ API KEY NOT CONFIGURED
-                </span>
-              </div>
-            )}
-            <div className="flex gap-3">
+          <div className="px-3.5 py-3 bg-moto-dark border-t border-moto-gray flex-shrink-0">
+            <div className="flex items-center gap-2">
               <input
                 ref={inputRef}
                 type="text"
@@ -718,21 +732,25 @@ ${shopData}`;
                     : "Ask about revenue, inventory, appointments..."
                 }
                 disabled={loading || dataLoading || !groqClient.current}
-                className="flex-1 bg-white text-slate-900 px-5 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-wider uppercase rounded-xl disabled:opacity-50 placeholder:text-slate-400"
+                className="flex-1 bg-moto-darker text-slate-100 px-4 py-2.5 rounded-full border border-moto-gray focus:border-moto-accent focus:outline-none transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={
                   loading || !input.trim() || dataLoading || !groqClient.current
                 }
-                className="px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white transition border border-slate-900 rounded-xl disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-10 h-10 shrink-0 rounded-full bg-moto-accent hover:bg-moto-accent-dark disabled:bg-moto-gray disabled:text-slate-500 text-slate-950 flex items-center justify-center transition-colors disabled:cursor-not-allowed shadow-lg shadow-moto-accent/20"
               >
-                <Send size={16} />
+                {loading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
               </button>
             </div>
           </div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

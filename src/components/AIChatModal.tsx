@@ -5,11 +5,9 @@ import {
   MessageSquare,
   Send,
   Bot,
-  User,
   Loader2,
   AlertCircle,
   RefreshCw,
-  LogIn,
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
@@ -257,6 +255,13 @@ You are a helpful, professional, and friendly shop assistant.
 - When a customer describes a vehicle problem, suggest relevant parts from the list above.
 - Always recommend visiting or calling the shop for complex issues.
 - If data lists are empty, honestly say so and ask the customer to contact the shop.
+
+=== STRICT TOPIC LIMITATION (CRITICAL) ===
+You may ONLY answer questions related to Motolink and the motor shop: services, pricing, parts, inventory, mechanics, schedules, appointments, bookings, vehicles, shop hours, location, and general motorcycle maintenance advice.
+- If a customer asks about anything UNRELATED to Motolink or motor shops (e.g., math homework, programming, cooking recipes, general knowledge, news, politics, religion, sports, other businesses), DO NOT answer the question.
+- Instead, politely decline and redirect, for example: "I'm sorry, I can only help with questions about Motolink and our motor shop services. Would you like to know about our services, parts, or mechanic schedules instead?"
+- NEVER provide answers, advice, or opinions on topics outside Motolink's scope.
+- Stay on-topic at all times.
 ${customer ? `- Address the customer by their first name (${customer.name.split(" ")[0]}) to personalize the experience.` : ""}
 
 === SERVICES INFORMATION ===
@@ -428,7 +433,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
               content: m.content,
             }));
           const response = await groqClient.current!.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
+            model: "openai/gpt-oss-120b",
             messages: [{ role: "system", content: systemPrompt }, ...history],
             max_tokens: 1024,
             temperature: 0.5,
@@ -468,111 +473,85 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     await sendMessageFromText(input);
   };
 
-  if (!isOpen) return null;
-
   const isLoggedInCustomer = isAuthenticated && user?.role === "customer";
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
+      {isOpen && (
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 30 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 30 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[1000px] h-[95vh] sm:h-[90vh] overflow-hidden shadow-xl flex flex-col"
+          initial={{ opacity: 0, y: 24, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.96 }}
+          transition={{ type: "spring", damping: 26, stiffness: 320 }}
+          className="fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
         >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-8 sm:px-12 py-8 border-b border-slate-200 flex-shrink-0 bg-slate-50">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-slate-900 flex items-center justify-center shrink-0">
-                <MessageSquare
-                  size={32}
-                  className="text-white"
-                  strokeWidth={1.5}
-                />
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-lg shadow-moto-accent/20">
+                  <MessageSquare
+                    size={18}
+                    className="text-slate-950"
+                    strokeWidth={2}
+                  />
+                </div>
+                {/* Online indicator */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-moto-dark" />
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-3 text-slate-900 text-[11px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-slate-900" /> AI ASSISTANT
-                </div>
-                <h2 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase leading-none tracking-wide">
-                  MOTOLINK AI
-                </h2>
-                <div className="flex items-center gap-3 mt-1">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="chat-title text-slate-100 font-bold tracking-wide truncate">
+                    Motolink AI
+                  </p>
                   {ctxLoading ? (
-                    <>
-                      <Loader2
-                        size={12}
-                        className="text-yellow-400 animate-spin"
-                      />
-                      <span className="text-yellow-400 text-[11px] font-bold tracking-widest"></span>
-                    </>
-                  ) : shopCtx ? (
-                    <> </>
+                    <Loader2 size={11} className="text-moto-accent animate-spin shrink-0" />
                   ) : (
-                    <>
-                      <AlertCircle size={12} className="text-yellow-400" />
-                      <span className="text-yellow-400 text-[11px] font-bold tracking-widest">
-                        OFFLINE MODE
-                      </span>
-                    </>
-                  )}
-                  {/* Login status */}
-                  <span className="text-slate-400 text-[11px]">·</span>
-                  {isLoggedInCustomer && customerCtx ? (
-                    <>
-                      <User size={12} className="text-slate-900" />
-                      <span className="text-slate-900 text-[11px] font-bold tracking-widest">
-                        LOGGED IN
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn size={12} className="text-slate-500" />
-                      <span className="text-slate-500 text-[11px] tracking-widest">
-                        GUEST
-                      </span>
-                    </>
-                  )}
-                  {shopCtx && !ctxLoading && (
-                    <button
-                      onClick={loadContext}
-                      title="Refresh"
-                      className="ml-2 text-slate-500 hover:text-slate-900 transition"
-                    >
-                      <RefreshCw size={12} />
-                    </button>
+                    <span className="chat-text-xs text-green-400 font-bold tracking-widest uppercase shrink-0">
+                      ● Active
+                    </span>
                   )}
                 </div>
+                <p className="chat-text-xs text-slate-500 font-bold tracking-[0.16em] uppercase truncate">
+                  {isLoggedInCustomer && customerCtx
+                    ? `Hi, ${customerCtx.name.split(" ")[0]}`
+                    : "AI Assistant"}
+                </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-3 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
-            >
-              <X size={24} strokeWidth={1} />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {error ? (
+                <span title={error}>
+                  <AlertCircle size={14} className="text-yellow-400" />
+                </span>
+              ) : (
+                <span
+                  title="Refresh data"
+                  onClick={loadContext}
+                  className="p-1.5 rounded-full text-slate-500 hover:text-moto-accent hover:bg-moto-gray/40 transition cursor-pointer"
+                >
+                  <RefreshCw size={13} />
+                </span>
+              )}
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-moto-gray/40 transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* ── Error Banner ── */}
           {error && (
-            <div className="bg-red-50 border-b border-red-200 px-8 py-4 flex items-center gap-3 text-red-600 text-sm font-bold tracking-widest uppercase">
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            <div className="bg-red-500/10 border-b border-red-500/30 px-4 py-2.5 flex items-center gap-2 text-red-400 text-[10px] font-bold tracking-widest uppercase flex-shrink-0">
+              <AlertCircle size={12} />
+              <span className="truncate">{error}</span>
             </div>
           )}
 
           {/* ── Messages ── */}
-          <div className="flex-1 overflow-y-auto px-8 sm:px-12 py-10 bg-slate-50 space-y-8">
+          <div className="chat-scroll flex-1 px-3.5 py-4 bg-moto-darker space-y-4">
             {messages.map((message, idx) => {
               const isLastBotMsg =
                 message.sender === "bot" && idx === messages.length - 1;
@@ -583,61 +562,38 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
               return (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex flex-col ${message.sender === "user" ? "items-end" : "items-start"}`}
                 >
                   <div
-                    className={`flex gap-5 max-w-[90%] ${message.sender === "user" ? "flex-row-reverse" : "flex-row"}`}
+                    className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl ${
+                      message.sender === "user"
+                        ? "bg-moto-accent text-slate-950 rounded-br-md"
+                        : "bg-moto-dark border border-moto-gray text-slate-200 rounded-bl-md"
+                    }`}
                   >
-                    <div
-                      className={`w-12 h-12 shrink-0 flex items-center justify-center border ${
-                        message.sender === "user"
-                          ? "bg-slate-100 border-slate-200 text-slate-500"
-                          : "bg-slate-100 border-slate-300 text-slate-700"
-                      }`}
+                    <p className="chat-text font-light whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                    <p
+                      className={`chat-text-xs mt-1.5 ${message.sender === "user" ? "text-slate-900/60" : "text-slate-500"}`}
                     >
-                      {message.sender === "user" ? (
-                        isLoggedInCustomer && customerCtx ? (
-                          <span className="text-base font-black text-slate-900">
-                            {customerCtx.name.charAt(0)}
-                          </span>
-                        ) : (
-                          <User size={20} />
-                        )
-                      ) : (
-                        <Bot size={20} />
-                      )}
-                    </div>
-                    <div
-                      className={`p-6 border ${
-                        message.sender === "user"
-                          ? "bg-slate-900 border-slate-900 text-white"
-                          : "bg-white border-slate-200 text-slate-600"
-                      }`}
-                    >
-                      <div className="text-sm sm:text-base font-light leading-relaxed whitespace-pre-wrap">
-                        {message.content}
-                      </div>
-                      <div
-                        className={`text-[11px] mt-3 opacity-40 ${message.sender === "user" ? "text-right" : "text-left"}`}
-                      >
-                        {message.timestamp.toLocaleTimeString("en-PH", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    </div>
+                      {message.timestamp.toLocaleTimeString("en-PH", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   </div>
                   {/* Inline follow-up suggestion buttons */}
                   {inlineSuggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-3 mt-4 ml-16">
+                    <div className="flex flex-wrap gap-1.5 mt-2">
                       {inlineSuggestions.map((s) => (
                         <button
                           key={s}
                           onClick={() => sendMessageFromText(s)}
                           disabled={loading}
-                          className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-30"
+                          className="chat-chip px-3 py-1.5 font-bold tracking-wider uppercase rounded-full border border-moto-accent/40 text-moto-accent hover:bg-moto-accent hover:text-slate-950 transition-colors disabled:opacity-30"
                         >
                           {s}
                         </button>
@@ -650,33 +606,41 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
 
             {loading && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="flex gap-5">
-                  <div className="w-12 h-12 shrink-0 flex items-center justify-center border bg-slate-100 border-slate-300 text-slate-700">
-                    <Bot size={20} />
-                  </div>
-                  <div className="p-6 border bg-white border-slate-200 flex items-center gap-3">
-                    <Loader2
-                      size={18}
-                      className="animate-spin text-slate-900"
+                <div className="bg-moto-dark border border-moto-gray px-3.5 py-3 rounded-2xl rounded-bl-md flex items-center gap-2">
+                  <Bot size={14} className="text-moto-accent" />
+                  <div className="flex gap-1">
+                    <motion.div
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity }}
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
-                    <span className="text-[11px] uppercase tracking-widest font-bold text-slate-500">
-                      THINKING...
-                    </span>
+                    <motion.div
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
+                    />
+                    <motion.div
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
+                    />
                   </div>
+                  <span className="chat-text-xs uppercase tracking-widest font-bold text-slate-500">
+                    THINKING
+                  </span>
                 </div>
               </motion.div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* ── Input ── */}
-          <div className="p-8 sm:px-12 border-t border-slate-200 bg-slate-50">
-            {/* Quick chips — personalized if logged in */}
-            <div className="flex flex-wrap gap-3 mb-6">
+          {/* ── Quick chips ── */}
+          <div className="px-3.5 pt-3 pb-1.5 bg-moto-darker border-t border-moto-gray/50 flex-shrink-0">
+            <div className="flex flex-wrap gap-1.5">
               {(isLoggedInCustomer && customerCtx?.vehicles.length
                 ? [
                     "What services do you offer?",
@@ -687,20 +651,23 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                     "What services do you offer?",
                     "Available Mechanics and Schedules?",
                     "Check brake pads in stock",
-                    "Available parts for my motorcycle?",
                   ]
               ).map((chip) => (
                 <button
                   key={chip}
                   onClick={() => sendMessageFromText(chip)}
                   disabled={loading}
-                  className="px-4 py-2 text-[11px] font-bold tracking-wider uppercase border border-slate-300 text-slate-500 hover:border-slate-700 hover:text-slate-700 transition-colors disabled:opacity-30 truncate max-w-[200px]"
+                  className="chat-chip px-3 py-1.5 font-bold tracking-wider uppercase rounded-full border border-moto-gray text-slate-400 hover:border-moto-accent hover:text-moto-accent transition-colors disabled:opacity-30 truncate max-w-[200px]"
                 >
                   {chip}
                 </button>
               ))}
             </div>
-            <div className="flex gap-5">
+          </div>
+
+          {/* ── Input ── */}
+          <div className="px-3.5 py-3 bg-moto-dark border-t border-moto-gray flex-shrink-0">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={input}
@@ -716,23 +683,23 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                       : "ASK ABOUT SERVICES, PARTS, SCHEDULES..."
                 }
                 disabled={loading || !!error}
-                className="flex-1 bg-white text-slate-900 px-6 py-5 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-sm font-bold tracking-widest uppercase rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="chat-input flex-1 bg-moto-darker text-slate-100 px-4 py-2.5 rounded-full border border-moto-gray focus:border-moto-accent focus:outline-none transition font-medium disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim() || !!error}
-                className="w-16 shrink-0 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 disabled:text-slate-500 text-white flex items-center justify-center transition-colors rounded-xl disabled:cursor-not-allowed"
+                className="w-10 h-10 shrink-0 rounded-full bg-moto-accent hover:bg-moto-accent-dark disabled:bg-moto-gray disabled:text-slate-500 text-slate-950 flex items-center justify-center transition-colors disabled:cursor-not-allowed shadow-lg shadow-moto-accent/20"
               >
                 {loading ? (
-                  <Loader2 size={24} className="animate-spin" />
+                  <Loader2 size={16} className="animate-spin" />
                 ) : (
-                  <Send size={24} />
+                  <Send size={16} />
                 )}
               </button>
             </div>
           </div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

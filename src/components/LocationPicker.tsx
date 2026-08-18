@@ -373,7 +373,7 @@ const LocationPicker = ({
   };
 
   return (
-    <div className={`relative w-full overflow-hidden rounded-2xl border border-slate-200 shadow-lg ${heightClass}`}>
+    <div className={`relative z-0 w-full overflow-hidden rounded-2xl border border-slate-200 shadow-lg ${heightClass}`}>
       <div ref={mapRef} className="absolute inset-0 z-0" />
 
       {/* Center drop-pin */}

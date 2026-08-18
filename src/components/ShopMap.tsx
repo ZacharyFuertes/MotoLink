@@ -166,7 +166,7 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
+      className="relative z-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
     >
       <div className={`relative w-full ${mapHeight}`}>
         {locationGranted ? (
