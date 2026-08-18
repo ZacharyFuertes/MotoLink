@@ -38,10 +38,10 @@ interface MechanicProductivity {
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl px-4 py-3 shadow-lg">
-      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+    <div className="bg-moto-dark/95 backdrop-blur-sm border border-moto-gray rounded-xl px-4 py-3 shadow-lg">
+      <p className="text-xs font-medium text-slate-400 mb-1">{label}</p>
       {payload.map((entry: any, i: number) => (
-        <p key={i} className="text-sm font-semibold text-slate-900">
+        <p key={i} className="text-sm font-semibold text-slate-100">
           {typeof entry.value === "number"
             ? `₱${entry.value.toLocaleString()}`
             : entry.value}
@@ -241,10 +241,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="relative w-10 h-10 mx-auto mb-3">
-            <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-moto-gray" />
             <div className="absolute inset-0 rounded-full border-4 border-violet-500 border-t-transparent animate-spin" />
           </div>
-          <p className="text-sm text-slate-400 font-medium">Loading dashboard…</p>
+          <p className="text-[13px] font-medium text-slate-300">Loading dashboard…</p>
         </div>
       </div>
     );
@@ -254,42 +254,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     {
       label: "Today's Revenue",
       value: `PHP ${metrics.todayRevenue.toLocaleString()}`,
-      icon: <DollarSign size={18} />,
+      icon: <DollarSign size={22} />,
       accent: "#10b981",
-      iconBg: "bg-emerald-100",
-      iconColor: "text-emerald-600",
+      iconBg: "bg-emerald-500/15",
+      iconColor: "text-emerald-400",
     },
     {
       label: "Pending Appointments",
       value: metrics.pendingAppointments,
-      icon: <Calendar size={18} />,
+      icon: <Calendar size={22} />,
       accent: "#f59e0b",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
+      iconBg: "bg-amber-500/15",
+      iconColor: "text-amber-400",
     },
     {
       label: "Total Customers",
       value: metrics.totalCustomers,
-      icon: <Users size={18} />,
+      icon: <Users size={22} />,
       accent: "#6366f1",
-      iconBg: "bg-indigo-100",
-      iconColor: "text-indigo-600",
+      iconBg: "bg-moto-accent/15",
+      iconColor: "text-moto-accent",
     },
     {
       label: "Low Stock Items",
       value: metrics.lowStockCount,
-      icon: <AlertTriangle size={18} />,
+      icon: <AlertTriangle size={22} />,
       accent: "#ef4444",
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600",
+      iconBg: "bg-red-500/15",
+      iconColor: "text-red-400",
     },
     {
       label: "Products",
       value: metrics.totalProducts,
-      icon: <Package size={18} />,
+      icon: <Package size={22} />,
       accent: "#8b5cf6",
-      iconBg: "bg-violet-100",
-      iconColor: "text-violet-600",
+      iconBg: "bg-violet-500/15",
+      iconColor: "text-violet-400",
     },
   ];
 
@@ -306,13 +306,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             className="stat-card p-5"
             style={{ "--stat-accent": stat.accent } as React.CSSProperties}
           >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${stat.iconBg} ${stat.iconColor}`}>
+            <div className="flex items-center gap-3.5">
+              <div className={`p-3 rounded-xl ${stat.iconBg} ${stat.iconColor}`}>
                 {stat.icon}
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-                <p className="text-xl font-extrabold text-slate-900 tabular-nums mt-0.5">{stat.value}</p>
+                <p className="text-[13px] font-semibold text-slate-300">{stat.label}</p>
+                <p className="text-2xl font-extrabold text-slate-100 tabular-nums mt-0.5">{stat.value}</p>
               </div>
             </div>
           </motion.div>
@@ -329,30 +329,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         >
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-amber-600" />
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-amber-400" />
               </div>
-              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Pending Appointments</h2>
+              <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Pending Appointments</h2>
             </div>
-            <button onClick={() => onNavigate?.("appointments")} className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors">
-              View All <ArrowRight size={12} />
+            <button onClick={() => onNavigate?.("appointments")} className="text-[13px] font-semibold text-moto-accent hover:text-cyan-300 flex items-center gap-1 transition-colors">
+              View All <ArrowRight size={15} />
             </button>
           </div>
           {recentAppointments.length === 0 ? (
             <div className="py-8 text-center">
-              <Calendar className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">No pending appointments</p>
+              <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm">No pending appointments</p>
             </div>
           ) : (
             <div className="space-y-1">
               {recentAppointments.slice(0, 5).map((apt) => (
-                <div key={apt.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div key={apt.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-moto-gray/40 transition-colors">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{apt.service_type || "Service"}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{apt.customer?.name || "Walk-in"} · {apt.scheduled_date}</p>
+                    <p className="text-[15px] font-semibold text-slate-100">{apt.service_type || "Service"}</p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">{apt.customer?.name || "Walk-in"} · {apt.scheduled_date}</p>
                   </div>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                    apt.status === "pending" ? "bg-amber-50 text-amber-700" : "bg-indigo-50 text-indigo-700"
+                  <span className={`text-[13px] font-bold px-3 py-1.5 rounded-lg ${
+                    apt.status === "pending" ? "bg-amber-500/15 text-amber-400" : "bg-moto-accent/15 text-moto-accent"
                   }`}>
                     {apt.status}
                   </span>
@@ -370,29 +370,29 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         >
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-red-600" />
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
-              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Low Stock Alerts</h2>
+              <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Low Stock Alerts</h2>
             </div>
-            <button onClick={() => onNavigate?.("inventory")} className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 transition-colors">
-              Manage Stock <ArrowRight size={12} />
+            <button onClick={() => onNavigate?.("inventory")} className="text-[13px] font-semibold text-moto-accent hover:text-cyan-300 flex items-center gap-1 transition-colors">
+              Manage Stock <ArrowRight size={15} />
             </button>
           </div>
           {lowStockParts.length === 0 ? (
             <div className="py-8 text-center">
-              <Package className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">All items are well-stocked</p>
+              <Package className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm">All items are well-stocked</p>
             </div>
           ) : (
             <div className="space-y-1">
               {lowStockParts.slice(0, 5).map((part: any) => (
-                <div key={part.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 transition-colors">
+                <div key={part.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-moto-gray/40 transition-colors">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">{part.name}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{part.category} · SKU: {part.sku}</p>
+                    <p className="text-[15px] font-semibold text-slate-100">{part.name}</p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">{part.category} · SKU: {part.sku}</p>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-red-50 text-red-700 tabular-nums">
+                  <span className="text-[13px] font-bold px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 tabular-nums">
                     {part.quantity_in_stock} / {part.reorder_level}
                   </span>
                 </div>
@@ -411,20 +411,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           className="lg:col-span-2 dashboard-card p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 Revenue — Last 30 Days
               </h2>
-              <p className="text-xs text-slate-400">Part sales + completed jobs</p>
+              <p className="text-[13px] text-slate-400">Part sales + completed jobs</p>
             </div>
           </div>
           {revenueTrend.length === 0 ? (
             <div className="py-12 text-center">
-              <TrendingUp className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">
+              <TrendingUp className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm">
                 No sales recorded in the last 30 days.
               </p>
             </div>
@@ -437,19 +437,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#25334e" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  stroke="#cbd5e1"
-                  fontSize={11}
+                  stroke="#94a3b8"
+                  fontSize={12}
                   tickLine={false}
                   axisLine={false}
                   interval={4}
-                  fontWeight={500}
+                  fontWeight={600}
                 />
                 <YAxis
-                  stroke="#cbd5e1"
-                  fontSize={11}
+                  stroke="#94a3b8"
+                  fontSize={12}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v) => `₱${v.toLocaleString()}`}
@@ -462,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   strokeWidth={2.5}
                   fill="url(#shopAreaGradient)"
                   dot={{ fill: "#10b981", r: 2, strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: "#059669", stroke: "#fff", strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: "#059669", stroke: "#0f1723", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -476,17 +476,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           className="dashboard-card p-6"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <Wrench className="w-4 h-4 text-indigo-600" />
+            <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+              <Wrench className="w-5 h-5 text-moto-accent" />
             </div>
-            <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Mechanic Productivity
             </h2>
           </div>
           {mechanicProductivity.length === 0 ? (
             <div className="py-12 text-center">
-              <Wrench className="w-8 h-8 text-slate-200 mx-auto mb-3" />
-              <p className="text-slate-400 text-sm">
+              <Wrench className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm">
                 No completed job orders yet.
               </p>
             </div>
@@ -497,22 +497,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2.5">
                       <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
                         style={{ backgroundColor: MECHANIC_COLORS[i % MECHANIC_COLORS.length] }}
                       >
                         {mech.name?.charAt(0)?.toUpperCase() || "?"}
                       </div>
-                      <p className="text-sm font-semibold text-slate-800">
+                      <p className="text-[15px] font-semibold text-slate-100">
                         {mech.name}
                       </p>
                     </div>
-                    <span className="text-xs text-slate-400 font-medium tabular-nums">
+                    <span className="text-[13px] text-slate-400 font-medium tabular-nums">
                       {mech.completed} job{mech.completed === 1 ? "" : "s"} ·{" "}
                       {mech.laborHours.toFixed(1)} hrs
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div className="flex-1 bg-moto-gray/40 rounded-full h-2 overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
@@ -535,7 +535,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         }}
                       />
                     </div>
-                    <span className="text-sm font-bold text-slate-800 tabular-nums min-w-[70px] text-right">
+                    <span className="text-sm font-bold text-slate-200 tabular-nums min-w-[70px] text-right">
                       ₱{mech.revenue.toLocaleString()}
                     </span>
                   </div>
