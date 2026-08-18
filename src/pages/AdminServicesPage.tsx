@@ -123,7 +123,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
   }
 
   const inputClass =
-    "px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-violet-500 focus:bg-white transition";
+    "px-3 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
 
   return (
     <div className="space-y-6">
@@ -134,16 +134,16 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
             Service Catalog &amp; Pricing
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[13px] text-slate-300 mt-0.5">
             Configure shop service offerings, descriptions, and standard pricing rates.
           </p>
         </div>
         <button
           onClick={handleCreateNew}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
         >
           <Plus size={16} /> Add Service
         </button>
@@ -158,7 +158,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="relative w-10 h-10">
-              <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+              <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
               <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
             </div>
           </div>
@@ -186,14 +186,14 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                         />
                       ) : (
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center shrink-0">
                             <Wrench size={15} />
                           </div>
-                          <span className="font-bold text-slate-900 text-sm">{service.label}</span>
+                          <span className="font-bold text-slate-100 text-sm">{service.label}</span>
                         </div>
                       )}
                     </td>
-                    <td className="text-slate-500 text-xs">
+                    <td className="text-slate-300 text-[13px]">
                       {editingId === service.id && !isAddingMode ? (
                         <input
                           type="text"
@@ -205,7 +205,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                         <span className="truncate max-w-sm block">{service.description || "—"}</span>
                       )}
                     </td>
-                    <td className="text-right font-bold text-slate-900 tabular-nums">
+                    <td className="text-right font-bold text-slate-100 tabular-nums">
                       {editingId === service.id && !isAddingMode ? (
                         <input
                           type="number"
@@ -220,19 +220,19 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                     <td className="text-right">
                       {editingId === service.id && !isAddingMode ? (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={handleSave} className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition">
+                          <button onClick={handleSave} className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition">
                             <Save size={15} />
                           </button>
-                          <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 transition">
+                          <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-slate-400 hover:text-moto-accent transition">
                             <X size={15} />
                           </button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => handleEdit(service)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition">
+                          <button onClick={() => handleEdit(service)} className="p-1.5 rounded-lg text-slate-400 hover:text-moto-accent transition">
                             <Edit2 size={15} />
                           </button>
-                          <button onClick={() => handleDelete(service.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 transition">
+                          <button onClick={() => handleDelete(service.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 transition">
                             <Trash2 size={15} />
                           </button>
                         </div>
@@ -243,7 +243,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
                 {/* Inline New Row */}
                 {isAddingMode && editingId === "new" && (
-                  <tr className="bg-violet-50/40">
+                  <tr className="bg-violet-500/10">
                     <td>
                       <input
                         type="text"
@@ -276,7 +276,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                         <button onClick={handleSave} className="p-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition">
                           <Save size={15} />
                         </button>
-                        <button onClick={() => { setIsAddingMode(false); setEditingId(null); }} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 transition">
+                        <button onClick={() => { setIsAddingMode(false); setEditingId(null); }} className="p-1.5 rounded-lg text-slate-400 hover:text-moto-accent transition">
                           <X size={15} />
                         </button>
                       </div>
@@ -286,7 +286,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
 
                 {services.length === 0 && !isAddingMode && (
                   <tr>
-                    <td colSpan={4} className="py-16 text-center text-slate-400 text-xs">
+                    <td colSpan={4} className="py-16 text-center text-slate-300 text-sm">
                       No services configured yet. Click "Add Service" to create your first offering.
                     </td>
                   </tr>
