@@ -43,7 +43,7 @@ const runShopQuery = async <T>(
 };
 
 // Parse operating_hours strings like "Sun: closed; Mon: 09:00-17:30; Tue: 09:00-17:30; ..."
-const parseOperatingHoursString = (oh?: string) => {
+export const parseOperatingHoursString = (oh?: string) => {
   const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   const emptySchedule = WEEK_DAYS.map(() => ({ open: false, openTime: "00:00", closeTime: "00:00" }));
   if (!oh || typeof oh !== "string") return emptySchedule;

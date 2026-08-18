@@ -1,6 +1,7 @@
 import { MapPin, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
+import { parseOperatingHoursString } from "../services/shopService";
 
 interface ShopCardProps {
   shop: ShopSearchResult;
@@ -20,15 +21,29 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   const status = getShopStatus(shop);
   const handleView = () => (onViewShop ? onViewShop(shop) : onSelect(shop));
 
-  const schedule = [
-    { day: "MON", open: true, label: "9:30 AM\n5:45 PM" },
-    { day: "TUE", open: true, label: "9:30 AM\n5:45 PM" },
-    { day: "WED", open: true, label: "9:30 AM\n5:45 PM" },
-    { day: "THU", open: true, label: "9:30 AM\n5:45 PM" },
-    { day: "FRI", open: true, label: "9:30 AM\n5:45 PM" },
-    { day: "SAT", open: false, label: "Closed" },
-    { day: "SUN", open: false, label: "Closed" },
-  ];
+  const formatTime = (t: string) => {
+    if (!t || t === "00:00") return "";
+    const [hhStr, mmStr] = t.split(":");
+    const hh = parseInt(hhStr, 10);
+    const mm = parseInt(mmStr || "0", 10);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return t;
+    const period = hh >= 12 ? "PM" : "AM";
+    let hour12 = hh % 12;
+    if (hour12 === 0) hour12 = 12;
+    return `${hour12}:${mm.toString().padStart(2, "0")} ${period}`;
+  };
+
+  // Parse the stored operating_hours string into a 7-day schedule (parseOperatingHoursString uses Sunday=0..Saturday=6)
+  const parsed = parseOperatingHoursString(shop.operating_hours);
+  const UI_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  const schedule = UI_DAYS.map((day, idx) => {
+    const dayIndex = (idx + 1) % 7; // map MON(0)->1(Monday), ..., SUN(6)->0(Sunday)
+    const entry = parsed[dayIndex];
+    if (!entry || !entry.open) return { day, open: false, label: "Closed" };
+    const openLabel = formatTime(entry.openTime);
+    const closeLabel = formatTime(entry.closeTime);
+    return { day, open: true, label: `${openLabel}\n${closeLabel}` };
+  });
 
   return (
     <motion.article
