@@ -72,7 +72,7 @@ const timeToMinutes = (t: string) => {
   return hh * 60 + mm;
 };
 
-const isOpenNowFromOperatingHours = (oh?: string) => {
+export const isOpenNowFromOperatingHours = (oh?: string) => {
   if (!oh) return undefined;
   try {
     const schedule = parseOperatingHoursString(oh);

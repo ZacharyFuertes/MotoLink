@@ -1,7 +1,7 @@
 import { MapPin, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
-import { parseOperatingHoursString } from "../services/shopService";
+import { parseOperatingHoursString, isOpenNowFromOperatingHours } from "../services/shopService";
 
 interface ShopCardProps {
   shop: ShopSearchResult;
@@ -18,7 +18,18 @@ const getShopStatus = (shop: ShopSearchResult) => {
 };
 
 const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
-  const status = getShopStatus(shop);
+  // Prefer inferring 'open now' from the shop.operating_hours string when available.
+  // Keep is_active semantics: inactive shops remain 'Closed'.
+  const inferredOpen = isOpenNowFromOperatingHours(shop.operating_hours);
+  let status = getShopStatus(shop);
+  if (shop.is_active) {
+    if (typeof inferredOpen === "boolean") {
+      status = inferredOpen
+        ? { label: "Open now", dot: "bg-emerald-500", text: "text-emerald-300", background: "bg-emerald-500/15 border-emerald-400/30" }
+        : { label: "Closed", dot: "bg-slate-400", text: "text-slate-300", background: "bg-slate-500/15 border-slate-400/30" };
+    }
+  }
+
   const handleView = () => (onViewShop ? onViewShop(shop) : onSelect(shop));
 
   const formatTime = (t: string) => {
