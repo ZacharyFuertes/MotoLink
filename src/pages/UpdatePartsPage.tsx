@@ -248,7 +248,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-4 border-violet-100" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-gray" />
           <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
         </div>
       </div>
@@ -256,48 +256,48 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] bg-slate-50 flex flex-col lg:flex-row overflow-hidden">
+    <div className="h-[calc(100vh-80px)] bg-moto-darker flex flex-col lg:flex-row overflow-hidden">
       {/* LEFT: Product Grid */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <div className="px-6 py-4 bg-white border-b border-slate-200/80 flex items-center justify-between gap-4 flex-shrink-0">
+        <div className="px-6 py-4 bg-moto-dark border-b border-moto-gray/80 flex items-center justify-between gap-4 flex-shrink-0">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
               POS &amp; Stock Counter
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-[13px] text-slate-300 mt-0.5">
               Record walk-in part sales and update inventory levels.
             </p>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-xs font-bold">
-              <TrendingUp size={14} />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[13px] font-bold">
+              <TrendingUp size={16} />
               <span>Today: ₱{todaySales.revenue.toLocaleString()}</span>
             </div>
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-violet-50 border border-violet-200/60 text-violet-700 text-xs font-bold">
-              <ShoppingBag size={14} />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 text-violet-400 text-[13px] font-bold">
+              <ShoppingBag size={16} />
               <span>{todaySales.count} Items Sold</span>
             </div>
           </div>
         </div>
 
         {/* Search & Category Filter */}
-        <div className="px-6 py-3.5 bg-white border-b border-slate-200/60 flex flex-wrap gap-3 items-center flex-shrink-0">
+        <div className="px-6 py-3.5 bg-moto-dark border-b border-moto-gray/60 flex flex-wrap gap-3 items-center flex-shrink-0">
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
             <input
               type="text"
               placeholder="Search parts by name or SKU..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition"
+              className="w-full pl-10 pr-4 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-violet-500 transition"
+            className="px-3.5 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-medium text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           >
             <option value="all">All Categories</option>
             {categories.map((cat) => (
@@ -308,19 +308,19 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
           </select>
           <button
             onClick={fetchParts}
-            className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+            className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition"
             title="Refresh"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={18} />
           </button>
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-6 bg-moto-darker">
           {filteredParts.length === 0 ? (
             <div className="dashboard-card p-16 text-center">
-              <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm font-semibold">No parts found</p>
+              <Package className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+              <p className="text-slate-300 text-sm font-semibold">No parts found</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -337,7 +337,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                       inCart ? "ring-2 ring-violet-600" : ""
                     }`}
                   >
-                    <div className="relative aspect-[16/10] bg-slate-100 border-b border-slate-100 overflow-hidden">
+                    <div className="relative aspect-[16/10] bg-moto-gray/40 border-b border-moto-gray overflow-hidden">
                       {part.image_url ? (
                         <img
                           src={part.image_url}
@@ -345,55 +345,55 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-                          <Package className="w-8 h-8 text-slate-300" />
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-moto-dark to-moto-gray/40">
+                          <Package className="w-10 h-10 text-slate-500" />
                         </div>
                       )}
 
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
                         {isLow && (
-                          <span className="bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                          <span className="bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
                             Low Stock
                           </span>
                         )}
                         {!inStock && (
-                          <span className="bg-red-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                          <span className="bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
                             Sold Out
                           </span>
                         )}
                       </div>
 
                       {inCart && (
-                        <div className="absolute top-2 right-2 bg-violet-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-md">
+                        <div className="absolute top-2 right-2 bg-violet-600 text-white text-[13px] font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-md">
                           {inCart.quantity}
                         </div>
                       )}
                     </div>
 
                     <div className="p-4 flex flex-col flex-1">
-                      <h3 className="font-bold text-slate-900 text-xs truncate mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      <h3 className="font-bold text-slate-100 text-sm truncate mb-1" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                         {part.name}
                       </h3>
-                      <div className="flex items-center justify-between text-xs mb-3">
-                        <span className="font-extrabold text-slate-900 tabular-nums">
+                      <div className="flex items-center justify-between text-[13px] mb-3">
+                        <span className="font-extrabold text-slate-100 tabular-nums">
                           ₱{part.unit_price.toLocaleString()}
                         </span>
-                        <span className={`text-[10px] font-bold ${!inStock ? "text-red-500" : isLow ? "text-amber-500" : "text-emerald-600"}`}>
+                        <span className={`text-xs font-bold ${!inStock ? "text-red-400" : isLow ? "text-amber-400" : "text-emerald-400"}`}>
                           {part.quantity_in_stock} in stock
                         </span>
                       </div>
 
-                      <div className="mt-auto flex gap-1.5 pt-2 border-t border-slate-100">
+                      <div className="mt-auto flex gap-1.5 pt-2 border-t border-moto-gray">
                         <button
                           onClick={() => addToCart(part)}
                           disabled={!inStock}
-                          className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 ${
+                          className={`flex-1 py-2 rounded-xl text-[13px] font-bold transition flex items-center justify-center gap-1 ${
                             inStock
                               ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-600/20"
-                              : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                              : "bg-moto-gray/40 text-slate-400 cursor-not-allowed"
                           }`}
                         >
-                          <ShoppingBag size={12} />
+                          <ShoppingBag size={14} />
                           {inStock ? "Add" : "Out"}
                         </button>
                         <button
@@ -402,18 +402,18 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                             setAdjustQty(0);
                             setAdjustType("add");
                           }}
-                          className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
+                          className="p-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-300 transition"
                           title="Adjust stock"
                         >
-                          <Hash size={14} />
+                          <Hash size={16} />
                         </button>
                         {inStock && (
                           <button
                             onClick={() => handleMarkSoldOut(part)}
-                            className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition"
+                            className="p-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 transition"
                             title="Mark Sold Out"
                           >
-                            <XCircle size={14} />
+                            <XCircle size={16} />
                           </button>
                         )}
                       </div>
@@ -427,18 +427,18 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
       </div>
 
       {/* RIGHT: POS Cart Panel */}
-      <div className="w-full lg:w-[360px] xl:w-[400px] border-l border-slate-200/80 bg-white flex flex-col flex-shrink-0 shadow-lg">
-        <div className="px-6 py-4 border-b border-slate-200/80 flex items-center justify-between">
+      <div className="w-full lg:w-[360px] xl:w-[400px] border-l border-moto-gray/80 bg-moto-dark flex flex-col flex-shrink-0 shadow-lg">
+        <div className="px-6 py-4 border-b border-moto-gray/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={18} className="text-violet-600" />
-            <h2 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <ShoppingBag size={20} className="text-moto-accent" />
+            <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Current Cart
             </h2>
           </div>
           {cart.length > 0 && (
             <button
               onClick={() => setCart([])}
-              className="text-[11px] font-bold text-slate-400 hover:text-red-500 transition"
+              className="text-[13px] font-bold text-slate-300 hover:text-red-400 transition"
             >
               Clear
             </button>
@@ -448,8 +448,8 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-              <ShoppingBag className="w-10 h-10 text-slate-300 mb-2" />
-              <p className="text-slate-400 text-xs font-medium">
+              <ShoppingBag className="w-12 h-12 text-slate-500 mb-2" />
+              <p className="text-slate-300 text-[13px] font-medium">
                 Cart is empty. Click Add on any item to begin.
               </p>
             </div>
@@ -457,25 +457,25 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
             cart.map((item) => (
               <div
                 key={item.part_id}
-                className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between gap-3"
+                className="p-3 bg-moto-darker border border-moto-gray/80 rounded-xl flex items-center justify-between gap-3"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900 text-xs truncate">
+                  <p className="font-bold text-slate-100 text-[13px] truncate">
                     {item.part_name}
                   </p>
-                  <p className="text-[11px] text-slate-400 tabular-nums mt-0.5">
+                  <p className="text-xs text-slate-400 tabular-nums mt-0.5">
                     ₱{item.unit_price.toLocaleString()} × {item.quantity}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-900 text-xs tabular-nums">
+                  <span className="font-bold text-slate-100 text-[13px] tabular-nums">
                     ₱{item.total.toLocaleString()}
                   </span>
                   <button
                     onClick={() => deleteFromCart(item.part_id)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-red-500 transition"
+                    className="p-1 rounded-lg text-slate-400 hover:text-red-400 transition"
                   >
-                    <X size={14} />
+                    <X size={16} />
                   </button>
                 </div>
               </div>
@@ -484,10 +484,10 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
         </div>
 
         {/* Cart Total & Checkout */}
-        <div className="p-6 border-t border-slate-200/80 bg-white">
+        <div className="p-6 border-t border-moto-gray/80 bg-moto-dark">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs text-slate-400 font-medium">Total Amount</span>
-            <span className="text-2xl font-extrabold text-slate-900 tabular-nums">
+            <span className="text-[13px] text-slate-300 font-medium">Total Amount</span>
+            <span className="text-2xl font-extrabold text-slate-100 tabular-nums">
               ₱{cartTotal.toLocaleString()}
             </span>
           </div>
@@ -495,20 +495,20 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
           <button
             onClick={handleCheckout}
             disabled={cart.length === 0 || processingCheckout}
-            className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20 flex items-center justify-center gap-2"
           >
             {processingCheckout ? (
               <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <DollarSign size={16} />
+                <DollarSign size={18} />
                 Record Sale
               </>
             )}
           </button>
 
           {checkoutSuccess && (
-            <p className="text-xs text-emerald-600 font-bold text-center mt-3">
+            <p className="text-[13px] text-emerald-400 font-bold text-center mt-3">
               Sale recorded successfully!
             </p>
           )}
@@ -533,14 +533,14 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
               className="dashboard-card max-w-sm w-full p-6 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Adjust Stock — {adjustPart.name}
                 </h3>
                 <button
                   onClick={() => setAdjustPart(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                  className="p-1 rounded-lg text-slate-400 hover:text-moto-accent transition"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               </div>
 
@@ -548,20 +548,20 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setAdjustType("add")}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
+                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition ${
                       adjustType === "add"
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-50 text-slate-600"
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                        : "bg-moto-darker text-slate-300"
                     }`}
                   >
                     + Add Stock
                   </button>
                   <button
                     onClick={() => setAdjustType("remove")}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition ${
+                    className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition ${
                       adjustType === "remove"
-                        ? "bg-red-50 text-red-700 border border-red-200"
-                        : "bg-slate-50 text-slate-600"
+                        ? "bg-red-500/15 text-red-400 border border-red-500/25"
+                        : "bg-moto-darker text-slate-300"
                     }`}
                   >
                     - Remove
@@ -569,7 +569,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">
+                  <label className="block text-[13px] font-medium text-slate-300 mb-1">
                     Quantity
                   </label>
                   <input
@@ -577,14 +577,14 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                     min={1}
                     value={adjustQty || ""}
                     onChange={(e) => setAdjustQty(parseInt(e.target.value) || 0)}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:border-violet-500 transition"
+                    className="w-full px-3.5 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
                   />
                 </div>
 
                 <button
                   onClick={handleStockAdjust}
                   disabled={adjusting || adjustQty <= 0}
-                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
+                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
                 >
                   {adjusting ? "Updating..." : "Apply Adjustment"}
                 </button>
