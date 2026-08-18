@@ -33,27 +33,27 @@ const statusConfig: Record<
   { color: string; dot: string; label: string }
 > = {
   pending: {
-    color: "bg-amber-50 text-amber-700 border border-amber-200/60",
+    color: "bg-amber-500/15 text-amber-400 border border-amber-500/30",
     dot: "bg-amber-500",
     label: "Pending",
   },
   confirmed: {
-    color: "bg-indigo-50 text-indigo-700 border border-indigo-200/60",
+    color: "bg-moto-accent/15 text-moto-accent border border-moto-accent/30",
     dot: "bg-indigo-500",
     label: "Confirmed",
   },
   in_progress: {
-    color: "bg-violet-50 text-violet-700 border border-violet-200/60",
+    color: "bg-violet-500/15 text-violet-400 border border-violet-500/30",
     dot: "bg-violet-500",
     label: "In Progress",
   },
   completed: {
-    color: "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+    color: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
     dot: "bg-emerald-500",
     label: "Completed",
   },
   cancelled: {
-    color: "bg-slate-100 text-slate-500 border border-slate-200/60",
+    color: "bg-moto-gray/40 text-slate-400 border border-moto-gray/60",
     dot: "bg-slate-400",
     label: "Cancelled",
   },
@@ -422,26 +422,26 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       value: filteredAppointments.filter((a) => a.scheduled_date === todayKey)
         .length,
       icon: Calendar,
-      tile: "bg-violet-50 text-violet-600",
+      tile: "bg-violet-500/15 text-violet-400",
     },
     {
       label: "Pending",
       value: filteredAppointments.filter((a) => a.status === "pending").length,
       icon: Clock,
-      tile: "bg-amber-50 text-amber-600",
+      tile: "bg-amber-500/15 text-amber-400",
     },
     {
       label: "In Progress",
       value: filteredAppointments.filter((a) => a.status === "in_progress")
         .length,
       icon: Wrench,
-      tile: "bg-fuchsia-50 text-fuchsia-600",
+      tile: "bg-fuchsia-500/15 text-fuchsia-400",
     },
     {
       label: "Completed",
       value: filteredAppointments.filter((a) => a.status === "completed").length,
       icon: CheckCircle,
-      tile: "bg-emerald-50 text-emerald-600",
+      tile: "bg-emerald-500/15 text-emerald-400",
     },
   ];
 
@@ -479,7 +479,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   }, [filteredAppointments, filterStatus, searchTerm]);
 
   const inputClass =
-    "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition";
+    "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
 
   return (
     <div className="space-y-6">
@@ -513,17 +513,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
             Appointments
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[13px] text-slate-300 mt-0.5">
             {isOwner ? "Manage shop booking calendar and status workflow." : "Schedule and track your service appointments."}
           </p>
         </div>
         {canBookAppointments && (
           <button
             onClick={() => setShowBookingForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
           >
             <Plus className="w-4 h-4" />
             New Appointment
@@ -553,10 +553,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 <Icon className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 truncate">
+                <p className="text-[13px] font-semibold text-slate-300 truncate">
                   {stat.label}
                 </p>
-                <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-tight">
+                <p className="text-3xl font-extrabold text-slate-100 tabular-nums leading-tight">
                   {stat.value}
                 </p>
               </div>
@@ -573,13 +573,13 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         className="dashboard-card p-4 flex flex-col gap-4"
       >
         <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
           <input
             type="text"
             placeholder="Search by customer, vehicle, service or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition"
+            className="w-full pl-10 pr-4 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -589,16 +589,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               <button
                 key={tab.key}
                 onClick={() => setFilterStatus(tab.key)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all ${
                   active
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
+                    ? "bg-moto-accent text-slate-950 shadow-sm"
+                    : "bg-moto-dark text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
                 }`}
               >
                 {tab.label}
                 <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${
-                    active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                  className={`px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
+                    active ? "bg-white/20 text-white" : "bg-moto-gray/40 text-slate-300"
                   }`}
                 >
                   {tab.count}
@@ -616,19 +616,19 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         transition={{ delay: 0.15 }}
         className="dashboard-card overflow-hidden"
       >
-        <div className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-moto-gray">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
-              <Calendar size={16} />
+            <div className="w-9 h-9 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center">
+              <Calendar size={18} />
             </div>
             <h2
-              className="text-sm font-bold text-slate-900"
+              className="text-base font-bold text-slate-100"
               style={{ fontFamily: "Inter, system-ui, sans-serif" }}
             >
               Appointments
             </h2>
           </div>
-          <span className="text-xs font-semibold text-slate-400">
+          <span className="text-[13px] font-semibold text-slate-300">
             {visibleAppointments.length}{" "}
             {visibleAppointments.length === 1 ? "appointment" : "appointments"}
           </span>
@@ -636,13 +636,13 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
         {visibleAppointments.length === 0 ? (
           <div className="p-16 text-center">
-            <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 text-xs font-semibold">
+            <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+            <p className="text-slate-300 text-sm font-semibold">
               No appointments match these filters
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-moto-gray">
             <AnimatePresence initial={false}>
               {visibleAppointments.map((apt) => {
                 const conf = statusConfig[apt.status];
@@ -652,52 +652,52 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                    className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-moto-gray/40 transition-colors"
                   >
                     {/* Left: status + service + customer */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${conf.color}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold ${conf.color}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${conf.dot}`} />
+                          <span className={`w-2 h-2 rounded-full ${conf.dot}`} />
                           {conf.label}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 tabular-nums">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-300 tabular-nums">
+                          <Calendar className="w-4 h-4 text-slate-300" />
                           {new Date(apt.scheduled_date).toLocaleDateString(
                             "en-PH",
                             { month: "short", day: "numeric", year: "numeric" },
                           )}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-300">
+                          <Clock className="w-4 h-4 text-slate-300" />
                           {apt.scheduled_time}
                         </span>
                       </div>
 
                       <p
-                        className="font-bold text-slate-900 text-sm mt-2"
+                        className="font-bold text-slate-100 text-base mt-2"
                         style={{ fontFamily: "Inter, system-ui, sans-serif" }}
                       >
                         {apt.service_type}
                       </p>
 
-                      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-xs text-slate-500">
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-[13px] text-slate-400">
                         {(apt as any).customer?.name && (
                           <span className="flex items-center gap-1">
-                            <User className="w-3.5 h-3.5 text-slate-400" />
+                            <User className="w-4 h-4 text-slate-400" />
                             {(apt as any).customer.name}
                           </span>
                         )}
                         {(apt as any).customer?.phone && (
                           <span className="flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            <Phone className="w-4 h-4 text-slate-400" />
                             {(apt as any).customer.phone}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <Car className="w-3.5 h-3.5 text-slate-400" />
+                          <Car className="w-4 h-4 text-slate-400" />
                           {apt.description?.split(" - ")[0] || "Vehicle"}
                         </span>
                       </div>
@@ -709,7 +709,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                         {isOwner && (
                           <button
                             onClick={() => setJobOrderAppointment(apt)}
-                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"
+                            className="px-3.5 py-2 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                           >
                             Job Order
                           </button>
@@ -717,9 +717,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                         {apt.status === "in_progress" && isOwner && (
                           <button
                             onClick={() => handleStatusChange(apt.id, "completed")}
-                            className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
+                            className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
                           >
-                            <CheckCircle className="w-3.5 h-3.5" />
+                            <CheckCircle className="w-4 h-4" />
                             Finalize
                           </button>
                         )}
@@ -731,7 +731,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                               e.target.value as AppointmentStatus,
                             )
                           }
-                          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-violet-500 transition"
+                          className="px-3 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
                         >
                           {Object.entries(statusConfig).map(([status, config]) => (
                             <option key={status} value={status}>
@@ -766,13 +766,13 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               onClick={(e) => e.stopPropagation()}
               className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <div className="flex items-center justify-between border-b border-moto-gray pb-3">
+                <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Book Appointment
                 </h3>
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 transition"
+                  className="p-1 rounded-lg hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
                 >
                   <X size={18} />
                 </button>
@@ -780,7 +780,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Date</label>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Date</label>
                   <input
                     type="date"
                     value={selectedDate}
@@ -789,7 +789,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Customer Name</label>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Customer Name</label>
                   <input
                     type="text"
                     placeholder="Full name"
@@ -801,7 +801,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Phone Number</label>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Phone Number</label>
                   <input
                     type="tel"
                     placeholder="0917..."
@@ -813,7 +813,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Vehicle (Make / Model)</label>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Vehicle (Make / Model)</label>
                   <input
                     type="text"
                     placeholder="e.g. Honda Click 150i"
@@ -825,7 +825,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Service Type</label>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Service Type</label>
                   <select
                     value={formData.service_type}
                     onChange={(e) =>
@@ -843,7 +843,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 </div>
                 {mechanics.length > 0 && (
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Assign Mechanic (Optional)</label>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">Assign Mechanic (Optional)</label>
                     <select
                       value={formData.mechanic_id}
                       onChange={(e) =>
@@ -865,14 +865,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowBookingForm(false)}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleBookAppointment}
                   disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
                 >
                   {saving ? "Booking..." : "Confirm Booking"}
                 </button>
