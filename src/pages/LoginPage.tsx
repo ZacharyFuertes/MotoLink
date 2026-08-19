@@ -485,7 +485,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Vehicle Section Divider */}
+                  {/* Motorcycle Section Divider */}
                   {isSignup && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -495,7 +495,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     />
                   )}
 
-                  {/* Vehicle Make (Signup only) */}
+                  {/* Motorcycle Make (Signup only) */}
                   {isSignup && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -503,7 +503,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                       transition={{ delay: 0.32 }}
                     >
                       <label className="text-xs text-slate-300 ml-1 mb-1 block">
-                        Vehicle Information
+                        Motorcycle Information
                       </label>
                       <div className="relative">
                         <Truck size={18} className={iconClass} />
@@ -516,7 +516,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                             formData.vehicle_make &&
                             setShowMakeSuggestions(true)
                           }
-                          placeholder="Vehicle Make (e.g., Toyota)"
+                          placeholder="Motorcycle Make (e.g., YAMAHA)"
                           required
                           className={inputClass}
                           autoComplete="off"
@@ -549,7 +549,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Vehicle Model (Signup only) */}
+                  {/* Motorcycle Model (Signup only) */}
                   {isSignup && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -567,7 +567,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                             formData.vehicle_model &&
                             setShowModelSuggestions(true)
                           }
-                          placeholder="Vehicle Model (e.g., Altis)"
+                          placeholder="Motorcycle Model (e.g., AEROX 150)"
                           required
                           disabled={!formData.vehicle_make}
                           className={`${inputClass} ${!formData.vehicle_make ? "opacity-50 cursor-not-allowed" : ""}`}
