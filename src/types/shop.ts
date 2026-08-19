@@ -15,6 +15,7 @@ export interface Shop {
   is_active: boolean;
   is_open?: boolean;
   rating?: number;
+  reviewCount?: number;
   available?: boolean;
 }
 

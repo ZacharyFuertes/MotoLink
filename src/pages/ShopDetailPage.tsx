@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car, Navigation } from "lucide-react";
-import { getShopById } from "../services/shopService";
+import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car, Navigation, ChevronDown, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon } from "lucide-react";
+import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
+import { getShopGallery, ShopPhoto, ShopPhotoCategory } from "../services/galleryService";
 import { Shop } from "../types/shop";
 import { filterPhMakes, filterPhModels } from "../utils/vehicleData";
 import NavigationModal from "../components/NavigationModal";
@@ -46,6 +47,79 @@ interface AppointmentDraft {
   year: string;
 }
 
+interface DaySchedule {
+  day: string;
+  open: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
+const UI_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const toMinutes = (time: string): number => {
+  const [hh, mm] = time.split(":").map((n) => parseInt(n, 10) || 0);
+  return hh * 60 + mm;
+};
+
+const formatClock = (time: string): string => {
+  const [hh, mm] = time.split(":").map((n) => parseInt(n, 10) || 0);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return time;
+  const period = hh >= 12 ? "PM" : "AM";
+  let hour = hh % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${mm.toString().padStart(2, "0")} ${period}`;
+};
+
+// Parse the shop's operating_hours string into a stable 7-day schedule.
+// Sunday is index 0, matching parseOperatingHoursString's convention.
+const buildSchedule = (operatingHours?: string): DaySchedule[] => {
+  const parsed = parseOperatingHoursString(operatingHours);
+  return UI_DAYS.map((day, idx) => ({
+    day,
+    ...(parsed[idx] || { open: false, openTime: "00:00", closeTime: "00:00" }),
+  }));
+};
+
+// Real open/closed status derived from the schedule + current time.
+interface ShopStatus {
+  state: "open" | "closed" | "unknown";
+  closeTime?: string;
+  nextOpenLabel?: string;
+}
+
+const computeShopStatus = (operatingHours?: string): ShopStatus => {
+  const schedule = buildSchedule(operatingHours);
+  if (schedule.every((d) => !d.open)) return { state: "unknown" };
+
+  const now = new Date();
+  const today = now.getDay();
+  const minutesNow = now.getHours() * 60 + now.getMinutes();
+  const todayEntry = schedule[today];
+
+  if (todayEntry?.open) {
+    const openMin = toMinutes(todayEntry.openTime);
+    const closeMin = toMinutes(todayEntry.closeTime);
+    const isOpen =
+      closeMin > openMin
+        ? minutesNow >= openMin && minutesNow < closeMin
+        : minutesNow >= openMin || minutesNow < closeMin; // overnight window
+    if (isOpen) {
+      return { state: "open", closeTime: formatClock(todayEntry.closeTime) };
+    }
+  }
+
+  // Closed — find the next day/time the shop opens (scan forward up to 7 days).
+  for (let offset = 1; offset <= 7; offset++) {
+    const dayIndex = (today + offset) % 7;
+    const entry = schedule[dayIndex];
+    if (entry?.open) {
+      return { state: "closed", nextOpenLabel: `${entry.day}, ${formatClock(entry.openTime)}` };
+    }
+  }
+
+  return { state: "closed", nextOpenLabel: "check back later" };
+};
+
 const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -71,6 +145,38 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
+  const [activeTab, setActiveTab] = useState<"services" | "mechanics" | "products">("services");
+  const [showFullHours, setShowFullHours] = useState(false);
+  const [gallery, setGallery] = useState<ShopPhoto[]>([]);
+  const [galleryCategory, setGalleryCategory] = useState<ShopPhotoCategory | "all">("all");
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [galleryFocused, setGalleryFocused] = useState(false);
+
+  const galleryFiltered = useMemo(() => {
+    const list = galleryCategory === "all" ? gallery : gallery.filter((p) => p.category === galleryCategory);
+    return list;
+  }, [gallery, galleryCategory]);
+
+  useEffect(() => {
+    if (galleryFiltered.length === 0) return;
+    if (galleryIndex >= galleryFiltered.length) setGalleryIndex(galleryFiltered.length - 1);
+  }, [galleryFiltered, galleryIndex]);
+
+  const activePhoto = galleryFiltered[galleryIndex] || null;
+
+  const moveGallery = (delta: number) => {
+    if (galleryFiltered.length === 0) return;
+    setGalleryIndex((i) => (i + delta + galleryFiltered.length) % galleryFiltered.length);
+  };
+
+  const handleGalleryKey = (e: React.KeyboardEvent) => {
+    if (!galleryFocused) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); moveGallery(-1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); moveGallery(1); }
+  };
+
+  const shopStatus = computeShopStatus(shop?.operating_hours);
+  const schedule = buildSchedule(shop?.operating_hours);
 
   const handleNavigate = () => {
     if (!shop) return;
@@ -144,7 +250,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     setLoading(true);
     setError("");
     try {
-      const [shopData, productsData, mechanicsData, servicesData] =
+      const [shopData, productsData, mechanicsData, servicesData, galleryData] =
         await Promise.allSettled([
           getShopById(shopId),
           productService.getAllProducts(shopId),
@@ -160,6 +266,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
             .eq("shop_id", shopId)
             .eq("is_active", true)
             .order("price", { ascending: true }),
+          getShopGallery(shopId),
         ]);
 
       if (shopData.status === "fulfilled") setShop(shopData.value);
@@ -168,6 +275,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
         setMechanics(mechanicsData.value.data || []);
       if (servicesData.status === "fulfilled")
         setServices(servicesData.value.data || []);
+      if (galleryData.status === "fulfilled") setGallery(galleryData.value);
 
       if (shopData.status === "fulfilled" && !shopData.value) {
         setError("Shop not found.");
@@ -301,9 +409,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     );
   }
 
-  const sectionHeading =
-    "flex items-center gap-2 text-slate-100 font-bold uppercase tracking-widest text-sm mb-5";
-  const sectionIcon = "text-moto-accent";
   const inputClass =
     "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent transition";
 
@@ -340,11 +445,19 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           <div className="relative bg-gradient-to-br from-moto-dark to-moto-darker px-6 sm:px-8 py-8">
             <div className="flex flex-col lg:flex-row lg:items-center gap-6">
               <div className="flex items-center gap-5">
-                <img
-                  src={shop.logo_url || "/favicon.svg"}
-                  alt={`${shop.name} logo`}
-                  className="h-20 w-20 rounded-2xl border border-moto-gray bg-white object-contain p-1 shrink-0"
-                />
+                {shop.logo_url ? (
+                  <img
+                    src={shop.logo_url}
+                    alt={`${shop.name} logo`}
+                    className="h-20 w-20 rounded-2xl border border-moto-gray bg-white object-contain p-1 shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-moto-gray bg-moto-gray/20">
+                    <span className="font-display text-4xl font-black uppercase text-slate-400">
+                      {shop.name.trim().charAt(0) || "?"}
+                    </span>
+                  </div>
+                )}
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="font-display text-3xl sm:text-4xl text-white uppercase tracking-wide">
@@ -365,16 +478,77 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
 
               <div className="lg:ml-auto flex flex-col gap-4 min-w-[220px]">
                 <div className="rounded-2xl bg-white/5 border border-moto-gray px-5 py-4">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
-                    Invoice Total
-                  </p>
-                  <p className="text-2xl font-display font-black text-white">
-                    ₱{invoiceTotal.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-1">
-                    {receiptItems.length + (appointment?.services.length || 0)} item(s)
-                  </p>
+                  {shopStatus.state === "open" && shopStatus.closeTime ? (
+                    <>
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
+                        Open now
+                      </p>
+                      <p className="text-xl font-display font-black text-emerald-300">
+                        Open until {shopStatus.closeTime}
+                      </p>
+                    </>
+                  ) : shopStatus.state === "closed" ? (
+                    <>
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
+                        Currently closed
+                      </p>
+                      <p className="text-xl font-display font-black text-amber-300">
+                        Opens {shopStatus.nextOpenLabel}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
+                        Status
+                      </p>
+                      <p className="text-xl font-display font-black text-slate-300">
+                        Hours unavailable
+                      </p>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowFullHours((v) => !v)}
+                    aria-expanded={showFullHours}
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-moto-accent hover:text-white transition"
+                  >
+                    <CalendarDays size={14} />
+                    {showFullHours ? "Hide full hours" : "See full hours"}
+                    <ChevronDown size={14} className={`transition-transform ${showFullHours ? "rotate-180" : ""}`} />
+                  </button>
                 </div>
+
+                <AnimatePresence initial={false}>
+                  {showFullHours && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden rounded-2xl bg-white/5 border border-moto-gray px-5 py-4"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-3">
+                        Weekly schedule
+                      </p>
+                      <div className="space-y-2">
+                        {schedule.map((d) => {
+                          const isToday = UI_DAYS[new Date().getDay()] === d.day;
+                          return (
+                            <div
+                              key={d.day}
+                              className={`flex items-center justify-between text-xs ${isToday ? "text-white" : "text-slate-400"}`}
+                            >
+                              <span className={`font-semibold uppercase tracking-wider ${isToday ? "text-moto-accent" : ""}`}>
+                                {d.day}
+                              </span>
+                              <span>{d.open ? `${formatClock(d.openTime)} – ${formatClock(d.closeTime)}` : "Closed"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -414,7 +588,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           </div>
         </motion.section>
 
-        {shop.is_open === false && (
+        {shopStatus.state === "closed" && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -426,6 +600,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                 This shop is currently closed
               </p>
               <p className="text-slate-300 text-sm mt-1">
+                {shopStatus.nextOpenLabel
+                  ? `Next opens ${shopStatus.nextOpenLabel}. `
+                  : ""}
                 You can still browse its services, mechanics and products, but
                 bookings and purchases are temporarily unavailable.
               </p>
@@ -433,155 +610,327 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
           </motion.div>
         )}
 
-        <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8 mt-8">
-          <div className="space-y-10">
-            {/* Services */}
-            <section>
-              <h2 className={sectionHeading}>
-                <Wrench size={16} className={sectionIcon} /> Services
-              </h2>
-              {services.length === 0 ? (
-                <p className="text-slate-400 text-sm">No services listed yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {services.map((svc) => (
-                    <div
-                      key={svc.id}
-                      className="group rounded-2xl border border-moto-gray bg-moto-dark p-5 transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
+        {/* Photo gallery */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mt-6 rounded-2xl border border-moto-gray bg-moto-dark p-5 sm:p-6"
+          onKeyDown={handleGalleryKey}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Camera size={16} className="text-moto-accent" />
+              <h2 className="font-bold uppercase tracking-widest text-slate-100 text-sm">Photo Gallery</h2>
+            </div>
+            {/* Category filter chips with live counts */}
+            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter gallery by category">
+              {([
+                { value: "all" as const, label: "All" },
+                { value: "shop" as const, label: "Shop" },
+                { value: "services" as const, label: "Services" },
+                { value: "location" as const, label: "Location" },
+              ]).map((chip) => {
+                const count =
+                  chip.value === "all"
+                    ? gallery.length
+                    : gallery.filter((p) => p.category === chip.value).length;
+                const isActive = galleryCategory === chip.value;
+                return (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => { setGalleryCategory(chip.value); setGalleryIndex(0); }}
+                    aria-pressed={isActive}
+                    role="tab"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+                      isActive
+                        ? "bg-moto-accent text-slate-950"
+                        : "border border-moto-gray bg-moto-darker text-slate-300 hover:border-moto-accent hover:text-white"
+                    }`}
+                  >
+                    {chip.label}
+                    <span className={`inline-flex min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${isActive ? "bg-slate-950/20 text-slate-950" : "bg-moto-accent/15 text-moto-accent"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {gallery.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-moto-gray bg-moto-darker/50 p-10 text-center">
+              <ImageIcon size={36} className="mx-auto mb-3 text-moto-gray" />
+              <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No photos yet</p>
+              <p className="text-slate-400 text-sm mt-1">This shop hasn't uploaded any photos to its gallery yet.</p>
+            </div>
+          ) : galleryFiltered.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-moto-gray bg-moto-darker/50 p-10 text-center">
+              <ImageIcon size={36} className="mx-auto mb-3 text-moto-gray" />
+              <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No {galleryCategory} photos</p>
+              <p className="text-slate-400 text-sm mt-1">Try another category to see more photos.</p>
+            </div>
+          ) : (
+            <>
+              {/* Main viewer */}
+              <div
+                tabIndex={0}
+                onFocus={() => setGalleryFocused(true)}
+                onBlur={() => setGalleryFocused(false)}
+                className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-moto-gray bg-moto-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent"
+                aria-label="Gallery viewer"
+              >
+                <img
+                  src={activePhoto?.image_url}
+                  alt={activePhoto?.caption || `${shop.name} photo`}
+                  className="h-full w-full object-contain"
+                />
+                {galleryFiltered.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => moveGallery(-1)}
+                      aria-label="Previous photo"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-moto-accent hover:text-slate-950"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-slate-100 font-bold text-sm uppercase tracking-wider">
-                          {svc.label}
-                        </p>
-                        {svc.icon && (
-                          <span className="text-moto-accent text-lg leading-none">
-                            {svc.icon}
-                          </span>
-                        )}
-                      </div>
-                      {svc.description && (
-                        <p className="text-slate-400 text-xs mt-1.5">
-                          {svc.description}
-                        </p>
-                      )}
-                      <p className="font-display text-xl text-moto-accent mt-3">
-                        ₱{Number(svc.price).toLocaleString()}
-                      </p>
-                    </div>
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveGallery(1)}
+                      aria-label="Next photo"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition hover:bg-moto-accent hover:text-slate-950"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </>
+                )}
+                {activePhoto?.caption && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-10">
+                    <p className="text-sm font-semibold text-white">{activePhoto.caption}</p>
+                  </div>
+                )}
+                <span className="absolute right-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur">
+                  {galleryIndex + 1} / {galleryFiltered.length}
+                </span>
+              </div>
+
+              {/* Thumbnail strip */}
+              {galleryFiltered.length > 1 && (
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                  {galleryFiltered.map((photo, idx) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setGalleryIndex(idx)}
+                      aria-label={`View photo ${idx + 1}`}
+                      aria-current={idx === galleryIndex}
+                      className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border transition ${
+                        idx === galleryIndex
+                          ? "border-moto-accent ring-2 ring-moto-accent/40"
+                          : "border-moto-gray opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={photo.image_url} alt="" className="h-full w-full object-cover" />
+                    </button>
                   ))}
                 </div>
               )}
-            </section>
+            </>
+          )}
+        </motion.section>
 
-            {/* Mechanics */}
-            <section>
-              <h2 className={sectionHeading}>
-                <Users size={16} className={sectionIcon} /> Mechanics
-              </h2>
-              {mechanics.length === 0 ? (
-                <p className="text-slate-400 text-sm">No mechanics listed yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {mechanics.map((mech) => {
-                    const isAssigned = appointment?.mechanic.id === mech.id;
-                    return (
+        <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8 mt-8">
+          <div className="space-y-10">
+            {/* Tab bar */}
+            <div className="flex flex-wrap gap-2 border-b border-moto-gray pb-3">
+              {([
+                { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
+                { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
+                { id: "products" as const, label: "Products", icon: Package, count: products.length },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-selected={activeTab === tab.id}
+                  role="tab"
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition ${
+                    activeTab === tab.id
+                      ? "bg-moto-accent text-slate-950"
+                      : "border border-moto-gray bg-moto-dark text-slate-300 hover:border-moto-accent hover:text-white"
+                  }`}
+                >
+                  <tab.icon size={15} />
+                  {tab.label}
+                  <span
+                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-moto-accent/15 text-moto-accent"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Services */}
+            {activeTab === "services" && (
+              <section>
+                {services.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-dark/40 p-10 text-center">
+                    <Wrench size={36} className="mx-auto mb-3 text-moto-gray" />
+                    <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No services listed yet</p>
+                    <p className="text-slate-400 text-sm mt-1">This shop hasn't added any services to its menu yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {services.map((svc) => (
                       <div
-                        key={mech.id}
-                        className={`group rounded-2xl border bg-moto-dark p-5 flex flex-col transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30 ${
-                          isAssigned
-                            ? "border-moto-accent"
-                            : "border-moto-gray hover:border-moto-accent"
-                        }`}
+                        key={svc.id}
+                        className="group rounded-2xl border border-moto-gray bg-moto-dark p-5 transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-moto-accent/20 to-moto-accent/5 border border-moto-accent/30 flex items-center justify-center text-moto-accent font-bold text-sm uppercase">
-                            {mech.name.slice(0, 1)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-slate-100 font-bold text-sm uppercase tracking-wider truncate">
-                              {mech.name}
-                            </p>
-                            <p className="text-slate-400 text-xs mt-0.5 truncate">
-                              {mech.email}
-                            </p>
-                          </div>
-                          {isAssigned && (
-                            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-moto-accent/15 border border-moto-accent/30 px-2.5 py-1 text-[10px] font-bold text-moto-accent uppercase tracking-wider">
-                              <Check size={11} /> Assigned
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-slate-100 font-bold text-sm uppercase tracking-wider">
+                            {svc.label}
+                          </p>
+                          {svc.icon && (
+                            <span className="text-moto-accent text-lg leading-none">
+                              {svc.icon}
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openBooking(mech)}
-                          disabled={shop.is_open === false}
-                          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Wrench size={13} className="text-moto-accent" /> Select
-                          mechanic
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* Products */}
-            <section>
-              <h2 className={sectionHeading}>
-                <Package size={16} className={sectionIcon} /> Products
-              </h2>
-              {products.length === 0 ? (
-                <p className="text-slate-400 text-sm">No products listed yet.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {products.map((p) => (
-                    <div
-                      key={p.id}
-                      className="group overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark flex flex-col transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
-                    >
-                      <div className="h-32 bg-moto-dark flex items-center justify-center overflow-hidden border-b border-moto-gray/50">
-                        {p.image_url ? (
-                          <img
-                            src={p.image_url}
-                            alt={p.name}
-                            className="w-full h-full object-contain p-3 transition duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <Package
-                            size={36}
-                            className="text-moto-gray group-hover:text-moto-accent transition"
-                          />
-                        )}
-                      </div>
-                      <div className="p-4 flex flex-col flex-1">
-                        <p className="text-slate-100 font-bold text-sm group-hover:text-moto-accent transition truncate">
-                          {p.name}
-                        </p>
-                        {p.description && (
-                          <p className="text-slate-400 text-xs mt-1 line-clamp-2">
-                            {p.description}
+                        {svc.description && (
+                          <p className="text-slate-400 text-xs mt-1.5">
+                            {svc.description}
                           </p>
                         )}
-                        <p className="font-display text-lg text-moto-accent mt-2">
-                          ₱{Number(p.unit_price).toLocaleString()}
+                        <p className="font-display text-xl text-moto-accent mt-3">
+                          ₱{Number(svc.price).toLocaleString()}
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => addToReceipt(p)}
-                          disabled={shop.is_open === false}
-                          className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Plus size={13} className="text-moto-accent" /> Add to
-                          receipt
-                        </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Mechanics */}
+            {activeTab === "mechanics" && (
+              <section>
+                {mechanics.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-dark/40 p-10 text-center">
+                    <Users size={36} className="mx-auto mb-3 text-moto-gray" />
+                    <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No mechanics listed yet</p>
+                    <p className="text-slate-400 text-sm mt-1">No mechanics have been assigned to this shop yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mechanics.map((mech) => {
+                      const isAssigned = appointment?.mechanic.id === mech.id;
+                      return (
+                        <div
+                          key={mech.id}
+                          className={`group rounded-2xl border bg-moto-dark p-5 flex flex-col transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30 ${
+                            isAssigned
+                              ? "border-moto-accent"
+                              : "border-moto-gray hover:border-moto-accent"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-moto-accent/20 to-moto-accent/5 border border-moto-accent/30 flex items-center justify-center text-moto-accent font-bold text-sm uppercase">
+                              {mech.name.slice(0, 1)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-slate-100 font-bold text-sm uppercase tracking-wider truncate">
+                                {mech.name}
+                              </p>
+                              <p className="text-slate-400 text-xs mt-0.5 truncate">
+                                {mech.email}
+                              </p>
+                            </div>
+                            {isAssigned && (
+                              <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-moto-accent/15 border border-moto-accent/30 px-2.5 py-1 text-[10px] font-bold text-moto-accent uppercase tracking-wider">
+                                <Check size={11} /> Assigned
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openBooking(mech)}
+                            disabled={shop.is_open === false}
+                            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Wrench size={13} className="text-moto-accent" /> Select
+                            mechanic
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Products */}
+            {activeTab === "products" && (
+              <section>
+                {products.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-dark/40 p-10 text-center">
+                    <Package size={36} className="mx-auto mb-3 text-moto-gray" />
+                    <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No products listed yet</p>
+                    <p className="text-slate-400 text-sm mt-1">This shop hasn't added any parts or products to its catalog yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {products.map((p) => (
+                      <div
+                        key={p.id}
+                        className="group overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark flex flex-col transition hover:-translate-y-0.5 hover:border-moto-accent hover:shadow-lg hover:shadow-black/30"
+                      >
+                        <div className="h-32 bg-moto-dark flex items-center justify-center overflow-hidden border-b border-moto-gray/50">
+                          {p.image_url ? (
+                            <img
+                              src={p.image_url}
+                              alt={p.name}
+                              className="w-full h-full object-contain p-3 transition duration-300 group-hover:scale-105"
+                            />
+                          ) : (
+                            <Package
+                              size={36}
+                              className="text-moto-gray group-hover:text-moto-accent transition"
+                            />
+                          )}
+                        </div>
+                        <div className="p-4 flex flex-col flex-1">
+                          <p className="text-slate-100 font-bold text-sm group-hover:text-moto-accent transition truncate">
+                            {p.name}
+                          </p>
+                          {p.description && (
+                            <p className="text-slate-400 text-xs mt-1 line-clamp-2">
+                              {p.description}
+                            </p>
+                          )}
+                          <p className="font-display text-lg text-moto-accent mt-2">
+                            ₱{Number(p.unit_price).toLocaleString()}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => addToReceipt(p)}
+                            disabled={shop.is_open === false}
+                            className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Plus size={13} className="text-moto-accent" /> Add to
+                            receipt
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
 
           {/* Receipt side panel */}
@@ -715,9 +1064,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                   type="button"
                   onClick={() => appointment && openBooking(appointment.mechanic)}
                   disabled={!appointment}
-                  className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold uppercase tracking-widest py-3 hover:brightness-110 transition disabled:opacity-40"
+                  className={
+                    appointment
+                      ? "w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold uppercase tracking-widest py-3 hover:brightness-110 transition"
+                      : "w-full rounded-xl bg-moto-darker border border-moto-gray text-slate-500 text-xs font-bold uppercase tracking-widest py-3 cursor-not-allowed"
+                  }
                 >
-                  Edit Appointment
+                  {appointment ? "Edit Appointment" : "Select a mechanic to continue"}
                 </button>
                 <button
                   type="button"

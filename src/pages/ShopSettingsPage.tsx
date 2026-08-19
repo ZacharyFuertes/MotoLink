@@ -16,12 +16,27 @@ import {
   Sparkles,
   Power,
   Loader2,
+  UploadCloud,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Camera,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop } from "../services/shopService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
 import LocationPicker from "../components/LocationPicker";
+import { imageService, validateImageFile } from "../services/imageService";
+import {
+  getShopGallery,
+  addShopPhoto,
+  updateShopPhoto,
+  deleteShopPhoto,
+  SHOP_PHOTO_CATEGORIES,
+  ShopPhoto,
+  ShopPhotoCategory,
+} from "../services/galleryService";
 
 interface ShopSettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -53,6 +68,22 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
     text: string;
   } | null>(null);
 
+  const [gallery, setGallery] = useState<ShopPhoto[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState<ShopPhotoCategory>("shop");
+  const [uploadCaption, setUploadCaption] = useState("");
+  const [galleryMsg, setGalleryMsg] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const loadGallery = async (shopId: string) => {
+    const photos = await getShopGallery(shopId);
+    setGallery(photos);
+    setGalleryLoading(false);
+  };
+
   useEffect(() => {
     if (!user?.shop_id) {
       setLoading(false);
@@ -67,10 +98,101 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
       }
       setLoading(false);
     });
+    loadGallery(user.shop_id);
     return () => {
       mounted = false;
     };
   }, [user?.shop_id]);
+
+  const showGalleryMsg = (type: "success" | "error", text: string) => {
+    setGalleryMsg({ type, text });
+    window.setTimeout(() => setGalleryMsg(null), 4000);
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user?.shop_id || !shop.name) return;
+
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      showGalleryMsg("error", validationError);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const url = await imageService.uploadShopPhoto(file, shop.name);
+      if (!url) {
+        showGalleryMsg("error", "Upload failed. Check the file and try again.");
+        return;
+      }
+      const photo = await addShopPhoto(
+        user.shop_id,
+        url,
+        uploadCategory,
+        uploadCaption.trim() || undefined,
+      );
+      if (!photo) {
+        await imageService.deleteShopPhoto(url);
+        showGalleryMsg("error", "Could not save photo to gallery.");
+        return;
+      }
+      setGallery((prev) => [...prev, photo]);
+      setUploadCaption("");
+      showGalleryMsg("success", "Photo added to gallery.");
+    } catch (err) {
+      console.error("Error uploading photo:", err);
+      showGalleryMsg("error", "Error uploading photo.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePhotoDelete = async (photo: ShopPhoto) => {
+    if (!window.confirm("Delete this photo from your gallery?")) return;
+    const rowDeleted = await deleteShopPhoto(photo.id);
+    if (rowDeleted) {
+      await imageService.deleteShopPhoto(photo.image_url);
+      setGallery((prev) => prev.filter((p) => p.id !== photo.id));
+      showGalleryMsg("success", "Photo deleted.");
+    } else {
+      showGalleryMsg("error", "Could not delete photo.");
+    }
+  };
+
+  const handlePhotoUpdate = async (
+    photo: ShopPhoto,
+    updates: { category?: ShopPhotoCategory; caption?: string | null },
+  ) => {
+    const ok = await updateShopPhoto(photo.id, updates);
+    if (ok) {
+      setGallery((prev) =>
+        prev.map((p) => (p.id === photo.id ? { ...p, ...updates } : p)),
+      );
+      showGalleryMsg("success", "Photo updated.");
+    } else {
+      showGalleryMsg("error", "Could not update photo.");
+    }
+  };
+
+  const handlePhotoMove = async (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= gallery.length) return;
+    const next = [...gallery];
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    const reordered = next.map((p, i) => ({ ...p, display_order: i }));
+    setGallery(reordered);
+    const ok = await Promise.all(
+      reordered.map((p) => updateShopPhoto(p.id, { display_order: p.display_order })),
+    );
+    if (!ok.every(Boolean)) {
+      showGalleryMsg("error", "Some reordering changes failed to save.");
+    } else {
+      showGalleryMsg("success", "Gallery order updated.");
+    }
+  };
 
   if (!user || user.role !== "owner") {
     return <AccessDenied requestedPage="shop-settings" onNavigate={onNavigate} />;
@@ -497,6 +619,207 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   {shop.is_open === false ? "Closed" : "Open"}
                 </span>
               </div>
+            </div>
+          </motion.div>
+
+          {/* Photo Gallery Manager Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-moto-accent/15 text-moto-accent rounded-xl flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Photo Gallery
+                </h2>
+                <p className="text-[13px] text-slate-400">
+                  Upload photos customers see on your public shop page.
+                </p>
+              </div>
+            </div>
+
+            {galleryMsg && (
+              <div
+                className={`mt-3 flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold ${
+                  galleryMsg.type === "success"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                }`}
+              >
+                {galleryMsg.type === "success" ? (
+                  <CheckCircle2 size={15} />
+                ) : (
+                  <AlertTriangle size={15} />
+                )}
+                {galleryMsg.text}
+              </div>
+            )}
+
+            {/* Upload form */}
+            <div className="mt-5 rounded-2xl border border-moto-gray bg-moto-dark p-5">
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>
+                      <Tag className="w-4 h-4 text-fuchsia-500" /> Category
+                    </label>
+                    <select
+                      value={uploadCategory}
+                      onChange={(e) =>
+                        setUploadCategory(e.target.value as ShopPhotoCategory)
+                      }
+                      className={inputClass}
+                    >
+                      {SHOP_PHOTO_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClass}>
+                      <Sparkles className="w-4 h-4 text-fuchsia-500" /> Caption{" "}
+                      <span className="text-slate-500">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadCaption}
+                      onChange={(e) => setUploadCaption(e.target.value)}
+                      placeholder="e.g. Service bay view"
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={`${labelClass} sm:hidden`}>
+                    <UploadCloud className="w-4 h-4 text-fuchsia-500" /> Photo
+                  </label>
+                  <label className="mt-1 sm:mt-0 inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-moto-accent/40 bg-moto-accent/10 px-4 py-2.5 text-[13px] font-bold text-moto-accent transition hover:bg-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <UploadCloud className="w-4 h-4" />
+                    {uploading ? "Uploading..." : "Choose Photo"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handlePhotoUpload}
+                      disabled={uploading}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
+              </div>
+              <p className="mt-3 text-[12px] text-slate-500">
+                JPEG, PNG, WEBP or GIF. Max 5 MB. Photos are public to all visitors.
+              </p>
+            </div>
+
+            {/* Photo list */}
+            <div className="mt-4">
+              {galleryLoading ? (
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-moto-gray bg-moto-dark p-8 text-sm text-slate-400">
+                  <Loader2 size={16} className="animate-spin" /> Loading gallery...
+                </div>
+              ) : gallery.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-moto-gray bg-moto-dark p-8 text-center">
+                  <ImageIcon size={32} className="mx-auto mb-2 text-slate-600" />
+                  <p className="text-sm font-semibold text-slate-300">No photos yet</p>
+                  <p className="text-[13px] text-slate-500 mt-0.5">
+                    Upload your first photo to show customers what your shop looks like.
+                  </p>
+                </div>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {gallery.map((photo, index) => (
+                    <li
+                      key={photo.id}
+                      className="flex items-start gap-3 rounded-2xl border border-moto-gray bg-moto-dark p-3"
+                    >
+                      <img
+                        src={photo.image_url}
+                        alt={photo.caption || "Gallery photo"}
+                        className="h-20 w-28 shrink-0 rounded-lg border border-moto-gray object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex rounded-full bg-moto-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-moto-accent">
+                            {
+                              SHOP_PHOTO_CATEGORIES.find(
+                                (c) => c.value === photo.category,
+                              )?.label
+                            }
+                          </span>
+                          <div className="ml-auto flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handlePhotoMove(index, -1)}
+                              disabled={index === 0}
+                              aria-label="Move photo up"
+                              className="rounded-md p-1 text-slate-400 transition hover:bg-moto-gray/40 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePhotoMove(index, 1)}
+                              disabled={index === gallery.length - 1}
+                              aria-label="Move photo down"
+                              className="rounded-md p-1 text-slate-400 transition hover:bg-moto-gray/40 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent"
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePhotoDelete(photo)}
+                              aria-label="Delete photo"
+                              className="rounded-md p-1 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          <select
+                            value={photo.category}
+                            onChange={(e) =>
+                              handlePhotoUpdate(photo, {
+                                category: e.target.value as ShopPhotoCategory,
+                              })
+                            }
+                            aria-label="Photo category"
+                            className="w-full rounded-lg border border-moto-gray bg-moto-darker px-2 py-1 text-xs text-slate-300 focus:border-moto-accent focus:outline-none"
+                          >
+                            {SHOP_PHOTO_CATEGORIES.map((c) => (
+                              <option key={c.value} value={c.value}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            defaultValue={photo.caption || ""}
+                            onBlur={(e) => {
+                              const val = e.target.value.trim();
+                              if (val !== (photo.caption || "")) {
+                                handlePhotoUpdate(photo, {
+                                  caption: val || null,
+                                });
+                              }
+                            }}
+                            placeholder="Add a caption..."
+                            aria-label="Photo caption"
+                            className="w-full rounded-lg border border-moto-gray bg-moto-darker px-2 py-1 text-xs text-slate-300 placeholder:text-slate-600 focus:border-moto-accent focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </motion.div>
 

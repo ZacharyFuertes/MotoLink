@@ -1,6 +1,6 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { Users, Store, ShieldCheck, Lock, ChevronRight, Home } from "lucide-react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Store, ShieldCheck, Lock, ChevronRight, ChevronDown, Home } from "lucide-react";
 import motolinkLogo from "../../public/favicon.svg";
 
 interface LoginChoicePageProps {
@@ -23,13 +23,16 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onChooseAdmin,
   onChooseRegister,
   onBack,
-}) => (
+}) => {
+  const [adminOpen, setAdminOpen] = useState(false);
+
+  return (
   <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4 text-slate-100">
     <motion.button
       onClick={onBack}
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark border border-moto-accent rounded-xl text-slate-950 shadow-sm transition"
+      className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-transparent border border-moto-gray hover:border-moto-accent rounded-xl text-slate-300 hover:text-white shadow-sm transition"
       whileHover={{ scale: 1.05, x: -4 }}
     >
       <Home size={18} />
@@ -86,10 +89,36 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
       </div>
 
       {/* BUSINESS AND ADMIN — VERIFIED ACCESS */}
-      <p className="text-[11px] uppercase tracking-widest text-slate-400 font-semibold mb-3">
-        Business and admin — verified access
-      </p>
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="max-w-2xl mx-auto">
+        <button
+          onClick={() => setAdminOpen((open) => !open)}
+          aria-expanded={adminOpen}
+          aria-controls="business-admin-access"
+          className="w-full flex items-center justify-between gap-3 px-5 py-4 bg-moto-darker/60 border border-moto-gray hover:border-moto-accent rounded-xl text-left transition group"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-moto-dark text-moto-accent">
+              <Store size={18} />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-slate-200">Own a shop, or manage the platform?</span>
+              <span className="block text-xs text-slate-400">{adminOpen ? "Hide business & admin access" : "Business & admin access"}</span>
+            </span>
+          </span>
+          <ChevronDown size={18} className={`shrink-0 text-slate-400 transition-transform duration-200 group-hover:text-moto-accent ${adminOpen ? "rotate-180" : ""}`} />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {adminOpen && (
+            <motion.div
+              id="business-admin-access"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="grid md:grid-cols-2 gap-6 pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -150,9 +179,14 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             </div>
           </div>
         </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   </div>
-);
+  );
+};
 
 export default LoginChoicePage;

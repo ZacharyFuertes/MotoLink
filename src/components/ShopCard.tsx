@@ -1,4 +1,4 @@
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Navigation, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
 import { parseOperatingHoursString, isOpenNowFromOperatingHours } from "../services/shopService";
@@ -86,10 +86,26 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
           <MapPin size={16} className="mt-0.5 shrink-0 text-moto-accent" /> {shop.address}
         </p>
 
-        <div className="mt-4 flex items-center gap-2 text-sm text-slate-400">
-          <Star size={15} className="fill-amber-400 text-amber-400" />
-          <span className="font-medium text-slate-200">New</span>
-        </div>
+        {shop.description ? (
+          <p className="mt-3 text-sm leading-5 text-slate-300 line-clamp-2">{shop.description}</p>
+        ) : null}
+
+        {shop.rating !== undefined && shop.rating !== null && shop.rating > 0 ? (
+          <div className="mt-3 flex items-center gap-1.5 text-sm text-slate-300">
+            <Star size={15} className="fill-amber-400 text-amber-400" />
+            <span className="font-semibold text-slate-200">{shop.rating.toFixed(1)}</span>
+            {shop.reviewCount !== undefined && shop.reviewCount > 0 ? (
+              <span className="text-slate-400">({shop.reviewCount} review{shop.reviewCount === 1 ? "" : "s"})</span>
+            ) : null}
+          </div>
+        ) : null}
+
+        {shop.distanceKm !== undefined && shop.distanceKm !== null ? (
+          <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
+            <Navigation size={15} className="text-moto-accent" />
+            {shop.distanceKm.toFixed(1)} km away
+          </p>
+        ) : null}
 
         <div className="mt-4">
           <div className="grid grid-cols-7 gap-2">
@@ -130,7 +146,7 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
             onClick={() => onConnect(shop)}
             className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
           >
-            Connect
+            Book Appointment
           </button>
         </div>
       </div>

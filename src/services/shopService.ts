@@ -243,6 +243,80 @@ export const updateShop = async (
   return null;
 };
 
+export interface PublicShopStats {
+  shopCount: number;
+  riderCount: number;
+  avgRating: number | null;
+  ridesBooked: number;
+  topRiders: string[];
+}
+
+// Real aggregate stats for the landing hero + trust bar.
+// Tries the SECURITY DEFINER RPC first (bypasses RLS so anon visitors get real
+// numbers). Falls back to direct count queries if the migration hasn't been
+// applied yet. Average rating requires the shop_reviews migration; until it is
+// applied avgRating stays null so the UI omits the rating stat instead of
+// hardcoding one.
+export const getPublicShopStats = async (): Promise<PublicShopStats> => {
+  try {
+    const { data, error } = await supabase.rpc("get_landing_stats");
+    if (!error && data && typeof data === "object") {
+      const d = data as Record<string, unknown>;
+      return {
+        shopCount: Number(d.shop_count) || 0,
+        riderCount: Number(d.rider_count) || 0,
+        avgRating: typeof d.avg_rating === "number" && Number.isFinite(d.avg_rating) ? d.avg_rating : null,
+        ridesBooked: Number(d.rides_booked) || 0,
+        topRiders: Array.isArray(d.top_riders) ? d.top_riders.map((r) => String(r)) : [],
+      };
+    }
+  } catch {
+    // fall through to best-effort direct queries below
+  }
+
+  const [shopsRes, ridersRes] = await Promise.allSettled([
+    supabase
+      .from("shops")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true),
+    supabase
+      .from("users")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "customer"),
+  ]);
+
+  const shopCount =
+    shopsRes.status === "fulfilled" ? (shopsRes.value.count ?? 0) : 0;
+  const riderCount =
+    ridersRes.status === "fulfilled" ? (ridersRes.value.count ?? 0) : 0;
+
+  return { shopCount, riderCount, avgRating: null, ridesBooked: 0, topRiders: [] };
+};
+
+export interface ShopReviewSummary {
+  shop_id: string;
+  avg_rating: number;
+  review_count: number;
+}
+
+// Per-shop aggregate rating + review count, used by ShopCard. Empty when the
+// shop_reviews migration hasn't been applied yet.
+export const getShopReviewSummaries = async (): Promise<ShopReviewSummary[]> => {
+  try {
+    const { data, error } = await supabase.rpc("get_shop_review_summaries");
+    if (error || !Array.isArray(data)) return [];
+    return (data as unknown[])
+      .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
+      .map((row) => ({
+        shop_id: String(row.shop_id),
+        avg_rating: Number(row.avg_rating) || 0,
+        review_count: Number(row.review_count) || 0,
+      }));
+  } catch {
+    return [];
+  }
+};
+
 export const sortByDistance = (
   shops: Shop[],
   location?: GeolocationCoordinates,
