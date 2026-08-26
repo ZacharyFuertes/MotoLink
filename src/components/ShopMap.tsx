@@ -14,7 +14,8 @@ interface ShopMapProps {
   onSelect: (shop: ShopSearchResult) => void;
   onViewShop?: (shop: ShopSearchResult) => void;
   onNavigate?: (shop: ShopSearchResult) => void;
-  children?: React.ReactNode;
+  filterSlot?: React.ReactNode;
+  searchSlot?: React.ReactNode;
 }
 
 const MAP_CENTER_LAT = 14.5712431655223;
@@ -24,7 +25,7 @@ const CIRCLE_RADIUS_METERS = 1500;
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop, onNavigate, children }: ShopMapProps) => {
+const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop, onNavigate, filterSlot, searchSlot }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -215,11 +216,11 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
           </motion.button>
         </div>
 
-        {/* Bottom info bar */}
-        <div className="absolute bottom-3 left-3 right-3 z-[1000]">
-          <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-lg backdrop-blur">
+        {/* Bottom info bar — right side to avoid overlap with search panel */}
+        <div className="absolute bottom-3 right-3 z-[1000]">
+          <div className="flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-2.5 shadow-lg backdrop-blur">
             <p className="text-xs text-slate-600">
-              {locationGranted ? "Tap a logo pin to view its shop." : ""}
+              {locationGranted ? "Tap a pin to view its shop." : ""}
             </p>
             <span className="shrink-0 rounded-full bg-teal-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
               {locationGranted ? "Live" : "Idle"}
@@ -228,9 +229,16 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
         </div>
 
         {/* Filter overlay — top-left, below header */}
-        {children && (
-          <div className="absolute left-3 top-16 z-[1000] max-h-[calc(100%-8rem)] w-[calc(100%-6rem)] overflow-y-auto sm:w-auto sm:max-w-sm">
-            {children}
+        {filterSlot && (
+          <div className="absolute left-3 top-16 z-[1000] max-h-[calc(100%-10rem)] w-[calc(100%-6rem)] overflow-y-auto sm:w-auto sm:max-w-xs">
+            {filterSlot}
+          </div>
+        )}
+
+        {/* Search overlay — bottom-left, above info bar */}
+        {searchSlot && (
+          <div className="absolute bottom-14 left-3 z-[1000] w-[calc(100%-6rem)] sm:w-auto sm:max-w-xs">
+            {searchSlot}
           </div>
         )}
       </div>

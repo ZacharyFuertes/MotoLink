@@ -7,6 +7,7 @@ import HeroSlideshow from "../components/HeroSlideshow";
 import ShopFilters from "../components/ShopFilters";
 import ShopGallery from "../components/ShopGallery";
 import ShopMap from "../components/ShopMap";
+import ShopSearch from "../components/ShopSearch";
 import NavigationModal from "../components/NavigationModal";
 import Footer from "../components/Footer";
 import { getPublicShops, getPublicShopStats, getShopReviewSummaries, isOpenNowFromOperatingHours, PublicShopStats, sortByDistance } from "../services/shopService";
@@ -315,7 +316,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             ) : (
               <p><span className="font-semibold">Search result:</span> No matching shops yet. Try a broader city, specialty, or availability filter.</p>
             )}
-          </div><ShopMap shops={results} selectedShopId={selectedShop?.id} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} onViewShop={onViewShop} onNavigate={setNavigateShop}><ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} city={city} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} onCityChange={setCity} /></ShopMap>{locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}{suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}</div></motion.section>
+          </div><ShopMap shops={results} selectedShopId={selectedShop?.id} locationGranted={Boolean(location)} location={location} onRequestLocation={requestLocation} onSelect={setSelectedShop} onViewShop={onViewShop} onNavigate={setNavigateShop} filterSlot={<ShopFilters specialties={specialties} specialty={specialty} availabilityOnly={availabilityOnly} onSpecialtyChange={setSpecialty} onAvailabilityChange={setAvailabilityOnly} />} searchSlot={<ShopSearch city={city} onCityChange={setCity} />} />{locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}{suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}</div></motion.section>
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="mb-8 text-center"><p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Why choose</p><h2 className="mt-2 text-3xl font-bold text-slate-100">MOTOLINK</h2><p className="mt-3 max-w-2xl mx-auto text-slate-300">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p></div><div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { title: "Easy Shop Discovery", description: "Find nearby motor shops with ease." },
