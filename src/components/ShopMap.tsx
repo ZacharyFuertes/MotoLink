@@ -14,6 +14,7 @@ interface ShopMapProps {
   onSelect: (shop: ShopSearchResult) => void;
   onViewShop?: (shop: ShopSearchResult) => void;
   onNavigate?: (shop: ShopSearchResult) => void;
+  children?: React.ReactNode;
 }
 
 const MAP_CENTER_LAT = 14.5712431655223;
@@ -23,7 +24,7 @@ const CIRCLE_RADIUS_METERS = 1500;
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop, onNavigate }: ShopMapProps) => {
+const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLocation, onSelect, onViewShop, onNavigate, children }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -225,6 +226,13 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
             </span>
           </div>
         </div>
+
+        {/* Filter overlay — top-left, below header */}
+        {children && (
+          <div className="absolute left-3 top-16 z-[1000] max-h-[calc(100%-8rem)] w-[calc(100%-6rem)] overflow-y-auto sm:w-auto sm:max-w-sm">
+            {children}
+          </div>
+        )}
       </div>
 
       <style>{`
