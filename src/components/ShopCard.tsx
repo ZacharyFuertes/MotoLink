@@ -1,4 +1,4 @@
-import { MapPin, Navigation, Star } from "lucide-react";
+import { Clock, MapPin, Navigation, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
 import { parseOperatingHoursString, isOpenNowFromOperatingHours } from "../services/shopService";
@@ -18,10 +18,6 @@ const getShopStatus = (shop: ShopSearchResult) => {
 };
 
 const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
-  // Prefer inferring 'open now' from the shop.operating_hours string when available.
-  // If the operating_hours string can be parsed, use it to determine Open/Closed
-  // for the current time regardless of is_active. If parsing fails, fall back
-  // to the existing status rules (is_active, is_open, available).
   const inferredOpen = isOpenNowFromOperatingHours(shop.operating_hours);
   let status = getShopStatus(shop);
   if (typeof inferredOpen === "boolean") {
@@ -44,7 +40,6 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
     return `${hour12}:${mm.toString().padStart(2, "0")} ${period}`;
   };
 
-  // Parse the stored operating_hours string into a 7-day schedule (parseOperatingHoursString uses Sunday=0..Saturday=6)
   const parsed = parseOperatingHoursString(shop.operating_hours);
   const UI_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const schedule = UI_DAYS.map((day, idx) => {
@@ -56,16 +51,18 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
     return { day, open: true, label: `${openLabel}\n${closeLabel}` };
   });
 
+  const currentDayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][new Date().getDay()];
+
   return (
     <motion.article
       tabIndex={0}
       whileHover={{ y: -6 }}
       transition={{ type: "spring", damping: 22, stiffness: 300 }}
-      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
+      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] flex flex-col h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
     >
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
 
-      <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker">
+      <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker shrink-0">
         <span className={`absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
           <span className={`h-2 w-2 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
           {status.label}
@@ -77,74 +74,122 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
         />
       </div>
 
-      <div className="relative z-10 p-5">
-        <h3 className="font-display text-2xl uppercase leading-none tracking-wide text-slate-100 transition group-hover:text-moto-accent">
-          {shop.name}
-        </h3>
+      <div className="relative z-10 flex flex-1 flex-col justify-between p-5">
+        <div className="flex flex-col gap-3">
+          <div>
+            <h3 className="font-display text-xl sm:text-2xl uppercase leading-snug tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-1" title={shop.name}>
+              {shop.name}
+            </h3>
 
-        <p className="mt-3 flex items-start gap-2 text-sm leading-5 text-slate-400">
-          <MapPin size={16} className="mt-0.5 shrink-0 text-moto-accent" /> {shop.address}
-        </p>
+            <p className="mt-1.5 flex items-start gap-1.5 text-xs sm:text-sm text-slate-400 min-h-[2.25rem] line-clamp-2">
+              <MapPin size={15} className="mt-0.5 shrink-0 text-moto-accent" />
+              <span>{shop.address}</span>
+            </p>
+          </div>
 
-        {shop.description ? (
-          <p className="mt-3 text-sm leading-5 text-slate-300 line-clamp-2">{shop.description}</p>
-        ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-xs min-h-[1.5rem]">
+            {shop.rating !== undefined && shop.rating !== null && shop.rating > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-2 py-0.5 text-xs font-semibold text-amber-400 border border-amber-400/20">
+                <Star size={12} className="fill-amber-400 text-amber-400" />
+                {shop.rating.toFixed(1)}
+                {shop.reviewCount !== undefined && shop.reviewCount > 0 ? ` (${shop.reviewCount})` : ""}
+              </span>
+            ) : null}
 
-        {shop.rating !== undefined && shop.rating !== null && shop.rating > 0 ? (
-          <div className="mt-3 flex items-center gap-1.5 text-sm text-slate-300">
-            <Star size={15} className="fill-amber-400 text-amber-400" />
-            <span className="font-semibold text-slate-200">{shop.rating.toFixed(1)}</span>
-            {shop.reviewCount !== undefined && shop.reviewCount > 0 ? (
-              <span className="text-slate-400">({shop.reviewCount} review{shop.reviewCount === 1 ? "" : "s"})</span>
+            {shop.distanceKm !== undefined && shop.distanceKm !== null ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-moto-accent/10 px-2 py-0.5 text-xs font-semibold text-moto-accent border border-moto-accent/20">
+                <Navigation size={12} />
+                {shop.distanceKm.toFixed(1)} km away
+              </span>
             ) : null}
           </div>
-        ) : null}
 
-        {shop.distanceKm !== undefined && shop.distanceKm !== null ? (
-          <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
-            <Navigation size={15} className="text-moto-accent" />
-            {shop.distanceKm.toFixed(1)} km away
-          </p>
-        ) : null}
-
-        <div className="mt-4">
-          <div className="grid grid-cols-7 gap-2">
-            {schedule.map(({ day, open }) => (
-              <div key={day} className="flex flex-col items-center gap-2">
-                <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full border text-base font-bold ${
-                    open ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300" : "border-slate-600 bg-slate-800 text-slate-400"
-                  }`}
-                  aria-label={`${day} ${open ? "open" : "closed"}`}
-                >
-                  {open ? "✓" : "✕"}
-                </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{day}</span>
+          <div className="min-h-[2.5rem] flex flex-col justify-center">
+            {shop.description ? (
+              <p className="text-xs leading-relaxed text-slate-300 line-clamp-2">{shop.description}</p>
+            ) : shop.specialties && shop.specialties.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {shop.specialties.slice(0, 3).map((spec) => (
+                  <span key={spec} className="rounded-md bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-300 border border-slate-700/60">
+                    {spec}
+                  </span>
+                ))}
+                {shop.specialties.length > 3 ? (
+                  <span className="text-[10px] text-slate-400 self-center">+{shop.specialties.length - 3} more</span>
+                ) : null}
               </div>
-            ))}
+            ) : (
+              <p className="text-xs text-slate-400 italic">Full-service motorcycle shop</p>
+            )}
           </div>
 
-          <div className="mt-3 grid grid-cols-7 gap-2 text-center text-[10px] leading-4 text-slate-300">
-            {schedule.map((entry) => (
-              <div key={`${entry.day}-label`} className="px-1 whitespace-pre-line">
-                {entry.label}
-              </div>
-            ))}
+          {/* Schedule Grid UI */}
+          <div className="my-1 rounded-xl border border-moto-gray/60 bg-moto-darker/70 p-2.5">
+            <div className="mb-2 flex items-center justify-between px-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <Clock size={12} className="text-moto-accent" /> Schedule
+              </span>
+              <span className={`text-[10px] font-semibold ${status.text}`}>
+                {status.label}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {schedule.map(({ day, open, label }) => {
+                const isToday = day === currentDayName;
+
+                return (
+                  <div
+                    key={day}
+                    className={`flex flex-col items-center justify-between rounded-lg p-1 transition ${
+                      isToday
+                        ? "bg-moto-accent/15 border border-moto-accent/40 text-white shadow-sm"
+                        : "bg-moto-dark/50 border border-moto-gray/30 text-slate-300"
+                    }`}
+                  >
+                    <span className={`text-[9px] font-extrabold tracking-wider ${isToday ? "text-moto-accent" : "text-slate-400"}`}>
+                      {day}
+                    </span>
+
+                    <div
+                      className={`my-1 flex h-4.5 w-4.5 items-center justify-center rounded-full text-[9px] font-extrabold ${
+                        open
+                          ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-400"
+                          : "border border-slate-700 bg-slate-800/80 text-slate-400"
+                      }`}
+                      title={`${day}: ${open ? "Open" : "Closed"}`}
+                    >
+                      {open ? "✓" : "✕"}
+                    </div>
+
+                    <div className="text-[8px] font-medium leading-tight text-slate-300 min-h-[22px] flex flex-col justify-center">
+                      {open ? (
+                        <span className="whitespace-pre-line leading-none text-[8px] tracking-tighter">
+                          {label}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[8px]">Closed</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-4 pt-2 grid grid-cols-2 gap-2.5">
           <button
             type="button"
             onClick={handleView}
-            className="rounded-xl border border-moto-gray bg-moto-darker px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-moto-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
+            className="w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-xs font-bold text-slate-200 transition hover:border-moto-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent"
           >
             View shop
           </button>
           <button
             type="button"
             onClick={() => onConnect(shop)}
-            className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-dark"
+            className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-3 py-2.5 text-xs font-bold text-slate-950 transition hover:brightness-110 shadow-md shadow-moto-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent"
           >
             Book Appointment
           </button>
@@ -154,4 +199,4 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   );
 };
 
-export default ShopCard;
+export default ShopCard;

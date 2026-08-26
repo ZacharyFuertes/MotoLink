@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Clock3, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car, Navigation, ChevronDown, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Wrench, Package, Users, Mail, AlertCircle, Plus, Trash2, Star, X, Check, Car, Navigation, ChevronDown, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
@@ -440,16 +440,16 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-black/20"
+          className="relative z-20 rounded-2xl border border-moto-gray bg-moto-dark shadow-2xl shadow-black/40"
         >
-          <div className="relative bg-gradient-to-br from-moto-dark to-moto-darker px-6 sm:px-8 py-8">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="relative rounded-2xl bg-gradient-to-br from-moto-dark via-moto-darker to-moto-dark px-6 sm:px-8 py-8">
+            <div className="flex flex-col lg:flex-row lg:items-start gap-6">
               <div className="flex items-center gap-5">
                 {shop.logo_url ? (
                   <img
                     src={shop.logo_url}
                     alt={`${shop.name} logo`}
-                    className="h-20 w-20 rounded-2xl border border-moto-gray bg-white object-contain p-1 shrink-0"
+                    className="h-20 w-20 rounded-2xl border border-moto-gray bg-moto-darker object-contain p-2 shrink-0 shadow-md"
                   />
                 ) : (
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-moto-gray bg-moto-gray/20">
@@ -470,14 +470,14 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                       </span>
                     )}
                   </div>
-                  <p className="text-slate-300 text-sm mt-1.5 max-w-2xl">
+                  <p className="text-slate-300 text-sm mt-1.5 max-w-2xl leading-relaxed">
                     {shop.description}
                   </p>
                 </div>
               </div>
 
-              <div className="lg:ml-auto flex flex-col gap-4 min-w-[220px]">
-                <div className="rounded-2xl bg-white/5 border border-moto-gray px-5 py-4">
+              <div className="relative lg:ml-auto min-w-[220px]">
+                <div className="rounded-2xl bg-moto-darker/90 border border-moto-gray/80 px-5 py-4 shadow-inner">
                   {shopStatus.state === "open" && shopStatus.closeTime ? (
                     <>
                       <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-1">
@@ -510,7 +510,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                     type="button"
                     onClick={() => setShowFullHours((v) => !v)}
                     aria-expanded={showFullHours}
-                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-moto-accent hover:text-white transition"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-moto-accent hover:text-white transition active:scale-95"
                   >
                     <CalendarDays size={14} />
                     {showFullHours ? "Hide full hours" : "See full hours"}
@@ -518,63 +518,82 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                   </button>
                 </div>
 
-                <AnimatePresence initial={false}>
+                <AnimatePresence>
                   {showFullHours && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden rounded-2xl bg-white/5 border border-moto-gray px-5 py-4"
-                    >
-                      <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-bold mb-3">
-                        Weekly schedule
-                      </p>
-                      <div className="space-y-2">
-                        {schedule.map((d) => {
-                          const isToday = UI_DAYS[new Date().getDay()] === d.day;
-                          return (
-                            <div
-                              key={d.day}
-                              className={`flex items-center justify-between text-xs ${isToday ? "text-white" : "text-slate-400"}`}
-                            >
-                              <span className={`font-semibold uppercase tracking-wider ${isToday ? "text-moto-accent" : ""}`}>
-                                {d.day}
-                              </span>
-                              <span>{d.open ? `${formatClock(d.openTime)} – ${formatClock(d.closeTime)}` : "Closed"}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
+                    <>
+                      {/* Fixed backdrop click to dismiss */}
+                      <div
+                        className="fixed inset-0 z-20 bg-transparent"
+                        onClick={() => setShowFullHours(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.18 }}
+                        className="absolute right-0 top-full mt-2.5 z-30 w-72 rounded-2xl border border-moto-gray bg-moto-darker p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95)] backdrop-blur-xl"
+                      >
+                        <div className="flex items-center justify-between border-b border-moto-gray/60 pb-3 mb-3">
+                          <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-bold flex items-center gap-1.5">
+                            <CalendarDays size={13} className="text-moto-accent" /> Weekly schedule
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setShowFullHours(false)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-moto-gray/40 transition"
+                            aria-label="Close schedule"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {schedule.map((d) => {
+                            const isToday = UI_DAYS[new Date().getDay()] === d.day;
+                            return (
+                              <div
+                                key={d.day}
+                                className={`flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg transition ${
+                                  isToday
+                                    ? "bg-moto-accent/15 border border-moto-accent/30 text-white font-bold"
+                                    : "text-slate-400 hover:text-slate-200"
+                                }`}
+                              >
+                                <span className={`uppercase tracking-wider ${isToday ? "text-moto-accent" : ""}`}>
+                                  {d.day}
+                                </span>
+                                <span className="tabular-nums font-semibold">
+                                  {d.open ? `${formatClock(d.openTime)} – ${formatClock(d.closeTime)}` : "Closed"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    </>
                   )}
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* Contact / meta */}
-            <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <MapPin size={14} className="text-moto-accent" /> {shop.address},{" "}
-                {shop.city}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock3 size={14} className="text-moto-accent" /> {shop.operating_hours}
+            {/* Contact / meta chips */}
+            <div className="mt-6 flex flex-wrap gap-2 text-xs text-slate-300">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray/60 bg-moto-darker/60 px-3 py-1.5">
+                <MapPin size={14} className="text-moto-accent shrink-0" /> {shop.address},{" "}{shop.city}
               </span>
               {shop.phone && (
-                <span className="flex items-center gap-1.5">
-                  <Phone size={14} className="text-moto-accent" /> {shop.phone}
-                </span>
+                <a href={`tel:${shop.phone}`} className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray/60 bg-moto-darker/60 px-3 py-1.5 transition hover:border-moto-accent hover:text-white">
+                  <Phone size={14} className="text-moto-accent shrink-0" /> {shop.phone}
+                </a>
               )}
               {shop.email && (
-                <span className="flex items-center gap-1.5">
-                  <Mail size={14} className="text-moto-accent" /> {shop.email}
-                </span>
+                <a href={`mailto:${shop.email}`} className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray/60 bg-moto-darker/60 px-3 py-1.5 transition hover:border-moto-accent hover:text-white">
+                  <Mail size={14} className="text-moto-accent shrink-0" /> {shop.email}
+                </a>
               )}
             </div>
 
             {shop.specialties.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 {shop.specialties.map((s) => (
                   <span
                     key={s}
@@ -860,7 +879,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                             type="button"
                             onClick={() => openBooking(mech)}
                             disabled={shop.is_open === false}
-                            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent hover:text-white px-4 py-2.5 text-xs uppercase tracking-widest font-bold transition border border-moto-accent/30 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <Wrench size={13} className="text-moto-accent" /> Select
                             mechanic
@@ -919,7 +938,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                             type="button"
                             onClick={() => addToReceipt(p)}
                             disabled={shop.is_open === false}
-                            className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#12172B] hover:bg-[#1c2544] text-white px-4 py-2 text-xs uppercase tracking-widest font-bold transition border border-moto-gray disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent hover:text-white px-4 py-2.5 text-xs uppercase tracking-widest font-bold transition border border-moto-accent/30 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             <Plus size={13} className="text-moto-accent" /> Add to
                             receipt
@@ -935,7 +954,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
 
           {/* Receipt side panel */}
           <aside className="lg:sticky lg:top-6 h-fit space-y-4">
-            <div className="rounded-2xl border border-moto-gray bg-moto-dark p-6">
+            <div className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-xl">
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400 mb-1">
@@ -1021,7 +1040,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                           <button
                             type="button"
                             onClick={() => removeReceiptItem(item.id)}
-                            className="p-2 rounded-xl bg-moto-dark border border-moto-gray text-slate-400 hover:text-red-400 transition shrink-0"
+                            className="p-2 rounded-xl bg-moto-dark border border-moto-gray text-slate-400 hover:text-red-400 hover:border-red-500/40 transition shrink-0 active:scale-90"
                             aria-label="Remove item"
                           >
                             <Trash2 size={15} />
@@ -1066,8 +1085,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                   disabled={!appointment}
                   className={
                     appointment
-                      ? "w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold uppercase tracking-widest py-3 hover:brightness-110 transition"
-                      : "w-full rounded-xl bg-moto-darker border border-moto-gray text-slate-500 text-xs font-bold uppercase tracking-widest py-3 cursor-not-allowed"
+                      ? "w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark text-slate-950 text-xs font-bold uppercase tracking-widest py-3.5 hover:brightness-110 shadow-lg shadow-moto-accent/20 transition active:scale-[0.98]"
+                      : "w-full rounded-xl bg-moto-darker border border-moto-gray text-slate-500 text-xs font-bold uppercase tracking-widest py-3.5 cursor-not-allowed opacity-60"
                   }
                 >
                   {appointment ? "Edit Appointment" : "Select a mechanic to continue"}
@@ -1075,7 +1094,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                 <button
                   type="button"
                   onClick={clearReceipt}
-                  className="w-full rounded-xl border border-moto-gray bg-moto-dark text-slate-200 text-xs font-bold uppercase tracking-widest py-3 hover:border-moto-accent hover:text-white transition"
+                  disabled={!appointment && receiptItems.length === 0}
+                  className="w-full rounded-xl border border-moto-gray bg-moto-darker text-slate-300 text-xs font-bold uppercase tracking-widest py-3 hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Clear Receipt
                 </button>

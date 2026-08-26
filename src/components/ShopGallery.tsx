@@ -10,7 +10,7 @@ interface ShopGalleryProps {
 
 const ShopGallery = ({ shops, onSelect, onConnect, onViewShop }: ShopGalleryProps) => {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
       {shops.map((shop) => (
         <ShopCard
           key={shop.id}
