@@ -173,39 +173,39 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             </button>
           </motion.div>
 
-          {/* Stats bar — real aggregate data aligned left */}
+          {/* Stats bar — real aggregate data */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
-            className="mx-auto mt-10 w-full max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-6 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row justify-between divide-y sm:divide-y-0 sm:divide-x divide-slate-800/80"
+            className="mx-auto mt-10 w-full max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-5 sm:p-6 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center sm:items-stretch justify-center sm:justify-between text-center sm:text-left divide-y sm:divide-y-0 sm:divide-x divide-slate-800/80 gap-4 sm:gap-0"
           >
-            <div className="text-left pb-4 sm:pb-0 sm:pr-6 flex-1">
-              <p className="font-display text-4xl font-black text-cyan-400">
+            <div className="pb-4 sm:pb-0 sm:pr-6 flex-1">
+              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
                 {stats.shopCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                 Partner Shops
               </p>
             </div>
             {stats.avgRating !== null && (
-              <div className="text-left py-4 sm:py-0 sm:px-6 flex-1">
-                <p className="font-display text-4xl font-black text-cyan-400 flex items-center gap-1">
+              <div className="py-4 sm:py-0 sm:px-6 flex-1">
+                <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center sm:justify-start gap-1">
                   <span>{stats.avgRating.toFixed(1)}</span>
                   <Star size={20} className="fill-amber-400 text-amber-400 shrink-0" />
                 </p>
-                <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                   Average Rating
                 </p>
               </div>
             )}
-            <div className="text-left pt-4 sm:pt-0 sm:pl-6 flex-1">
-              <p className="font-display text-4xl font-black text-cyan-400">
+            <div className="pt-4 sm:pt-0 sm:pl-6 flex-1">
+              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
                 {stats.riderCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                 Trusted by Riders
               </p>
             </div>
