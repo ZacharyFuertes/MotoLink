@@ -77,7 +77,7 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
       <div className="relative z-10 flex flex-1 flex-col justify-between p-5">
         <div className="flex flex-col gap-3">
           <div>
-            <h3 className="font-display text-xl sm:text-2xl uppercase leading-snug tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-1" title={shop.name}>
+            <h3 className="font-display text-base sm:text-xl uppercase leading-snug tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-1" title={shop.name}>
               {shop.name}
             </h3>
 
@@ -162,7 +162,7 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
                       {open ? "✓" : "✕"}
                     </div>
 
-                    <div className="text-[9px] font-bold leading-snug text-slate-100 min-h-[24px] flex flex-col justify-center">
+                    <div className="hidden sm:flex text-[9px] font-bold leading-snug text-slate-100 min-h-[24px] flex-col justify-center">
                       {open ? (
                         <span className="whitespace-pre-line text-[9px] font-extrabold leading-tight text-white tracking-tight">
                           {label}
