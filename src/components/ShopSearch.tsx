@@ -12,14 +12,10 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-slate-200/60 bg-white/95 shadow-xl backdrop-blur-md"
-    >
-      {/* Compact toggle — always visible */}
+    <div className="relative inline-block text-left">
+      {/* Compact h-9 pill toggle button */}
       <button
+        type="button"
         onClick={() => {
           setExpanded((v) => {
             const next = !v;
@@ -27,64 +23,71 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
             return next;
           });
         }}
-        className="flex w-full items-center gap-2.5 rounded-2xl px-4 py-3 text-left transition hover:bg-slate-50"
+        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-cyan-400 hover:text-white"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-700 text-white">
-          <Search size={14} />
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 shrink-0">
+          <Search size={13} />
+        </div>
+        <span className="truncate max-w-[160px] sm:max-w-[200px]">
+          {city ? `City: ${city}` : "Search shops by name..."}
         </span>
-        {expanded ? (
-          <span className="flex-1 text-sm font-semibold text-slate-800">Search shops</span>
-        ) : (
-          <span className="text-sm text-slate-500">Search shops by name...</span>
-        )}
-        {city && !expanded && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">
-            {city}
-            <button
-              onClick={(e) => { e.stopPropagation(); onCityChange(""); }}
-              className="ml-0.5 rounded-full p-0.5 transition hover:bg-teal-100"
-            >
-              <X size={10} />
-            </button>
+        {city && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onCityChange("");
+            }}
+            className="ml-1 rounded-full bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/40 p-0.5"
+          >
+            <X size={10} />
           </span>
         )}
       </button>
 
-      {/* Expandable search input */}
+      {/* Upward expanding search input popover */}
       <AnimatePresence>
         {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setExpanded(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.96 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-full left-0 mb-2 z-50 w-72 sm:w-80 rounded-2xl border border-slate-700/80 bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-xl space-y-2.5"
+            >
+              <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-200">Search Shops</span>
+                <button type="button" onClick={() => setExpanded(false)} className="text-slate-400 hover:text-white">
+                  <X size={13} />
+                </button>
+              </div>
+
               <div className="group relative">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-teal-600" />
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 transition" />
                 <input
                   ref={inputRef}
                   value={city}
                   onChange={(event) => onCityChange(event.target.value)}
-                  placeholder="Type a shop name, city, or address..."
+                  placeholder="Type shop name, city, or location..."
                   aria-label="Search shops"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-9 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20 focus:shadow-[0_0_0_3px_rgba(15,118,110,0.08)]"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2 pl-9 pr-8 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-cyan-400"
                 />
                 {city && (
                   <button
+                    type="button"
                     onClick={() => onCityChange("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 transition hover:bg-slate-700 hover:text-white"
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 )}
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 

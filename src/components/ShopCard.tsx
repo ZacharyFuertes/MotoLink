@@ -124,12 +124,12 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
           </div>
 
           {/* Schedule Grid UI */}
-          <div className="my-1 rounded-xl border border-moto-gray/60 bg-moto-darker/70 p-2.5">
+          <div className="my-1 rounded-xl border border-moto-gray/80 bg-moto-darker p-2.5 shadow-inner">
             <div className="mb-2 flex items-center justify-between px-0.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                <Clock size={12} className="text-moto-accent" /> Schedule
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                <Clock size={13} className="text-moto-accent" /> Schedule
               </span>
-              <span className={`text-[10px] font-semibold ${status.text}`}>
+              <span className={`text-[11px] font-bold ${status.text}`}>
                 {status.label}
               </span>
             </div>
@@ -141,34 +141,34 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
                 return (
                   <div
                     key={day}
-                    className={`flex flex-col items-center justify-between rounded-lg p-1 transition ${
+                    className={`flex flex-col items-center justify-between rounded-lg py-1 px-0.5 transition ${
                       isToday
-                        ? "bg-moto-accent/15 border border-moto-accent/40 text-white shadow-sm"
-                        : "bg-moto-dark/50 border border-moto-gray/30 text-slate-300"
+                        ? "bg-moto-accent/20 border border-moto-accent/50 text-white shadow-md"
+                        : "bg-slate-900/80 border border-slate-700/60 text-slate-100"
                     }`}
                   >
-                    <span className={`text-[9px] font-extrabold tracking-wider ${isToday ? "text-moto-accent" : "text-slate-400"}`}>
+                    <span className={`text-[10px] font-black tracking-wide ${isToday ? "text-moto-accent" : "text-slate-200"}`}>
                       {day}
                     </span>
 
                     <div
-                      className={`my-1 flex h-4.5 w-4.5 items-center justify-center rounded-full text-[9px] font-extrabold ${
+                      className={`my-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${
                         open
-                          ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-400"
-                          : "border border-slate-700 bg-slate-800/80 text-slate-400"
+                          ? "border border-emerald-400/60 bg-emerald-500/25 text-emerald-300"
+                          : "border border-slate-600 bg-slate-800 text-slate-400"
                       }`}
                       title={`${day}: ${open ? "Open" : "Closed"}`}
                     >
                       {open ? "✓" : "✕"}
                     </div>
 
-                    <div className="text-[8px] font-medium leading-tight text-slate-300 min-h-[22px] flex flex-col justify-center">
+                    <div className="text-[9px] font-bold leading-snug text-slate-100 min-h-[24px] flex flex-col justify-center">
                       {open ? (
-                        <span className="whitespace-pre-line leading-none text-[8px] tracking-tighter">
+                        <span className="whitespace-pre-line text-[9px] font-extrabold leading-tight text-white tracking-tight">
                           {label}
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-[8px]">Closed</span>
+                        <span className="text-slate-400 text-[9px] font-semibold">Closed</span>
                       )}
                     </div>
                   </div>

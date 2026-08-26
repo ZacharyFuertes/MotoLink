@@ -24,9 +24,9 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, on
   const activate = (action: () => void) => { action(); setMenuOpen(false); };
 
   return <header className="fixed inset-x-0 top-0 z-40 border-b border-moto-gray bg-moto-darker/95 backdrop-blur-sm">
-    <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <div className="mx-auto flex h-18 sm:h-24 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
       <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center text-left">
-        <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-[4.75rem] w-auto object-contain sm:h-[5.5rem]" />
+        <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-12 sm:h-20 w-auto object-contain" />
       </button>
       <nav className="hidden items-center gap-7 md:flex">{links.map((link) => <button key={link.label} onClick={link.action} className="text-sm font-semibold text-slate-200 hover:text-moto-accent whitespace-nowrap transition">{link.label}</button>)}</nav>
       <div className="hidden items-center gap-3 md:flex">{isAuthenticated ? <>

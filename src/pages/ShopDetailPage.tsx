@@ -763,35 +763,37 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
         <div className="lg:grid lg:grid-cols-[1.6fr_0.95fr] gap-8 mt-8">
           <div className="space-y-10">
             {/* Tab bar */}
-            <div className="flex flex-wrap gap-2 border-b border-moto-gray pb-3">
-              {([
-                { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
-                { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
-                { id: "products" as const, label: "Products", icon: Package, count: products.length },
-              ]).map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  aria-selected={activeTab === tab.id}
-                  role="tab"
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition ${
-                    activeTab === tab.id
-                      ? "bg-moto-accent text-slate-950"
-                      : "border border-moto-gray bg-moto-dark text-slate-300 hover:border-moto-accent hover:text-white"
-                  }`}
-                >
-                  <tab.icon size={15} />
-                  {tab.label}
-                  <span
-                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-moto-accent/15 text-moto-accent"
+            <div className="overflow-x-auto -mx-4 px-4 pb-1 sm:mx-0 sm:px-0 scrollbar-none">
+              <div className="flex gap-2 border-b border-moto-gray pb-3 min-w-max sm:min-w-0">
+                {([
+                  { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
+                  { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
+                  { id: "products" as const, label: "Products", icon: Package, count: products.length },
+                ]).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    aria-selected={activeTab === tab.id}
+                    role="tab"
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold uppercase tracking-wider transition ${
+                      activeTab === tab.id
+                        ? "bg-moto-accent text-slate-950"
+                        : "border border-moto-gray bg-moto-dark text-slate-300 hover:border-moto-accent hover:text-white"
                     }`}
                   >
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
+                    <tab.icon size={15} />
+                    {tab.label}
+                    <span
+                      className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-moto-accent/15 text-moto-accent"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Services */}

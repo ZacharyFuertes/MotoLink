@@ -135,11 +135,11 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-moto-accent" />
             Philippines' Rider Network
           </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-6xl font-black uppercase leading-[0.95] tracking-wide text-white sm:text-7xl lg:text-8xl">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-[2.5rem] xs:text-5xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-wide text-white">
             Find Your
             <span className="block text-moto-accent">Motor Shop.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16 }} className="mx-auto mt-5 max-w-2xl text-base text-slate-200 sm:text-lg">
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16 }} className="mx-auto mt-4 sm:mt-5 max-w-2xl text-sm sm:text-base lg:text-lg text-slate-200">
             Locate trusted motorcycle shops near you — services, parts, and mechanics across the Philippines.
           </motion.p>
 
@@ -173,21 +173,41 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             </button>
           </motion.div>
 
-          {/* Stats bar — real aggregate data */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="mx-auto mt-10 flex max-w-2xl flex-wrap items-center justify-center gap-x-10 gap-y-4 rounded-2xl border border-white/10 bg-moto-darker/60 px-6 py-4 backdrop-blur-sm">
-            <div className="text-center">
-              <p className="font-display text-3xl font-black text-white sm:text-4xl">{stats.shopCount}<span className="text-moto-accent">+</span></p>
-              <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-300">Partner Shops</p>
+          {/* Stats bar — real aggregate data aligned left */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="mx-auto mt-10 w-full max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-6 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row justify-between divide-y sm:divide-y-0 sm:divide-x divide-slate-800/80"
+          >
+            <div className="text-left pb-4 sm:pb-0 sm:pr-6 flex-1">
+              <p className="font-display text-4xl font-black text-cyan-400">
+                {stats.shopCount}
+                <span className="text-white">+</span>
+              </p>
+              <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                Partner Shops
+              </p>
             </div>
             {stats.avgRating !== null && (
-              <div className="text-center">
-                <p className="font-display text-3xl font-black text-white sm:text-4xl">{stats.avgRating.toFixed(1)}<Star size={18} className="mb-1 inline-block text-yellow-400" /></p>
-                <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-300">Average Rating</p>
+              <div className="text-left py-4 sm:py-0 sm:px-6 flex-1">
+                <p className="font-display text-4xl font-black text-cyan-400 flex items-center gap-1">
+                  <span>{stats.avgRating.toFixed(1)}</span>
+                  <Star size={20} className="fill-amber-400 text-amber-400 shrink-0" />
+                </p>
+                <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                  Average Rating
+                </p>
               </div>
             )}
-            <div className="text-center">
-              <p className="font-display text-3xl font-black text-white sm:text-4xl">{stats.riderCount}<span className="text-moto-accent">+</span></p>
-              <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-300">Trusted by Riders</p>
+            <div className="text-left pt-4 sm:pt-0 sm:pl-6 flex-1">
+              <p className="font-display text-4xl font-black text-cyan-400">
+                {stats.riderCount}
+                <span className="text-white">+</span>
+              </p>
+              <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                Trusted by Riders
+              </p>
             </div>
           </motion.div>
         </div>

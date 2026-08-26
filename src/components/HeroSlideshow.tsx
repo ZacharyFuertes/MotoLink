@@ -7,7 +7,7 @@ interface HeroSlideshowProps {
 
 const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ children }) => {
   return (
-    <div className="relative w-full h-[100vh] overflow-hidden bg-black">
+    <div className="relative w-full min-h-screen py-24 sm:py-28 lg:py-0 lg:h-[100vh] overflow-hidden bg-black flex items-center justify-center">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -23,7 +23,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ children }) => {
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-moto-dark to-transparent" />
 
       {/* Content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
+      <div className="relative z-10 flex w-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">
         {children}
       </div>
     </div>

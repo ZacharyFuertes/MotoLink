@@ -87,7 +87,9 @@ const AppContent: React.FC = () => {
   const [selectedShopId, setSelectedShopId] = useState<string | undefined>(
     () => localStorage.getItem("motolink_selected_shop_id") || undefined,
   );
-  const [viewingShopId, setViewingShopId] = useState<string | null>(null);
+  const [viewingShopId, setViewingShopId] = useState<string | null>(
+    () => localStorage.getItem("moto_viewing_shop_id") || null
+  );
 
   const selectShop = (shop: ShopSearchResult) => {
     localStorage.setItem("motolink_selected_shop_id", shop.id);
@@ -95,10 +97,12 @@ const AppContent: React.FC = () => {
   };
 
   const openShopDetail = (shop: ShopSearchResult) => {
+    localStorage.setItem("moto_viewing_shop_id", shop.id);
     setViewingShopId(shop.id);
   };
 
   const closeShopDetail = () => {
+    localStorage.removeItem("moto_viewing_shop_id");
     setViewingShopId(null);
   };
 

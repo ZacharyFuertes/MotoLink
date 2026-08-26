@@ -36,7 +36,7 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const mapHeight = isMobile ? "h-[52vh]" : "h-[480px]";
+  const mapHeight = isMobile ? "h-[450px]" : "h-[480px]";
 
   useEffect(() => {
     const Leaflet = (typeof L !== "undefined") ? L : (window as any).L;
@@ -47,8 +47,11 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
       scrollWheelZoom: true,
     }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
-    Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    // Dark theme map tile layer (CartoDB Dark Matter)
+    Leaflet.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
     }).addTo(map);
 
     const zoomIn = Leaflet.control.zoom({ position: "topright" });
@@ -62,16 +65,16 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
         icon: Leaflet.divIcon({
           html: '<div class="shop-map-you"><span class="shop-map-you-ping"></span></div>',
           className: "",
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         }),
       }).addTo(map);
-      userMarker.bindPopup("<strong>You are here</strong>");
+      userMarker.bindPopup("<strong style='color:#06b6d4;'>You are here</strong>");
 
       Leaflet.circle(userLatLng, {
-        color: "#0f766e",
-        fillColor: "rgba(15, 118, 110, 0.12)",
-        fillOpacity: 0.35,
+        color: "#06b6d4",
+        fillColor: "rgba(6, 182, 212, 0.15)",
+        fillOpacity: 0.3,
         radius: CIRCLE_RADIUS_METERS,
         weight: 1.5,
         dashArray: "4 6",
@@ -89,183 +92,182 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
         const icon = Leaflet.divIcon({
           className: "shop-map-pin",
           html: `<div class="shop-map-pin-inner ${isSelected ? "shop-map-pin-selected" : ""}" style="animation-delay:${Math.min(index * 0.06, 0.6)}s">${logoHtml}${isSelected ? '<span class="shop-map-pin-ring"></span>' : ""}</div><div class="shop-map-pin-tip"></div>`,
-          iconSize: [38, 46],
-          iconAnchor: [19, 44],
-          popupAnchor: [0, -42],
+          iconSize: [40, 48],
+          iconAnchor: [20, 46],
+          popupAnchor: [0, -44],
         });
 
         const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
-        marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
         marker.on("click", () => onSelect(shop));
-        if (onViewShop || onNavigate) {
-          marker.on("popupopen", () => {
-            const popup = marker.getPopup();
-            if (!popup) return;
-            const buttons = [
-              onViewShop
-                ? `<button data-motolink-view-shop="${shop.id}" class="shop-map-popup-btn">VIEW SHOP</button>`
-                : "",
-              onNavigate
-                ? `<button data-motolink-navigate-shop="${shop.id}" class="shop-map-popup-btn shop-map-popup-btn-outline"><span class="shop-map-popup-btn-icon">&#10148;</span> NAVIGATE</button>`
-                : "",
-            ].filter(Boolean).join("");
-            popup.setContent(
-              `<div class="shop-map-popup">
-                <div class="shop-map-popup-name">${escapeHtml(shop.name)}</div>
-                <div class="shop-map-popup-address">${escapeHtml(shop.address || "")}</div>
-                <div class="shop-map-popup-actions">${buttons}</div>
-              </div>`,
-            );
-          });
-        }
-        marker.on("popupclose", () => {
-          if (onViewShop || onNavigate) {
-            marker.bindPopup(`<strong>${escapeHtml(shop.name)}</strong><br/>${escapeHtml(shop.address || "")}`);
-          }
-        });
 
         if (isSelected) {
-          map.setView([shop.latitude, shop.longitude], 14);
           marker.openPopup();
+          const popupContent = `
+            <div class="shop-map-popup">
+              <h3 class="shop-map-popup-title">${escapeHtml(shop.name)}</h3>
+              <p class="shop-map-popup-addr">${escapeHtml(shop.address || "")}</p>
+              <div class="shop-map-popup-actions">
+                ${onViewShop ? `<button class="shop-map-popup-btn shop-map-popup-btn-view" onclick="window.dispatchEvent(new CustomEvent('map-view-shop', {detail: '${shop.id}'}))">Details</button>` : ""}
+                ${onNavigate ? `<button class="shop-map-popup-btn shop-map-popup-btn-nav" onclick="window.dispatchEvent(new CustomEvent('map-nav-shop', {detail: '${shop.id}'}))">Directions</button>` : ""}
+              </div>
+            </div>
+          `;
+          marker.bindPopup(popupContent, { minWidth: 160 }).openPopup();
         }
       }
     });
 
-    const viewShopHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const btn = target.closest<HTMLElement>("[data-motolink-view-shop]");
-      if (btn && onViewShop) {
-        const shopId = btn.dataset.motolinkViewShop;
-        const shop = shops.find((s) => s.id === shopId);
-        if (shop) {
-          e.stopPropagation();
-          onViewShop(shop);
-        }
-        return;
-      }
-      const navBtn = target.closest<HTMLElement>("[data-motolink-navigate-shop]");
-      if (navBtn && onNavigate) {
-        const shopId = navBtn.dataset.motolinkNavigateShop;
-        const shop = shops.find((s) => s.id === shopId);
-        if (shop) {
-          e.stopPropagation();
-          onNavigate(shop);
-        }
-      }
+    const handleView = (e: any) => {
+      const match = shops.find((s) => s.id === e.detail);
+      if (match && onViewShop) onViewShop(match);
+    };
+    const handleNav = (e: any) => {
+      const match = shops.find((s) => s.id === e.detail);
+      if (match && onNavigate) onNavigate(match);
     };
 
-    const mapContainer = map.getContainer();
-    mapContainer.addEventListener("click", viewShopHandler);
+    window.addEventListener("map-view-shop", handleView);
+    window.addEventListener("map-nav-shop", handleNav);
 
     return () => {
-      mapContainer.removeEventListener("click", viewShopHandler);
+      window.removeEventListener("map-view-shop", handleView);
+      window.removeEventListener("map-nav-shop", handleNav);
       map.remove();
     };
   }, [locationGranted, location, onSelect, onViewShop, onNavigate, selectedShopId, shops]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-0 overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)]"
+      transition={{ duration: 0.4 }}
+      className="relative z-0 overflow-hidden rounded-3xl border border-slate-700/80 bg-slate-900 shadow-2xl shadow-black/80"
     >
       <div className={`relative w-full ${mapHeight}`}>
         {locationGranted ? (
           <div id="map" ref={mapRef} className="absolute inset-0" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center rounded-none border-0 bg-[linear-gradient(135deg,#e2e8f0_1px,transparent_1px),linear-gradient(45deg,#e2e8f0_1px,transparent_1px)] bg-[size:28px_28px] bg-slate-100 px-6 text-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-950/90 px-4 text-center backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-              className="max-w-sm rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-xl backdrop-blur"
+              transition={{ duration: 0.3 }}
+              className="max-w-[290px] sm:max-w-sm rounded-2xl border border-slate-700/80 bg-slate-900/90 p-5 sm:p-8 shadow-2xl backdrop-blur-xl"
             >
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
-                <MapPin size={28} strokeWidth={1.8} />
+              <div className="mx-auto mb-3 sm:mb-4 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+                <MapPin size={20} strokeWidth={2} className="sm:hidden" />
+                <MapPin size={28} strokeWidth={2} className="hidden sm:block" />
               </div>
-              <p className="text-lg font-bold text-slate-900">Location access required</p>
-              <p className="mt-2 text-sm text-slate-500">Allow the app to use your location to unlock the live map, your marker and the 1.5km service circle.</p>
-              <button onClick={onRequestLocation} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-800">
-                <LocateFixed size={16} /> Enable location
+              <p className="text-sm sm:text-lg font-black text-white uppercase tracking-wider">Location access required</p>
+              <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-slate-300 leading-relaxed">Allow the app to use your location to unlock the live map, your marker and the 1.5km service circle.</p>
+              <button
+                onClick={onRequestLocation}
+                className="mt-4 sm:mt-5 inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-cyan-500 px-5 sm:px-6 py-2 sm:py-2.5 text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:bg-cyan-400 active:scale-95"
+              >
+                <LocateFixed size={14} className="sm:hidden" />
+                <LocateFixed size={16} className="hidden sm:block" /> Enable location
               </button>
             </motion.div>
           </div>
         )}
 
-        {/* Top header overlay */}
-        <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex items-center justify-between gap-3">
-          <div className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-white/90 px-4 py-2.5 shadow-lg backdrop-blur">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-700 text-white">
-              <Store size={16} />
+        {/* Top header overlay — 2 rows on mobile, 1 row on sm+ */}
+        <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-col gap-2">
+
+          {/* Row 1: shop count pill + Filters pill (always) | + location btn on sm+ right */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Left group */}
+            <div className="pointer-events-auto flex items-center gap-2 shrink-0">
+              <div className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3 py-1.5 shadow-xl backdrop-blur-xl">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 shrink-0">
+                  <Store size={12} />
+                </div>
+                <p className="text-xs font-bold text-slate-100 whitespace-nowrap">
+                  {shops.length} shop{shops.length === 1 ? "" : "s"} nearby
+                </p>
+              </div>
+
+              {filterSlot && (
+                <div className="relative shrink-0">
+                  {filterSlot}
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-sm font-bold leading-none text-slate-900">
-                {shops.length} shop{shops.length === 1 ? "" : "s"} nearby
-              </p>
-            </div>
+
+            {/* Right: location button on sm+ only (inline with row 1) — only show when granted */}
+            {locationGranted && (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={onRequestLocation}
+                className="pointer-events-auto hidden sm:flex h-9 items-center gap-2 rounded-full bg-cyan-500 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/25 backdrop-blur transition hover:bg-cyan-400 active:scale-95 shrink-0"
+              >
+                <LocateFixed size={14} className="text-slate-950" />
+                <span className="whitespace-nowrap">Location enabled</span>
+              </motion.button>
+            )}
           </div>
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={onRequestLocation}
-            className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-white/90 px-3.5 py-2.5 text-sm font-semibold text-slate-700 shadow-lg backdrop-blur transition hover:bg-white"
-          >
-            <LocateFixed size={16} className={locationGranted ? "text-teal-700" : "text-slate-400"} />
-            <span className="hidden sm:inline">{locationGranted ? "Location enabled" : "Use my location"}</span>
-          </motion.button>
+
+          {/* Row 2: full-width USE MY LOCATION — mobile only — only show when granted */}
+          {locationGranted && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onRequestLocation}
+              className="pointer-events-auto sm:hidden w-full flex h-9 items-center justify-center gap-2 rounded-full bg-cyan-500 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400 active:scale-95"
+            >
+              <LocateFixed size={14} className="text-slate-950 shrink-0" />
+              <span className="whitespace-nowrap">Location enabled</span>
+            </motion.button>
+          )}
         </div>
 
-        {/* Bottom info bar — right side to avoid overlap with search panel */}
-        <div className="absolute bottom-3 right-3 z-[1000]">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/90 px-4 py-2.5 shadow-lg backdrop-blur">
-            <p className="text-xs text-slate-600">
-              {locationGranted ? "Tap a pin to view its shop." : ""}
-            </p>
-            <span className="shrink-0 rounded-full bg-teal-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+        {/* Bottom info bar */}
+        <div className="pointer-events-none absolute bottom-3 left-3 right-3 z-[1000] flex items-center justify-between gap-3">
+          {/* Search overlay — bottom-left */}
+          {searchSlot && (
+            <div className="pointer-events-auto w-[calc(100%-8rem)] sm:w-auto sm:max-w-xs">
+              {searchSlot}
+            </div>
+          )}
+
+          {/* Bottom-right info badge */}
+          <div className="pointer-events-auto ml-auto flex items-center gap-2.5 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 shadow-xl backdrop-blur-xl">
+            {locationGranted && (
+              <p className="text-xs text-slate-300 font-medium hidden sm:inline">
+                Tap a pin to view shop
+              </p>
+            )}
+            <span className="shrink-0 rounded-full bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-cyan-400">
               {locationGranted ? "Live" : "Idle"}
             </span>
           </div>
         </div>
-
-        {/* Filter overlay — top-left, below header */}
-        {filterSlot && (
-          <div className="absolute left-3 top-16 z-[1000] max-h-[calc(100%-10rem)] w-[calc(100%-6rem)] overflow-y-auto sm:w-auto sm:max-w-xs">
-            {filterSlot}
-          </div>
-        )}
-
-        {/* Search overlay — bottom-left, above info bar */}
-        {searchSlot && (
-          <div className="absolute bottom-14 left-3 z-[1000] w-[calc(100%-6rem)] sm:w-auto sm:max-w-xs">
-            {searchSlot}
-          </div>
-        )}
       </div>
 
       <style>{`
         .shop-map-pin { background: transparent; border: none; }
         .shop-map-pin-inner {
-          width: 38px; height: 38px;
+          width: 40px; height: 40px;
           border-radius: 50%;
-          border: 3px solid #fff;
-          background: #fff;
-          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.4);
+          border: 3px solid #06b6d4;
+          background: #0f172a;
+          box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
           display: flex; align-items: center; justify-content: center;
           overflow: visible;
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
           animation: shop-pin-drop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
-        .shop-map-pin-inner:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.5); }
+        .shop-map-pin-inner:hover { transform: scale(1.15); box-shadow: 0 0 25px rgba(6, 182, 212, 0.8); }
         .shop-map-pin-selected {
-          border-color: #0f766e;
-          box-shadow: 0 0 0 5px rgba(15, 118, 110, 0.3);
+          border-color: #22d3ee;
+          box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.5);
           z-index: 2;
         }
         .shop-map-logo { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
         .shop-map-logo-fallback {
-          font-size: 16px; font-weight: 700; color: #fff;
-          background: #0f766e;
+          font-size: 16px; font-weight: 900; color: #090d16;
+          background: #06b6d4;
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
           border-radius: 50%;
@@ -275,46 +277,46 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
           margin: -2px auto 0;
           border-left: 7px solid transparent;
           border-right: 7px solid transparent;
-          border-top: 9px solid #fff;
-          filter: drop-shadow(0 2px 2px rgba(15,23,42,0.3));
+          border-top: 9px solid #06b6d4;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
-        .shop-map-pin-selected + .shop-map-pin-tip { border-top-color: #0f766e; }
+        .shop-map-pin-selected + .shop-map-pin-tip { border-top-color: #22d3ee; }
         .shop-map-pin-ring {
           position: absolute; inset: -6px;
           border-radius: 50%;
-          border: 2px solid rgba(15, 118, 110, 0.5);
+          border: 2px solid rgba(6, 182, 212, 0.6);
           animation: shop-pin-ring-pulse 1.8s ease-out infinite;
         }
         .shop-map-you {
           position: relative;
-          width: 22px; height: 22px;
+          width: 24px; height: 24px;
           border-radius: 9999px;
-          border: 3px solid #fff;
-          background: #0f766e;
-          box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.25);
+          border: 3px solid #ffffff;
+          background: #06b6d4;
+          box-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
         }
         .shop-map-you-ping {
           position: absolute; inset: -8px;
           border-radius: 9999px;
-          background: rgba(15, 118, 110, 0.25);
+          background: rgba(6, 182, 212, 0.4);
           animation: shop-map-you-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
         .shop-map-popup { font-family: Inter, system-ui, sans-serif; text-align: center; padding: 4px 6px 2px; }
-        .shop-map-popup-name { font-weight: 700; color: #0f172a; font-size: 14px; margin-bottom: 2px; }
-        .shop-map-popup-address { color: #64748b; font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+        .shop-map-popup-name { font-weight: 800; color: #f8fafc; font-size: 14px; margin-bottom: 2px; text-transform: uppercase; tracking-wide; }
+        .shop-map-popup-address { color: #94a3b8; font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
         .shop-map-popup-btn {
           cursor: pointer; width: 100%; border: none; border-radius: 10px;
-          background: #0f766e; color: #fff; font-weight: 700; font-size: 12px;
-          letter-spacing: 0.04em; padding: 9px 12px;
+          background: #06b6d4; color: #090d16; font-weight: 800; font-size: 12px;
+          letter-spacing: 0.04em; padding: 8px 12px;
           transition: background 0.15s ease;
         }
-        .shop-map-popup-btn:hover { background: #115e59; }
+        .shop-map-popup-btn:hover { background: #22d3ee; }
         .shop-map-popup-actions { display: flex; flex-direction: column; gap: 8px; }
         .shop-map-popup-btn-outline {
-          background: transparent; color: #0f766e;
-          border: 1.5px solid #0f766e;
+          background: transparent; color: #06b6d4;
+          border: 1.5px solid #06b6d4;
         }
-        .shop-map-popup-btn-outline:hover { background: #0f766e; color: #fff; }
+        .shop-map-popup-btn-outline:hover { background: rgba(6, 182, 212, 0.2); color: #22d3ee; }
         .shop-map-popup-btn-icon { display: inline-block; margin-right: 4px; font-size: 13px; }
         @keyframes shop-pin-drop {
           0% { opacity: 0; transform: translateY(-24px) scale(0.7); }
@@ -330,7 +332,8 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
           0% { transform: scale(0.8); opacity: 0.9; }
           75%, 100% { transform: scale(2.2); opacity: 0; }
         }
-        .leaflet-popup-content-wrapper { border-radius: 14px; box-shadow: 0 12px 34px rgba(15,23,42,0.25); }
+        .leaflet-popup-content-wrapper { background: #0f172a; border: 1px solid #334155; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); color: #fff; }
+        .leaflet-popup-tip { background: #0f172a; }
         .leaflet-popup-content { margin: 12px 14px; }
       `}</style>
     </motion.div>
