@@ -91,15 +91,18 @@ const searchNominatim = async (query: string): Promise<SearchResult[]> => {
   }
 };
 
-const GOOGLE_MAPS_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || "";
+const GOOGLE_MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 let googleScriptPromise: Promise<void> | null = null;
 let googlePlacesInstance: any = null;
 
 const loadGooglePlaces = (): Promise<any> => {
   if (googlePlacesInstance) return Promise.resolve(googlePlacesInstance);
-  if (!GOOGLE_MAPS_KEY) return Promise.reject(new Error("no key"));
-
+  // If no key is configured, skip Google and fall back to OSM geocoders below.
+  if (!GOOGLE_MAPS_KEY) {
+    googlePlacesInstance = { AutocompleteService: null, PlacesService: null };
+    return Promise.resolve(googlePlacesInstance);
+  }
   if (!googleScriptPromise) {
     googleScriptPromise = new Promise<void>((resolve, reject) => {
       const existing = document.querySelector<HTMLScriptElement>(
