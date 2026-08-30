@@ -200,22 +200,22 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
     <main>
       {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
       <HeroSlideshow>
-        <div className="w-full max-w-4xl">
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-[2.5rem] xs:text-5xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.95] tracking-wide text-white">
+        <div className="w-full max-w-4xl px-2 sm:px-0">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.92] tracking-wide text-white drop-shadow-lg">
             Find Your
             <span className="block text-moto-accent">Motor Shop.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16 }} className="mx-auto mt-4 sm:mt-5 max-w-2xl text-sm sm:text-base lg:text-lg text-slate-200">
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16 }} className="mx-auto mt-4 sm:mt-5 max-w-xl text-sm sm:text-base lg:text-lg text-slate-200 leading-relaxed">
             Locate trusted motorcycle shops near you — services, parts, and mechanics across the Philippines.
           </motion.p>
 
           {/* Hero CTA buttons */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24 }} className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <button onClick={() => scrollTo("map")} className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-7 py-3.5 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-xl shadow-moto-accent/25 transition hover:-translate-y-0.5">
-              <MapPin size={18} />
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24 }} className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto">
+            <button onClick={() => scrollTo("map")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent px-6 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5">
+              <MapPin size={16} />
               Explore Live Map
             </button>
-            <button onClick={() => scrollTo("how-it-works")} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-slate-900/60 px-7 py-3.5 text-sm font-bold text-white backdrop-blur-md hover:bg-white/15 transition hover:-translate-y-0.5">
+            <button onClick={() => scrollTo("how-it-works")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-slate-900/70 px-6 py-3 text-xs sm:text-sm font-bold text-white backdrop-blur-md hover:bg-white/15 transition hover:-translate-y-0.5">
               How it Works
             </button>
           </motion.div>
@@ -228,31 +228,31 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             className="mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0"
           >
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400">
+              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
                 {stats.shopCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
+              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Partner Shops
               </p>
             </div>
             {stats.avgRating !== null && stats.avgRating > 0 && (
               <div className="px-2 sm:px-4 flex-1 hidden sm:block">
-                <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center gap-1">
+                <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center gap-1">
                   <span>{stats.avgRating.toFixed(1)}</span>
                   <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
                 </p>
-                <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
+                <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                   Average Rating
                 </p>
               </div>
             )}
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400">
+              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
                 {stats.riderCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
+              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Trusted by Riders
               </p>
             </div>

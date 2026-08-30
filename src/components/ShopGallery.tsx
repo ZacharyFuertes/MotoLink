@@ -47,11 +47,11 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
     ];
 
   // Mobile vs Desktop responsive configuration
-  const cardWidth = desktop ? "min(56%, 620px)" : "86%";
-  const cardLeft = desktop ? "22%" : "7%";
-  const sideTranslate = desktop ? "68%" : "82%";
-  const sideRotateY = desktop ? 20 : 14;
-  const stageHeight = desktop ? 530 : 470;
+  const cardWidth = desktop ? "min(54%, 580px)" : "86%";
+  const cardLeft = desktop ? "calc(50% - min(27%, 290px))" : "calc(50% - 43%)";
+  const sideTranslate = desktop ? "64%" : "82%";
+  const sideRotateY = desktop ? 18 : 14;
+  const stageHeight = desktop ? 490 : 450;
   const perspective = desktop ? 1300 : 950;
   const arrowSize = desktop ? 48 : 36;
   const iconSize = desktop ? 20 : 18;
@@ -162,27 +162,6 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
           </>
         )}
       </div>
-
-      {/* Dots + counter */}
-      {shops.length > 1 && (
-        <div className={`flex flex-col items-center gap-2 ${desktop ? "mt-10" : "mt-8"}`}>
-          <div className="flex items-center justify-center gap-2">
-            {shops.map((_, i) => (
-              <motion.button
-                key={i}
-                onClick={() => goTo(i)}
-                animate={{
-                  width: i === activeIndex ? (desktop ? 32 : 24) : 8,
-                  backgroundColor: i === activeIndex ? "#22d3ee" : "#334155",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                className="h-2 rounded-full"
-                aria-label={`Go to shop ${i + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
