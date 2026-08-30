@@ -46,15 +46,15 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
         { shopIndex: nextIndex, offset: 1 },
       ];
 
-  // Desktop config: larger card, dramatic depth
-  const cardWidth     = desktop ? "min(72%, 820px)" : "82%";
-  const cardLeft      = desktop ? "14%"             : "9%";
-  const sideTranslate = desktop ? "78%"             : "92%";
-  const sideRotateY   = desktop ? 24                : 18;
-  const stageHeight   = desktop ? 580               : 460;
-  const perspective   = desktop ? 1400              : 1000;
-  const arrowSize     = desktop ? 56                : 40;
-  const iconSize      = desktop ? 24                : 20;
+  // Mobile vs Desktop responsive configuration
+  const cardWidth     = desktop ? "min(56%, 620px)" : "86%";
+  const cardLeft      = desktop ? "22%"             : "7%";
+  const sideTranslate = desktop ? "68%"             : "82%";
+  const sideRotateY   = desktop ? 20                : 14;
+  const stageHeight   = desktop ? 530               : 470;
+  const perspective   = desktop ? 1300              : 950;
+  const arrowSize     = desktop ? 48                : 36;
+  const iconSize      = desktop ? 20                : 18;
 
   return (
     <div className="relative w-full select-none">
@@ -68,10 +68,10 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
 
       {/* Stage */}
       <div
-        className={`relative mx-auto overflow-visible ${desktop ? "px-10" : ""}`}
+        className={`relative mx-auto overflow-visible ${desktop ? "px-6" : ""}`}
         style={{ height: stageHeight, perspective }}
       >
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence initial={false}>
           {visibleCards.map(({ shopIndex, offset }) => {
             const shop    = shops[shopIndex];
             const isActive = offset === 0;
@@ -147,7 +147,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-left-6" : "left-1"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
+              className={`absolute ${desktop ? "-left-6" : "-left-2 sm:-left-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
             >
               <ChevronLeft size={iconSize} />
             </motion.button>
@@ -157,7 +157,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-right-6" : "right-1"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
+              className={`absolute ${desktop ? "-right-6" : "-right-2 sm:-right-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
             >
               <ChevronRight size={iconSize} />
             </motion.button>
@@ -183,9 +183,6 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               />
             ))}
           </div>
-          <span className="text-[10px] font-black text-slate-500 tracking-wider tabular-nums">
-            {activeIndex + 1} / {shops.length}
-          </span>
         </div>
       )}
     </div>

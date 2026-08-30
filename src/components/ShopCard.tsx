@@ -1,3 +1,4 @@
+import React from "react";
 import { Clock, MapPin, Navigation, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
@@ -62,15 +63,15 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
     >
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
 
-      <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker shrink-0">
-        <span className={`absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
+      <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker shrink-0 p-5">
+        <span className={`absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
           <span className={`h-2 w-2 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
           {status.label}
         </span>
         <img
           src={shop.logo_url || "/favicon.svg"}
           alt={`${shop.name} logo`}
-          className="h-full w-full object-contain p-7 transition duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_18px_rgba(56,182,196,0.25)]"
+          className="max-h-[115px] max-w-[72%] object-contain transition duration-300 group-hover:scale-105 group-hover:drop-shadow-[0_0_25px_rgba(56,182,196,0.35)]"
         />
       </div>
 
@@ -199,4 +200,4 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   );
 };
 
-export default ShopCard;
+export default React.memo(ShopCard);
