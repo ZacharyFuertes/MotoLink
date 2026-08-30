@@ -4,7 +4,7 @@ A professional, production-ready web application for managing Philippine auto re
 
 ---
 
-## 🏍️ Featured Photos
+## Featured Photos
 
 <div align="center">
 
@@ -322,7 +322,7 @@ CREATE TABLE invoices (
 
 ---
 
-## 📱 Testing the System
+##Testing the System
 
 The system uses **real Supabase authentication**. To test:
 
@@ -361,7 +361,7 @@ git push origin main
 
 ## System Status & Quality Assurance
 
-### ✅ Implemented Core Features
+###Implemented Core Features
 - [x] User authentication with role-based access (Owner, Mechanic, Customer)
 - [x] Appointment scheduling with visual calendar interface
 - [x] Real-time inventory tracking and management
@@ -373,7 +373,7 @@ git push origin main
 - [x] Database persistence via Supabase PostgreSQL
 - [x] Service history and invoice tracking
 
-### 🎯 Quality Metrics
+###Quality Metrics
 
 **Functional Completeness**
 - All core business requirements implemented
