@@ -48,12 +48,12 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
     }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
     // Dark theme map tile layer (CartoDB Dark Matter)
-    Leaflet.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
+Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      subdomains: "abcd",
       maxZoom: 19
     }).addTo(map);
-
     const zoomIn = Leaflet.control.zoom({ position: "topright" });
     zoomIn.addTo(map);
 
