@@ -59,6 +59,14 @@ type LoginType =
   | "admin"
   | "owner-signup";
 
+// Parse the shop id from a client-side /shop/:id URL (used for browser
+// back/forward and deep-link/reload support). Returns null when not on a
+// shop detail route.
+const getShopIdFromUrl = (): string | null => {
+  const match = window.location.pathname.match(/^\/shop\/([^/]+)\/?$/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isLoading, logout } = useAuth();
 
@@ -87,9 +95,11 @@ const AppContent: React.FC = () => {
   const [selectedShopId, setSelectedShopId] = useState<string | undefined>(
     () => localStorage.getItem("motolink_selected_shop_id") || undefined,
   );
-  const [viewingShopId, setViewingShopId] = useState<string | null>(
-    () => localStorage.getItem("moto_viewing_shop_id") || null
-  );
+  const [viewingShopId, setViewingShopId] = useState<string | null>(() => {
+    // Prefer a /shop/:id in the URL (deep link or browser refresh), then
+    // fall back to the persisted value.
+    return getShopIdFromUrl() || localStorage.getItem("moto_viewing_shop_id") || null;
+  });
 
   const selectShop = (shop: ShopSearchResult) => {
     localStorage.setItem("motolink_selected_shop_id", shop.id);
@@ -99,11 +109,19 @@ const AppContent: React.FC = () => {
   const openShopDetail = (shop: ShopSearchResult) => {
     localStorage.setItem("moto_viewing_shop_id", shop.id);
     setViewingShopId(shop.id);
+    // Push a real history entry so /shop/:id becomes a navigable page and
+    // the browser Back button returns to the previous page instead of
+    // closing the site (the shop detail used to behave like a modal).
+    window.history.pushState({ shopId: shop.id }, "", `/shop/${encodeURIComponent(shop.id)}`);
   };
 
   const closeShopDetail = () => {
     localStorage.removeItem("moto_viewing_shop_id");
     setViewingShopId(null);
+    if (getShopIdFromUrl()) {
+      // Rewind the /shop/:id entry we pushed when opening the detail view.
+      window.history.back();
+    }
   };
 
   /**
@@ -114,6 +132,24 @@ const AppContent: React.FC = () => {
     localStorage.setItem("moto_last_page", page);
     setCurrentPage(page);
   };
+
+  // Keep the shop detail view in sync with browser back/forward. Because the
+  // detail page is mapped to a real /shop/:id URL, the popstate event fires
+  // when the user navigates backward/forward through history.
+  useEffect(() => {
+    const onPopState = () => {
+      const fromUrl = getShopIdFromUrl();
+      if (fromUrl) {
+        localStorage.setItem("moto_viewing_shop_id", fromUrl);
+        setViewingShopId(fromUrl);
+      } else {
+        localStorage.removeItem("moto_viewing_shop_id");
+        setViewingShopId(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   /**
    * Validate that the current page is still allowed for the user's role

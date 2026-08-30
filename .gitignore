@@ -29,7 +29,8 @@ dist-ssr
 .vercel
 .env*.local
 
-# Documentation (local/dev only) — MEMORY.md is the ONLY markdown pushed
+# Documentation (local/dev only) — MEMORY.md and README.md are the markdown files pushed
 *.md
 !MEMORY.md
+!README.md
 docs/
