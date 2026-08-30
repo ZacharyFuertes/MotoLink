@@ -38,7 +38,7 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
 
   const mapHeight = isMobile ? "h-[450px]" : "h-[480px]";
 
-  useEffect(() => {
+useEffect(() => {
     const Leaflet = (typeof L !== "undefined") ? L : (window as any).L;
     if (!Leaflet || !mapRef.current) return;
 
@@ -47,13 +47,16 @@ const ShopMap = ({ shops, selectedShopId, locationGranted, location, onRequestLo
       scrollWheelZoom: true,
     }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
-    // Dark theme map tile layer (CartoDB Dark Matter)
-Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    // OpenStreetMap tile layer (no API key required)
+    Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       subdomains: "abcd",
-      maxZoom: 19
+      maxZoom: 19,
+      // Error handling: show OSM attribution on tile load failure
+      errorTileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     }).addTo(map);
+
     const zoomIn = Leaflet.control.zoom({ position: "topright" });
     zoomIn.addTo(map);
 
@@ -246,17 +249,16 @@ Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       </div>
 
       <style>{`
-        .shop-map-pin { background: transparent; border: none; }
-        .shop-map-pin-inner {
+.shop-map-pin { background: transparent; border: none; }
+.shop-map-pin-inner {
           width: 40px; height: 40px;
           border-radius: 50%;
           border: 3px solid #06b6d4;
-          background: #0f172a;
+          background: #ffffff;
           box-shadow: 0 4px 20px rgba(6, 182, 212, 0.4);
           display: flex; align-items: center; justify-content: center;
           overflow: visible;
           transition: transform 0.2s ease, box-shadow 0.2s ease;
-          animation: shop-pin-drop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
         .shop-map-pin-inner:hover { transform: scale(1.15); box-shadow: 0 0 25px rgba(6, 182, 212, 0.8); }
         .shop-map-pin-selected {
@@ -301,7 +303,7 @@ Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           background: rgba(6, 182, 212, 0.4);
           animation: shop-map-you-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
-        .shop-map-popup { font-family: Inter, system-ui, sans-serif; text-align: center; padding: 4px 6px 2px; }
+        .shop-map-popup { font-family: Inter, system-ui, sans-serif; text-align: center; padding: 4px 6px 2px; background: #f8fafc; border-radius: 10px; }
         .shop-map-popup-name { font-weight: 800; color: #f8fafc; font-size: 14px; margin-bottom: 2px; text-transform: uppercase; tracking-wide; }
         .shop-map-popup-address { color: #94a3b8; font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
         .shop-map-popup-btn {
@@ -332,9 +334,9 @@ Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           0% { transform: scale(0.8); opacity: 0.9; }
           75%, 100% { transform: scale(2.2); opacity: 0; }
         }
-        .leaflet-popup-content-wrapper { background: #0f172a; border: 1px solid #334155; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); color: #fff; }
-        .leaflet-popup-tip { background: #0f172a; }
-        .leaflet-popup-content { margin: 12px 14px; }
+        .leaflet-popup-content-wrapper { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); color: #1e293b; }
+        .leaflet-popup-tip { background: #fff; }
+        .leaflet-popup-content { margin: 12px 14px; color: #1e293b; }
       `}</style>
     </motion.div>
   );
