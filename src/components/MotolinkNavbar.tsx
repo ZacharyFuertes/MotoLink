@@ -7,19 +7,18 @@ interface MotolinkNavbarProps {
   onBrowse: () => void;
   onMap: () => void;
   onAbout: () => void;
-  onLogin: () => void;
-  onSignup: () => void;
+  onGetStarted: () => void;
   onLogout?: () => void;
   onAppointments: () => void;
 }
 
-const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, onSignup, onLogout, onAppointments }: MotolinkNavbarProps) => {
+const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarted, onLogout, onAppointments }: MotolinkNavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const links = [
     { label: "Find a Shop", action: onBrowse },
     { label: "Map", action: onMap },
     { label: "About", action: onAbout },
-    { label: "My Appointments", action: isAuthenticated ? onAppointments : onLogin },
+    { label: "My Appointments", action: isAuthenticated ? onAppointments : onGetStarted },
   ];
   const activate = (action: () => void) => { action(); setMenuOpen(false); };
 
@@ -47,11 +46,8 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, on
             </>
           ) : (
             <>
-              <button onClick={onSignup} className="rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark whitespace-nowrap">
-                Register
-              </button>
-              <button onClick={onLogin} className="rounded-xl border border-moto-accent px-4 py-2.5 text-sm font-bold text-moto-accent hover:bg-moto-accent hover:text-slate-950 whitespace-nowrap">
-                Log in
+              <button onClick={onGetStarted} className="rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark whitespace-nowrap shadow-lg shadow-moto-accent/25">
+                Get Started
               </button>
             </>
           )}
@@ -78,11 +74,8 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, on
               </>
             ) : (
               <div className="mt-3 flex flex-col gap-2.5">
-                <button onClick={() => activate(onSignup)} className="rounded-xl bg-moto-accent px-4 py-3 text-base font-extrabold text-slate-950 shadow-md">
-                  Register
-                </button>
-                <button onClick={() => activate(onLogin)} className="rounded-xl border border-moto-accent px-4 py-3 text-base font-extrabold text-moto-accent">
-                  Log in
+                <button onClick={() => activate(onGetStarted)} className="rounded-xl bg-moto-accent px-4 py-3 text-base font-extrabold text-slate-950 shadow-md">
+                  Get Started
                 </button>
               </div>
             )}

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home, User, Store, Phone, MapPin, Check } from "lucide-react";
-import motolinkLogo from "../../public/favicon.svg";
+import { Mail, Lock, Loader, ArrowLeft, User, Store, Phone, MapPin, Check } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getRoleLabel } from "../utils/roleAccess";
 import InlineError from "../components/InlineError";
 import LocationPicker from "../components/LocationPicker";
+import heroImage from "../pictures/hero-slide-images/hero-slide-image-1.png";
 
 interface ShopOwnerLoginPageProps {
   onLoginSuccess: () => void;
@@ -18,7 +18,6 @@ interface ShopOwnerLoginPageProps {
 const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
-  onHome,
   initialIsSignup = false,
 }) => {
   const { login, user, isLoading, refreshUser } = useAuth();
@@ -423,69 +422,74 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
+    "w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
-  const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5";
+  const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1";
 
   const fieldWrapperClass = "relative";
 
   return (
-    <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4">
-      {/* Back Button */}
-      <motion.button
-        onClick={onBack}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-darker hover:bg-moto-dark border border-moto-gray rounded-lg text-slate-300 hover:text-slate-100 shadow-sm transition-all z-30"
-        whileHover={{ scale: 1.05, x: -4 }}
-      >
-        <ArrowLeft size={18} />
-        <span className="hidden sm:inline text-sm font-medium">Back</span>
-      </motion.button>
+    <div className="h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-4 relative overflow-hidden font-sans">
+      {/* Ambient radial glow */}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/30 via-slate-950 to-slate-950" />
+      {/* Technical grid */}
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
 
-      {/* Home Button */}
-      {onHome && (
-        <motion.button
-          onClick={onHome}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white rounded-xl shadow-sm transition-all z-30"
-          whileHover={{ scale: 1.05, x: 4 }}
-        >
-          <span className="hidden sm:inline text-sm font-semibold">Home</span>
-          <Home size={18} />
-        </motion.button>
-      )}
-
-      {/* Main Card */}
+      {/* Main split-screen card */}
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full relative z-10 ${isSignup ? "max-w-4xl" : "max-w-md"}`}
+        className={`w-full relative z-10 rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl flex flex-col h-full max-h-[calc(100vh-1.5rem)] ${
+          isSignup ? "max-w-5xl md:grid md:grid-cols-2" : "max-w-4xl md:grid md:grid-cols-2"
+        }`}
       >
-        <div className="rounded-3xl border border-moto-gray bg-moto-darker shadow-xl shadow-black/30 overflow-hidden">
+        {/* MOBILE TOP ARTWORK BANNER */}
+        <div
+          className="md:hidden relative h-28 sm:h-36 bg-cover bg-center shrink-0 border-b border-slate-800/80"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/30 to-transparent" />
+          <button
+            onClick={onBack}
+            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-cyan-400 transition-colors shadow-lg"
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
+          {/* Brand label over hero */}
+          <div className="absolute bottom-4 left-5">
+            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+              {isSignup ? "Shop Registration" : "Shop Owner Portal"}
+            </p>
+          </div>
+        </div>
 
-          <div className="relative p-8 sm:p-10">
-            {/* Logo */}
+        {/* LEFT / MAIN — FORM */}
+        <div className="bg-slate-900/40 p-4 sm:p-6 md:p-8 flex flex-col overflow-y-auto flex-1 relative w-full scrollbar-hide">
+          {/* Desktop back button */}
+          <button
+            onClick={onBack}
+            className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
+
+          <div className="relative p-0 bg-transparent pt-2 md:pt-8">
+            {/* Header */}
             <motion.div
-              className="text-center mb-8"
+              className="text-center mb-3"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <div className="w-full flex items-center justify-center mx-auto mb-6">
-                <img src={motolinkLogo} alt="Motolink logo" className="max-h-32 w-auto object-contain" />
-              </div>
-
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1 tracking-tight">
                   {isSignup ? "Open your shop" : "Welcome back"}
                 </h1>
                 <p className="text-slate-400 text-sm">
@@ -507,10 +511,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     handleNext();
                   }
                 }}
-                className="space-y-6"
+                className="space-y-3"
               >
                 {/* Step progress indicator */}
-                <div className="mb-8">
+                <div className="mb-3">
                   <div className="flex items-start justify-center">
                     {STEPS.map((label, i) => (
                       <Fragment key={label}>
@@ -520,22 +524,22 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                             onClick={() => i < currentStep && setCurrentStep(i)}
                             disabled={i > currentStep}
                             aria-current={i === currentStep ? "step" : undefined}
-                            className="flex flex-col items-center gap-1.5"
+                            className="flex flex-col items-center gap-1"
                           >
-                            <span className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all ${
+                            <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-all ${
                               i < currentStep
                                 ? "border-moto-accent bg-moto-accent text-slate-950"
                                 : i === currentStep
                                   ? "border-moto-accent bg-moto-darker text-moto-accent shadow-lg"
                                   : "border-moto-gray bg-moto-dark text-slate-500"
                             }`}>
-                              {i < currentStep ? <Check size={16} /> : i + 1}
+                              {i < currentStep ? <Check size={14} /> : i + 1}
                             </span>
-                            <span className={`text-xs font-semibold ${i <= currentStep ? "text-slate-800" : "text-slate-400"}`}>{label}</span>
+                            <span className={`text-[10px] font-semibold ${i <= currentStep ? "text-slate-300" : "text-slate-600"}`}>{label}</span>
                           </button>
                         </div>
                         {i < STEPS.length - 1 && (
-                          <div className={`mt-5 mx-1 sm:mx-3 h-0.5 w-8 sm:w-14 rounded-full ${i < currentStep ? "bg-moto-accent" : "bg-moto-gray"}`} />
+                          <div className={`mt-3 mx-2 h-0.5 w-10 rounded-full ${i < currentStep ? "bg-moto-accent" : "bg-moto-gray"}`} />
                         )}
                       </Fragment>
                     ))}
@@ -546,22 +550,22 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Account section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">1</span>
-                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Account</h2>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-[10px] font-bold">1</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Account</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>Email</label>
                       <div className={fieldWrapperClass}>
-                        <Mail size={18} className={iconClass} />
+                        <Mail size={14} className={iconClass} />
                         <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="you@example.com" required className={inputClass} />
                       </div>
                     </div>
                     <div>
                       <label className={labelClass}>Password</label>
                       <div className={fieldWrapperClass}>
-                        <Lock size={18} className={iconClass} />
+                        <Lock size={14} className={iconClass} />
                         <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Create a password" required className={inputClass} />
                       </div>
                     </div>
@@ -569,12 +573,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 </div>
 
                 {/* Shop details section */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">2</span>
-                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Shop details</h2>
+                <div className="mt-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-[10px] font-bold">2</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Shop details</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>Shop Name</label>
                       <div className={fieldWrapperClass}>
@@ -617,7 +621,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                 setSpecialtiesText(newText);
                                 setSignupData((prev) => ({ ...prev, shop_description: newText }));
                               }}
-                              className={isSelected ? "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-moto-accent text-slate-950 border border-moto-accent" : "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-moto-dark border border-moto-gray text-slate-300 hover:border-moto-accent"}
+                              className={isSelected ? "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 border border-cyan-500" : "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-slate-950/50 border border-slate-800 text-slate-300 hover:border-cyan-500"}
                             >
                               {option}
                             </button>
@@ -701,7 +705,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     </div>
                     <div className="space-y-2">
                       {signupData.operating_schedule.map((day, idx) => (
-                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-moto-gray bg-moto-darker p-3 transition">
+                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3 transition">
                           <button
                             type="button"
                             onClick={() => {
@@ -711,8 +715,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                             }}
                             className={`flex-shrink-0 h-6 w-6 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${
                               day.open
-                                ? "bg-moto-accent border-moto-accent shadow-lg shadow-moto-accent/40"
-                                : "border-moto-gray hover:border-moto-accent/50 bg-moto-dark hover:bg-moto-darker"
+                                ? "bg-cyan-500 border-cyan-500 shadow-lg shadow-cyan-500/40"
+                                : "border-slate-700 hover:border-cyan-500/50 bg-slate-950 hover:bg-slate-900"
                             }`}
                           >
                             {day.open && (
@@ -730,7 +734,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], openTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-moto-gray bg-moto-dark px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all"
+                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                               />
                               <span className="text-xs text-slate-400">to</span>
                               <input
@@ -741,7 +745,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], closeTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-moto-gray bg-moto-dark px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all"
+                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
                               />
                             </div>
                           ) : (
@@ -757,11 +761,11 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 )}
 
                 {/* Wizard navigation */}
-                <div className="flex flex-col gap-3 pt-6">
+                <div className="flex flex-col gap-2 pt-3">
                   {currentStep < 2 ? (
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 font-bold rounded-xl transition-all duration-300 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20"
                     >
                       Next <ArrowLeft size={16} className="rotate-180" />
                     </button>
@@ -771,7 +775,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       disabled={loading}
                       whileHover={{ scale: loading ? 1 : 1.02 }}
                       whileTap={{ scale: loading ? 1 : 0.98 }}
-                      className="w-full inline-flex items-center justify-center gap-2 px-8 py-3.5 font-bold rounded-xl transition-all duration-300 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading && <Loader size={18} className="animate-spin" />}
                       Register Shop
@@ -781,7 +785,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     type="button"
                     onClick={handleBack}
                     disabled={currentStep === 0}
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-moto-gray bg-transparent text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-moto-dark/50 hover:border-moto-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-2 rounded-xl border border-slate-800 bg-transparent text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800/60 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ArrowLeft size={16} /> Back
                   </button>
@@ -809,7 +813,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                   </div>
                 </motion.div>
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-accent/90 text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>
@@ -822,6 +826,25 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* RIGHT — VISUAL ARTWORK (desktop only) */}
+        <div
+          className="hidden md:block relative bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+          {/* Brand overlay */}
+          <div className="absolute bottom-8 left-8 right-8">
+            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-1">
+              {isSignup ? "Shop Registration" : "Shop Owner Portal"}
+            </p>
+            <p className="text-white/70 text-sm">
+              {isSignup
+                ? "Join MotoLink and connect with customers who need you."
+                : "Manage your shop, appointments and team in one place."}
+            </p>
           </div>
         </div>
       </motion.div>

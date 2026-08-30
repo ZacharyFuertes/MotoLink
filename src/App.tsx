@@ -33,7 +33,6 @@ import AdminMechanicAvailability from "./pages/AdminMechanicAvailability";
 import LoginPage from "./pages/LoginPage";
 import ShopOwnerLoginPage from "./pages/ShopOwnerLoginPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
-import LoginChoicePage from "./pages/LoginChoicePage";
 import UpdatePartsPage from "./pages/UpdatePartsPage";
 
 // Landing page imports (original)
@@ -52,7 +51,6 @@ type PageType = AppPage;
 
 type LoginType =
   | "landing"
-  | "choice"
   | "customer"
   | "customer-signup"
   | "owner"
@@ -264,34 +262,9 @@ const AppContent: React.FC = () => {
     }
   }, [isAuthenticated, user?.role, currentPage]);
 
-  // Authoritative portal-role enforcement while on a login screen. If the
-  // authenticated user's role doesn't match the portal they signed into, force
-  // a full logout (clears the persisted Supabase session + localStorage) so the
-  // wrong role can never land on or persist into the wrong dashboard — even on
-  // a browser refresh.
-  useEffect(() => {
-    if (!isAuthenticated || !user?.role || loginCompleted) return;
-    const expectedRole =
-      currentLoginType === "customer" || currentLoginType === "customer-signup"
-        ? "customer"
-        : currentLoginType === "admin"
-        ? "admin"
-        : currentLoginType === "owner" || currentLoginType === "owner-signup"
-        ? "owner"
-        : null;
-    if (!expectedRole) return;
-    if (user.role !== expectedRole) {
-      console.log(
-        `⚠️ [App] Role '${user.role}' doesn't match portal '${currentLoginType}', forcing logout`,
-      );
-      logout();
-    }
-  }, [isAuthenticated, user?.role, currentLoginType, loginCompleted, logout]);
-
   // A login/signup screen is active when we're unauthenticated, or authenticated
   // but the current login type hasn't confirmed completion yet.
   const isLoginScreen = [
-    "choice",
     "customer",
     "customer-signup",
     "admin",
@@ -340,7 +313,7 @@ const AppContent: React.FC = () => {
 
     const handleOpenLogin = () => {
       setLoginCompleted(false);
-      setCurrentLoginType("choice");
+      setCurrentLoginType("customer");
     };
 
     return (
@@ -364,17 +337,10 @@ const AppContent: React.FC = () => {
               if (shop) selectShop(shop);
               handleOpenLogin();
             }}
+            onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
             onBook={() => handleOpenLogin()}
             onViewShop={openShopDetail}
             onAppointments={() => handleOpenLogin()}
-          />
-        ) : currentLoginType === "choice" ? (
-          <LoginChoicePage
-            onChooseCustomer={() => setCurrentLoginType("customer")}
-            onChooseOwner={() => setCurrentLoginType("owner")}
-            onChooseRegister={() => setCurrentLoginType("owner-signup")}
-            onChooseAdmin={() => setCurrentLoginType("admin")}
-            onBack={() => setCurrentLoginType("landing")}
           />
         ) : currentLoginType === "customer-signup" ? (
           <LoginPage
@@ -386,26 +352,26 @@ const AppContent: React.FC = () => {
         ) : currentLoginType === "customer" ? (
           <LoginPage
             onLoginSuccess={handleLoginSuccess}
-            onBack={() => setCurrentLoginType("choice")}
+            onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
           />
         ) : currentLoginType === "admin" ? (
           <AdminLoginPage
             onLoginSuccess={handleLoginSuccess}
-            onBack={() => setCurrentLoginType("choice")}
+            onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
           />
         ) : currentLoginType === "owner-signup" ? (
           <ShopOwnerLoginPage
             onLoginSuccess={handleLoginSuccess}
-            onBack={() => setCurrentLoginType("choice")}
+            onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
             initialIsSignup={true}
           />
         ) : (
           <ShopOwnerLoginPage
             onLoginSuccess={handleLoginSuccess}
-            onBack={() => setCurrentLoginType("choice")}
+            onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
           />
         )}
@@ -447,6 +413,7 @@ const AppContent: React.FC = () => {
             <MotolinkLanding
               isAuthenticated={true}
               onLoginRequired={() => {}}
+              onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
               onBook={(shop) => {
                 if (shop.is_open === false) {
                   openShopDetail(shop);

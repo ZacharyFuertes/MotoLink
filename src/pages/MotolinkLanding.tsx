@@ -17,6 +17,7 @@ interface MotolinkLandingProps {
   isAuthenticated: boolean;
   onLoginRequired: (shop?: ShopSearchResult) => void;
   onBook: (shop: ShopSearchResult) => void;
+  onOpenShopRegister?: () => void;
   onLogout?: () => void;
   onViewShop?: (shop: ShopSearchResult) => void;
   onAppointments?: () => void;
@@ -54,7 +55,7 @@ const getCachedLocation = (): GeolocationCoordinates | undefined => {
   return undefined;
 };
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, onViewShop, onAppointments }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onLogout, onViewShop, onAppointments }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates | undefined>(getCachedLocation);
   const [specialty, setSpecialty] = useState("");
@@ -196,7 +197,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (shop.is_open === false) { if (onViewShop) onViewShop(shop); return; } if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
 
   return <div className="min-h-screen bg-moto-dark text-slate-100">
-    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onSignup={() => onLoginRequired(selectedShop)} onLogout={onLogout} onAppointments={() => { if (onAppointments) onAppointments(); else onLoginRequired(selectedShop); }} />
+    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onAppointments={() => { if (onAppointments) onAppointments(); else onLoginRequired(selectedShop); }} />
     <main>
       {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
       <HeroSlideshow>
@@ -387,7 +388,42 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
         </div>
       </motion.section>
 
-      {/* 5. ABOUT MOTOLINK */}
+      {/* 5. REGISTER YOUR SHOP CTA */}
+      <motion.section
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.45 }}
+        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+      >
+        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center shadow-lg shadow-moto-accent/5">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
+            <Store size={28} />
+          </span>
+          <h2 className="mt-6 font-display text-3xl sm:text-4xl uppercase leading-none tracking-wide text-slate-100">
+            Register your shop <span className="text-moto-accent">now!</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-slate-300 sm:text-lg">
+            Create a business profile, showcase your services, and reach more
+            riders in your area. Your shop deserves to be discovered.
+          </p>
+          <button
+            onClick={onOpenShopRegister}
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent px-8 py-4 text-base font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/30 transition hover:-translate-y-0.5"
+          >
+            <Store size={20} />
+            Register my shop
+          </button>
+          {isAuthenticated && (
+            <p className="mt-4 text-sm text-slate-400">
+              Signed in as a customer — registering a new shop will start a
+              separate Shop Owner account.
+            </p>
+          )}
+        </div>
+      </motion.section>
+
+      {/* 6. ABOUT MOTOLINK */}
       <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="about" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl space-y-8">
           <div className="space-y-4">

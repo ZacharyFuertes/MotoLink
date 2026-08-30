@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Mail,
   Lock,
   Loader,
   ArrowLeft,
-  Home,
   User,
   Phone,
   MapPin,
@@ -13,12 +11,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import usersIcon from "../pictures/icons/users.png";
 import InlineError from "../components/InlineError";
 import {
   filterMakes,
   filterModels,
 } from "../utils/vehicleData";
+import heroImage from "../pictures/hero-slide-images/hero-slide-image-2.png";
 
 interface CustomerLoginPageProps {
   onLoginSuccess: () => void;
@@ -30,7 +28,6 @@ interface CustomerLoginPageProps {
 const LoginPage: React.FC<CustomerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
-  onHome,
   initialIsSignup = false,
 }) => {
   const { login, signup, user, isLoading } = useAuth();
@@ -163,15 +160,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           .single();
 
         if (existingUser && existingUser.role !== "customer") {
-          const portalMap: { [key: string]: string } = {
-            mechanic: "the Shop Owner Portal",
-            admin: "Admin Portal",
-            owner: "Admin Portal",
-          };
-          const correctPortal =
-            portalMap[existingUser.role] || "appropriate portal";
           setError(
-            `❌ This email is registered as a ${existingUser.role}. Please use the ${correctPortal} instead.`,
+            `❌ This email is already registered as a ${existingUser.role}. Please sign in with your existing credentials instead.`,
           );
           setLoading(false);
           return;
@@ -237,26 +227,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       return;
     }
 
-    // User profile is loaded and role is available from AuthContext
-    if (user.role !== "customer") {
-      let portalURL = "";
-
-      if (user.role === "mechanic") {
-        portalURL =
-          "Your account is registered as a Mechanic. Mechanic accounts are managed by the shop owner.";
-      } else if (user.role === "owner") {
-        portalURL =
-          "Your account is registered as Admin/Owner. Please use the Admin Portal to login.";
-      }
-
-      setError(`❌ Wrong Portal! ${portalURL}`);
-      supabase.auth.signOut();
-      setLoading(false);
-      setLoginAttempted(false);
-      return;
-    }
-
-    // If this was a fresh signup, save the notification preference
+    // If this was a fresh customer signup, save the notification preference
     if (wasSignupRef.current && user.id) {
       wasSignupRef.current = false;
       supabase
@@ -281,7 +252,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         });
     }
 
-    // Role is correct, login succeeded
+    // Role is resolved, login succeeded — App routes the user to the dashboard
+    // matching their role (customer -> landing, owner -> dashboard, admin -> admin-dashboard).
     setLoading(false);
     setLoginAttempted(false);
     clearLoginDraft();
@@ -290,63 +262,51 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   // Input field style shared between login and signup
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
+    "w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
-    <div className="min-h-screen bg-moto-dark flex items-center justify-center p-4 text-slate-100">
-      {/* Back Button */}
-      <motion.button
-        onClick={onBack}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark border border-moto-accent rounded-lg text-slate-950 shadow-sm transition-all z-30"
-        whileHover={{ scale: 1.05, x: -4 }}
-      >
-        <ArrowLeft size={18} />
-        <span className="hidden sm:inline text-sm font-medium">Back</span>
-      </motion.button>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
+      {/* Ambient radial glow */}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/30 via-slate-950 to-slate-950" />
+      {/* Technical grid */}
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
 
-      {/* Home Button */}
-      {onHome && (
-        <motion.button
-          onClick={onHome}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white rounded-xl shadow-sm transition-all z-30"
-          whileHover={{ scale: 1.05, x: 4 }}
-        >
-          <span className="hidden sm:inline text-sm font-semibold">Home</span>
-          <Home size={18} />
-        </motion.button>
-      )}
-
-      {/* Main Card */}
+      {/* Main split-screen card */}
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        initial={{ opacity: 0, y: 30, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-5xl rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl flex flex-col md:grid md:grid-cols-2 z-10 my-auto"
       >
-        <div className="rounded-2xl border border-moto-gray bg-moto-darker shadow-sm overflow-hidden">
+        {/* MOBILE TOP ARTWORK BANNER (visible on phone screens < md) */}
+        <div
+          className="md:hidden relative h-40 sm:h-52 bg-cover bg-center shrink-0 border-b border-slate-800/80"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+          <button
+            onClick={onBack}
+            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-cyan-400 transition-colors shadow-lg"
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
+        </div>
 
-          <div className="relative p-8 sm:p-10">
-            {/* Logo */}
-            <motion.div
-              className="text-center mb-8"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-5 bg-slate-100">
-                <img
-                  src={usersIcon}
-                  alt="Customer Icon"
-                  className="w-10 h-10 object-contain brightness-0 opacity-60"
-                />
-              </div>
+        {/* LEFT / MAIN — AUTH FORM */}
+        <div className="bg-slate-900/40 p-6 sm:p-8 md:p-12 flex flex-col overflow-y-auto relative w-full scrollbar-hide">
+          {/* Back nav for desktop */}
+          <button
+            onClick={onBack}
+            className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors"
+          >
+            <ArrowLeft size={16} /> Back
+          </button>
 
+          <div className="w-full max-w-sm mx-auto my-auto py-6">
+            {/* Header typography */}
+            <div className="mb-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={isSignup ? "signup" : "login"}
@@ -355,20 +315,21 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <h1 className="text-3xl font-bold text-slate-100 mb-2 tracking-tight">
+                  <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">
                     {isSignup ? "Create account" : "Welcome back"}
                   </h1>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-slate-400 text-sm mb-8">
                     {isSignup
                       ? "Register to book appointments & track repairs"
                       : "Sign in to your account"}
                   </p>
                 </motion.div>
               </AnimatePresence>
-            </motion.div>
+            </div>
+
+            <InlineError message={error} onClose={() => setError("")} />
 
             {/* Form */}
-            <InlineError message={error} onClose={() => setError("")} />
             <form onSubmit={handleSubmit} className="space-y-4">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -381,11 +342,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 >
                   {/* Name (Signup only) */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.05 }}
-                    >
+                    <div>
                       <div className="relative">
                         <User size={18} className={iconClass} />
                         <input
@@ -398,17 +355,13 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                           className={inputClass}
                         />
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
                   {/* Email */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: isSignup ? 0.1 : 0.05 }}
-                  >
+                  <div>
                     <div className="relative">
-                      <Mail size={18} className={iconClass} />
+                      <User size={18} className={iconClass} />
                       <input
                         type="email"
                         name="email"
@@ -419,14 +372,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                         className={inputClass}
                       />
                     </div>
-                  </motion.div>
+                  </div>
 
                   {/* Password */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: isSignup ? 0.15 : 0.1 }}
-                  >
+                  <div>
                     <div className="relative">
                       <Lock size={18} className={iconClass} />
                       <input
@@ -439,15 +388,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                         className={inputClass}
                       />
                     </div>
-                  </motion.div>
+                  </div>
 
                   {/* Phone (Signup only) */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                    >
+                    <div>
                       <div className="relative">
                         <Phone size={18} className={iconClass} />
                         <input
@@ -460,16 +405,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                           className={inputClass}
                         />
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
                   {/* Address (Signup only) */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                    >
+                    <div>
                       <div className="relative">
                         <MapPin size={18} className={iconClass} />
                         <input
@@ -482,27 +423,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                           className={inputClass}
                         />
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
                   {/* Motorcycle Section Divider */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="pt-2 mt-4 border-t border-slate-200"
-                    />
+                    <div className="pt-2 mt-4 border-t border-slate-200" />
                   )}
 
                   {/* Motorcycle Make (Signup only) */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.32 }}
-                    >
-                      <label className="text-xs text-slate-300 ml-1 mb-1 block">
+                    <div>
+                      <label className="text-xs text-slate-400 ml-1 mb-1 block">
                         Motorcycle Information
                       </label>
                       <div className="relative">
@@ -546,16 +478,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                             )}
                         </AnimatePresence>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
                   {/* Motorcycle Model (Signup only) */}
                   {isSignup && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.34 }}
-                    >
+                    <div>
                       <div className="relative">
                         <Truck size={18} className={iconClass} />
                         <input
@@ -603,41 +531,50 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                             )}
                         </AnimatePresence>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-
-
                 </motion.div>
               </AnimatePresence>
 
-              {/* Submit Button */}
+              {/* Forgot Password (login only) */}
+              {!isSignup && (
+                <div className="flex justify-end -mt-1">
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    className="text-xs font-semibold text-cyan-400 hover:underline"
+                  >
+                    Forgot Password?
+                  </a>
+                </div>
+              )}
+
+              {/* Primary button */}
               <motion.button
                 type="submit"
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.02 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-slate-900 hover:bg-slate-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
-                {isSignup ? "Create Account" : "Sign In"}
+                {isSignup ? "Create Account" : "Login"}
               </motion.button>
             </form>
 
             {/* Divider */}
             <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-slate-400 text-xs tracking-wider font-medium">
+              <div className="flex-1 h-px bg-slate-800" />
+              <span className="text-slate-500 text-xs tracking-wider font-medium">
                 or
               </span>
-              <div className="flex-1 h-px bg-slate-200" />
+              <div className="flex-1 h-px bg-slate-800" />
             </div>
 
-            {/* Toggle */}
-            <div className="text-center">
-              <p className="text-slate-600 text-sm">
-                {isSignup
-                  ? "Already have an account?"
-                  : "Don't have an account?"}
+            {/* Footer */}
+            <div className="text-center mt-6">
+              <p className="text-slate-500 text-sm">
+                {isSignup ? "Already have an account?" : "Don't have an account?"}
                 <button
                   type="button"
                   onClick={() => {
@@ -653,13 +590,21 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                       vehicle_model: "",
                     });
                   }}
-                  className="ml-2 font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                  className="ml-1.5 text-cyan-400 font-semibold hover:underline"
                 >
-                  {isSignup ? "Sign In" : "Create Account"}
+                  {isSignup ? "Sign in" : "Sign up for free"}
                 </button>
               </p>
             </div>
           </div>
+        </div>
+
+        {/* RIGHT — VISUAL ARTWORK */}
+        <div
+          className="hidden md:block relative bg-cover bg-center min-h-full"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
         </div>
       </motion.div>
     </div>
