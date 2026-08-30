@@ -41,28 +41,26 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
   const visibleCards = shops.length === 1
     ? [{ shopIndex: activeIndex, offset: 0 }]
     : [
-        { shopIndex: prevIndex, offset: -1 },
-        { shopIndex: activeIndex, offset: 0 },
-        { shopIndex: nextIndex, offset: 1 },
-      ];
+      { shopIndex: prevIndex, offset: -1 },
+      { shopIndex: activeIndex, offset: 0 },
+      { shopIndex: nextIndex, offset: 1 },
+    ];
 
   // Mobile vs Desktop responsive configuration
-  const cardWidth     = desktop ? "min(56%, 620px)" : "86%";
-  const cardLeft      = desktop ? "22%"             : "7%";
-  const sideTranslate = desktop ? "68%"             : "82%";
-  const sideRotateY   = desktop ? 20                : 14;
-  const stageHeight   = desktop ? 530               : 470;
-  const perspective   = desktop ? 1300              : 950;
-  const arrowSize     = desktop ? 48                : 36;
-  const iconSize      = desktop ? 20                : 18;
+  const cardWidth = desktop ? "min(56%, 620px)" : "86%";
+  const cardLeft = desktop ? "22%" : "7%";
+  const sideTranslate = desktop ? "68%" : "82%";
+  const sideRotateY = desktop ? 20 : 14;
+  const stageHeight = desktop ? 530 : 470;
+  const perspective = desktop ? 1300 : 950;
+  const arrowSize = desktop ? 48 : 36;
+  const iconSize = desktop ? 20 : 18;
 
   return (
     <div className="relative w-full select-none">
       {!desktop && (
         <p className="mb-4 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          <ChevronLeft size={11} className="text-cyan-400" />
-          Swipe to browse shops
-          <ChevronRight size={11} className="text-cyan-400" />
+
         </p>
       )}
 
@@ -73,10 +71,10 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
       >
         <AnimatePresence initial={false}>
           {visibleCards.map(({ shopIndex, offset }) => {
-            const shop    = shops[shopIndex];
+            const shop = shops[shopIndex];
             const isActive = offset === 0;
-            const isLeft   = offset === -1;
-            const isRight  = offset === 1;
+            const isLeft = offset === -1;
+            const isRight = offset === 1;
 
             return (
               <motion.div

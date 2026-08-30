@@ -220,39 +220,39 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
             </button>
           </motion.div>
 
-          {/* Stats bar — real aggregate data */}
+          {/* Stats bar — compact responsive layout */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mx-auto mt-10 w-full max-w-2xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-5 sm:p-6 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center sm:items-stretch justify-center sm:justify-between text-center sm:text-left divide-y sm:divide-y-0 sm:divide-x divide-slate-800/80 gap-4 sm:gap-0"
+            transition={{ duration: 0.5, delay: 0.32 }}
+            className="mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0"
           >
-            <div className="pb-4 sm:pb-0 sm:pr-6 flex-1">
-              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
+            <div className="px-2 sm:px-4 flex-1">
+              <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400">
                 {stats.shopCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
                 Partner Shops
               </p>
             </div>
-            {stats.avgRating !== null && (
-              <div className="py-4 sm:py-0 sm:px-6 flex-1">
-                <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center sm:justify-start gap-1">
+            {stats.avgRating !== null && stats.avgRating > 0 && (
+              <div className="px-2 sm:px-4 flex-1 hidden sm:block">
+                <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center gap-1">
                   <span>{stats.avgRating.toFixed(1)}</span>
-                  <Star size={20} className="fill-amber-400 text-amber-400 shrink-0" />
+                  <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
                 </p>
-                <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+                <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
                   Average Rating
                 </p>
               </div>
             )}
-            <div className="pt-4 sm:pt-0 sm:pl-6 flex-1">
-              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
+            <div className="px-2 sm:px-4 flex-1">
+              <p className="font-display text-2xl sm:text-4xl font-black text-cyan-400">
                 {stats.riderCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[11px] sm:text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+              <p className="mt-1 text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-slate-400 truncate">
                 Trusted by Riders
               </p>
             </div>
@@ -311,11 +311,23 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
         </div>
       </motion.section>
 
-      {/* 2. EXPLORE SHOPS ON MAP LOCATOR */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8">
+      {/* 2. FEATURED SHOPS GALLERY */}
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-6">
-            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-2 font-display text-3xl uppercase leading-none tracking-wide text-slate-100 sm:text-4xl">
+          <div className="mb-8 sm:mb-10">
+            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
+              Find Trusted Shops Near You<span className="text-moto-accent">.</span>
+            </motion.h2>
+          </div>
+          {results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops available right now.</div>}
+        </div>
+      </motion.section>
+
+      {/* 3. EXPLORE SHOPS ON MAP LOCATOR */}
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 sm:mb-10">
+            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
               Explore Shops On The Map<span className="text-moto-accent">.</span>
             </motion.h2>
           </div>
@@ -343,18 +355,6 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onLogout, o
           />
           {locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}
           {suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}
-        </div>
-      </motion.section>
-
-      {/* 3. FEATURED SHOPS GALLERY */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10">
-            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">
-              Find Trusted Shops Near You<span className="text-moto-accent">.</span>
-            </motion.h2>
-          </div>
-          {results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops available right now.</div>}
         </div>
       </motion.section>
 

@@ -6,12 +6,10 @@ import {
   LocateFixed,
   MapPin,
   Navigation,
-  Phone,
   Search,
   ShieldCheck,
   Star,
   Store,
-  Wrench,
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,7 +46,7 @@ const ShopMap = ({
   onRequestLocation,
   onSelect,
   onViewShop,
-  filterSlot,
+  filterSlot: _filterSlot,
   onNavigate: _onNavigate,
   searchSlot: _searchSlot,
 }: ShopMapProps) => {
@@ -213,9 +211,11 @@ const ShopMap = ({
     const Leaflet = typeof L !== "undefined" ? L : (window as any).L;
     if (!Leaflet || !mapRef.current) return;
 
-    // Destroy previous instance if any
+    // Destroy previous instance safely if any
     if (mapInstanceRef.current) {
       try {
+        mapInstanceRef.current.stop();
+        mapInstanceRef.current.off();
         mapInstanceRef.current.remove();
       } catch (err) {
         // silent cleanup
@@ -346,6 +346,8 @@ const ShopMap = ({
       window.removeEventListener("map-nav-shop", handleNav);
       if (mapInstanceRef.current) {
         try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.off();
           mapInstanceRef.current.remove();
         } catch (err) {
           // silent
@@ -368,10 +370,10 @@ const ShopMap = ({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative z-0 rounded-3xl border border-slate-800 bg-[#0a0f1d] shadow-2xl shadow-black/90 overflow-hidden flex flex-col lg:flex-row min-h-[640px] lg:min-h-[680px]"
+      className="relative z-0 rounded-3xl border border-slate-800 bg-[#0a0f1d] shadow-2xl shadow-black/90 overflow-hidden flex flex-col lg:flex-row min-h-[500px] lg:min-h-[680px]"
     >
-      {/* ─── LEFT SIDEBAR PANEL ───────────────────────────────────────────── */}
-      <div className="w-full lg:w-[420px] xl:w-[450px] shrink-0 bg-[#090d16] border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col p-4 z-10 select-none">
+      {/* ─── LEFT SIDEBAR PANEL (visible on desktop or when mobileTab === 'list') ── */}
+      <div className={`w-full lg:w-[420px] xl:w-[450px] shrink-0 bg-[#090d16] border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col p-4 z-10 select-none ${mobileTab === "list" ? "flex" : "hidden lg:flex"}`}>
         {/* Header Bar */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
           <div className="flex items-center gap-2.5">
@@ -389,6 +391,24 @@ const ShopMap = ({
             title="Shop Locator Info"
           >
             <Info size={16} />
+          </button>
+        </div>
+
+        {/* Mobile View Toggle Bar (visible on mobile < lg when in list view) */}
+        <div className="flex lg:hidden items-center gap-1 rounded-xl bg-slate-900/90 p-1 border border-slate-800 mb-3">
+          <button
+            onClick={() => setMobileTab("map")}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold text-slate-400 hover:text-slate-200 transition"
+          >
+            <MapPin size={14} />
+            Map View
+          </button>
+          <button
+            onClick={() => setMobileTab("list")}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold bg-cyan-500 text-slate-950 shadow-md transition"
+          >
+            <Store size={14} />
+            Outlets ({filteredShops.length})
           </button>
         </div>
 
@@ -437,117 +457,6 @@ const ShopMap = ({
           </div>
         </div>
 
-        {/* Extra Filter Overlay Slot if provided */}
-        <AnimatePresence>
-          {_showFiltersModal && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/95 p-3"
-            >
-              {filterSlot ? (
-                filterSlot
-              ) : (
-                <div className="flex items-center justify-between text-xs text-slate-300">
-                  <span>Show only active verified shops</span>
-                  <button
-                    onClick={() => setFilterOpenOnly(!filterOpenOnly)}
-                    className="rounded-md bg-cyan-500/20 text-cyan-400 px-2 py-1 font-bold text-[11px]"
-                  >
-                    Toggle
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ─── TOP FEATURED / SELECTED SHOP CARD ─────────────────────────── */}
-        <AnimatePresence mode="wait">
-          {activeShop && (
-            <motion.div
-              key={activeShop.id}
-              initial={{ opacity: 0, y: -8, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.97 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className="relative mb-3 rounded-2xl border-2 border-cyan-500/60 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-3.5 shadow-[0_0_25px_rgba(6,182,212,0.22)] overflow-hidden"
-            >
-            <div className="flex items-start justify-between gap-3">
-              {/* Left Shop Logo / Icon */}
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-cyan-400 bg-slate-800 overflow-hidden shadow-md">
-                {activeShop.logo_url ? (
-                  <img src={activeShop.logo_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Wrench size={20} className="text-cyan-400" />
-                )}
-              </div>
-
-              {/* Shop Details */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-display text-base font-black uppercase tracking-wide text-slate-100 truncate">
-                    {activeShop.name}
-                  </h3>
-                  {/* Star Rating Badge */}
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-0.5 text-[11px] font-bold text-amber-400">
-                    <Star size={11} className="fill-amber-400 text-amber-400" />
-                    {activeShop.rating ? activeShop.rating.toFixed(1) : "4.8"}
-                  </span>
-                </div>
-
-                {/* Status & Distance */}
-                <div className="mt-0.5 flex items-center gap-2 text-xs">
-                  <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Open Now
-                  </span>
-                  <span className="text-slate-600">•</span>
-                  <span className="flex items-center gap-1 text-slate-300 font-medium">
-                    <MapPin size={12} className="text-cyan-400 shrink-0" />
-                    {activeShop.distanceKm ? `${activeShop.distanceKm.toFixed(1)} km` : "1.2 km"}
-                  </span>
-                </div>
-
-                {/* Address */}
-                <p className="mt-1 text-[11px] text-slate-400 truncate">
-                  {activeShop.address || activeShop.city || "Barangay Nayon, Marikina City"}
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Action Buttons Row */}
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                onClick={() => onViewShop && onViewShop(activeShop)}
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:border-cyan-400 hover:text-cyan-400 transition"
-                title="Call Shop"
-              >
-                <Phone size={15} />
-              </button>
-              <button
-                onClick={() => handleStartDirections(activeShop)}
-                className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${
-                  activeRouteShop?.id === activeShop.id
-                    ? "border-cyan-400 bg-cyan-500/20 text-cyan-400"
-                    : "border-slate-700 bg-slate-800/80 text-slate-300 hover:border-cyan-400 hover:text-cyan-400"
-                }`}
-                title={activeRouteShop?.id === activeShop.id ? "Clear route" : "Get Directions"}
-              >
-                <Navigation size={15} />
-              </button>
-              <button
-                onClick={() => (onViewShop ? onViewShop(activeShop) : onSelect(activeShop))}
-                className="flex-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider py-2.5 px-3 transition shadow-lg shadow-cyan-500/25 text-center"
-              >
-                Book Service
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
         {/* Active Route Banner */}
         <AnimatePresence>
           {activeRouteShop && (
@@ -577,7 +486,7 @@ const ShopMap = ({
         </AnimatePresence>
 
         {/* ─── SCROLLABLE OUTLETS LIST ───────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar max-h-[300px] lg:max-h-[360px]">
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar max-h-[460px] lg:max-h-[520px]">
           {filteredShops.map((shop, idx) => {
             const isSelected = activeShop?.id === shop.id;
             const isVehicleIcon = idx % 2 === 0;
@@ -643,8 +552,12 @@ const ShopMap = ({
         </div>
       </div>
 
-      {/* ─── RIGHT MAP CANVAS PANEL ──────────────────────────────────────── */}
-      <div className="relative flex-1 bg-slate-950 min-h-[440px] lg:min-h-[680px]">
+      {/* ─── RIGHT MAP CANVAS PANEL (ALWAYS MOUNTED FOR LEAFLET) ─────────── */}
+      <div
+        className={`relative flex-1 bg-slate-950 min-h-[480px] sm:min-h-[520px] lg:min-h-[680px] ${
+          mobileTab === "map" ? "block w-full" : "hidden lg:block"
+        }`}
+      >
         {/* Leaflet Map DOM Element */}
         <div id="map" ref={mapRef} className="absolute inset-0 z-0" />
 
@@ -674,10 +587,26 @@ const ShopMap = ({
         )}
 
         {/* Floating Top Controls Overlay */}
-        <div className="pointer-events-none absolute left-4 right-4 top-4 z-10 flex items-center justify-between gap-3">
-          {/* Top-Left: Shops Found Pill */}
-          <div className="pointer-events-auto flex items-center gap-2">
-            <div className="flex h-9 items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3.5 py-1.5 shadow-xl backdrop-blur-xl text-xs font-bold text-slate-100">
+        <div className="pointer-events-none absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center justify-between gap-2">
+          {/* Top-Left: Mobile Switch to Outlets button (shown only on mobile < lg) */}
+          <div className="pointer-events-auto flex lg:hidden items-center gap-1 rounded-xl bg-slate-900/95 p-1 border border-slate-800 shadow-xl backdrop-blur-md">
+            <button
+              onClick={() => setMobileTab("map")}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-cyan-500 text-slate-950 rounded-lg shadow-sm"
+            >
+              <MapPin size={12} /> Map
+            </button>
+            <button
+              onClick={() => setMobileTab("list")}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-300 hover:text-white rounded-lg"
+            >
+              <Store size={12} /> Outlets ({filteredShops.length})
+            </button>
+          </div>
+
+          {/* Desktop Shops Found Pill */}
+          <div className="pointer-events-auto hidden lg:flex items-center gap-2">
+            <div className="flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[11px] font-bold text-slate-100">
               <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
               <span>{filteredShops.length} Shops Found</span>
             </div>
@@ -686,11 +615,11 @@ const ShopMap = ({
           {/* Top-Right: Location Enabled Badge / Button */}
           <button
             onClick={onRequestLocation}
-            className="pointer-events-auto flex h-9 items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-4 py-1.5 shadow-xl backdrop-blur-xl text-xs font-black uppercase tracking-wider text-cyan-400 hover:bg-slate-800 transition"
+            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[10px] sm:text-xs font-black uppercase tracking-wider text-cyan-400 hover:bg-slate-800 transition"
           >
-            <LocateFixed size={14} />
+            <LocateFixed size={13} />
             <span className="whitespace-nowrap">
-              LOCATION {locationGranted ? "ENABLED" : "DISABLED"} &gt;
+              LOCATION {locationGranted ? "ENABLED" : "DISABLED"}
             </span>
           </button>
         </div>

@@ -18,7 +18,7 @@ const getShopStatus = (shop: ShopSearchResult) => {
   return { label: "Open now", dot: "bg-emerald-500", text: "text-emerald-300", background: "bg-emerald-500/15 border-emerald-400/30" };
 };
 
-const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
+const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCardProps) => {
   const inferredOpen = isOpenNowFromOperatingHours(shop.operating_hours);
   let status = getShopStatus(shop);
   if (typeof inferredOpen === "boolean") {
@@ -57,9 +57,10 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
   return (
     <motion.article
       tabIndex={0}
+      onClick={handleView}
       whileHover={{ y: -6 }}
       transition={{ type: "spring", damping: 22, stiffness: 300 }}
-      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] flex flex-col h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
+      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] flex flex-col h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
     >
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
 
@@ -177,23 +178,6 @@ const ShopCard = ({ shop, onSelect, onConnect, onViewShop }: ShopCardProps) => {
               })}
             </div>
           </div>
-        </div>
-
-        <div className="mt-4 pt-2 grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={handleView}
-            className="w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-xs font-bold text-slate-200 transition hover:border-moto-accent hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent"
-          >
-            View shop
-          </button>
-          <button
-            type="button"
-            onClick={() => onConnect(shop)}
-            className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-3 py-2.5 text-xs font-bold text-slate-950 transition hover:brightness-110 shadow-md shadow-moto-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent"
-          >
-            Book Appointment
-          </button>
         </div>
       </div>
     </motion.article>
