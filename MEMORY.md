@@ -6358,6 +6358,87 @@ No booking-ID generation, layout structure, or Done-button behavior changed.
 
 ---
 
+## TASK LOG — Align booking modal with landing page (dark "moto" theme)
+
+Date: Aug 31, 2026
+
+### Source-of-truth decision (important correction)
+The task prompt assumed the landing page used a "white-slate + violet" theme. **Audit of
+`src/pages/MotolinkLanding.tsx`, `src/components/HeroSlideshow.tsx`, `src/components/MotolinkNavbar.tsx`
+confirmed the landing page is actually a DARK theme** (navy `moto` palette, cyan `moto-accent`,
+Bebas Neue condensed headings). Confirmed this with the user; they chose **"Match the dark moto
+landing"** as the source of truth. So the booking modal's previous white-slate+violet look was
+converted to the landing's dark-moto+cyan system.
+
+### Landing tokens extracted & applied (source: MotolinkLanding.tsx / MotolinkNavbar.tsx / tailwind.config.ts)
+- Backgrounds: `bg-moto-dark` (`#0f1723`, shells/header/footer), `bg-moto-darker` (`#0b1526`,
+  panel/step content/success), `bg-moto-gray` (`#25334e`, selected part-card bg / muted fills).
+- Accent: `moto-accent` (`#38b6c4` cyan) — primary buttons (`bg-moto-accent text-slate-950
+  hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25`), selected states
+  (`bg-moto-accent/10 border-moto-accent text-moto-accent`), icon tiles
+  (`bg-moto-accent/15 text-moto-accent`), check marks, focus rings, eyebrow line, top border.
+- Typography: `font-display` (Bebas Neue) black-uppercase headings (already used), body
+  `text-slate-300/400`, labels `text-slate-400`; eyebrow `uppercase tracking` labels kept.
+- Cards/surfaces: `rounded-2xl`, `border-moto-gray`, `shadow-2xl shadow-black/50` panel, hover
+  `hover:border-moto-accent`. Secondary/back buttons `border-moto-gray text-slate-400
+  hover:bg-moto-gray/30`.
+- Success/completed: emerald echoing navbar "System online" badge —
+  `bg-emerald-500/15 border-emerald-500/30 text-emerald-300`, ref box `bg-emerald-500/10
+  border-emerald-500/30`, completed steps `bg-emerald-500 text-slate-950`, connectors
+  `bg-emerald-400`.
+- Inputs (select/textarea/manual input): `bg-moto-darker text-slate-100 border-moto-gray
+  focus:border-moto-accent`. Select chevron SVG re-stroked to `%2338b6c4`.
+
+### Files touched
+- `src/components/BookAppointmentModal.tsx` — visual-only conversion across every step
+  (service, parts, date/time, confirm) + footer + success screen. No logic/step/behavior changed.
+- `MEMORY.md` — updated.
+
+### Notes
+- All violet tokens removed from the modal (grep-verified: none remain).
+- Guest sign-up banner restyled from `bg-slate-900` to `bg-moto-accent/10 border-moto-accent/30`
+  (visible on the now-dark panel).
+- Native `<select>` `<option>` list uses OS styling on open (pre-existing; closed control is
+  dark). Mobile bottom-sheet shell (`items-end sm:items-center`, `h-[95vh] sm:h-auto`) unchanged.
+- Animations from the prior polish pass preserved (Framer Motion).
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes; only the pre-existing chunk-size warning.
+- Manual: modal now reads as a dark navy/cyan surface matching the landing page; violet is gone;
+  emerald success screen echoes the navbar status badge.
+
+---
+
+## TASK LOG — Add price disclaimer note in booking step 1
+
+Date: Aug 31, 2026
+
+### What was added
+In `src/components/BookAppointmentModal.tsx`, added a short muted disclaimer at the bottom of
+step 1 (service selection), always visible (below the selected-services box, inside the
+`currentStep === 0` block):
+
+> "The final price may vary depending on the motorcycle's overall condition and assessment."
+
+### Placement & styling
+- Placed between the Selected-Services summary box and the end of the step-0 `motion.div`
+  (~lines 889-895), so it renders only on step 1 and never repeats on later steps.
+- Reused the file's established "note" pattern (used on the success screen):
+  `flex items-start gap-2 ... text-slate-400`, with a Lucide `Info` icon (`size={15}`,
+  `shrink-0 mt-0.5`) prefix and `text-sm font-light leading-relaxed` copy.
+- Muted `text-slate-400` (landing dark-moto theme, not the previously-assumed white-slate
+  slate-500/600) — consistent with the current modal look from the prior theming task.
+- `Info` added to the Lucide icon import block.
+- Wraps naturally on mobile (icon `shrink-0`, `leading-relaxed`, `items-start`).
+
+### Scope / verification
+- Copy/UI only: service list logic, pricing data, step behavior unchanged.
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes; only the pre-existing chunk-size warning.
+
+---
+
 **Last Updated**: Aug 31, 2026
 **Compatibility Version**: 1.0
 

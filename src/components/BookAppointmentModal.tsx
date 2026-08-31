@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Car,
   AlertTriangle,
+  Info,
   ClipboardList,
   Droplet,
   Wrench,
@@ -639,33 +640,33 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-white rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-slate-200 border-t-2 border-t-violet-600 shadow-xl flex flex-col"
+            className="bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray border-t-2 border-t-moto-accent shadow-2xl shadow-black/50 flex flex-col"
           >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
+          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-moto-gray flex-shrink-0 bg-moto-dark">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 bg-moto-accent flex items-center justify-center shrink-0 rounded-xl shadow-lg shadow-moto-accent/30">
                 <ClipboardList
                   size={28}
-                  className="text-white"
+                  className="text-slate-950"
                   strokeWidth={1.5}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-slate-900" /> APPOINTMENT
+                <div className="flex items-center gap-3 text-moto-accent text-[10px] font-bold tracking-[0.2em] uppercase">
+                  <div className="w-6 h-[1px] bg-moto-accent" /> APPOINTMENT
                 </div>
-                <h2 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase leading-none tracking-wide">
+                <h2 className="font-display text-4xl sm:text-5xl text-slate-100 uppercase leading-none tracking-wide">
                   {success ? "APPOINTMENT BOOKED" : "BOOK A SERVICE"}
                 </h2>
-                <p className="text-slate-500 text-xs font-light tracking-wide">
+                <p className="text-slate-400 text-xs font-light tracking-wide">
                   Schedule your visit takes less than 2 minutes
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
+              className="p-2 border border-moto-gray hover:bg-moto-gray/40 transition text-slate-400 hover:text-white shrink-0 rounded-lg"
             >
               <X size={20} strokeWidth={1} />
             </button>
@@ -674,7 +675,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="flex items-center px-6 sm:px-10 py-5 border-b border-slate-200 bg-slate-50 overflow-x-auto flex-shrink-0 scrollbar-hide">
+              <div className="flex items-center px-6 sm:px-10 py-5 border-b border-moto-gray bg-moto-dark overflow-x-auto flex-shrink-0 scrollbar-hide">
                 {STEPS.map((step, i) => (
                   <div key={step} className="flex items-center shrink-0">
                     <div className="flex items-center gap-4">
@@ -683,10 +684,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         transition={{ type: "spring", stiffness: 400, damping: 20 }}
                         className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           i < currentStep
-                            ? "bg-emerald-500 text-white"
+                            ? "bg-emerald-500 text-slate-950"
                             : i === currentStep
-                              ? "bg-violet-600 text-white shadow-lg shadow-violet-500/40"
-                              : "border border-slate-300 text-slate-400 bg-white"
+                              ? "bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/40"
+                              : "border border-moto-gray text-slate-500 bg-moto-darker"
                         }`}
                       >
                         {i < currentStep ? (
@@ -710,9 +711,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       <span
                         className={`whitespace-nowrap text-xs tracking-widest uppercase font-medium ${
                           i === currentStep
-                            ? "text-violet-700"
+                            ? "text-moto-accent"
                             : i < currentStep
-                              ? "text-emerald-700"
+                              ? "text-emerald-300"
                               : "text-slate-500"
                         }`}
                       >
@@ -722,7 +723,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     {i < STEPS.length - 1 && (
                       <div
                         className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full transition-colors ${
-                          i < currentStep ? "bg-emerald-400" : "bg-slate-300"
+                          i < currentStep ? "bg-emerald-400" : "bg-moto-gray"
                         }`}
                       />
                     )}
@@ -737,7 +738,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="mx-4 sm:mx-8 mt-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-xs sm:text-sm font-semibold"
+                    className="mx-4 sm:mx-8 mt-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-300 text-xs sm:text-sm font-semibold"
                   >
                     <AlertTriangle size={16} /> {errorMsg}
                   </motion.div>
@@ -745,7 +746,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </AnimatePresence>
 
               {/* ── Step Content (scrollable) ── */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-white">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-moto-darker">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Select Service */}
                   {currentStep === 0 && (
@@ -755,7 +756,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                     >
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-8">
+                      <p className="text-slate-400 text-[10px] tracking-[0.2em] font-medium uppercase mb-8">
                         What services do you need? (Select multiple)
                       </p>
                       {hasActiveAppointment && (
@@ -763,7 +764,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="mb-6 px-4 py-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-400 text-xs sm:text-sm font-semibold"
+                          className="mb-6 px-4 py-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-300 text-xs sm:text-sm font-semibold"
                         >
                           <AlertTriangle size={16} /> You already have an active
                           appointment. You cannot book another until it's
@@ -810,20 +811,20 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               disabled={hasActiveAppointment}
                               className={`relative p-6 text-left transition-all group ${
                                 isActive
-                                  ? "bg-violet-50 border-t-2 border-t-violet-600"
-                                  : "bg-transparent border-t-2 border-t-transparent hover:bg-violet-50/40"
+                                  ? "bg-moto-accent/10 border-t-2 border-t-moto-accent"
+                                  : "bg-transparent border-t-2 border-t-transparent hover:bg-moto-gray/30"
                               } ${hasActiveAppointment ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               <div className="flex justify-between items-start mb-5">
                                 <div
-                                  className={`transition-colors duration-300 ${isActive ? "text-violet-600" : "text-slate-500 group-hover:text-slate-400"}`}
+                                  className={`transition-colors duration-300 ${isActive ? "text-moto-accent" : "text-slate-500 group-hover:text-slate-400"}`}
                                 >
                                   <Icon size={32} strokeWidth={1.2} />
                                 </div>
                                 <div className="flex items-center gap-3">
                                   {svc.price !== undefined && (
                                     <div
-                                      className={`font-mono font-bold tracking-widest text-xs ${isActive ? "text-violet-700" : "text-slate-500"}`}
+                                      className={`font-mono font-bold tracking-widest text-xs ${isActive ? "text-moto-accent" : "text-slate-500"}`}
                                     >
                                       ₱{Number(svc.price).toFixed(2)}
                                     </div>
@@ -833,8 +834,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     transition={{ type: "spring", stiffness: 500, damping: 20 }}
                                     className={`w-5 h-5 border-2 flex items-center justify-center transition-colors ${
                                       isActive
-                                        ? "bg-violet-600 border-violet-600"
-                                        : "border-slate-400 group-hover:border-slate-500"
+                                        ? "bg-moto-accent border-moto-accent"
+                                        : "border-slate-500 group-hover:border-moto-accent"
                                     }`}
                                   >
                                     {isActive && (
@@ -842,18 +843,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
                                         transition={{ type: "spring", stiffness: 600, damping: 20 }}
-                                        className="w-2 h-2 bg-white rounded-sm"
+                                        className="w-2 h-2 bg-moto-darker rounded-sm"
                                       />
                                     )}
                                   </motion.div>
                                 </div>
                               </div>
                               <p
-                                className={`font-display text-xl tracking-wide uppercase mb-2 leading-tight transition-colors ${isActive ? "text-violet-900" : "text-slate-700"}`}
+                                className={`font-display text-xl tracking-wide uppercase mb-2 leading-tight transition-colors ${isActive ? "text-slate-100" : "text-slate-300"}`}
                               >
                                 {svc.label}
                               </p>
-                              <p className="text-slate-500 text-xs leading-relaxed font-light">
+                              <p className="text-slate-400 text-xs leading-relaxed font-light">
                                 {svc.desc}
                               </p>
                             </motion.button>
@@ -861,8 +862,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         })}
                       </div>
                       {selectedServices.length > 0 && (
-                        <div className="mt-6 p-4 bg-slate-50 border border-slate-200">
-                          <p className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-500 mb-3">
+                        <div className="mt-6 p-4 bg-moto-dark border border-moto-gray rounded-xl">
+                          <p className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-400 mb-3">
                             Selected Services:
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -873,18 +874,25 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               return (
                                 <span
                                   key={svcId}
-                                  className="inline-flex items-center gap-2 bg-violet-50 border border-violet-600 text-violet-700 px-3 py-1.5 text-xs font-bold tracking-wider uppercase"
+                                  className="inline-flex items-center gap-2 bg-moto-accent/10 border border-moto-accent text-moto-accent px-3 py-1.5 text-xs font-bold tracking-wider uppercase"
                                 >
                                   {svc?.label}
                                 </span>
                               );
                             })}
                           </div>
-                          <p className="text-slate-900 font-mono font-bold text-sm mt-3">
+                          <p className="text-slate-100 font-mono font-bold text-sm mt-3">
                             Total: ₱{selectedServicePrice.toFixed(2)}
                           </p>
                         </div>
                       )}
+                      <div className="flex items-start gap-2 px-4 py-3 mt-6 text-slate-400">
+                        <Info size={15} className="text-slate-400 shrink-0 mt-0.5" />
+                        <p className="text-slate-400 text-sm font-light leading-relaxed">
+                          The final price may vary depending on the motorcycle's overall
+                          condition and assessment.
+                        </p>
+                      </div>
                     </motion.div>
                   )}
 
@@ -896,7 +904,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                     >
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
+                      <p className="text-slate-400 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
                         Pick a date
                       </p>
                       <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
@@ -915,22 +923,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               }}
                               className={`flex-shrink-0 w-24 py-5 border text-center rounded-xl transition-colors ${
                                 isActive
-                                  ? "bg-violet-50 border-violet-600 shadow-sm shadow-violet-500/20"
-                                  : "border-slate-300 hover:border-slate-400 bg-transparent"
+                                  ? "bg-moto-accent/10 border-moto-accent"
+                                  : "border-moto-gray hover:border-moto-accent bg-transparent"
                               }`}
                             >
                               <p
-                                className={`text-[10px] uppercase font-bold tracking-widest mb-1 ${isActive ? "text-violet-700" : "text-slate-500"}`}
+                                className={`text-[10px] uppercase font-bold tracking-widest mb-1 ${isActive ? "text-moto-accent" : "text-slate-400"}`}
                               >
                                 {f.day}
                               </p>
                               <p
-                                className={`font-display text-4xl leading-none mb-1 ${isActive ? "text-violet-700" : "text-slate-300"}`}
+                                className={`font-display text-4xl leading-none mb-1 ${isActive ? "text-moto-accent" : "text-slate-500"}`}
                               >
                                 {f.date}
                               </p>
                               <p
-                                className={`text-[10px] uppercase font-bold tracking-widest ${isActive ? "text-violet-700" : "text-slate-500"}`}
+                                className={`text-[10px] uppercase font-bold tracking-widest ${isActive ? "text-moto-accent" : "text-slate-400"}`}
                               >
                                 {f.month}
                               </p>
@@ -939,7 +947,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         })}
                       </div>
 
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
+                      <p className="text-slate-400 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
                         Pick a time
                       </p>
                       <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
@@ -960,16 +968,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               disabled={isBooked}
                               className={`py-4 border text-xs font-bold tracking-widest transition-colors rounded-lg relative ${
                                 isBooked
-                                  ? "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
+                                  ? "border-moto-gray bg-moto-dark text-slate-600 cursor-not-allowed"
                                   : isActive
-                                    ? "bg-violet-50 border-violet-600 text-violet-700 shadow-sm shadow-violet-500/20"
-                                    : "border-slate-300 text-slate-500 hover:border-slate-400 hover:text-slate-900 bg-transparent"
+                                    ? "bg-moto-accent/10 border-moto-accent text-moto-accent"
+                                    : "border-moto-gray text-slate-400 hover:border-moto-accent hover:text-moto-accent bg-transparent"
                               }`}
                             >
                               {formatTime(time)}
                               {isBooked && (
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="w-10 h-[1px] bg-slate-300 rotate-45" />
+                                  <div className="w-10 h-[1px] bg-slate-500 rotate-45" />
                                 </div>
                               )}
                             </motion.button>
@@ -978,7 +986,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       </div>
                       {(bookedSlots.length > 0 ||
                         mechanicAvailability.some((a) => a.is_available)) && (
-                        <p className="text-[10px] tracking-[0.1em] text-slate-500 mt-4 flex items-center gap-2 uppercase">
+                        <p className="text-[10px] tracking-[0.1em] text-slate-400 mt-4 flex items-center gap-2 uppercase">
                           <AlertTriangle size={12} /> Times with strikethrough
                           are unavailable
                         </p>
@@ -994,16 +1002,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                     >
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-8">
+                      <p className="text-slate-400 text-[10px] tracking-[0.2em] font-medium uppercase mb-8">
                         Add parts (Optional)
                       </p>
                       {loadingParts ? (
                         <div className="flex items-center justify-center py-12">
-                          <div className="w-8 h-8 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+                          <div className="w-8 h-8 border-2 border-moto-accent/30 border-t-moto-accent rounded-full animate-spin" />
                         </div>
                       ) : availableParts.length === 0 ? (
-                          <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl text-center">
-                          <p className="text-slate-500 text-sm">
+                          <div className="bg-moto-dark border border-moto-gray p-6 rounded-xl text-center">
+                          <p className="text-slate-400 text-sm">
                             No parts available at this time.
                           </p>
                         </div>
@@ -1017,16 +1025,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               return (
                                 <motion.div
                                   key={part.id}
-                                  animate={{ backgroundColor: selectedPart ? "#f5f3ff" : "#f8fafc" }}
+                                  animate={{ backgroundColor: selectedPart ? "#25334e" : "#0f1723" }}
                                   whileTap={{ scale: 0.995 }}
                                   className={`p-4 border rounded-xl transition-colors ${
                                     selectedPart
-                                      ? "border-violet-600"
-                                      : "border-slate-300 hover:border-slate-400"
+                                      ? "border-moto-accent"
+                                      : "border-moto-gray hover:border-moto-accent/60"
                                   }`}
                                 >
                                   <div className="flex items-start gap-4 mb-3">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-white border border-slate-200 overflow-hidden flex items-center justify-center">
+                                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-moto-dark border border-moto-gray overflow-hidden rounded-lg flex items-center justify-center">
                                       {part.image_url ? (
                                         <img src={part.image_url} alt={part.name} className="w-full h-full object-cover" />
                                       ) : (
@@ -1034,10 +1042,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                       )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-bold text-slate-900 text-sm mb-1 truncate">
+                                      <p className="font-bold text-slate-100 text-sm mb-1 truncate">
                                         {part.name}
                                       </p>
-                                      <p className="text-slate-500 text-xs">
+                                      <p className="text-slate-400 text-xs">
                                         SKU: {part.sku}
                                       </p>
                                       <p
@@ -1053,8 +1061,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     <p
                                       className={`font-mono font-bold text-sm ml-4 text-right shrink-0 ${
                                         selectedPart
-                                          ? "text-violet-700"
-                                          : "text-slate-500"
+                                          ? "text-moto-accent"
+                                          : "text-slate-400"
                                       }`}
                                     >
                                       ₱
@@ -1078,11 +1086,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                               .filter((p) => p.quantity > 0),
                                           )
                                         }
-                                        className="px-3 py-1 border border-violet-600 text-violet-700 hover:bg-violet-600 hover:text-white transition text-xs font-bold"
+                                        className="px-3 py-1 border border-moto-accent text-moto-accent hover:bg-moto-accent hover:text-slate-950 transition text-xs font-bold rounded-md"
                                       >
                                         −
                                       </button>
-                                      <span className="text-slate-900 font-bold text-sm min-w-[30px] text-center">
+                                      <span className="text-slate-100 font-bold text-sm min-w-[30px] text-center">
                                         {selectedPart.quantity}
                                       </span>
                                       <button
@@ -1104,16 +1112,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           selectedPart.quantity >=
                                           part.quantity_in_stock
                                         }
-                                        className={`px-3 py-1 border text-xs font-bold transition ${
+                                        className={`px-3 py-1 border text-xs font-bold transition rounded-md ${
                                           selectedPart.quantity >=
                                           part.quantity_in_stock
-                                            ? "border-slate-300 text-slate-400 cursor-not-allowed"
-                                            : "border-violet-600 text-violet-700 hover:bg-violet-600 hover:text-white"
+                                            ? "border-moto-gray text-slate-600 cursor-not-allowed"
+                                            : "border-moto-accent text-moto-accent hover:bg-moto-accent hover:text-slate-950"
                                         }`}
                                       >
                                         +
                                       </button>
-                                      <span className="text-slate-500 text-xs ml-auto">
+                                      <span className="text-slate-400 text-xs ml-auto">
                                         ₱
                                         {(
                                           selectedPart.quantity *
@@ -1134,7 +1142,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           },
                                         ])
                                       }
-                                      className="w-full py-2 border border-slate-400 hover:border-violet-600 hover:text-violet-700 text-slate-500 text-xs font-bold uppercase transition"
+                                      className="w-full py-2 border border-moto-gray text-slate-400 hover:border-moto-accent hover:text-moto-accent text-xs font-bold uppercase transition rounded-md"
                                     >
                                       ADD
                                     </button>
@@ -1144,8 +1152,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             })}
                           </div>
                           {selectedParts.length > 0 && (
-                            <div className="bg-slate-50 border border-slate-200 p-4 mt-6">
-                              <p className="text-[10px] tracking-[0.2em] font-bold uppercase text-slate-500 mb-3">
+                            <div className="bg-moto-dark border border-moto-gray p-4 mt-6 rounded-xl">
+                              <p className="text-[10px] tracking-[0.2em] font-bold uppercase text-slate-400 mb-3">
                                 Selected Parts ({selectedParts.length})
                               </p>
                               <div className="space-y-2 mb-3">
@@ -1154,10 +1162,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     key={part.id}
                                     className="flex items-center justify-between text-xs"
                                   >
-                                    <span className="text-slate-600">
+                                    <span className="text-slate-400">
                                       {part.name} x{part.quantity}
                                     </span>
-                                    <span className="text-slate-900 font-mono font-bold">
+                                    <span className="text-slate-100 font-mono font-bold">
                                       ₱
                                       {(
                                         part.quantity * part.unit_price
@@ -1166,12 +1174,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   </div>
                                 ))}
                               </div>
-                              <div className="border-t border-slate-300 pt-2">
+                              <div className="border-t border-moto-gray pt-2">
                                 <p className="flex items-center justify-between text-sm font-bold">
-                                  <span className="text-slate-500">
+                                  <span className="text-slate-400">
                                     Parts Total:
                                   </span>
-                                  <span className="text-slate-900">
+                                  <span className="text-slate-100">
                                     ₱
                                     {selectedParts
                                       .reduce(
@@ -1198,12 +1206,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                     >
-                      <p className="text-slate-500 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
+                      <p className="text-slate-400 text-[10px] tracking-[0.2em] font-medium uppercase mb-6">
                         Review your booking
                       </p>
 
                       {!isAuthenticated && (
-                        <div className="bg-slate-900 text-white p-6 rounded-xl mb-8">
+                        <div className="bg-moto-accent/10 border border-moto-accent/30 text-slate-100 p-6 rounded-xl mb-8">
                           <p className="font-display text-lg uppercase tracking-wide mb-1">
                             Sign-Up To Confirm Your Booking
                           </p>
@@ -1215,10 +1223,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         </div>
                       )}
 
-                      <div className="bg-slate-50 p-6 border border-slate-200 mb-8">
+                      <div className="bg-moto-dark p-6 border border-moto-gray mb-8 rounded-xl">
                         <div className="grid grid-cols-2 gap-6">
                           <div className="flex flex-col gap-1 col-span-2">
-                            <span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                               Services
                             </span>
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -1229,7 +1237,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 return (
                                   <span
                                     key={svcId}
-                                    className="inline-flex items-center bg-violet-50 border border-violet-600 text-violet-700 px-2.5 py-1 text-xs font-bold tracking-wider uppercase"
+                                    className="inline-flex items-center bg-moto-accent/10 border border-moto-accent text-moto-accent px-2.5 py-1 text-xs font-bold tracking-wider uppercase"
                                   >
                                     {svc?.label}
                                   </span>
@@ -1239,36 +1247,36 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           </div>
                           {selectedServicePrice > 0 && (
                             <div className="flex flex-col gap-1">
-                              <span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                              <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                                 Total Cost
                               </span>
-                              <span className="text-slate-900 font-mono font-bold text-sm">
+                              <span className="text-slate-100 font-mono font-bold text-sm">
                                 ₱{selectedServicePrice.toFixed(2)}
                               </span>
                             </div>
                           )}
                           <div className="flex flex-col gap-1">
-                            <span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                               Mechanic
                             </span>
-                            <span className="text-slate-900 font-medium text-sm">
+                            <span className="text-slate-100 font-medium text-sm">
                               {mechanics.find((m) => m.id === selectedMechanic)
                                 ?.name || "Any Available"}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                               Date
                             </span>
-                            <span className="text-slate-900 font-medium text-sm">
+                            <span className="text-slate-100 font-medium text-sm">
                               {selectedDate}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">
+                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                               Time
                             </span>
-                            <span className="text-slate-900 font-medium text-sm">
+                            <span className="text-slate-100 font-medium text-sm">
                               {formatTime(selectedTime)}
                             </span>
                           </div>
@@ -1278,7 +1286,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       <div className="space-y-6">
                         {/* Motorcycle Selection */}
                         <div className="space-y-4">
-                          <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-500">
+                          <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-400">
                             Select Your Motorcycle *
                           </label>
                           <select
@@ -1287,9 +1295,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               setVehicleInfo(e.target.value);
                               setSelectedVehicleId(e.target.value);
                             }}
-                            className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-900 focus:outline-none transition rounded-xl uppercase text-xs font-medium appearance-none cursor-pointer"
+                            className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs font-medium appearance-none cursor-pointer"
                             style={{
-                              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338b6c4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
                               backgroundRepeat: "no-repeat",
                               backgroundPosition: "right 0.75rem center",
                               backgroundSize: "1.5em 1.5em",
@@ -1327,12 +1335,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 setVehicleInfo(e.target.value);
                               }}
                               placeholder="E.G. HONDA CLICK 150I"
-                              className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-900 focus:outline-none transition rounded-xl uppercase text-xs"
+                              className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
                             />
                           )}
                         </div>
                         <div className="space-y-4">
-                          <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-500">
+                          <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-400">
                             Additional Notes
                           </label>
                           <textarea
@@ -1340,7 +1348,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder="ANY SPECIFIC ISSUES OR REQUESTS?"
                             rows={3}
-                            className="w-full bg-white text-slate-900 px-4 py-4 border border-slate-300 focus:border-slate-500 focus:outline-none transition rounded-xl uppercase text-xs resize-none"
+                            className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs resize-none"
                           />
                         </div>
                       </div>
@@ -1350,14 +1358,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </div>
 
               {/* ── Footer ── */}
-              <div className="flex items-center justify-between px-6 sm:px-10 py-6 border-t border-slate-200 flex-shrink-0 bg-white">
+              <div className="flex items-center justify-between px-6 sm:px-10 py-6 border-t border-moto-gray flex-shrink-0 bg-moto-dark">
                 <button
                   onClick={() =>
                     currentStep > 0
                       ? setCurrentStep(currentStep - 1)
                       : onClose()
                   }
-                  className="flex items-center gap-3 px-8 py-3.5 border border-slate-300 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl"
+                  className="flex items-center gap-3 px-8 py-3.5 border border-moto-gray text-slate-400 hover:text-white hover:bg-moto-gray/30 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl"
                 >
                   <ChevronLeft size={14} />{" "}
                   {currentStep > 0 ? "BACK" : "CANCEL"}
@@ -1373,8 +1381,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     className={`flex items-center gap-3 px-8 py-3.5 transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() &&
                       !(currentStep === 0 && hasActiveAppointment)
-                        ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm shadow-violet-500/30"
-                        : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
+                        ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25"
+                        : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}
                   >
                     NEXT <ChevronRight size={14} />
@@ -1384,13 +1392,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={() => requireAuth("signup")}
-                      className="flex items-center gap-3 px-8 py-3.5 bg-violet-600 text-white transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-violet-700 shadow-sm shadow-violet-500/30"
+                      className="flex items-center gap-3 px-8 py-3.5 bg-moto-accent text-slate-950 transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25"
                     >
                       Sign Up <ChevronRight size={14} />
                     </motion.button>
                     <button
                       onClick={() => requireAuth("login")}
-                      className="flex items-center gap-3 px-8 py-3.5 border border-slate-300 text-slate-900 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-slate-100"
+                      className="flex items-center gap-3 px-8 py-3.5 border border-moto-gray text-slate-100 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-moto-gray/30"
                     >
                       Log In
                     </button>
@@ -1402,13 +1410,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     disabled={!canGoNext() || submitting}
                     className={`flex items-center gap-3 px-8 py-3.5 transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() && !submitting
-                        ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-500/30"
-                        : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
+                        ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25"
+                        : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}
                   >
                     {submitting ? (
                       <>
-                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
                         PROCESSING...
                       </>
                     ) : (
@@ -1426,13 +1434,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="flex-1 flex flex-col items-center justify-center py-16 px-8 bg-white"
+              className="flex-1 flex flex-col items-center justify-center py-16 px-8 bg-moto-darker"
             >
               <motion.div
                 initial={{ scale: 0, rotate: -20 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.05 }}
-                className="w-20 h-20 bg-emerald-500 flex items-center justify-center mb-8 rounded-full shadow-lg shadow-emerald-500/40"
+                className="w-20 h-20 bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-8 rounded-full shadow-lg shadow-emerald-500/20"
               >
                 <motion.div
                   initial={{ scale: 0 }}
@@ -1441,21 +1449,21 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 >
                   <CheckCircle
                     size={36}
-                    className="text-white"
+                    className="text-emerald-300"
                     strokeWidth={1.5}
                   />
                 </motion.div>
               </motion.div>
-              <h3 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase tracking-wide mb-4 text-center">
+              <h3 className="font-display text-4xl sm:text-5xl text-slate-100 uppercase tracking-wide mb-4 text-center">
                 APPOINTMENT BOOKED
               </h3>
               {lastBookingId && (
-                <div className="mb-5 px-6 py-4 rounded-xl border border-emerald-200 bg-emerald-50 text-center">
-                  <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-emerald-600 mb-1">
+                <div className="mb-5 px-6 py-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
+                  <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-emerald-300 mb-1">
                     Booking Reference
                   </p>
                   <div className="flex items-center justify-center gap-3">
-                    <p className="font-display text-2xl text-emerald-700 tracking-wider">
+                    <p className="font-display text-2xl text-emerald-200 tracking-wider">
                       {lastBookingId}
                     </p>
                     <motion.button
@@ -1463,7 +1471,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       onClick={copyBookingId}
                       title="Copy Booking ID"
                       aria-label="Copy Booking ID"
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-300 text-emerald-700 text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-100 transition-colors"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-500/40 text-emerald-300 text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500/15 transition-colors"
                     >
                       {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
                       {copied ? "Copied" : "Copy"}
@@ -1471,13 +1479,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   </div>
                 </div>
               )}
-              <p className="text-slate-500 mb-4 text-sm text-center max-w-md font-light">
+              <p className="text-slate-400 mb-4 text-sm text-center max-w-md font-light">
                 Your appointment has been successfully scheduled. You'll receive
                 a confirmation soon.
               </p>
               <div className="flex items-start justify-center gap-2 mb-10 px-6 py-3 max-w-md text-center">
                 <Camera size={15} className="text-slate-400 shrink-0 mt-0.5" />
-                <p className="text-slate-500 text-sm font-light leading-relaxed">
+                <p className="text-slate-400 text-sm font-light leading-relaxed">
                   Please save this Booking ID or take a screenshot — you'll need
                   to show it at the shop counter when you arrive.
                 </p>
@@ -1485,7 +1493,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={onClose}
-                className="px-10 py-4 bg-violet-600 text-white uppercase font-bold tracking-[0.15em] text-xs transition-colors hover:bg-violet-700 rounded-xl shadow-sm shadow-violet-500/30"
+                className="px-10 py-4 bg-moto-accent text-slate-950 uppercase font-bold tracking-[0.15em] text-xs transition-colors hover:bg-moto-accent-dark rounded-xl shadow-lg shadow-moto-accent/25"
               >
                 DONE
               </motion.button>
