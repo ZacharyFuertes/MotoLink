@@ -56,6 +56,44 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
   const arrowSize = desktop ? 48 : 36;
   const iconSize = desktop ? 20 : 18;
 
+  // Side-card visual values (identical to the original inline animate values)
+  const sideScale = desktop ? 0.78 : 0.82;
+  const sideFilter = desktop
+    ? "blur(1.5px) brightness(0.45)"
+    : "blur(1.5px) brightness(0.5)";
+
+  // Variant-driven layout with EXPLICIT, dynamic z-index. The active center card
+  // always carries the highest stacking priority (z-30) for its full lifecycle,
+  // side cards sit below it (z-10), and cards that exit drop their z-index to
+  // z-5 immediately (via the exit variant) so they slide behind the active card
+  // instead of clipping over it — regardless of swipe direction.
+  const cardVariants = {
+    center: {
+      x: 0,
+      scale: 1,
+      rotateY: 0,
+      filter: "blur(0px) brightness(1)",
+      opacity: 1,
+      zIndex: 30,
+    },
+    side: (offset: number) => ({
+      x: offset < 0 ? `-${sideTranslate}` : sideTranslate,
+      scale: sideScale,
+      rotateY: offset < 0 ? sideRotateY : -sideRotateY,
+      filter: sideFilter,
+      opacity: 0.5,
+      zIndex: 10,
+    }),
+    exit: (offset: number) => ({
+      x: offset < 0 ? `-${sideTranslate}` : sideTranslate,
+      scale: sideScale,
+      rotateY: offset < 0 ? sideRotateY : -sideRotateY,
+      filter: sideFilter,
+      opacity: 0.2,
+      zIndex: 5,
+    }),
+  };
+
   return (
     <div className="relative w-full select-none">
       {!desktop && (
@@ -79,26 +117,18 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
             return (
               <motion.div
                 key={shop.id}
+                custom={offset}
                 style={{
                   position: "absolute",
                   top: 0,
+                  left: cardLeft,
                   width: cardWidth,
-                  zIndex: isActive ? 10 : 5,
                   originX: isLeft ? 1 : isRight ? 0 : 0.5,
                   ...(isActive ? { x, rotate, opacity: dragOpacity } : {}),
                 }}
-                animate={{
-                  x: isActive ? 0 : isLeft ? `-${sideTranslate}` : sideTranslate,
-                  scale: isActive ? 1 : desktop ? 0.78 : 0.82,
-                  rotateY: isActive ? 0 : isLeft ? sideRotateY : -sideRotateY,
-                  filter: isActive
-                    ? "blur(0px) brightness(1)"
-                    : desktop
-                      ? "blur(1.5px) brightness(0.45)"
-                      : "blur(1.5px) brightness(0.5)",
-                  opacity: isActive ? 1 : 0.5,
-                  left: cardLeft,
-                }}
+                variants={cardVariants}
+                animate={isActive ? "center" : "side"}
+                exit="exit"
                 transition={
                   isActive
                     ? { type: "spring", stiffness: 320, damping: 28, mass: 0.9 }
