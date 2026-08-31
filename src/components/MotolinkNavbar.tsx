@@ -52,15 +52,15 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
           : "border-transparent bg-transparent"
       }`}
     >
-      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 sm:h-24 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <motion.button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="flex items-center text-left"
-          whileHover={{ scale: 1.02 }}
+          whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.98 }}
         >
-          <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-12 sm:h-16 w-auto object-contain drop-shadow-[0_0_10px_rgba(34,211,238,0.25)]" />
+          <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-16 sm:h-20 lg:h-24 max-w-[200px] sm:max-w-[260px] w-auto object-contain drop-shadow-[0_0_16px_rgba(34,211,238,0.35)]" />
         </motion.button>
 
         {/* Desktop nav */}
