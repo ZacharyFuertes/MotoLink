@@ -112,8 +112,19 @@ const NavigationModal = ({ isOpen, onClose, shop, origin, onRequestLocation }: N
     }
 
     return () => {
-      if (routeRef.current) map.removeControl(routeRef.current);
-      map.remove();
+      // Stop in-flight animations / route handlers and drop listeners BEFORE
+      // un-mounting the DOM so Leaflet's zoom handlers can't hit removed nodes.
+      try { map.stop(); } catch { /* silent */ }
+      try { map.off(); } catch { /* silent */ }
+      try {
+        map.options.zoomAnimation = false;
+        map.options.fadeAnimation = false;
+        map.options.markerZoomAnimation = false;
+      } catch { /* silent */ }
+      if (routeRef.current) {
+        try { map.removeControl(routeRef.current); } catch { /* silent */ }
+      }
+      try { map.remove(); } catch { /* silent */ }
       mapInstanceRef.current = null;
       routeRef.current = null;
       setInstructions([]);
