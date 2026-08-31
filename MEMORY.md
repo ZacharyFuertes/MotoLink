@@ -6492,6 +6492,50 @@ Changed `src/components/BookAppointmentModal.tsx` confirm review box to add:
 
 ---
 
+## TASK LOG — Remove manual "Job Order" button/modal from Owner Appointments page (option a)
+
+Date: Aug 31, 2026
+
+### Scope & decision (option a)
+Removed the **manual** "Job Order" button and its `JobOrderModal` handoff from the Shop
+Owner's Appointments page only (`src/pages/AppointmentCalendarPage.tsx`). Per the task's
+default (option a), the **auto-create-on-status-change** and **finalize-completes-job-order**
+background logic was intentionally KEPT running so downstream data (Admin Analytics
+F50/F59 job-order aggregates, Dashboard mechanic-productivity metrics) keeps populating
+without requiring manual owner interaction.
+
+### Files changed
+- `src/pages/AppointmentCalendarPage.tsx`:
+  - Removed the `Job Order` button from the owner appointment card actions.
+  - Removed `import JobOrderModal from "../components/JobOrderModal";`.
+  - Removed the `jobOrderAppointment` state and the `{jobOrderAppointment && <JobOrderModal …/>}`
+    handoff JSX.
+  - **Kept** `jobOrderService` import + `ensureJobOrderForAppointment` calls (auto-create on
+    confirmed/in_progress, and the finalize→`job_orders.status=completed` + invoice write) —
+    verified intact at ~lines 193 and 305.
+  - Kept Finalize button + status-change actions + `canUpdateStatus` logic intact.
+
+### Notes / impact
+- Admin cross-shop Appointments page (`AdminAppointmentsPage.tsx`) already had NO Job Order
+  button (separate table view, no shared card) — Owner-only removal, not a repeat.
+- `JobOrderModal.tsx` and `jobOrderService.ts` internals + `job_orders` schema untouched (now
+  `JobOrderModal` is no longer imported anywhere, but the file was left in place per the
+  task's "do not touch" instruction — a candidate for later cleanup if desired).
+- No other owner-side UI (Dashboard.tsx, OwnerPlatformDashboard.tsx) references the removed
+  button/modal. (ServiceHistoryModal's "Job Order Details" label is a display label, not a
+  link to the removed button.)
+- If it is later decided that job_orders should no longer be auto-created at all (option b),
+  that is a separate follow-up; it would cause Admin Analytics / mechanic productivity
+  metrics to go empty for new bookings.
+
+### Verified
+- Grep: no remaining `JobOrderModal` / `jobOrderAppointment` references in
+  `AppointmentCalendarPage.tsx`.
+- `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size
+  warning).
+
+---
+
 **Last Updated**: Aug 31, 2026
 **Compatibility Version**: 1.0
 

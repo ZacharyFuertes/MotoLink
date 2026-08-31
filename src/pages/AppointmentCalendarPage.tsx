@@ -21,7 +21,6 @@ import { Appointment, AppointmentStatus } from "../types";
 import { sendServiceCompletionEmail } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
-import JobOrderModal from "../components/JobOrderModal";
 
 interface Mechanic {
   id: string;
@@ -76,9 +75,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
-
-  const [jobOrderAppointment, setJobOrderAppointment] =
-    useState<Appointment | null>(null);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -713,14 +709,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     {/* Right: actions */}
                     {canUpdateStatus && (
                       <div className="flex items-center gap-2 shrink-0">
-                        {isOwner && (
-                          <button
-                            onClick={() => setJobOrderAppointment(apt)}
-                            className="px-3.5 py-2 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
-                          >
-                            Job Order
-                          </button>
-                        )}
                         {apt.status === "in_progress" && isOwner && (
                           <button
                             onClick={() => handleStatusChange(apt.id, "completed")}
@@ -888,15 +876,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Job Order Modal Handoff */}
-      {jobOrderAppointment && (
-        <JobOrderModal
-          isOpen={!!jobOrderAppointment}
-          appointment={jobOrderAppointment}
-          onClose={() => setJobOrderAppointment(null)}
-        />
-      )}
     </div>
   );
 };
