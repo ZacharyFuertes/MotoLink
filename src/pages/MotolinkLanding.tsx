@@ -25,6 +25,42 @@ interface MotolinkLandingProps {
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+// ─── Scroll-reveal animation presets ──────────────────────────────────────────
+// Shared custom easing for a smooth, refined upward slide.
+const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
+
+// Section shell: subtle upward slide + fade + gentle scale on scroll into view.
+const sectionVariants = {
+  hidden: { opacity: 0, y: 45, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.7, ease: REVEAL_EASE },
+  },
+};
+
+// Parent container that staggers its children sequentially.
+const containerStagger = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+  },
+};
+
+// Individual child cards / headers / buttons reveal.
+const itemVariants = {
+  hidden: { opacity: 0, y: 24, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.55, ease: REVEAL_EASE },
+  },
+};
+
+// Standard re-triggering viewport options: re-runs when scrolling back into/out of view.
+const REVEAL_VIEWPORT = { once: false, amount: 0.2 };
 
 const LOCATION_STORAGE_KEY = "motolink_user_location";
 const LOCATION_ENABLED_KEY = "motolink_location_enabled";
@@ -200,8 +236,15 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
     <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onAppointments={() => { if (onAppointments) onAppointments(); else onLoginRequired(selectedShop); }} />
     <main>
       {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
-      <HeroSlideshow>
-        <div className="w-full max-w-4xl px-2 sm:px-0">
+      <motion.section
+        id="hero"
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+      >
+        <HeroSlideshow>
+          <div className="w-full max-w-4xl px-2 sm:px-0">
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.92] tracking-wide text-white drop-shadow-lg">
             Find Your
             <span className="block text-moto-accent">Motor Shop.</span>
@@ -260,178 +303,261 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           </motion.div>
         </div>
       </HeroSlideshow>
+      </motion.section>
       {/* 1. HOW IT WORKS */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="how-it-works" className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section
+        id="how-it-works"
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">
-              How MotoLink Works<span className="text-moto-accent">.</span>
-            </motion.h2>
-          </div>
+          <motion.div
+            variants={containerStagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={REVEAL_VIEWPORT}
+          >
+            <motion.div variants={itemVariants} className="mb-12 text-center">
+              <h2 className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">
+                How MotoLink Works<span className="text-moto-accent">.</span>
+              </h2>
+            </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {[
-              { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you — filter by specialty and open now." },
-              { number: "02", icon: CalendarCheck, title: "Book Instantly", description: "Connect with the shop and book your service or appointment right away." },
-              { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
-            ].map((step) => (
-              <div key={step.number} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
-                <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-white/10">{step.number}</span>
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
-                  <step.icon size={22} />
-                </span>
-                <h3 className="mt-5 text-lg font-bold text-slate-100">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{step.description}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-2.5">
-                {stats.topRiders.slice(0, 5).map((name) => (
-                  <span key={name} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-moto-darker bg-moto-accent/20 text-[11px] font-bold text-moto-accent">
-                    {name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "R"}
+            <motion.div variants={itemVariants} className="grid gap-6 md:grid-cols-3">
+              {[
+                { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you — filter by specialty and open now." },
+                { number: "02", icon: CalendarCheck, title: "Book Instantly", description: "Connect with the shop and book your service or appointment right away." },
+                { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
+              ].map((step) => (
+                <motion.div key={step.number} variants={itemVariants} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                  <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-white/10">{step.number}</span>
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
+                    <step.icon size={22} />
                   </span>
-                ))}
-              </div>
-              <div className="text-sm text-slate-300">
-                <span className="font-bold text-slate-100">Join {stats.riderCount.toLocaleString()}+ riders</span>
-                <p className="text-slate-400">already finding their motor shop on MotoLink</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-8">
-              {stats.avgRating !== null && stats.avgRating > 0 && (
-                <div className="text-center">
-                  <p className="flex items-center justify-center gap-1 font-display text-3xl font-black text-white"><Star size={18} className="fill-amber-400 text-amber-400" />{stats.avgRating.toFixed(1)}</p>
-                  <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">Average rating</p>
+                  <h3 className="mt-5 text-lg font-bold text-slate-100">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{step.description}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            <motion.div variants={itemVariants} className="mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
+              <div className="flex items-center gap-4">
+                <div className="flex -space-x-2.5">
+                  {stats.topRiders.slice(0, 5).map((name) => (
+                    <span key={name} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-moto-darker bg-moto-accent/20 text-[11px] font-bold text-moto-accent">
+                      {name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "R"}
+                    </span>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="text-sm text-slate-300">
+                  <span className="font-bold text-slate-100">Join {stats.riderCount.toLocaleString()}+ riders</span>
+                  <p className="text-slate-400">already finding their motor shop on MotoLink</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-8">
+                {stats.avgRating !== null && stats.avgRating > 0 && (
+                  <div className="text-center">
+                    <p className="flex items-center justify-center gap-1 font-display text-3xl font-black text-white"><Star size={18} className="fill-amber-400 text-amber-400" />{stats.avgRating.toFixed(1)}</p>
+                    <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">Average rating</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* 2. FEATURED SHOPS GALLERY */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="shops" className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section
+        id="shops"
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 sm:mb-10">
-            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
-              Find Trusted Shops Near You<span className="text-moto-accent">.</span>
-            </motion.h2>
-          </div>
-          {results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops available right now.</div>}
+          <motion.div
+            variants={containerStagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={REVEAL_VIEWPORT}
+          >
+            <motion.div
+              variants={itemVariants}
+              className="mb-8 sm:mb-10"
+            >
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
+                Find Trusted Shops Near You<span className="text-moto-accent">.</span>
+              </h2>
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              {results.length ? <ShopGallery shops={results} onSelect={setSelectedShop} onConnect={connect} onViewShop={onViewShop} /> : <div className="rounded-2xl border border-dashed border-moto-gray p-10 text-center text-slate-400"><Search className="mx-auto mb-3" />No shops available right now.</div>}
+            </motion.div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* 3. EXPLORE SHOPS ON MAP LOCATOR */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="map" className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section
+        id="map"
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 sm:mb-10">
-            <motion.h2 initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.05 }} className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
-              Explore Shops On The Map<span className="text-moto-accent">.</span>
-            </motion.h2>
-          </div>
-          <ShopMap
-            shops={results}
-            selectedShopId={selectedShop?.id}
-            locationGranted={Boolean(location)}
-            location={location}
-            onRequestLocation={requestLocation}
-            onSelect={setSelectedShop}
-            onViewShop={onViewShop}
-            onNavigate={setNavigateShop}
-            filterSlot={
-              <ShopFilters
-                specialties={specialties}
-                specialty={specialty}
-                availabilityOnly={availabilityOnly}
-                onSpecialtyChange={setSpecialty}
-                onAvailabilityChange={setAvailabilityOnly}
+          <motion.div
+            variants={containerStagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={REVEAL_VIEWPORT}
+          >
+            <motion.div variants={itemVariants} className="mb-8 sm:mb-10">
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
+                Explore Shops On The Map<span className="text-moto-accent">.</span>
+              </h2>
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <ShopMap
+                shops={results}
+                selectedShopId={selectedShop?.id}
+                locationGranted={Boolean(location)}
+                location={location}
+                onRequestLocation={requestLocation}
+                onSelect={setSelectedShop}
+                onViewShop={onViewShop}
+                onNavigate={setNavigateShop}
+                filterSlot={
+                  <ShopFilters
+                    specialties={specialties}
+                    specialty={specialty}
+                    availabilityOnly={availabilityOnly}
+                    onSpecialtyChange={setSpecialty}
+                    onAvailabilityChange={setAvailabilityOnly}
+                  />
+                }
+                searchSlot={
+                  <ShopSearch city={city} onCityChange={setCity} />
+                }
               />
-            }
-            searchSlot={
-              <ShopSearch city={city} onCityChange={setCity} />
-            }
-          />
-          {locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}
-          {suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}
+              {locationMessage ? <p className="mt-3 text-sm text-slate-300">{locationMessage}</p> : null}
+              {suggestionMessage ? <p className="mt-3 text-sm font-medium text-moto-accent">{suggestionMessage}</p> : null}
+            </motion.div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* 4. WHY CHOOSE MOTOLINK */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8">
+      <motion.section
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Why choose</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-100">MOTOLINK</h2>
-            <p className="mt-3 max-w-2xl mx-auto text-slate-300">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              { title: "Easy Shop Discovery", description: "Find nearby motor shops with ease." },
-              { title: "Location-Based Search", description: "Discover shops based on your location." },
-              { title: "More Shop Choices", description: "Explore different motor shops in one place." },
-              { title: "Shop Information", description: "Get essential details about available shops." },
-              { title: "Business Showcase", description: "Motor shops can showcase their business online." },
-              { title: "Reach More Customers", description: "Help shop owners connect with more riders." },
-              { title: "Simple & Convenient", description: "Find and discover motor shops without the hassle." },
-              { title: "Built for Riders & Shops", description: "A platform designed to connect both sides of the motorcycle community." },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
-                <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{item.title.split(" ")[0].padEnd(2, " ")}</div>
-                <h3 className="mt-4 text-lg font-semibold text-slate-100">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-300">{item.description}</p>
-              </div>
-            ))}
-          </div>
+          <motion.div
+            variants={containerStagger}
+            initial="hidden"
+            whileInView="visible"
+            viewport={REVEAL_VIEWPORT}
+          >
+            <motion.div variants={itemVariants} className="mb-8 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Why choose</p>
+              <h2 className="mt-2 text-3xl font-bold text-slate-100">MOTOLINK</h2>
+              <p className="mt-3 max-w-2xl mx-auto text-slate-300">Powerful local vehicle service, smarter recommendations, and trusted shop partners in one platform.</p>
+            </motion.div>
+            <motion.div variants={itemVariants} className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { title: "Easy Shop Discovery", description: "Find nearby motor shops with ease." },
+                { title: "Location-Based Search", description: "Discover shops based on your location." },
+                { title: "More Shop Choices", description: "Explore different motor shops in one place." },
+                { title: "Shop Information", description: "Get essential details about available shops." },
+                { title: "Business Showcase", description: "Motor shops can showcase their business online." },
+                { title: "Reach More Customers", description: "Help shop owners connect with more riders." },
+                { title: "Simple & Convenient", description: "Find and discover motor shops without the hassle." },
+                { title: "Built for Riders & Shops", description: "A platform designed to connect both sides of the motorcycle community." },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{item.title.split(" ")[0].padEnd(2, " ")}</div>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-100">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">{item.description}</p>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* 5. REGISTER YOUR SHOP CTA */}
       <motion.section
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.45 }}
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
         className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
       >
-        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center shadow-lg shadow-moto-accent/5">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={REVEAL_VIEWPORT}
+          className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center shadow-lg shadow-moto-accent/5"
+        >
+          <motion.span variants={itemVariants} className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
             <Store size={28} />
-          </span>
-          <h2 className="mt-6 font-display text-3xl sm:text-4xl uppercase leading-none tracking-wide text-slate-100">
+          </motion.span>
+          <motion.h2 variants={itemVariants} className="mt-6 font-display text-3xl sm:text-4xl uppercase leading-none tracking-wide text-slate-100">
             Register your shop <span className="text-moto-accent">now!</span>
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-slate-300 sm:text-lg">
+          </motion.h2>
+          <motion.p variants={itemVariants} className="mx-auto mt-4 max-w-xl text-slate-300 sm:text-lg">
             Create a business profile, showcase your services, and reach more
             riders in your area. Your shop deserves to be discovered.
-          </p>
-          <button
+          </motion.p>
+          <motion.button
+            variants={itemVariants}
             onClick={onOpenShopRegister}
             className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent px-8 py-4 text-base font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/30 transition hover:-translate-y-0.5"
           >
             <Store size={20} />
             Register my shop
-          </button>
+          </motion.button>
           {isAuthenticated && (
-            <p className="mt-4 text-sm text-slate-400">
+            <motion.p variants={itemVariants} className="mt-4 text-sm text-slate-400">
               Signed in as a customer — registering a new shop will start a
               separate Shop Owner account.
-            </p>
+            </motion.p>
           )}
-        </div>
+        </motion.div>
       </motion.section>
 
       {/* 6. ABOUT MOTOLINK */}
-      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.45 }} id="about" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl space-y-8">
-          <div className="space-y-4">
+      <motion.section
+        id="about"
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={REVEAL_VIEWPORT}
+        className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"
+      >
+        <motion.div
+          variants={containerStagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={REVEAL_VIEWPORT}
+          className="mx-auto max-w-4xl space-y-8"
+        >
+          <motion.div variants={itemVariants} className="space-y-4">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">About MotoLink</p>
             <h2 className="text-3xl font-bold text-slate-100">Connecting riders with motor shops.</h2>
             <p className="leading-7 text-slate-300">MotoLink is a location-based platform built to make it easier for motorcycle riders to discover motor shops and for shop owners to showcase their business online. We bridge the gap between riders looking for services and local shops looking for customers.</p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
+          </motion.div>
+          <motion.div variants={itemVariants} className="grid gap-6 sm:grid-cols-2">
             <div>
               <h3 className="text-lg font-semibold text-slate-100">For Riders</h3>
               <p className="mt-3 text-slate-300">Find nearby motor shops based on your location, view services, and connect with the shop that fits your needs. Whether you need repairs, maintenance, parts, or accessories, MotoLink helps you discover the right shop faster.</p>
@@ -440,8 +566,8 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <h3 className="text-lg font-semibold text-slate-100">For Motor Shop Owners</h3>
               <p className="mt-3 text-slate-300">Register your motor shop, create a business profile, and reach more riders in your area. Showcase your services, location, and contact details so customers can discover your shop easily.</p>
             </div>
-          </div>
-          <div className="rounded-2xl bg-moto-darker p-6 text-slate-300">
+          </motion.div>
+          <motion.div variants={itemVariants} className="rounded-2xl bg-moto-darker p-6 text-slate-300">
             <p className="font-semibold text-slate-100">Why MotoLink works</p>
             <ul className="mt-4 space-y-2 list-disc pl-5 text-slate-300">
               <li>Showcase your business online and reach more customers.</li>
@@ -449,9 +575,9 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <li>Make motor shop discovery easier, faster, and more accessible.</li>
               <li>Build a digital presence for local motor businesses.</li>
             </ul>
-          </div>
-          <p className="text-sm leading-7 text-slate-300">MotoLink is a growing community connecting motorcycle riders and local motor businesses in one convenient platform. Find a shop. Discover services. Connect with riders.</p>
-        </div>
+          </motion.div>
+          <motion.p variants={itemVariants} className="text-sm leading-7 text-slate-300">MotoLink is a growing community connecting motorcycle riders and local motor businesses in one convenient platform. Find a shop. Discover services. Connect with riders.</motion.p>
+        </motion.div>
       </motion.section>
     </main>
     <button onClick={() => setShowAIChat(true)} aria-label="Open Motolink AI chat" className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-xl shadow-moto-accent/30 transition hover:-translate-y-1 hover:bg-moto-accent-dark"><Bot size={26} /></button>
