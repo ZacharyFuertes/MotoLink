@@ -6439,6 +6439,59 @@ step 1 (service selection), always visible (below the selected-services box, ins
 
 ---
 
+## TASK LOG — Roll selected parts into booking total + show part names in confirm/review
+
+Date: Aug 31, 2026
+
+### Verdict from code audit (much was already wired)
+Before changing anything, the booking flow already persisted parts and a combined total:
+- `handleSubmit` in `src/components/BookAppointmentModal.tsx` already builds
+  `partsForStorage = [{ part_id, part_name, unit_price, quantity }]`, computes
+  `partsTotal = Σ (quantity × unit_price)`, sets `insertData.parts` (JSONB) and
+  `insertData.total_amount = selectedServicePrice + partsTotal`, and returns `parts` +
+  `total_amount` to `onAppointmentBooked`.
+- The `appointments` table ALREADY has `parts JSONB DEFAULT '[]'` and `total_amount
+  NUMERIC(10,2)` columns (also `estimated_price` = service subtotal) — so NO schema change
+  was needed.
+- `ReceiptModal.tsx` (the final confirmation/receipt, fed by `onAppointmentBooked`
+  `appointmentData`) ALREADY lists each part by name + qty + line price ("PARTS INCLUDED")
+  and shows a combined Total Amount.
+- The parts step (step 3) already lists selected parts by name + qty + line price + a
+  "Parts Total".
+
+### Actual gap fixed
+The **in-modal confirm/review step (step 4)** box only showed Services chips + a "Total
+Cost" that equaled `selectedServicePrice`; it did NOT show parts or include their cost.
+Changed `src/components/BookAppointmentModal.tsx` confirm review box to add:
+- A "Parts" line-item block (name `x`qty → ₱ line price) — only when parts are selected.
+- A combined "Total Cost" breakdown: Service subtotal, Parts subtotal, and an
+  "Estimated Total" (accent cyan) = service + Σ(quantity × unit_price), matching the
+  job-order cost pattern (`Σ quantity × unit_price`).
+- The price disclaimer near the total: "The final price may vary depending on the
+  motorcycle's overall condition and assessment." (matches the step-1 note pattern, `Info`
+  icon prefix, `text-slate-400 text-xs font-light`).
+- Styled to the current dark-moto theme (the modal was thematically converted earlier; the
+  task's "white-slate" note is stale — used the modal's actual dark-moto treatment).
+
+### Stock / costing notes (for future reference)
+- `src/services/jobOrderService.ts` `completeJobOrder` is where quantity_in_stock is
+  DEDUCTED from parts. `addPartUsed` does NOT deduct stock. Booking records parts only as a
+  customer pre-selection / request and does not touch inventory — consistent and correct;
+  no change made. Parts selected at booking could feed job-order creation later, but that is
+  a separate decision (currently a "customer request" field on the appointment).
+
+### Verified
+- `appointments` INSERT carries `parts` (names + ids + qty + unit_price) and
+  `total_amount` (service + parts). Owner/admin can see them via the appointment record and
+  `ReceiptModal`.
+- `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size
+  warning).
+- UI: confirm step now shows part names + qty + reasoned cost breakdown with a live
+  Estimated Total; disclaimer visible near the total; mobile wraps via flex
+  (`items-start`, `shrink-0` icon).
+
+---
+
 **Last Updated**: Aug 31, 2026
 **Compatibility Version**: 1.0
 

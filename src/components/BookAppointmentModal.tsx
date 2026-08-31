@@ -1245,16 +1245,83 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               })}
                             </div>
                           </div>
-                          {selectedServicePrice > 0 && (
-                            <div className="flex flex-col gap-1">
+                          {selectedParts.length > 0 && (
+                            <div className="flex flex-col gap-1 col-span-2">
                               <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
-                                Total Cost
+                                Parts
                               </span>
-                              <span className="text-slate-100 font-mono font-bold text-sm">
-                                ₱{selectedServicePrice.toFixed(2)}
-                              </span>
+                              <div className="space-y-1.5 mt-2">
+                                {selectedParts.map((part) => (
+                                  <div
+                                    key={part.id}
+                                    className="flex items-center justify-between text-sm"
+                                  >
+                                    <span className="text-slate-300">
+                                      {part.name} x{part.quantity}
+                                    </span>
+                                    <span className="text-slate-100 font-mono font-bold">
+                                      ₱
+                                      {(
+                                        part.quantity * part.unit_price
+                                      ).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
+                          <div className="flex flex-col gap-1 col-span-2">
+                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
+                              Total Cost
+                            </span>
+                            <div className="border-t border-moto-gray pt-3">
+                              <p className="flex items-center justify-between text-xs font-bold mb-1.5">
+                                <span className="text-slate-400">Service</span>
+                                <span className="text-slate-200 font-mono">
+                                  ₱{selectedServicePrice.toLocaleString()}
+                                </span>
+                              </p>
+                              <p className="flex items-center justify-between text-xs font-bold mb-2.5">
+                                <span className="text-slate-400">Parts</span>
+                                <span className="text-slate-200 font-mono">
+                                  ₱
+                                  {selectedParts
+                                    .reduce(
+                                      (sum, p) =>
+                                        sum + p.quantity * p.unit_price,
+                                      0,
+                                    )
+                                    .toLocaleString()}
+                                </span>
+                              </p>
+                              <p className="flex items-center justify-between text-sm font-bold">
+                                <span className="text-slate-100">
+                                  Estimated Total
+                                </span>
+                                <span className="text-moto-accent font-mono font-black">
+                                  ₱
+                                  {(
+                                    selectedServicePrice +
+                                    selectedParts.reduce(
+                                      (sum, p) =>
+                                        sum + p.quantity * p.unit_price,
+                                      0,
+                                    )
+                                  ).toLocaleString()}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="flex items-start gap-2 mt-4 text-slate-400">
+                              <Info
+                                size={14}
+                                className="text-slate-400 shrink-0 mt-0.5"
+                              />
+                              <p className="text-slate-400 text-xs font-light leading-relaxed">
+                                The final price may vary depending on the
+                                motorcycle's overall condition and assessment.
+                              </p>
+                            </div>
+                          </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">
                               Mechanic
