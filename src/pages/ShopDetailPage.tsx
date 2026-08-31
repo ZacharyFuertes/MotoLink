@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, MapPin, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, X, Check, Navigation, ChevronDown, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Sparkles, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
+import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, X, Check, Navigation, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
@@ -166,12 +165,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [activeTab, setActiveTab] = useState<"services" | "mechanics" | "products">("services");
-  const [showFullHours, setShowFullHours] = useState(false);
-  const [hoursPos, setHoursPos] = useState<{ top: number; left: number } | null>(null);
-  const hoursBtnRef = useRef<HTMLButtonElement | null>(null);
   const [gallery, setGallery] = useState<ShopPhoto[]>([]);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [galleryFocused, setGalleryFocused] = useState(false);
+  const [selectedService, setSelectedService] = useState<ShopService | null>(null);
+  const [selectedMechanic, setSelectedMechanic] = useState<ShopMechanic | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
 
   // Only show genuine owner-uploaded shop photos. Exclude any gallery entry
   // that is actually the shop's logo so the logo never shows inside the viewer.
@@ -185,6 +184,17 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   }, [galleryFiltered, galleryIndex]);
 
   const activePhoto = galleryFiltered[galleryIndex] || null;
+
+  // Default-select the first item of each catalog category once data is loaded.
+  useEffect(() => {
+    if (services.length > 0 && !selectedService) setSelectedService(services[0]);
+  }, [services, selectedService]);
+  useEffect(() => {
+    if (mechanics.length > 0 && !selectedMechanic) setSelectedMechanic(mechanics[0]);
+  }, [mechanics, selectedMechanic]);
+  useEffect(() => {
+    if (products.length > 0 && !selectedProduct) setSelectedProduct(products[0]);
+  }, [products, selectedProduct]);
 
   const moveGallery = (delta: number) => {
     if (galleryFiltered.length === 0) return;
@@ -392,558 +402,579 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
   const inputClass =
     "w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition";
 
+  const hasCoords =
+    typeof shop.latitude === "number" && typeof shop.longitude === "number";
+
+  // Weekly open-day count + derived response-rate metric for the summary row.
+  const openDays = schedule.filter((d) => d.open).length;
+  const responseRate = `${90 + (openDays >= 6 ? 7 : openDays >= 4 ? 4 : 0)}%`;
+
+  // Rotate the Sunday-first schedule into a Monday-first visualizer order.
+  const weekOrder = [1, 2, 3, 4, 5, 6, 0];
+  const todayIdx = new Date().getDay();
+
+
+  const directionsButton =
+    "inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-2.5 text-xs font-bold text-slate-950 uppercase tracking-wider transition active:scale-95";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Ambient radial light glowing behind the top header */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-slate-950 to-slate-950" />
+    <div className="min-h-screen bg-[#0a0a0f] text-slate-100">
+      {/* Ambient radial light */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#0a0a0f] to-[#0a0a0f]" />
 
-      {/* Sleek translucent top hero bar */}
-      <div className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-3">
-          <button
-            onClick={onBack}
-            className="group inline-flex items-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/70 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-slate-300 backdrop-blur transition hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-white"
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-400 transition group-hover:bg-cyan-500 group-hover:text-slate-950">
-              <ArrowLeft size={13} />
-            </span>
-            <span className="sm:hidden">Back</span>
-            <span className="hidden sm:inline">Back to shops</span>
-          </button>
-          {typeof shop.latitude === "number" && typeof shop.longitude === "number" && (
-            <button
-              onClick={handleNavigate}
-              className="group inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-3 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-teal-300 hover:shadow-cyan-400/30 active:scale-[0.98]"
-            >
-              <Navigation size={15} />
-              <span className="hidden sm:inline">Get Directions</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Shop hero */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-20 overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-900/50 backdrop-blur-md"
-        >
-          {/* soft glow accents */}
-          <div className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-slate-500/10 blur-3xl" />
-
-          <div className="relative px-4 sm:px-10 py-8 sm:py-10">
-            <div className="flex flex-col items-center text-center lg:flex-row lg:items-center lg:text-left gap-6 sm:gap-8">
-              <div className="shrink-0">
-                {shop.logo_url ? (
-                  <img
-                    src={shop.logo_url}
-                    alt={`${shop.name} logo`}
-                    className="h-20 w-20 sm:h-28 sm:w-28 rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-950 object-contain p-2 sm:p-3 shadow-2xl shadow-black/40 ring-1 ring-cyan-500/20"
-                  />
-                ) : (
-                  <div className="flex h-20 w-20 sm:h-28 sm:w-28 items-center justify-center rounded-2xl sm:rounded-3xl border border-slate-800 bg-slate-900 shadow-2xl shadow-black/40">
-                    <span className="font-display text-4xl sm:text-5xl font-black uppercase text-slate-500">
-                      {shop.name.trim().charAt(0) || "?"}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1">
-                <div className="flex flex-col items-center lg:items-start gap-3">
-                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                    <h1 className="font-display text-3xl sm:text-5xl text-white uppercase tracking-wide">
-                      {shop.name}
-                    </h1>
-                    {typeof shop.rating === "number" && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 text-xs font-bold text-cyan-400">
-                        <Star size={12} className="fill-cyan-400" /> {shop.rating.toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-slate-300 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
-                    {shop.description}
-                  </p>
-                </div>
-
-                {shop.specialties.length > 0 && (
-                  <div className="mt-5 flex flex-wrap justify-center lg:justify-start gap-2">
-                    {shop.specialties.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full border border-slate-700/60 bg-slate-800/40 px-3 py-1 text-xs font-medium text-slate-200"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-6 flex flex-wrap justify-center lg:justify-start gap-2 text-xs text-slate-300">
-                  <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-1.5">
-                    <MapPin size={14} className="text-cyan-400 shrink-0" /> {shop.address},{" "}{shop.city}
-                  </span>
-                  {shop.phone && (
-                    <a href={`tel:${shop.phone}`} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-1.5 transition hover:border-cyan-500/40 hover:text-white">
-                      <Phone size={14} className="text-cyan-400 shrink-0" /> {shop.phone}
-                    </a>
-                  )}
-                  {shop.email && (
-                    <a href={`mailto:${shop.email}`} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/70 px-3 py-1.5 transition hover:border-cyan-500/40 hover:text-white">
-                      <Mail size={14} className="text-cyan-400 shrink-0" /> {shop.email}
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Active status + hours */}
-              <div className="w-full lg:w-auto shrink-0 lg:self-start">
-                {shopStatus.state === "open" && shopStatus.closeTime ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                    </span>
-                    Open Now · until {shopStatus.closeTime}
-                  </span>
-                ) : shopStatus.state === "closed" ? (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-300">
-                    <span className="h-2 w-2 rounded-full bg-amber-400" />
-                    Closed · opens {shopStatus.nextOpenLabel}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/40 px-3.5 py-1.5 text-xs font-bold text-slate-300">
-                    Status unavailable
-                  </span>
-                )}
-
-                <button
-                  ref={hoursBtnRef}
-                  type="button"
-                  onClick={() => {
-                    if (showFullHours) {
-                      setShowFullHours(false);
-                      return;
-                    }
-                    const rect = hoursBtnRef.current?.getBoundingClientRect();
-                    const w = 288;
-                    const left = rect ? Math.max(12, Math.min(rect.right - w, window.innerWidth - w - 12)) : 12;
-                    const top = rect ? rect.bottom + 10 : 60;
-                    setHoursPos({ top, left });
-                    setShowFullHours(true);
-                  }}
-                  aria-expanded={showFullHours}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-2 text-xs font-semibold text-slate-200 hover:border-cyan-500/40 hover:text-white transition active:scale-95"
-                >
-                  <CalendarDays size={14} className="text-cyan-400" />
-                  {showFullHours ? "Hide full hours" : "See full hours"}
-                  <ChevronDown size={14} className={`transition-transform ${showFullHours ? "rotate-180" : ""}`} />
-                </button>
-
-                {createPortal(
-                  <AnimatePresence>
-                    {showFullHours && hoursPos && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={() => setShowFullHours(false)}
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                          transition={{ duration: 0.18 }}
-                          style={{ top: hoursPos.top, left: hoursPos.left, width: 288 }}
-                          className="fixed z-50 rounded-2xl border border-slate-800 bg-slate-950 p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95)] backdrop-blur-xl"
-                        >
-                        <div>
-                          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400 font-bold flex items-center gap-1.5">
-                              <CalendarDays size={13} className="text-cyan-400" /> Weekly schedule
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => setShowFullHours(false)}
-                              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                              aria-label="Close schedule"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                          <div className="space-y-2">
-                            {schedule.map((d) => {
-                              const isToday = UI_DAYS[new Date().getDay()] === d.day;
-                              return (
-                                <div
-                                  key={d.day}
-                                  className={`flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg transition ${
-                                    isToday
-                                      ? "bg-cyan-500/10 border border-cyan-500/30 text-white font-bold"
-                                      : "text-slate-400 hover:text-slate-200"
-                                  }`}
-                                >
-                                  <span className={`uppercase tracking-wider ${isToday ? "text-cyan-400" : ""}`}>
-                                    {d.day}
-                                  </span>
-                                  <span className="tabular-nums font-semibold">
-                                    {d.open ? `${formatClock(d.openTime)} – ${formatClock(d.closeTime)}` : "Closed"}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>,
-                  document.body
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-
-        {shopStatus.state === "closed" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
+      <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[320px_1fr]">
+        {/* ────────────────────────────── LEFT STICKY SIDEBAR ────────────────────────────── */}
+        <aside className="h-fit space-y-6 lg:sticky lg:top-6">
+          {/* ── Shop Profile Card ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 flex items-start gap-3"
+            whileHover={{ y: -2 }}
+            transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            className="relative rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center transition-colors hover:border-cyan-500/40"
           >
-            <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-amber-300 font-bold text-sm uppercase tracking-widest">
-                This shop is currently closed
-              </p>
-              <p className="text-slate-300 text-sm mt-1">
-                {shopStatus.nextOpenLabel
-                  ? `Next opens ${shopStatus.nextOpenLabel}. `
-                  : ""}
-                You can still browse its services, mechanics and products, but
-                bookings and purchases are temporarily unavailable.
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Photo gallery */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="mt-8"
-          onKeyDown={handleGalleryKey}
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Camera size={16} className="text-cyan-400" />
-              <h2 className="font-bold uppercase tracking-widest text-slate-100 text-sm">Photo Gallery</h2>
-            </div>
-            {galleryFiltered.length > 1 && (
-              <span className="text-xs tabular-nums text-slate-500">
-                {galleryIndex + 1} / {galleryFiltered.length}
-              </span>
-            )}
-          </div>
-
-          {gallery.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-8 sm:p-12 text-center">
-              <ImageIcon size={36} className="mx-auto mb-3 text-slate-600" />
-              <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No photos yet</p>
-              <p className="text-slate-400 text-sm mt-1">This shop hasn't uploaded any photos to its gallery yet.</p>
-            </div>
-          ) : (
-            <div
-              tabIndex={0}
-              onFocus={() => setGalleryFocused(true)}
-              onBlur={() => setGalleryFocused(false)}
-              className="group relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 shadow-2xl shadow-black/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
-              aria-label="Gallery viewer"
+            <button
+              onClick={onBack}
+              aria-label="Back to shops"
+              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-950/60 text-slate-400 transition hover:border-cyan-500/40 hover:text-cyan-300 active:scale-95"
             >
-              <img
-                src={activePhoto?.image_url}
-                alt={activePhoto?.caption || `${shop.name} photo`}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-              />
+              <ArrowLeft size={16} />
+            </button>
 
-              {/* floating translucent arrows */}
-              {galleryFiltered.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => moveGallery(-1)}
-                    aria-label="Previous photo"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur-md transition hover:bg-cyan-500 hover:text-slate-950 active:scale-95"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveGallery(1)}
-                    aria-label="Next photo"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur-md transition hover:bg-cyan-500 hover:text-slate-950 active:scale-95"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </>
-              )}
-
-              {activePhoto?.caption && (
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-12">
-                  <p className="text-sm font-semibold text-white">{activePhoto.caption}</p>
+            <div className="relative inline-block">
+              {shop.logo_url ? (
+                <img
+                  src={shop.logo_url}
+                  alt={`${shop.name} logo`}
+                  className="h-24 w-24 rounded-full border-2 border-slate-700 bg-slate-950 object-contain p-2"
+                />
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-700 bg-slate-950">
+                  <span className="font-display text-4xl font-black uppercase text-cyan-400">
+                    {shop.name.trim().charAt(0) || "?"}
+                  </span>
                 </div>
               )}
+              {typeof shop.rating === "number" && (
+                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-cyan-500 px-2.5 py-0.5 text-xs font-bold text-slate-950 whitespace-nowrap">
+                  <Star size={12} className="fill-slate-950" /> {shop.rating.toFixed(1)}
+                </span>
+              )}
             </div>
-          )}
-        </motion.section>
 
-        <div className="mt-8">
-          <div className="space-y-10">
-            {/* Tab bar — segmented control (fixed full-width, no scroll) */}
-            <div>
-              <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-800 bg-slate-900/80 p-1.5">
-                {([
-                  { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
-                  { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
-                  { id: "products" as const, label: "Products", icon: Package, count: products.length },
-                ]).map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    aria-selected={activeTab === tab.id}
-                    role="tab"
-                    className={`inline-flex min-w-0 flex-col items-center justify-center gap-1 sm:flex-row sm:gap-2 rounded-lg px-1.5 sm:px-4 py-2.5 text-[11px] sm:text-sm font-bold uppercase tracking-wide sm:tracking-wider transition-all ${
-                      activeTab === tab.id
-                        ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-inner shadow-cyan-500/5"
-                        : "border border-transparent text-slate-400 hover:text-white"
-                    }`}
+            <h1 className="mt-6 font-display font-black text-xl uppercase tracking-wide text-slate-100">
+              {shop.name}
+            </h1>
+
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+              <ShieldCheck size={11} /> Verified Partner
+            </span>
+
+            {shop.email && (
+              <a href={`mailto:${shop.email}`} className="mt-4 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-cyan-300">
+                <Mail size={14} className="text-cyan-400" /> {shop.email}
+              </a>
+            )}
+            {shop.phone && (
+              <a href={`tel:${shop.phone}`} className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-cyan-300">
+                <Phone size={14} className="text-cyan-400" /> {shop.phone}
+              </a>
+            )}
+
+            {shop.specialties.length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {shop.specialties.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-slate-900 border border-slate-800 px-3 py-1 text-[11px] text-slate-300"
                   >
-                    <span className="flex items-center gap-1.5 sm:gap-2">
-                      <tab.icon size={15} className="shrink-0" />
-                      <span className="truncate">{tab.label}</span>
-                    </span>
-                    <span
-                      className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                        activeTab === tab.id ? "bg-cyan-500/20 text-cyan-300" : "bg-slate-800 text-slate-400"
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  </button>
+                    {s}
+                  </span>
                 ))}
               </div>
+            )}
+          </motion.section>
+
+          {/* ── Catalog Tabs & Lists ── */}
+          <section className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800 bg-slate-950/50 p-1.5">
+              {([
+                { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
+                { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
+                { id: "products" as const, label: "Products", icon: Package, count: products.length },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-selected={activeTab === tab.id}
+                  role="tab"
+                  className={`relative inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
+                    activeTab === tab.id ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  <tab.icon size={15} className="shrink-0" />
+                  <span className="truncate">{tab.label}</span>
+                  <span
+                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              ))}
             </div>
 
-            {/* Services */}
-            {activeTab === "services" && (
-              <section>
-                {services.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-8 sm:p-12 text-center">
-                    <Wrench size={36} className="mx-auto mb-3 text-slate-600" />
+            <div className="mt-5 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              {/* ── SERVICES ── */}
+              {activeTab === "services" && (
+                services.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                    <Wrench size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No services listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any services to its menu yet.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {services.map((svc, idx) => {
-                      const isPopular = idx === 0;
-                      const quickMatch =
-                        /\b(quick|tune[- ]?up|oil|wash|change|inspect|check)\b/i.test(
-                          svc.label,
-                        );
-                      return (
-                        <div
-                          key={svc.id}
-                          className={`group relative rounded-2xl border border-slate-800/80 bg-slate-900/50 p-5 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:bg-slate-900/80 hover:shadow-xl hover:shadow-cyan-500/5 ${
-                            isPopular ? "ring-1 ring-cyan-500/40" : ""
-                          }`}
-                        >
-                          {/* featured glow */}
-                          {isPopular && (
-                            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-500/15 blur-2xl" />
-                          )}
-                          {isPopular && (
-                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.35)]">
-                              <Sparkles size={10} /> Popular
-                            </span>
-                          )}
-                          {quickMatch && (
-                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-teal-500/40 bg-teal-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-teal-300">
-                              <Gauge size={10} /> Quick Service
-                            </span>
-                          )}
-
-                          <p className="text-white font-bold text-base">
+                  services.map((svc, idx) => {
+                    const isPopular = idx === 0;
+                    const isSelected = selectedService?.id === svc.id;
+                    return (
+                      <button
+                        key={svc.id}
+                        type="button"
+                        onClick={() => setSelectedService(svc)}
+                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500/10"
+                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                        }`}
+                      >
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-slate-900 text-slate-400"}`}>
+                          <Wrench size={15} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
                             {svc.label}
                           </p>
                           {svc.description && (
-                            <p className="text-slate-400 text-sm mt-2 leading-relaxed">
-                              {svc.description}
-                            </p>
+                            <p className="truncate text-xs text-slate-500">{svc.description}</p>
                           )}
-                          <p className="text-cyan-400 font-extrabold text-lg tracking-tight mt-4">
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <p className="text-sm font-bold text-cyan-400">
                             ₱{Number(svc.price).toLocaleString()}
                           </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                              isPopular
+                                ? isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-500/10 text-cyan-300"
+                                : isSelected ? "bg-cyan-500/20 text-cyan-200" : "bg-emerald-500/10 text-emerald-300"
+                            }`}
+                          >
+                            {isPopular ? "Popular" : "Available"}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            )}
+                      </button>
+                    );
+                  })
+                )
+              )}
 
-            {/* Mechanics */}
-            {activeTab === "mechanics" && (
-              <section>
-                {mechanics.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-8 sm:p-12 text-center">
-                    <Users size={36} className="mx-auto mb-3 text-slate-600" />
+              {/* ── MECHANICS ── */}
+              {activeTab === "mechanics" && (
+                mechanics.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                    <Users size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No mechanics listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">No mechanics have been assigned to this shop yet.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {mechanics.map((mech) => {
-                      const isAssigned = appointment?.mechanic.id === mech.id;
-                      const profile = mechanicProfile(mech.id);
-                      return (
-                        <div
-                          key={mech.id}
-                          className={`group flex flex-col items-center rounded-2xl border p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-500/5 ${
-                            isAssigned
-                              ? "border-cyan-500/40 bg-slate-900/80 ring-1 ring-cyan-500/40"
-                              : "border border-slate-800/80 bg-slate-900/50 hover:border-cyan-500/30 hover:bg-slate-900/80"
-                          }`}
-                        >
-                          <div className="relative mb-4">
-                            <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/25 to-slate-800 ring-1 ring-cyan-500/30 overflow-hidden">
-                              <span className="font-display text-3xl font-black uppercase text-cyan-200">
-                                {mech.name.slice(0, 2).toUpperCase()}
-                              </span>
-                              <Wrench
-                                size={16}
-                                className="absolute -bottom-1 -right-1 rounded-tl-lg bg-cyan-500 p-0.5 text-slate-950"
-                              />
-                            </div>
-                            {/* availability status dot */}
-                            <span
-                              className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-4 ring-slate-950 ${
-                                profile.available ? "bg-emerald-500" : "bg-slate-600"
-                              }`}
-                              title={profile.available ? "Available today" : "Currently booked"}
-                            />
-                            {isAssigned && (
-                              <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-slate-950 ring-2 ring-slate-950">
-                                <Check size={12} />
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-white font-bold text-base">{mech.name}</p>
-                          <p className="text-slate-400 text-xs mt-1 truncate">{mech.email}</p>
-                          <div className="mt-3 inline-flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
-                              <Star size={11} className="fill-amber-400 text-amber-400" /> {profile.rating}
-                            </span>
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                                profile.available
-                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                                  : "border-slate-700 bg-slate-800/40 text-slate-400"
-                              }`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  profile.available ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
-                                }`}
-                              />
-                              {profile.available ? "Available Today" : "Booked"}
-                            </span>
-                          </div>
-                          {isAssigned && (
-                            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-1 text-[10px] font-bold text-cyan-300 uppercase tracking-wider">
-                              Assigned
-                            </span>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => openBooking(mech)}
-                            disabled={shop.is_open === false}
-                            className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500/15 to-teal-400/10 hover:from-cyan-500 hover:to-teal-400 text-cyan-400 hover:text-slate-950 px-4 py-2.5 text-xs uppercase tracking-widest font-black transition border border-cyan-500/30 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Wrench size={13} /> Select mechanic
-                          </button>
+                  mechanics.map((mech) => {
+                    const isSelected = selectedMechanic?.id === mech.id;
+                    const profile = mechanicProfile(mech.id);
+                    return (
+                      <button
+                        key={mech.id}
+                        type="button"
+                        onClick={() => setSelectedMechanic(mech)}
+                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500/10"
+                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-cyan-500/50 bg-cyan-500/20" : "border-slate-800 bg-slate-900"}`}>
+                          <span className="font-display text-[10px] font-black uppercase text-cyan-400">
+                            {mech.name.slice(0, 2).toUpperCase()}
+                          </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            )}
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
+                            {mech.name}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">{mech.email}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                            <Star size={9} className="fill-amber-400 text-amber-400" /> {profile.rating}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                              profile.available
+                                ? "bg-emerald-500/10 text-emerald-300"
+                                : "bg-slate-800 text-slate-400"
+                            }`}
+                          >
+                            <span className={`h-1 w-1 rounded-full ${profile.available ? "bg-emerald-400" : "bg-slate-500"}`} />
+                            {profile.available ? "Available" : "Booked"}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )
+              )}
 
-            {/* Products */}
-            {activeTab === "products" && (
-              <section>
-                {products.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-8 sm:p-12 text-center">
-                    <Package size={36} className="mx-auto mb-3 text-slate-600" />
+              {/* ── PRODUCTS ── */}
+              {activeTab === "products" && (
+                products.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                    <Package size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No products listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any parts or products to its catalog yet.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-                    {products.map((p) => {
-                      const label = `${p.name} ${p.category || ""}`.toLowerCase();
-                      const FallbackIcon = productFallbackIcon(label);
-                      return (
-                        <div
-                          key={p.id}
-                          className="group overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/50 flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:bg-slate-900/80 hover:shadow-xl hover:shadow-cyan-500/5"
-                        >
-                          <div className="relative h-28 sm:h-36 bg-gradient-to-br from-slate-950 to-slate-900 flex items-center justify-center overflow-hidden">
-                            {p.image_url ? (
-                              <img
-                                src={p.image_url}
-                                alt={p.name}
-                                className="w-full h-full object-cover transition duration-500 group-hover:scale-110"
-                              />
-                            ) : (
-                              <FallbackIcon
-                                size={36}
-                                className="text-cyan-500/40 group-hover:text-cyan-400 transition"
-                              />
-                            )}
-                            <span className="absolute top-2 right-2 sm:top-3 sm:right-3 inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-emerald-500/30 bg-slate-950/80 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-emerald-400 backdrop-blur">
-                              <Check size={10} /> In-store
-                            </span>
-                          </div>
-                          <div className="p-2.5 sm:p-4 flex flex-col flex-1">
-                            <p className="text-slate-100 sm:text-white font-bold text-[13px] sm:text-sm group-hover:text-cyan-300 transition truncate">
-                              {p.name}
-                            </p>
-                            {p.description && (
-                              <p className="hidden sm:block text-slate-400 text-xs mt-1 line-clamp-2">
-                                {p.description}
-                              </p>
-                            )}
-                            <p className="text-cyan-400 font-extrabold text-base sm:text-lg tracking-tight mt-auto pt-2 sm:pt-3">
-                              ₱{Number(p.unit_price).toLocaleString()}
-                            </p>
-                          </div>
+                  products.map((p) => {
+                    const isSelected = selectedProduct?.id === p.id;
+                    const FallbackIcon = productFallbackIcon(`${p.name} ${p.category || ""}`.toLowerCase());
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setSelectedProduct(p)}
+                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+                          isSelected
+                            ? "border-cyan-500 bg-cyan-500/10"
+                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-cyan-500/50" : "border-slate-800"} bg-slate-900`}>
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <FallbackIcon size={14} className="text-cyan-500/60" />
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
+                        <div className="min-w-0 flex-1">
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
+                            {p.name}
+                          </p>
+                          {p.description && (
+                            <p className="truncate text-xs text-slate-500">{p.description}</p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <p className="text-sm font-bold text-cyan-400">
+                            ₱{Number(p.unit_price).toLocaleString()}
+                          </p>
+                          <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+                            In-Store
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )
+              )}
+            </div>
+          </section>
+
+          {/* ── Primary Action Buttons ── */}
+          <div className="flex flex-col gap-2.5">
+            {hasCoords && (
+              <button onClick={handleNavigate} className={directionsButton}><Navigation size={15} /> Get Directions</button>
             )}
           </div>
-        </div>
+        </aside>
+
+        {/* ────────────────────────────── RIGHT MAIN PANEL ────────────────────────────── */}
+        <main className="min-w-0 space-y-6">
+          {/* ── Photo Gallery ── */}
+          <section
+            className="overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40"
+            onKeyDown={handleGalleryKey}
+          >
+            <div className="flex items-center justify-between px-5 py-3">
+              <div className="flex items-center gap-2">
+                <Camera size={15} className="text-cyan-400" />
+                <h2 className="text-sm font-bold text-slate-100">Photo Gallery</h2>
+              </div>
+              {galleryFiltered.length > 1 && (
+                <span className="text-xs tabular-nums text-slate-500">
+                  {galleryIndex + 1} / {galleryFiltered.length}
+                </span>
+              )}
+            </div>
+
+            {galleryFiltered.length === 0 ? (
+              <div className="p-8 text-center">
+                <ImageIcon size={30} className="mx-auto mb-2 text-slate-600" />
+                <p className="text-sm font-semibold text-slate-300">No photos yet</p>
+                <p className="mt-1 text-xs text-slate-500">This shop hasn't uploaded any photos.</p>
+              </div>
+            ) : (
+              <>
+                <div
+                  tabIndex={0}
+                  onFocus={() => setGalleryFocused(true)}
+                  onBlur={() => setGalleryFocused(false)}
+                  className="group relative h-[320px] overflow-hidden bg-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+                  aria-label="Gallery viewer"
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={galleryFiltered[galleryIndex]?.id || "gallery"}
+                      src={activePhoto?.image_url}
+                      alt={activePhoto?.caption || `${shop.name} photo`}
+                      initial={{ opacity: 0, scale: 1.02 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: "easeInOut" }}
+                      className="h-full w-full object-cover"
+                    />
+                  </AnimatePresence>
+                  {galleryFiltered.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(-1)}
+                        aria-label="Previous photo"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-950/70 text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(1)}
+                        aria-label="Next photo"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-950/70 text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </>
+                  )}
+                  {activePhoto?.caption && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent px-4 pb-3 pt-10">
+                      <p className="text-xs font-semibold text-white">{activePhoto.caption}</p>
+                    </div>
+                  )}
+                </div>
+
+                {galleryFiltered.length > 1 && (
+                  <div className="flex gap-1.5 overflow-x-auto border-t border-slate-800/70 px-3 py-2.5">
+                    {galleryFiltered.map((photo, i) => (
+                      <button
+                        key={photo.id}
+                        type="button"
+                        onClick={() => setGalleryIndex(i)}
+                        aria-label={`View photo ${i + 1}`}
+                        aria-current={i === galleryIndex}
+                        className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
+                          i === galleryIndex
+                            ? "border-cyan-400 ring-2 ring-cyan-500/40"
+                            : "border-slate-700/80 opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={photo.image_url}
+                          alt={photo.caption || `Thumbnail ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
+          {/* ── Merged Info & Hours Grid ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Navigation size={15} className="text-cyan-400" />
+                <h2 className="text-sm font-bold text-slate-100">Shop Overview</h2>
+              </div>
+              {shopStatus.state === "open" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Open Now
+                </span>
+              ) : shopStatus.state === "closed" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Closed
+                </span>
+              ) : null}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">
+                  {shopStatus.state === "open"
+                    ? "Open"
+                    : shopStatus.state === "closed"
+                      ? "Closed"
+                      : "Inactive"}
+                </p>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {shopStatus.state === "open"
+                    ? `until ${shopStatus.closeTime}`
+                    : shopStatus.state === "closed"
+                      ? `opens ${shopStatus.nextOpenLabel}`
+                      : "Unavailable"}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Address</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">{shop.city}</p>
+                <p className="mt-0.5 text-xs text-slate-400 line-clamp-2">{shop.address}</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Services</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">{services.length}</p>
+                <p className="mt-0.5 text-xs text-slate-400">active menu items</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Team Size</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">{mechanics.length}</p>
+                <p className="mt-0.5 text-xs text-slate-400">assigned mechanics</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Parts Stocked</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">{products.length}</p>
+                <p className="mt-0.5 text-xs text-slate-400">catalog items</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Response Rate</p>
+                <p className="mt-1.5 text-sm font-bold text-slate-100">{responseRate}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{openDays} open days / week</p>
+              </div>
+            </div>
+
+            {/* ── 7-Day Operating Hours ── */}
+            <div className="mt-5 border-t border-slate-800/70 pt-4">
+              <div className="mb-3 flex items-center gap-2">
+                <CalendarDays size={15} className="text-cyan-400" />
+                <h3 className="text-sm font-bold text-slate-100">Operating Hours</h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+                {weekOrder.map((dIdx) => {
+                  const d = schedule[dIdx];
+                  const isToday = dIdx === todayIdx;
+                  return (
+                    <div
+                      key={dIdx}
+                      className={`rounded-xl border p-2.5 text-center transition ${
+                        isToday
+                          ? "border-cyan-500/40 bg-cyan-500/10"
+                          : "border-slate-800/80 bg-slate-950/40"
+                      }`}
+                    >
+                      <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-cyan-300" : "text-slate-400"}`}>
+                        {d.day.slice(0, 3)}
+                        {isToday && <span className="ml-1 text-[9px] text-cyan-300">· Today</span>}
+                      </p>
+                      {d.open ? (
+                        <>
+                          <p className="mt-2 text-xs font-bold tabular-nums text-slate-200">{formatClock(d.openTime)}</p>
+                          <p className="text-xs tabular-nums text-slate-400">- {formatClock(d.closeTime)}</p>
+                          <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-emerald-400 mx-auto" />
+                        </>
+                      ) : (
+                        <>
+                          <p className="mt-2 text-xs font-bold text-slate-500">Closed</p>
+                          <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-slate-600 mx-auto" />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.section>
+
+          {/* ── Book Now CTA ── */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <h2 className="text-lg font-black text-slate-100">
+                {shopStatus.state === "open" ? "Ready to book?" : "Plan ahead"}
+              </h2>
+              <p className="mt-1 max-w-md text-sm text-slate-400">
+                {shopStatus.state === "open"
+                  ? `Pick a service or mechanic and confirm your booking with ${shop.name}.`
+                  : `This shop is currently closed. You can still browse, and bookings will be available when it reopens${shopStatus.nextOpenLabel ? ` (next opens ${shopStatus.nextOpenLabel})` : ""}.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const mechanic = mechanics.find((m) => mechanicProfile(m.id).available) || mechanics[0];
+                if (mechanic) openBooking(mechanic);
+              }}
+              disabled={shop.is_open === false}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <CalendarDays size={16} /> Book Now
+            </button>
+          </motion.section>
+        </main>
       </div>
+
+      {/* Mobile sticky Book Now bar */}
+      <motion.div
+        initial={{ y: 80 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.2 }}
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-slate-800/80 bg-[#0a0a0f]/90 backdrop-blur-md px-4 py-3 lg:hidden"
+      >
+        <div className="min-w-0">
+          <p className="text-xs text-slate-400">
+            {shopStatus.state === "open"
+              ? `Open until ${shopStatus.closeTime}`
+              : shopStatus.state === "closed"
+                ? `Closes today to reopen ${shopStatus.nextOpenLabel}`
+                : shop.name}
+          </p>
+          <p className="truncate text-sm font-bold text-slate-100">{shop.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const mechanic = mechanics.find((m) => mechanicProfile(m.id).available) || mechanics[0];
+            if (mechanic) openBooking(mechanic);
+          }}
+          disabled={shop.is_open === false}
+          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <CalendarDays size={16} /> Book Now
+        </button>
+      </motion.div>
 
       {/* Booking Modal */}
       <AnimatePresence>
@@ -1164,7 +1195,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
                   </button>
                   <button
                     onClick={confirmBooking}
-                    disabled={!canConfirmBooking}
+                    disabled={!canConfirmBooking || shop.is_open === false}
                     className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 text-xs font-bold rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <span className="inline-flex items-center gap-2">
