@@ -52,6 +52,8 @@ const ShopMap = ({
 }: ShopMapProps) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
+  const dynamicLayerRef = useRef<any>(null);
+  const hasPannedToShopsRef = useRef(false);
 
   // Search & Filter State inside Sidebar
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,7 +94,7 @@ const ShopMap = ({
     // Clear any existing route layer immediately
     const clearRoute = () => {
       const map = mapInstanceRef.current;
-      if (routeLayerRef.current && map) {
+      if (routeLayerRef.current && map && mapRef.current) {
         try { map.removeLayer(routeLayerRef.current); } catch { /* silent */ }
         routeLayerRef.current = null;
       }
@@ -119,7 +121,7 @@ const ShopMap = ({
         .then((data) => {
           if (cancelled) return;
           const currentMap = mapInstanceRef.current;
-          if (!currentMap) return;
+          if (!currentMap || !mapRef.current) return;
           if (!data.routes || !data.routes[0]) return;
 
           const routeGeoJSON = data.routes[0].geometry;
@@ -151,7 +153,7 @@ const ShopMap = ({
         .catch(() => {
           if (cancelled) return;
           const currentMap = mapInstanceRef.current;
-          if (!currentMap) return;
+          if (!currentMap || !mapRef.current) return;
           const Lf = typeof L !== "undefined" ? L : (window as any).L;
           const line = Lf.polyline(
             [[originLat, originLng], [destLat, destLng]],
@@ -206,56 +208,76 @@ const ShopMap = ({
     return filteredShops[0] || shops[0] || null;
   }, [selectedShopId, shops, filteredShops]);
 
-  // Map Initialization & Update effect
+  // ─── Map lifecycle ──────────────────────────────────────────────────────────
+  // The Leaflet map is created ONCE and kept stable across filter / sort /
+  // location / selection changes. Previously the whole map was torn down and
+  // rebuilt on every change, which let Leaflet's internal zoom-animation
+  // handlers (_onZoomTransitionEnd / _getMapPanePos) fire against unmounted DOM
+  // and crash with "_leaflet_pos" TypeError, while also causing scroll jank.
   useEffect(() => {
     const Leaflet = typeof L !== "undefined" ? L : (window as any).L;
     if (!Leaflet || !mapRef.current) return;
 
-    // Destroy previous instance safely if any
-    if (mapInstanceRef.current) {
-      try {
-        mapInstanceRef.current.stop();
-        mapInstanceRef.current.off();
-        mapInstanceRef.current.remove();
-      } catch (err) {
-        // silent cleanup
-      }
-      mapInstanceRef.current = null;
-    }
-
-    const centerLat = activeShop?.latitude || (location ? location.latitude : MAP_CENTER_LAT);
-    const centerLng = activeShop?.longitude || (location ? location.longitude : MAP_CENTER_LNG);
-
     const map = Leaflet.map(mapRef.current, {
       zoomControl: false,
       scrollWheelZoom: true,
-    }).setView([centerLat, centerLng], 13);
+    }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
     mapInstanceRef.current = map;
 
-    // Official OpenStreetMap tile layer — 100% free full-color Leaflet map without API key requirements or watermarks
-    const mapTileLayer = Leaflet.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        subdomains: "abc",
-        maxZoom: 19,
-      }
-    );
-
-    mapTileLayer.addTo(map);
+    // Official OpenStreetMap tile layer — free, no API key, smooth zooming preserved.
+    Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      subdomains: "abc",
+      maxZoom: 19,
+    }).addTo(map);
 
     // Zoom controls top-right
     Leaflet.control.zoom({ position: "topright" }).addTo(map);
 
     // Invalidate size to ensure no gray boxes
     setTimeout(() => {
-      if (map) map.invalidateSize();
+      if (mapInstanceRef.current === map && mapRef.current) {
+        try { map.invalidateSize(); } catch { /* silent */ }
+      }
     }, 150);
 
+    return () => {
+      // Stop in-flight animations FIRST so zoom/pan handlers can't touch
+      // removed DOM, drop all event listeners, then remove the map.
+      try { map.stop(); } catch { /* silent */ }
+      try { map.off(); } catch { /* silent */ }
+      try {
+        map.options.zoomAnimation = false;
+        map.options.fadeAnimation = false;
+        map.options.markerZoomAnimation = false;
+      } catch { /* silent */ }
+      try { map.remove(); } catch { /* silent */ }
+      if (mapInstanceRef.current === map) mapInstanceRef.current = null;
+      dynamicLayerRef.current = null;
+    };
+  }, []);
+
+  // ─── Dynamic layers (user location + shop markers) ─────────────────────────
+  // Redraws marker/route-independent layers into a single layerGroup without
+  // recreating the map itself, preserving map transitions and smooth zooming.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const Leaflet = typeof L !== "undefined" ? L : (window as any).L;
+    if (!Leaflet || !map || !mapRef.current) return;
+
+    // Clear the previous dynamic group safely.
+    if (dynamicLayerRef.current) {
+      try { map.removeLayer(dynamicLayerRef.current); } catch { /* silent */ }
+      dynamicLayerRef.current = null;
+    }
+
+    const dynamicLayer = Leaflet.layerGroup();
+    dynamicLayer.addTo(map);
+    dynamicLayerRef.current = dynamicLayer;
+
     // User location marker & 1.5km radius circle
-    if (locationGranted && location) {
+    if (locationGranted && location && mapRef.current) {
       const userLatLng = [location.latitude, location.longitude] as [number, number];
 
       const userMarker = Leaflet.marker(userLatLng, {
@@ -265,7 +287,7 @@ const ShopMap = ({
           iconSize: [24, 24],
           iconAnchor: [12, 12],
         }),
-      }).addTo(map);
+      }).addTo(dynamicLayer);
       userMarker.bindPopup("<strong style='color:#06b6d4;'>Your Location</strong>");
 
       // 1.5 km dashed cyan circle vector
@@ -276,7 +298,7 @@ const ShopMap = ({
         radius: CIRCLE_RADIUS_METERS,
         weight: 1.5,
         dashArray: "4 6",
-      }).addTo(map);
+      }).addTo(dynamicLayer);
     }
 
     // Shop Markers
@@ -298,11 +320,11 @@ const ShopMap = ({
           popupAnchor: [0, -44],
         });
 
-        const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(map);
+        const marker = Leaflet.marker([shop.latitude, shop.longitude], { icon }).addTo(dynamicLayer);
         marker.on("click", () => {
           onSelect(shop);
-          if (map) {
-            map.panTo([shop.latitude!, shop.longitude!], { animate: true });
+          if (mapInstanceRef.current && mapRef.current) {
+            mapInstanceRef.current.panTo([shop.latitude!, shop.longitude!], { animate: true });
           }
         });
 
@@ -326,7 +348,19 @@ const ShopMap = ({
       }
     });
 
-      // (Route is now drawn in a separate useEffect via OSRM — see above)
+    // (Route is now drawn separately via OSRM — see the route effect above.)
+
+    // Gently reveal the map once markers are first loaded (only once, on mount).
+    if (!hasPannedToShopsRef.current && mapRef.current && mapInstanceRef.current && activeShop) {
+      hasPannedToShopsRef.current = true;
+      const lat = activeShop.latitude || location?.latitude;
+      const lng = activeShop.longitude || location?.longitude;
+      if (typeof lat === "number" && typeof lng === "number") {
+        try {
+          mapInstanceRef.current.setView([lat, lng], mapInstanceRef.current.getZoom() || 13, { animate: true });
+        } catch { /* silent */ }
+      }
+    }
 
     const handleView = (e: any) => {
       const match = shops.find((s) => s.id === e.detail);
@@ -344,15 +378,9 @@ const ShopMap = ({
     return () => {
       window.removeEventListener("map-view-shop", handleView);
       window.removeEventListener("map-nav-shop", handleNav);
-      if (mapInstanceRef.current) {
-        try {
-          mapInstanceRef.current.stop();
-          mapInstanceRef.current.off();
-          mapInstanceRef.current.remove();
-        } catch (err) {
-          // silent
-        }
-        mapInstanceRef.current = null;
+      if (dynamicLayerRef.current && mapRef.current) {
+        try { map.removeLayer(dynamicLayerRef.current); } catch { /* silent */ }
+        dynamicLayerRef.current = null;
       }
     };
   }, [locationGranted, location, activeShop, filteredShops, onSelect, onViewShop]);
@@ -360,7 +388,7 @@ const ShopMap = ({
   // Center map on active shop when selection changes
   const handleSelectShop = (shop: ShopSearchResult) => {
     onSelect(shop);
-    if (mapInstanceRef.current && typeof shop.latitude === "number" && typeof shop.longitude === "number") {
+    if (mapInstanceRef.current && mapRef.current && typeof shop.latitude === "number" && typeof shop.longitude === "number") {
       mapInstanceRef.current.panTo([shop.latitude, shop.longitude], { animate: true });
     }
   };
