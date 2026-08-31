@@ -29,38 +29,26 @@ const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ b
 // Shared custom easing for a smooth, refined upward slide.
 const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
 
-// Section shell: subtle upward slide + fade + gentle scale on scroll into view.
-const sectionVariants = {
-  hidden: { opacity: 0, y: 45, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.7, ease: REVEAL_EASE },
-  },
-};
+// Animate cleanly once and stay settled: avoids re-running/re-rendering on
+// scroll up/down while still triggering on the first time each section enters view.
+const REVEAL_VIEWPORT = { once: true, amount: 0.15 };
 
-// Parent container that staggers its children sequentially.
-const containerStagger = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
-  },
+// Detect small / mobile viewports to conditionally reduce animation complexity.
+const useIsMobile = (query = "(max-width: 767px)") => {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const handler = () => setIsMobile(mq.matches);
+    handler();
+    if (typeof mq.addEventListener === "function") mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+    return () => {
+      if (typeof mq.removeEventListener === "function") mq.removeEventListener("change", handler);
+      else mq.removeListener(handler);
+    };
+  }, [query]);
+  return isMobile;
 };
-
-// Individual child cards / headers / buttons reveal.
-const itemVariants = {
-  hidden: { opacity: 0, y: 24, scale: 0.98 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.55, ease: REVEAL_EASE },
-  },
-};
-
-// Standard re-triggering viewport options: re-runs when scrolling back into/out of view.
-const REVEAL_VIEWPORT = { once: false, amount: 0.2 };
 
 const LOCATION_STORAGE_KEY = "motolink_user_location";
 const LOCATION_ENABLED_KEY = "motolink_location_enabled";
@@ -101,6 +89,36 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   const [showAIChat, setShowAIChat] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
   const [navigateShop, setNavigateShop] = useState<ShopSearchResult | null>(null);
+
+  // Reduce animation complexity on small/mobile viewports (blur, distance, shadow).
+  const isMobile = useIsMobile();
+
+  // Section shell: upward slide + fade + gentle scale on scroll into view.
+  // Desktop uses longer travel; mobile uses a shorter, cheaper reveal for 60fps.
+  const sectionVariants = isMobile
+    ? {
+        hidden: { opacity: 0, y: 20, scale: 0.99 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: REVEAL_EASE, willChange: "transform, opacity" } },
+      }
+    : {
+        hidden: { opacity: 0, y: 45, scale: 0.98 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.7, ease: REVEAL_EASE, willChange: "transform, opacity" } },
+      };
+
+  // Parent container that staggers its children sequentially.
+  const containerStagger = { hidden: {}, visible: { transition: { staggerChildren: isMobile ? 0.06 : 0.12, delayChildren: 0.05 } } };
+
+  // Individual child cards / headers / buttons reveal (GPU-friendly transform+opacity only).
+  const itemVariants = isMobile
+    ? {
+        hidden: { opacity: 0, y: 12, scale: 0.99 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: REVEAL_EASE, willChange: "transform, opacity" } },
+      }
+    : {
+        hidden: { opacity: 0, y: 24, scale: 0.98 },
+        visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.55, ease: REVEAL_EASE, willChange: "transform, opacity" } },
+      };
+
 
   useEffect(() => {
     getPublicShops().then((shops) => {
@@ -245,16 +263,16 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
       >
         <HeroSlideshow>
           <div className="w-full max-w-4xl px-2 sm:px-0">
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08 }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.92] tracking-wide text-white drop-shadow-lg">
+          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.92] tracking-wide text-white drop-shadow-lg">
             Find Your
             <span className="block text-moto-accent">Motor Shop.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16 }} className="mx-auto mt-4 sm:mt-5 max-w-xl text-sm sm:text-base lg:text-lg text-slate-200 leading-relaxed">
-            Locate trusted motorcycle shops near you — services, parts, and mechanics across the Philippines.
+          <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-4 sm:mt-5 max-w-xl text-sm sm:text-base lg:text-lg text-slate-200 leading-relaxed">
+            Locate trusted motorcycle shops near you services, parts, and mechanics across the Philippines.
           </motion.p>
 
           {/* Hero CTA buttons */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24 }} className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto">
+          <motion.div initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24, willChange: "transform, opacity" }} className="mt-7 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto">
             <button onClick={() => scrollTo("map")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent px-6 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5">
               <MapPin size={16} />
               Explore Live Map
@@ -266,10 +284,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
 
           {/* Stats bar — compact responsive layout */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.32 }}
-            className="mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border border-slate-700/80 bg-slate-900/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0"
+            transition={{ duration: 0.5, delay: 0.32, willChange: "transform, opacity" }}
+            className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-slate-900/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0 ${isMobile ? "border-slate-800/60" : "border-slate-700/80 backdrop-blur-xl shadow-2xl"}`}
           >
             <div className="px-2 sm:px-4 flex-1">
               <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
@@ -328,11 +346,11 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
 
             <motion.div variants={itemVariants} className="grid gap-6 md:grid-cols-3">
               {[
-                { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you — filter by specialty and open now." },
+                { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you filter by specialty and open now." },
                 { number: "02", icon: CalendarCheck, title: "Book Instantly", description: "Connect with the shop and book your service or appointment right away." },
                 { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
               ].map((step) => (
-                <motion.div key={step.number} variants={itemVariants} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                <motion.div key={step.number} variants={itemVariants} style={{ contain: "content" }} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
                   <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-white/10">{step.number}</span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
                     <step.icon size={22} />
@@ -483,7 +501,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 { title: "Simple & Convenient", description: "Find and discover motor shops without the hassle." },
                 { title: "Built for Riders & Shops", description: "A platform designed to connect both sides of the motorcycle community." },
               ].map((item) => (
-                <div key={item.title} className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                <div key={item.title} style={{ contain: "content" }} className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{item.title.split(" ")[0].padEnd(2, " ")}</div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-100">{item.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-300">{item.description}</p>
@@ -507,7 +525,8 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           initial="hidden"
           whileInView="visible"
           viewport={REVEAL_VIEWPORT}
-          className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center shadow-lg shadow-moto-accent/5"
+          style={{ contain: "content" }}
+          className={`mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center ${isMobile ? "border-moto-accent/30" : "shadow-lg shadow-moto-accent/5"}`}
         >
           <motion.span variants={itemVariants} className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
             <Store size={28} />
@@ -529,7 +548,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           </motion.button>
           {isAuthenticated && (
             <motion.p variants={itemVariants} className="mt-4 text-sm text-slate-400">
-              Signed in as a customer — registering a new shop will start a
+              Signed in as a customer registering a new shop will start a
               separate Shop Owner account.
             </motion.p>
           )}
@@ -557,7 +576,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <h2 className="text-3xl font-bold text-slate-100">Connecting riders with motor shops.</h2>
             <p className="leading-7 text-slate-300">MotoLink is a location-based platform built to make it easier for motorcycle riders to discover motor shops and for shop owners to showcase their business online. We bridge the gap between riders looking for services and local shops looking for customers.</p>
           </motion.div>
-          <motion.div variants={itemVariants} className="grid gap-6 sm:grid-cols-2">
+          <motion.div variants={itemVariants} style={{ contain: "content" }} className="grid gap-6 sm:grid-cols-2">
             <div>
               <h3 className="text-lg font-semibold text-slate-100">For Riders</h3>
               <p className="mt-3 text-slate-300">Find nearby motor shops based on your location, view services, and connect with the shop that fits your needs. Whether you need repairs, maintenance, parts, or accessories, MotoLink helps you discover the right shop faster.</p>
@@ -567,7 +586,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <p className="mt-3 text-slate-300">Register your motor shop, create a business profile, and reach more riders in your area. Showcase your services, location, and contact details so customers can discover your shop easily.</p>
             </div>
           </motion.div>
-          <motion.div variants={itemVariants} className="rounded-2xl bg-moto-darker p-6 text-slate-300">
+          <motion.div variants={itemVariants} style={{ contain: "content" }} className="rounded-2xl bg-moto-darker p-6 text-slate-300">
             <p className="font-semibold text-slate-100">Why MotoLink works</p>
             <ul className="mt-4 space-y-2 list-disc pl-5 text-slate-300">
               <li>Showcase your business online and reach more customers.</li>
