@@ -92,14 +92,16 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
 
         {/* Desktop CTA / auth */}
         <div className="hidden items-center gap-3 md:flex">
-          {/* System status badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300 whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          {/* System status badge (dev/localhost only) */}
+          {typeof window !== "undefined" && window.location.hostname === "localhost" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300 whitespace-nowrap">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              </span>
+              System online
             </span>
-            System online
-          </span>
+          )}
           {isAuthenticated ? (
             onLogout && (
               <motion.button
