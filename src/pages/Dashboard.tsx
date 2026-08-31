@@ -119,7 +119,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           .eq("shop_id", user.shop_id),
         supabase
           .from("appointments")
-          .select("id, scheduled_date, scheduled_time, service_type, status, customer:users!customer_id (name, phone)")
+          .select("id, booking_id, scheduled_date, scheduled_time, service_type, status, customer:users!customer_id (name, phone)")
           .eq("shop_id", user.shop_id)
           .in("status", ["pending", "confirmed"])
           .order("scheduled_date", { ascending: true })

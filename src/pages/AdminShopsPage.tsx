@@ -110,7 +110,7 @@ const AdminShopsPage: React.FC = () => {
 
       const { data: appts, error: apptError } = await supabase
         .from("appointments")
-        .select("shop_id");
+        .select("shop_id, booking_id");
       if (apptError) throw apptError;
 
       const { data: customers, error: custError } = await supabase

@@ -8,6 +8,7 @@ import { X, CheckCircle, Wrench, Calendar, Clock, User } from "lucide-react";
 
 interface ReceiptData {
   id: string;
+  booking_id?: string;
   customer_id: string;
   service_type: string;
   scheduled_date: string;
@@ -104,7 +105,9 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   Receipt Number
                 </p>
                 <p className="font-display text-2xl text-slate-900 uppercase tracking-wide">
-                  #{receipt.id.substring(0, 8).toUpperCase()}
+                  {receipt.booking_id
+                    ? receipt.booking_id
+                    : `#${receipt.id.substring(0, 8).toUpperCase()}`}
                 </p>
                 <p className="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase mt-2">
                   Created: {new Date(receipt.created_at).toLocaleDateString()}

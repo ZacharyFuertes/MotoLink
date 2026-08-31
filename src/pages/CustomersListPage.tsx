@@ -99,7 +99,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
 
         let aptQuery = supabase
           .from("appointments")
-          .select("customer_id, total_amount, estimated_price")
+          .select("customer_id, booking_id, total_amount, estimated_price")
           .eq("status", "completed");
         if (user?.shop_id) aptQuery = aptQuery.eq("shop_id", user.shop_id);
         const { data: appointments } = await aptQuery;

@@ -448,3 +448,74 @@ export const sendServiceCompletionEmail = async (
 
   return { success: result.success, error: result.error };
 };
+
+// ─── Shop owner booking notification ──────────────────────────────────────────
+
+export interface OwnerBookingNotificationData {
+  shopId: string;
+  appointmentId: string;
+  customerName?: string;
+  serviceType?: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
+}
+
+/**
+ * Notify a shop owner (in-app bell) that a customer booked a new appointment.
+ * Looks up the owner for the shop and inserts a `notifications` row for them.
+ * RLS may block cross-user inserts from the customer context; failures are
+ * logged as warnings and never crash the booking flow.
+ */
+export const notifyOwnerOfNewAppointment = async (
+  data: OwnerBookingNotificationData
+): Promise<void> => {
+  try {
+    const { data: owner } = await supabase
+      .from("users")
+      .select("id")
+      .eq("role", "owner")
+      .eq("shop_id", data.shopId)
+      .maybeSingle();
+
+    if (!owner) {
+      console.warn(
+        `⚠️  No owner found for shop ${data.shopId}; skipping owner notification.`
+      );
+      return;
+    }
+
+    const details = [
+      data.customerName ? `New booking from ${data.customerName}.` : "New booking request.",
+      data.serviceType ? `Service: ${data.serviceType}.` : null,
+      data.scheduledDate || data.scheduledTime
+        ? `Schedule: ${[data.scheduledDate, data.scheduledTime]
+            .filter(Boolean)
+            .join(" ")}.`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const { error } = await supabase.from("notifications").insert([
+      {
+        recipient_id: owner.id,
+        appointment_id: data.appointmentId,
+        type: "booking",
+        subject: "New appointment request",
+        message: details,
+        status: "sent",
+        read: false,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    if (error) {
+      console.warn(
+        "⚠️  Could not notify shop owner of new appointment:",
+        error.message
+      );
+    }
+  } catch (err) {
+    console.warn("⚠️  Exception notifying shop owner:", err);
+  }
+};

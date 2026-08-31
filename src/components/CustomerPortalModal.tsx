@@ -54,7 +54,7 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
       // Fetch all appointment data for stats and spending
       const { data: appointments, error: aptError } = await supabase
         .from("appointments")
-        .select("id, status, total_amount, estimated_price")
+        .select("id, booking_id, status, total_amount, estimated_price")
         .eq("customer_id", user.id);
 
       if (!aptError && appointments) {

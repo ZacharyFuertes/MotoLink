@@ -19,6 +19,7 @@ import { supabase } from "../services/supabaseClient";
 
 interface ServiceRecord {
   id: string;
+  booking_id?: string;
   service_type: string;
   description?: string;
   scheduled_date: string;
@@ -84,7 +85,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
       // Fetch all appointments (completed, in_progress, cancelled)
       const { data: appointments, error: aptErr } = await supabase
         .from("appointments")
-        .select("id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price")
+        .select("id, booking_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price")
         .eq("customer_id", user.id)
         .in("status", ["completed", "cancelled", "confirmed", "pending"])
         .order("scheduled_date", { ascending: false });
@@ -130,6 +131,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
         const inv = job ? invoices.find((i) => i.job_order_id === job.id) : null;
         return {
           id: apt.id,
+          booking_id: apt.booking_id,
           service_type: apt.service_type,
           description: apt.description,
           scheduled_date: apt.scheduled_date,
@@ -302,6 +304,11 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
 
                           <div>
                             <h4 className="font-display text-xl text-slate-900 uppercase leading-none mb-3 group-hover:text-slate-700 transition-colors">{record.service_type}</h4>
+                            {record.booking_id && (
+                              <p className="text-[10px] tracking-widest font-bold text-slate-400 uppercase mb-2">
+                                Ref: {record.booking_id}
+                              </p>
+                            )}
                             <div className="flex flex-col gap-2">
                               <span className="flex items-center gap-2 text-slate-500 text-[10px] tracking-widest font-bold uppercase">
                                 <Calendar size={12} className="text-slate-500" />

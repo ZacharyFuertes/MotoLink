@@ -18,6 +18,7 @@ import AccessDenied from "./components/AccessDenied";
 import Dashboard from "./pages/Dashboard";
 import AdminPlatformDashboard from "./pages/AdminPlatformDashboard";
 import AdminShopsPage from "./pages/AdminShopsPage";
+import AdminAppointmentsPage from "./pages/AdminAppointmentsPage";
 import OwnerPlatformDashboard from "./pages/OwnerPlatformDashboard";
 import InventoryPage from "./pages/InventoryPage";
 import AppointmentCalendarPage from "./pages/AppointmentCalendarPage";
@@ -329,6 +330,18 @@ const AppContent: React.FC = () => {
               closeShopDetail();
               handleOpenLogin();
             }}
+            onAuthRequired={(mode) => {
+              localStorage.setItem(
+                "motolink_selected_shop_id",
+                viewingShopId,
+              );
+              setSelectedShopId(viewingShopId);
+              closeShopDetail();
+              setLoginCompleted(false);
+              setCurrentLoginType(
+                mode === "signup" ? "customer-signup" : "customer",
+              );
+            }}
           />
         ) : currentLoginType === "landing" ? (
           <MotolinkLanding
@@ -485,6 +498,7 @@ const AppContent: React.FC = () => {
   const adminLayoutPages = [
     "admin-dashboard",
     "admin-shops",
+    "admin-appointments",
     "settings",
   ];
   const isAdminLayout = isAdminRole && adminLayoutPages.includes(currentPage);
@@ -560,6 +574,9 @@ const AppContent: React.FC = () => {
         >
           {currentPage === "admin-shops" && (
             <AdminShopsPage />
+          )}
+          {currentPage === "admin-appointments" && (
+            <AdminAppointmentsPage />
           )}
           {currentPage === "settings" && (
             <SettingsPage

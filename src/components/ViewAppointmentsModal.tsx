@@ -18,6 +18,7 @@ import BookAppointmentModal from "./BookAppointmentModal";
 
 interface AppointmentItem {
   id: string;
+  booking_id?: string;
   scheduled_date: string;
   scheduled_time: string;
   service_type: string;
@@ -129,6 +130,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
 
       const enriched: AppointmentItem[] = (aptData || []).map((apt: any) => ({
         id: apt.id,
+        booking_id: apt.booking_id,
         scheduled_date: apt.scheduled_date,
         scheduled_time: apt.scheduled_time,
         service_type: apt.service_type,
@@ -360,6 +362,11 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                             <h4 className="font-display text-xl text-slate-100 uppercase leading-none mb-4 group-hover:text-moto-accent transition-colors tracking-[0.1em]">
                               {apt.service_type}
                             </h4>
+                            {apt.booking_id && (
+                              <p className="text-[10px] font-bold tracking-[0.2em] text-moto-accent/80 uppercase mb-2">
+                                Ref: {apt.booking_id}
+                              </p>
+                            )}
                             <div className="flex flex-col gap-3">
                               <span className="flex items-center gap-3 text-slate-400 text-[10px] tracking-[0.12em] font-bold uppercase">
                                 <Calendar

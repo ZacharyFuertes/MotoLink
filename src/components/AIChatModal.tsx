@@ -125,7 +125,7 @@ async function fetchCustomerContext(
 
     const { data: appointments } = await supabase
       .from("appointments")
-      .select("service_type, status, scheduled_date")
+      .select("booking_id, service_type, status, scheduled_date")
       .eq("customer_id", userId)
       .order("scheduled_date", { ascending: false })
       .limit(5);

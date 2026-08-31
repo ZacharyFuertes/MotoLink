@@ -6046,6 +6046,318 @@ For issues or questions about compatibility checking:
 
 ---
 
-**Last Updated**: May 5, 2026
+## TASK LOG — End-to-End Book Now + Admin Appointments Page
+
+Date: Aug 31, 2026
+
+### Goal
+Make the ShopDetailPage "Book Now" button fully end-to-end (writes to the `appointments` table, notifies the shop owner, and reflects platform-wide on a new Admin Appointments page).
+
+### What was found
+- ShopDetailPage previously had its OWN inline booking modal that only stored the customer's selection in local React state (an `AppointmentDraft`) — it never wrote to the `appointments` table.
+- There is a reusable `BookAppointmentModal` that DOES correctly `INSERT` into `appointments` (customer_id, shop_id, scheduled_date, scheduled_time, service_type, description, status="pending", mechanic_id, notes, estimated_price).
+- There was NO owner notification on new booking, and the admin sidebar had NO Appointments page (admin = Dashboard/Shops/Settings only).
+
+### Changes (files/lines)
+1. **`src/pages/ShopDetailPage.tsx`**
+   - Imported `BookAppointmentModal` (line 10).
+   - Simplified `openBooking()` (line 263) to just open the modal; it still no-ops when `shop.is_open === false`.
+   - Both Book Now buttons (desktop line ~831, mobile sticky line ~860) now call `openBooking` and stay `disabled` when `shop.is_open === false`.
+   - Replaced the entire inline booking modal (previously lines ~979-1216) with `<BookAppointmentModal isOpen={showBookingModal} onClose={...} shopId={shopId} />` (lines 868-873).
+   - Removed now-unused inline modal state/helpers: `AppointmentDraft`, `appointment`, `bookingMechanic`, `modalServices/modalMake/modalModel/modalYear`, make/model suggestions state, `toggleModalService`, `modalTotal`, `handleMakeChange/SelectMake/ModelChange/SelectModel`, `canConfirmBooking`, `confirmBooking`, `inputClass`; dropped `filterPhMakes/filterPhModels` and `X`/`Check` icon imports.
+   - `status` is hardcoded to `"pending"` inside BookAppointmentModal — booking INSERT includes all required fields.
+
+2. **`src/components/BookAppointmentModal.tsx`**
+   - Imported `notifyOwnerOfNewAppointment` (line 21).
+   - Called it after a successful appointment INSERT (line ~484) with shopId, appointmentId, customer name, service type, date, time. Best-effort — RLS may block the cross-user owner notification row; failures are logged as warnings and never break the booking.
+
+3. **`src/services/notificationService.ts`**
+   - Added `OwnerBookingNotificationData` interface (line 454) and `notifyOwnerOfNewAppointment()` (line 469): looks up the shop owner (`role=owner`, matching `shop_id`), inserts an in-app `notifications` row (recipient_id, appointment_id, type "booking", subject, message, status "sent", read=false) so it shows in the owner's bell.
+
+4. **`src/utils/roleAccess.ts`**
+   - Added `admin-appointments` to the `AppPage` union (line 8) and to the admin allowed pages (line 43).
+
+5. **`src/pages/AdminPlatformDashboard.tsx`**
+   - Added `{ id: "admin-appointments", label: "Appointments", icon: Calendar }` to the admin sidebar (line 162).
+
+6. **`src/pages/AdminAppointmentsPage.tsx`** (NEW file)
+   - Cross-shop (unscoped) appointments list for admins: joins shop + customer names, status filter tabs (All/Pending/Confirmed/In Progress/Completed/Declined/Cancelled), search input, realtime refresh via `postgres_changes` on `appointments`, dark "moto" theme (bg-moto-darker/dark, moto-accent teal accent, moto-gray borders, status pills).
+
+7. **`src/App.tsx`**
+   - Imported `AdminAppointmentsPage` (line 21).
+   - Added `admin-appointments` to `adminLayoutPages` (line 489).
+   - Injected `<AdminAppointmentsPage />` in the admin layout children when `currentPage === "admin-appointments"` (lines 566-568).
+
+### Notes
+- Query scoping: the new admin page is intentionally UNscoped (platform-wide). Owner-side queries (AppointmentCalendarPage) remain scoped by `user.shop_id`. This preserves the existing multi-tenant isolation (owners see their own shop's appointments; admin sees all).
+- RLS: shop owner booking notifications may be blocked by row-level security if the live `notifications` policy only allows a user to create rows for themselves (`auth.uid() = recipient_id`). The function degrades gracefully (logs a warning, does not affect the booking). A DB trigger or service-role insert would be needed to guarantee delivery.
+- The `COMPLETE_DATABASE_SCHEMA.sql` / `MOTOLINK_ERD_SCHEMA.sql` files are stale/divergent (they describe a `bookings` table and old `notifications` columns). The live runtime uses the `appointments` table with the columns referenced above.
+
+### Verification
+- `npx tsc --noEmit` passes.
+- `npm run build` passes (Vite + Tailwind), warnings are pre-existing chunk-size only.
+
+---
+
+## TASK LOG — Human-Readable booking_id (server-generated)
+
+Date: Aug 31, 2026
+
+### Goal
+Give every appointment a short, human-readable `booking_id` so customers, owners, and admins can reference a booking by a simple code instead of a UUID. Generate it **server-side** so it is created exactly once, at the moment the appointment row is actually written.
+
+### Design decision
+- Format: `MTL-YYYYMMDD-XXXXXX` — `MTL` prefix + booking's scheduled date + a unique 6-char uppercase hex suffix.
+- The suffix is deterministically derived from the appointment's own `id` UUID (`substr(replace(id,'-',''),6,6)`), guaranteeing uniqueness forever without any client involvement and without extra per-date sequences/concurrency concerns.
+- Generation happens in a `BEFORE INSERT` trigger: it fires exactly once per successful insert and is never skipped on failed submissions or generated twice.
+
+### Changes (files/lines)
+1. **`supabase/migrations/20260831_add_booking_id_to_appointments.sql`** (NEW)
+   - `ALTER TABLE appointments ADD COLUMN booking_id VARCHAR(40)` (nullable first).
+   - Backfills existing rows from the existing UUID.
+   - Adds unique index + `SET NOT NULL`.
+   - Creates `generate_appointment_booking_id()` function + `trg_appointment_generate_booking_id` BEFORE INSERT trigger (server-side generation).
+   - Apply manually via Supabase SQL Editor (matches existing migration workflow).
+
+2. **`src/types/index.ts`**
+   - Added `booking_id?: string` to the base `Appointment` interface (line ~59).
+
+3. **`src/components/BookAppointmentModal.tsx`**
+   - New `lastBookingId` state (line 155); reset on close (success/bookingId); set from the returned row after INSERT (line ~485).
+   - `appointmentData` now explicitly includes `booking_id` so it flows to the ReceiptModal.
+   - Success screen now shows a "Booking Reference" panel with `lastBookingId`.
+
+4. **`src/components/ReceiptModal.tsx`**
+   - `ReceiptData` gained `booking_id?` (line 11); receipt number shows `booking_id` when present, else falls back to truncated UUID.
+
+5. **`src/pages/AdminAppointmentsPage.tsx`** — added a "Booking ID" first column (interface field + `<th>` + `<td>`).
+
+6. **`src/pages/AppointmentCalendarPage.tsx`** — owner cards show `booking_id` as a tag; imported `Tag` from lucide.
+
+7. **`src/components/ViewAppointmentsModal.tsx`** — interface + enrichment map + "Ref:" line on each appointment card.
+
+8. **`src/components/ServiceHistoryModal.tsx`** — interface + select() + mapping + "Ref:" line on each service record.
+
+9. **booking_id added to `select()` of other appointment readers:** AIChatModal, AdminPlatformDashboard, Dashboard (recent list), CustomerPortalModal, AdminShopsPage, CustomersListPage. (AdminChatbot / select("*") files already return it automatically.)
+
+### Notes
+- The `notify_shop_owner_on_appointment` trigger in the live DB already sends the owner notification server-side; the client-side `notifyOwnerOfNewAppointment` (from the prior task) is best-effort and harmless (may add a customer name).
+- booking_id is returned automatically by PostgREST via `INSERT ... RETURNING`, so `.insert().select()` in BookAppointmentModal picks it up with no extra query.
+- RLS/`shop_id` scoping untouched; this migration only adds a column + index + trigger.
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes (Vite + Tailwind); only the pre-existing chunk-size warning.
+
+---
+
+## TASK LOG — Guest booking gate (Sign-Up To Confirm Your Booking)
+
+Date: Aug 31, 2026
+
+### Goal
+Prevent unauthenticated guests from writing to `appointments`. When a guest reaches the final
+"Confirm" step of the booking modal, show an inline "SIGN-UP TO CONFIRM YOUR BOOKING" notice
+with **Sign Up** / **Log In** buttons instead of submitting. Preserve the guest's in-progress
+selections (service, mechanic, date/time, vehicle, notes, parts) and resume them at the confirm
+step, pre-filled, once they authenticate.
+
+### Root cause this addresses
+- Previously, a guest on `ShopDetailPage` could open the booking modal, complete all steps, and
+  click **Confirm** — which silently hit `handleSubmit`'s `if (!user?.id) return;` and did
+  nothing (no error shown). Guests could reach the modal because ShopDetailPage's Book Now opens
+  its own `BookAppointmentModal` regardless of auth state.
+
+### Changes (files/lines)
+1. **`src/components/BookAppointmentModal.tsx`**
+   - Added optional prop `onAuthRequired?: (mode: "login" | "signup") => void` (interface +
+     destructure).
+   - Pulled `isAuthenticated` from `useAuth()`.
+   - Added `PENDING_BOOKING_KEY` constant + `savePendingBooking()` / `restorePendingBooking()`
+     (snapshot service/price/mechanic/date/time/vehicle/notes/parts to `sessionStorage`, restore
+     and jump to step 3 on open) + `requireAuth(mode)` which saves then calls `onAuthRequired`.
+   - At confirm step, when `!isAuthenticated`, the footer shows **Sign Up**/**Log In** buttons
+     instead of CONFIRM; added an explanatory banner in the step-3 content. Authenticated flow is
+     unchanged (CONFIRM → submit → insert).
+
+2. **`src/pages/ShopDetailPage.tsx`**
+   - Added `onAuthRequired` prop, destructured it, and passed it through to its
+     `BookAppointmentModal` (line ~874).
+
+3. **`src/App.tsx`**
+   - Guest `ShopDetailPage` now receives `onAuthRequired`: saves `motolink_selected_shop_id`,
+     sets `selectedShopId`, `closeShopDetail()`, resets `loginCompleted`, and sets
+     `currentLoginType` to `"customer-signup"` (Sign Up) or `"customer"` (Log In). The existing
+     `handleLoginSuccess` then reopens the App-level booking modal, whose `restorePendingBooking`
+     brings the user back to a pre-filled confirm step.
+
+### Defense in depth (RLS)
+- No schema change needed. `supabase/schema.sql` policy "Customers can create own appointments"
+  uses `WITH CHECK (auth.uid() = customer_id)`. A guest has no session, so `auth.uid()` is NULL
+  and the check fails → RLS rejects the insert even if the UI guard were bypassed. This is in
+  addition to the UI gate and the existing `if (!user?.id) return;` guard in `handleSubmit`.
+- Note: `LoginChoicePage.tsx` is currently dead code (defined, never rendered). Customer signup
+  (`currentLoginType === "customer-signup"`) was previously unreachable; this task now sets it for
+  the Sign Up path.
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes (Vite + Tailwind); only the pre-existing chunk-size warning.
+- Manual test plan: (a) guest completes booking → Confirm shows gate → Sign Up/Log In → after auth,
+  modal reopens at step 3 pre-filled → Confirm inserts; (b) logged-in customer Confirm inserts
+  immediately with no gate.
+
+---
+
+## TASK LOG — Stale shop services/parts in booking modal (data-freshness fix)
+
+Date: Aug 31, 2026
+
+### Goal
+Fix stale `services_pricing` data in `BookAppointmentModal.tsx`. A newly added/edited service
+for a shop didn't show when the customer opened that shop's "Book Now" modal until a page
+refresh or a second "Book Now" click.
+
+### Root cause
+- The booking modal is **always mounted** in the tree (rendered unconditionally, only toggled via
+  the `isOpen` prop — e.g. `App.tsx` and `ShopDetailPage.tsx` render `<BookAppointmentModal isOpen=... />`
+  without `{isOpen && ...}`), so it does NOT unmount/remount on reopen.
+- `fetchServices()` and `fetchAvailableParts()` both guard `if (!defaultShopId) return;`, and
+  `defaultShopId` is resolved **asynchronously** inside `fetchMechanics()` (a React `setState`).
+- The `isOpen` effect called `fetchMechanics()` then `fetchServices()` synchronously in the same
+  tick. On the **first** open, `defaultShopId` was still `""` when `fetchServices` ran, so it
+  early-returned and the modal kept stale/static `SERVICE_TYPES`. On a **second** open,
+  `defaultShopId` was already populated, so the fetch worked — matching the "second click fixes it"
+  symptom.
+- `fetchAvailableParts()` was keyed only on `[defaultShopId]` (not `isOpen`), so parts also went
+  stale across reopens.
+
+### Changes (file/lines)
+1. **`src/components/BookAppointmentModal.tsx`**
+   - `isOpen` effect (line ~219): still calls `fetchMechanics()`, `fetchVehicles()`,
+     `checkActiveAppointment()`, `restorePendingBooking()` on open. Removed `fetchServices()` from
+     here (it belongs to the `defaultShopId`-gated effect).
+   - Added a new effect keyed on `[isOpen, defaultShopId, shopId]` that calls `fetchServices()` +
+     `fetchAvailableParts()` when `isOpen && defaultShopId`. This fires once `defaultShopId` resolves
+     (fixing the first-open ordering bug), refires on every reopen (`isOpen` toggles), and refires on
+     shop change (`shopId`/`defaultShopId` change). It does not refetch on plain re-renders.
+   - Removed the old `[defaultShopId]`-only parts effect (folded into the new one).
+   - Item 6 (reset leftover selections): already covered by the existing reset-on-close effect
+     (resets step + services + mechanic + date/time + vehicle + notes + parts + success/error when
+     `!isOpen`), so no cross-shop selection leakage.
+
+### Notes
+- `fetchBookedSlots()` / `fetchMechanicAvailability()` are keyed on `[selectedDate, selectedMechanic]`
+  and fetch data tied to the current selection, so they refetch correctly on selection change — no
+  change needed.
+- No booking flow/layout/theme changes. Authenticated and guest behavior otherwise unchanged.
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes (Vite + Tailwind); only the pre-existing chunk-size warning.
+- Manual test plan: add/edit a service for a shop, then open that shop's "Book Now" modal without
+  refreshing — the new/updated service appears on first open.
+
+---
+
+## TASK LOG — Booking modal visual polish & animation pass
+
+Date: Aug 31, 2026
+
+### Goal
+Styling/UX-only pass on `BookAppointmentModal.tsx` (and the booking flow launched from
+ShopDetailPage's "Book Now"). No booking logic/steps/validation/data flow changed.
+
+### Context / audit findings
+- The modal was **entirely slate** (`slate-900` primary, no violet, no emerald), even though the
+  rest of the app's owner/booking-adjacent surfaces (AdminServicesPage, AdminPlatformDashboard)
+  already use **violet** accents and **emerald** for success/completed states.
+- Framer Motion (`motion`, `AnimatePresence`) was already imported and used (modal open/close,
+  step slide transitions, error banners) — reused it, added no new animation library.
+- **Bug fixed opportunistically:** `if (!isOpen) return null;` meant the modal unmounted instantly
+  on close, so the `AnimatePresence` exit animation never actually played. Restructured so the
+  tree renders only when `isOpen` inside `AnimatePresence`, making the close animation work.
+
+### Changes (file: `src/components/BookAppointmentModal.tsx`)
+- **Theme aligned** with app palette:
+  - Primary buttons (NEXT, Sign Up, CONFIRM, DONE) and selected states now use **violet**:
+    `bg-violet-600 hover:bg-violet-700`, selected cards `bg-violet-50 border-violet-600`,
+    selected accents `text-violet-700`, check marks `bg-violet-600`, focused selected indicators.
+  - Success/completed now use **emerald**: success icon `bg-emerald-500`, booking-reference box
+    `bg-emerald-50 border-emerald-200 text-emerald-600/700`, completed steps emerald.
+  - Panel top border accent `border-t-violet-600`.
+- **Step indicator** upgraded to the wizard pattern used elsewhere: numbered circles with
+  connector lines; completed = emerald + Check (`lucide` `Check`), current = violet (+ scale pop),
+  upcoming = slate-300; step label colors match state.
+- **Animations (150–300ms, spring-based):**
+  - Modal open/close: fade + scale/slide (already present) plus working exit (see bug fix).
+  - Step content transitions: retained `AnimatePresence mode="wait"` slide/fade.
+  - Service cards, date pills, time slots: `motion.button` with `whileTap` scale + spring
+    `animate` scale on selection; service check mark pops in.
+  - Part cards: `motion.div` with background transition on selection.
+  - Confirm/submit button: `whileTap` scale, violet, and an inline spinning loader while
+    `submitting` ("PROCESSING...").
+  - Success screen: spring pop-in check circle + fade/rise entrance, violet DONE button.
+- **Loading state:** parts spinner recolored to violet (was slate-900).
+
+### Preserved / not changed
+- Guest sign-up banner kept as a dark `slate-900` informational panel (does not clash with the
+  new violet accent).
+- Closed-shop banner, disabled states, guest/sign-up flow, and all booking logic unchanged.
+- Responsive shell preserved: `items-end sm:items-center` bottom-sheet on mobile,
+  `h-[95vh] sm:h-auto` sizing.
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes; only the pre-existing chunk-size warning.
+- Manual check: open modal (fade+slide in), walk all 4 steps (connector/emerald/violet progress),
+  select services/dates/times (scale + violet), submit (spinner + emerald success pop), close
+  (slide-out).
+
+---
+
+## TASK LOG — Booking receipt: save/screenshot tip + Copy button
+
+Date: Aug 31, 2026
+
+### Goal
+Copy/UI-only addition to the "Appointment Booked" confirmation (success) state of
+`BookAppointmentModal.tsx`. Help the customer retain their Booking ID for the shop counter.
+No booking-ID generation, layout structure, or Done-button behavior changed.
+
+### Changes (file: `src/components/BookAppointmentModal.tsx`)
+- **Copy button** on the Booking Reference card (`booking_id`, format `MTL-YYYYMMDD-XXXXXX`):
+  - Added `navigator.clipboard` copy via new `copyBookingId()` handler (writes `lastBookingId`,
+    shows transient "Copied" check for 2s, silently no-ops if clipboard unavailable).
+  - New `copied` boolean state, cleared on modal close (`setCopied(false)` in the reset-on-close
+    effect).
+  - Inline `motion.button` ("Copy"/"Copied" + `Copy`/`Check` lucide icons) beside the booking
+    code, styled with the existing emerald reference-card treatment (`border-emerald-300`,
+    `text-emerald-700`, `hover:bg-emerald-100`), `whileTap` feedback.
+  - Added `Copy` and `Camera` to the lucide import list.
+- **Helpful note** below the confirmation sentence:
+  - Camera icon (`Camera`, slate-400) + slate-500 muted text:
+    "Please save this Booking ID or take a screenshot — you'll need to show it at the shop
+    counter when you arrive."
+  - Styled as a subtle tip (slate-500/600, `font-light`, centered, `max-w-md`), NOT an
+    error/warning — does not clash with the emerald success theme.
+
+### Scope / preserved
+- Note + copy button appear **only** on the success/confirmation screen — nowhere else in the
+  booking flow.
+- Booking-ID generation logic, layout structure, and DONE button behavior untouched.
+- Responsive: text uses `max-w-md` + leading-relaxed and wraps on mobile; copy button flexes
+  inline with the code.
+
+### Verification
+- `npx tsc --noEmit` passes (exit 0).
+- `npm run build` passes; only the pre-existing chunk-size warning.
+- Manual check: after confirming, Booking Reference shows code + Copy; clicking Copy shows
+  "Copied", clipboard contains the ID; the camera tip renders below the confirmation text and
+  wraps on narrow screens.
+
+---
+
+**Last Updated**: Aug 31, 2026
 **Compatibility Version**: 1.0
 

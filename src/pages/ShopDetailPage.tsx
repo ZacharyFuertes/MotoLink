@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, X, Check, Navigation, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
+import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
 import { getShopGallery, ShopPhoto } from "../services/galleryService";
 import { Shop } from "../types/shop";
-import { filterPhMakes, filterPhModels } from "../utils/vehicleData";
 import NavigationModal from "../components/NavigationModal";
+import BookAppointmentModal from "../components/BookAppointmentModal";
 
 interface ShopDetailPageProps {
   shopId: string;
   onBack: () => void;
   onConnect?: (shopId: string) => void;
+  onAuthRequired?: (mode: "login" | "signup") => void;
 }
 
 interface ShopProduct {
@@ -37,14 +38,6 @@ interface ShopService {
   icon: string | null;
   price: number;
   is_active: boolean;
-}
-
-interface AppointmentDraft {
-  mechanic: ShopMechanic;
-  services: ShopService[];
-  make: string;
-  model: string;
-  year: string;
 }
 
 interface DaySchedule {
@@ -145,24 +138,18 @@ const productFallbackIcon = (label: string) => {
 
 
 
-const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
+const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
+  shopId,
+  onBack,
+  onAuthRequired,
+}) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [mechanics, setMechanics] = useState<ShopMechanic[]>([]);
   const [services, setServices] = useState<ShopService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [appointment, setAppointment] = useState<AppointmentDraft | null>(null);
-  const [bookingMechanic, setBookingMechanic] = useState<ShopMechanic | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [modalServices, setModalServices] = useState<ShopService[]>([]);
-  const [modalMake, setModalMake] = useState("");
-  const [modalModel, setModalModel] = useState("");
-  const [modalYear, setModalYear] = useState("");
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [activeTab, setActiveTab] = useState<"services" | "mechanics" | "products">("services");
   const [gallery, setGallery] = useState<ShopPhoto[]>([]);
@@ -278,93 +265,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
     }
   };
 
-  const openBooking = (mech: ShopMechanic) => {
+  const openBooking = () => {
     if (shop?.is_open === false) return;
-    setBookingMechanic(mech);
-    if (appointment && appointment.mechanic.id === mech.id) {
-      setModalServices(appointment.services);
-      setModalMake(appointment.make);
-      setModalModel(appointment.model);
-      setModalYear(appointment.year);
-    } else {
-      setModalServices([]);
-      setModalMake("");
-      setModalModel("");
-      setModalYear("");
-    }
-    setMakeSuggestions([]);
-    setShowMakeSuggestions(false);
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
     setShowBookingModal(true);
-  };
-
-  const toggleModalService = (svc: ShopService) => {
-    setModalServices((prev) =>
-      prev.some((s) => s.id === svc.id)
-        ? prev.filter((s) => s.id !== svc.id)
-        : [...prev, svc],
-    );
-  };
-
-  const modalTotal = modalServices.reduce(
-    (sum, svc) => sum + (Number(svc.price) || 0),
-    0,
-  );
-
-  const handleMakeChange = (value: string) => {
-    setModalMake(value);
-    setModalModel("");
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-    if (value.trim()) {
-      setMakeSuggestions(filterPhMakes(value));
-      setShowMakeSuggestions(true);
-    } else {
-      setMakeSuggestions([]);
-      setShowMakeSuggestions(false);
-    }
-  };
-
-  const handleSelectMake = (make: string) => {
-    setModalMake(make);
-    setMakeSuggestions([]);
-    setShowMakeSuggestions(false);
-    setModalModel("");
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
-  const handleModelChange = (value: string) => {
-    setModalModel(value);
-    if (value.trim() && modalMake) {
-      setModelSuggestions(filterPhModels(modalMake, value));
-      setShowModelSuggestions(true);
-    } else {
-      setModelSuggestions([]);
-      setShowModelSuggestions(false);
-    }
-  };
-
-  const handleSelectModel = (model: string) => {
-    setModalModel(model);
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
-  const canConfirmBooking =
-    modalServices.length > 0 && modalMake.trim() !== "" && modalModel.trim() !== "";
-
-  const confirmBooking = () => {
-    if (!bookingMechanic || !canConfirmBooking) return;
-    setAppointment({
-      mechanic: bookingMechanic,
-      services: modalServices,
-      make: modalMake.trim(),
-      model: modalModel.trim(),
-      year: modalYear.trim(),
-    });
-    setShowBookingModal(false);
   };
 
   if (loading) {
@@ -398,9 +301,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
       </div>
     );
   }
-
-  const inputClass =
-    "w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition";
 
   const hasCoords =
     typeof shop.latitude === "number" && typeof shop.longitude === "number";
@@ -933,10 +833,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
             </div>
             <button
               type="button"
-              onClick={() => {
-                const mechanic = mechanics.find((m) => mechanicProfile(m.id).available) || mechanics[0];
-                if (mechanic) openBooking(mechanic);
-              }}
+              onClick={openBooking}
               disabled={shop.is_open === false}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -965,10 +862,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
         </div>
         <button
           type="button"
-          onClick={() => {
-            const mechanic = mechanics.find((m) => mechanicProfile(m.id).available) || mechanics[0];
-            if (mechanic) openBooking(mechanic);
-          }}
+          onClick={openBooking}
           disabled={shop.is_open === false}
           className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -977,243 +871,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ shopId, onBack }) => {
       </motion.div>
 
       {/* Booking Modal */}
-      <AnimatePresence>
-        {showBookingModal && bookingMechanic && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowBookingModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 30 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 30 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/60 flex flex-col"
-            >
-              {/* Modal header */}
-              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800 bg-slate-900/60 backdrop-blur">
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-slate-700 ring-1 ring-cyan-500/30 flex items-center justify-center text-cyan-300 font-bold text-sm uppercase">
-                    {bookingMechanic.name.slice(0, 1)}
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                      Book with
-                    </p>
-                    <h2 className="font-display text-xl text-white uppercase tracking-wide">
-                      {bookingMechanic.name}
-                    </h2>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowBookingModal(false)}
-                  className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Modal body */}
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-                {/* Services */}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    Select services ({modalServices.length} selected)
-                  </p>
-                  {services.length === 0 ? (
-                    <p className="text-slate-400 text-sm">
-                      This shop has no services listed yet.
-                    </p>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {services.map((svc) => {
-                        const isSelected = modalServices.some(
-                          (s) => s.id === svc.id,
-                        );
-                        return (
-                          <button
-                            key={svc.id}
-                            type="button"
-                            onClick={() => toggleModalService(svc)}
-                            className={`w-full flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition ${
-                              isSelected
-                                ? "border-cyan-500/40 bg-cyan-500/10"
-                                : "border-slate-800 bg-slate-900/60 hover:border-slate-600"
-                            }`}
-                          >
-                            <div className="min-w-0">
-                              <p className="text-slate-100 font-bold text-sm uppercase tracking-wider">
-                                {svc.label}
-                              </p>
-                              {svc.description && (
-                                <p className="text-slate-400 text-xs mt-0.5 line-clamp-1">
-                                  {svc.description}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="text-cyan-400 font-extrabold text-lg tabular-nums">
-                                ₱{(Number(svc.price) || 0).toLocaleString()}
-                              </span>
-                              <span
-                                className={`w-5 h-5 rounded-md border flex items-center justify-center transition ${
-                                  isSelected
-                                    ? "bg-cyan-500 border-cyan-500 text-slate-950"
-                                    : "border-slate-700 text-transparent"
-                                }`}
-                              >
-                                <Check size={14} />
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Motorcycle */}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-                    Your motorcycle
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="relative">
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
-                        Make
-                      </label>
-                      <input
-                        type="text"
-                        value={modalMake}
-                        onChange={(e) => handleMakeChange(e.target.value)}
-                        onFocus={() =>
-                          modalMake && setShowMakeSuggestions(true)
-                        }
-                        placeholder="e.g. Honda, Yamaha"
-                        className={inputClass}
-                      />
-                      <AnimatePresence>
-                        {showMakeSuggestions &&
-                          makeSuggestions.length > 0 && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-800 max-h-48 overflow-y-auto z-20 rounded-xl shadow-xl shadow-black/40"
-                            >
-                              {makeSuggestions.map((make) => (
-                                <button
-                                  key={make}
-                                  type="button"
-                                  onClick={() => handleSelectMake(make)}
-                                  className="w-full text-left px-4 py-2 hover:bg-cyan-500/10 text-slate-100 text-xs font-medium tracking-widest uppercase transition border-b border-slate-800 last:border-b-0"
-                                >
-                                  {make}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                    </div>
-                    <div className="relative">
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
-                        Model
-                      </label>
-                      <input
-                        type="text"
-                        value={modalModel}
-                        onChange={(e) => handleModelChange(e.target.value)}
-                        onFocus={() =>
-                          modalModel && modalMake && setShowModelSuggestions(true)
-                        }
-                        placeholder={
-                          modalMake ? "Type model name..." : "Select make first"
-                        }
-                        disabled={!modalMake}
-                        className={inputClass}
-                      />
-                      <AnimatePresence>
-                        {showModelSuggestions &&
-                          modelSuggestions.length > 0 && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-800 max-h-48 overflow-y-auto z-20 rounded-xl shadow-xl shadow-black/40"
-                            >
-                              {modelSuggestions.map((model) => (
-                                <button
-                                  key={model}
-                                  type="button"
-                                  onClick={() => handleSelectModel(model)}
-                                  className="w-full text-left px-4 py-2 hover:bg-cyan-500/10 text-slate-100 text-xs font-medium tracking-widest uppercase transition border-b border-slate-800 last:border-b-0"
-                                >
-                                  {model}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
-                        Year
-                      </label>
-                      <input
-                        type="number"
-                        value={modalYear}
-                        onChange={(e) => setModalYear(e.target.value)}
-                        placeholder="e.g. 2022"
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal footer */}
-              <div className="px-6 py-5 border-t border-slate-800 bg-slate-900/60 backdrop-blur">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs uppercase tracking-widest font-bold text-slate-400">
-                    Selected total
-                  </span>
-                  <span className="text-cyan-400 font-extrabold text-2xl tabular-nums">
-                    ₱{modalTotal.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowBookingModal(false)}
-                    className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmBooking}
-                    disabled={!canConfirmBooking || shop.is_open === false}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 text-xs font-bold rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Check size={14} /> Confirm Booking
-                    </span>
-                  </button>
-                </div>
-                {!canConfirmBooking && (
-                  <p className="text-[11px] text-slate-500 mt-3 text-center">
-                    Select at least one service and fill in your motorcycle make
-                    &amp; model.
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <BookAppointmentModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        shopId={shopId}
+        onAuthRequired={onAuthRequired}
+      />
       <NavigationModal
         isOpen={showNavigation}
         onClose={() => setShowNavigation(false)}

@@ -159,6 +159,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const sidebarItems = [
     { id: "admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "admin-shops", label: "Shops", icon: Store },
+    { id: "admin-appointments", label: "Appointments", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -200,7 +201,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         const { data: allAppointments } = await supabase
           .from("appointments")
           .select(
-            "id, status, total_amount, estimated_price, shop_id, customer_id, scheduled_date, created_at, updated_at",
+            "id, booking_id, status, total_amount, estimated_price, shop_id, customer_id, scheduled_date, created_at, updated_at",
           );
         const appts = allAppointments || [];
         setTotalAppointments(appts.length);

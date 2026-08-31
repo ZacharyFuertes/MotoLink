@@ -56,6 +56,7 @@ export type AppointmentStatus =
 
 export interface Appointment {
   id: string;
+  booking_id?: string;
   customer_id: string;
   vehicle_id: string;
   shop_id: string;

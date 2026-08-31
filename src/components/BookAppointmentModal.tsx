@@ -2,7 +2,10 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
+  Check,
   CheckCircle,
+  Copy,
+  Camera,
   ChevronRight,
   ChevronLeft,
   Car,
@@ -18,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { notifyOwnerOfNewAppointment } from "../services/notificationService";
 
 interface Mechanic {
   id: string;
@@ -55,6 +59,7 @@ interface BookAppointmentModalProps {
   onClose: () => void;
   onAppointmentBooked?: (appointmentData: any) => void;
   shopId?: string;
+  onAuthRequired?: (mode: "login" | "signup") => void;
 }
 
 const SERVICE_TYPES = [
@@ -120,13 +125,18 @@ const normalizeTime = (t?: string | null): string => {
 
 const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
 
+// Persisted across the guest → auth redirect so a signed-out user can resume
+// their partially-built booking at the confirm step after authenticating.
+const PENDING_BOOKING_KEY = "motolink_pending_booking";
+
 const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   isOpen,
   onClose,
   onAppointmentBooked,
   shopId,
+  onAuthRequired,
 }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
@@ -151,21 +161,97 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
+  const [lastBookingId, setLastBookingId] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Snapshot the in-progress booking so a guest can resume at the confirm step
+  // after signing up / logging in (the modal unmounts during the auth redirect).
+  const savePendingBooking = () => {
+    try {
+      const snapshot = {
+        shopId,
+        services: selectedServices,
+        servicePrice: selectedServicePrice,
+        mechanicId: selectedMechanic,
+        date: selectedDate,
+        time: selectedTime,
+        vehicleId: selectedVehicleId,
+        vehicleInfo,
+        notes,
+        parts: selectedParts,
+      };
+      sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Ignore storage errors (private mode etc.); guest just loses their resume point.
+    }
+  };
+
+  // Restore a previously-saved booking and jump straight to the confirm step.
+  const restorePendingBooking = () => {
+    let raw: string | null = null;
+    try {
+      raw = sessionStorage.getItem(PENDING_BOOKING_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+
+    try {
+      const snap = JSON.parse(raw);
+      if (snap.shopId && snap.shopId !== shopId) return;
+      setSelectedServices(snap.services || []);
+      setSelectedServicePrice(snap.servicePrice || 0);
+      setSelectedMechanic(snap.mechanicId || "");
+      setSelectedDate(snap.date || "");
+      setSelectedTime(snap.time || "");
+      setSelectedVehicleId(snap.vehicleId || "");
+      setVehicleInfo(snap.vehicleInfo || "");
+      setNotes(snap.notes || "");
+      setSelectedParts(snap.parts || []);
+      setCurrentStep(3);
+      sessionStorage.removeItem(PENDING_BOOKING_KEY);
+    } catch {
+      sessionStorage.removeItem(PENDING_BOOKING_KEY);
+    }
+  };
+
+  const requireAuth = (mode: "login" | "signup") => {
+    savePendingBooking();
+    onAuthRequired?.(mode);
+  };
+
+  const copyBookingId = async () => {
+    if (!lastBookingId) return;
+    try {
+      await navigator.clipboard.writeText(lastBookingId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — screenshot tip still applies.
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
       fetchMechanics();
       fetchVehicles();
-      fetchServices();
       checkActiveAppointment();
+      restorePendingBooking();
     }
   }, [isOpen, shopId]);
 
+  // Services & parts depend on `defaultShopId`, which is resolved asynchronously
+  // inside fetchMechanics() (a React state setter). Calling fetchServices() in the
+  // same tick as fetchMechanics() reads the stale empty value, so on the first open
+  // it would early-return and keep stale/static services until a second open. Keying
+  // on defaultShopId + isOpen guarantees a fresh fetch as soon as the shop resolves
+  // and on every reopen, and refires when a different shop is opened.
   useEffect(() => {
-    if (defaultShopId) {
+    if (isOpen && defaultShopId) {
+      fetchServices();
       fetchAvailableParts();
     }
-  }, [defaultShopId]);
+  }, [isOpen, defaultShopId, shopId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -183,6 +269,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setBookedSlots([]);
         setMechanicAvailability([]);
         setSelectedParts([]);
+        setLastBookingId("");
+        setCopied(false);
       }, 300);
     }
   }, [isOpen]);
@@ -472,12 +560,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
         const appointmentData = {
           ...appointment,
+          booking_id: appointment.booking_id,
           mechanic_name: mechanicName,
           parts: partsForStorage,
           total_amount: selectedServicePrice + partsTotal,
         };
 
+        setLastBookingId(appointment.booking_id || "");
         setSuccess(true);
+
+        // Notify the shop owner of the new booking request (in-app bell).
+        notifyOwnerOfNewAppointment({
+          shopId: shopIdToUse,
+          appointmentId: appointment.id,
+          customerName: user?.name,
+          serviceType: serviceLabels,
+          scheduledDate: selectedDate,
+          scheduledTime: selectedTime,
+        });
 
         // Call the callback to notify parent and display receipt
         if (onAppointmentBooked) {
@@ -520,26 +620,27 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       : `${hour}:00 AM`;
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-3 z-50"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
+      {isOpen && (
         <motion.div
-          initial={{ scale: 0.95, opacity: 0, y: 30 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.95, opacity: 0, y: 30 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-slate-200 border-t-2 border-t-slate-900 shadow-xl flex flex-col"
+          key="booking-modal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-3 z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
         >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 30 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 30 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-slate-200 border-t-2 border-t-violet-600 shadow-xl flex flex-col"
+          >
           {/* ── Header ── */}
           <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
@@ -573,25 +674,58 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="flex items-center px-6 sm:px-10 py-5 border-b border-slate-200 bg-slate-50 overflow-x-auto gap-8 sm:gap-12 flex-shrink-0 scrollbar-hide">
+              <div className="flex items-center px-6 sm:px-10 py-5 border-b border-slate-200 bg-slate-50 overflow-x-auto flex-shrink-0 scrollbar-hide">
                 {STEPS.map((step, i) => (
-                  <div key={step} className="flex items-center gap-4 shrink-0">
-                    <div
-                      className={`w-8 h-8 flex items-center justify-center text-xs font-bold ${
-                        i === currentStep
-                          ? "bg-slate-900 text-white"
-                          : "border border-slate-300 text-slate-500"
-                      }`}
-                    >
-                      {i + 1}
+                  <div key={step} className="flex items-center shrink-0">
+                    <div className="flex items-center gap-4">
+                      <motion.div
+                        animate={{ scale: i === currentStep ? 1.1 : 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          i < currentStep
+                            ? "bg-emerald-500 text-white"
+                            : i === currentStep
+                              ? "bg-violet-600 text-white shadow-lg shadow-violet-500/40"
+                              : "border border-slate-300 text-slate-400 bg-white"
+                        }`}
+                      >
+                        {i < currentStep ? (
+                          <Check size={14} strokeWidth={3} />
+                        ) : (
+                          <motion.span
+                            key={`${i}-${i === currentStep ? "active" : "inactive"}`}
+                            initial={
+                              i === currentStep
+                                ? { scale: 0.6, opacity: 0 }
+                                : { scale: 1, opacity: 1 }
+                            }
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                            className="text-xs font-bold"
+                          >
+                            {i + 1}
+                          </motion.span>
+                        )}
+                      </motion.div>
+                      <span
+                        className={`whitespace-nowrap text-xs tracking-widest uppercase font-medium ${
+                          i === currentStep
+                            ? "text-violet-700"
+                            : i < currentStep
+                              ? "text-emerald-700"
+                              : "text-slate-500"
+                        }`}
+                      >
+                        {step}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs tracking-widest uppercase font-medium ${
-                        i === currentStep ? "text-slate-900" : "text-slate-500"
-                      }`}
-                    >
-                      {step}
-                    </span>
+                    {i < STEPS.length - 1 && (
+                      <div
+                        className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full transition-colors ${
+                          i < currentStep ? "bg-emerald-400" : "bg-slate-300"
+                        }`}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -641,8 +775,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           const Icon = svc.icon;
                           const isActive = selectedServices.includes(svc.id);
                           return (
-                            <button
+                            <motion.button
                               key={svc.id}
+                              whileTap={{ scale: 0.98 }}
+                              animate={{ scale: isActive ? 1.02 : 1 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 24 }}
                               onClick={() => {
                                 if (isActive) {
                                   setSelectedServices(
@@ -673,46 +810,53 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               disabled={hasActiveAppointment}
                               className={`relative p-6 text-left transition-all group ${
                                 isActive
-                                  ? "bg-slate-100 border-t-2 border-t-slate-900"
-                                  : "bg-transparent border-t-2 border-t-transparent hover:bg-slate-50"
+                                  ? "bg-violet-50 border-t-2 border-t-violet-600"
+                                  : "bg-transparent border-t-2 border-t-transparent hover:bg-violet-50/40"
                               } ${hasActiveAppointment ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               <div className="flex justify-between items-start mb-5">
                                 <div
-                                  className={`transition-colors duration-300 ${isActive ? "text-slate-900" : "text-slate-500 group-hover:text-slate-400"}`}
+                                  className={`transition-colors duration-300 ${isActive ? "text-violet-600" : "text-slate-500 group-hover:text-slate-400"}`}
                                 >
                                   <Icon size={32} strokeWidth={1.2} />
                                 </div>
                                 <div className="flex items-center gap-3">
                                   {svc.price !== undefined && (
                                     <div
-                                      className={`font-mono font-bold tracking-widest text-xs ${isActive ? "text-slate-900" : "text-slate-500"}`}
+                                      className={`font-mono font-bold tracking-widest text-xs ${isActive ? "text-violet-700" : "text-slate-500"}`}
                                     >
                                       ₱{Number(svc.price).toFixed(2)}
                                     </div>
                                   )}
-                                  <div
-                                    className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
+                                  <motion.div
+                                    animate={{ scale: isActive ? 1 : 0.85 }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                    className={`w-5 h-5 border-2 flex items-center justify-center transition-colors ${
                                       isActive
-                                        ? "bg-slate-900 border-slate-900"
+                                        ? "bg-violet-600 border-violet-600"
                                         : "border-slate-400 group-hover:border-slate-500"
                                     }`}
                                   >
                                     {isActive && (
-                                      <div className="w-2 h-2 bg-white rounded-sm" />
+                                      <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ type: "spring", stiffness: 600, damping: 20 }}
+                                        className="w-2 h-2 bg-white rounded-sm"
+                                      />
                                     )}
-                                  </div>
+                                  </motion.div>
                                 </div>
                               </div>
                               <p
-                                className={`font-display text-xl tracking-wide uppercase mb-2 leading-tight transition-colors ${isActive ? "text-slate-900" : "text-slate-700"}`}
+                                className={`font-display text-xl tracking-wide uppercase mb-2 leading-tight transition-colors ${isActive ? "text-violet-900" : "text-slate-700"}`}
                               >
                                 {svc.label}
                               </p>
                               <p className="text-slate-500 text-xs leading-relaxed font-light">
                                 {svc.desc}
                               </p>
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>
@@ -729,7 +873,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               return (
                                 <span
                                   key={svcId}
-                                  className="inline-flex items-center gap-2 bg-slate-100 border border-slate-900 text-slate-900 px-3 py-1.5 text-xs font-bold tracking-wider uppercase"
+                                  className="inline-flex items-center gap-2 bg-violet-50 border border-violet-600 text-violet-700 px-3 py-1.5 text-xs font-bold tracking-wider uppercase"
                                 >
                                   {svc?.label}
                                 </span>
@@ -760,34 +904,37 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           const f = formatDate(date);
                           const isActive = selectedDate === date;
                           return (
-                            <button
+                            <motion.button
                               key={date}
+                              whileTap={{ scale: 0.96 }}
+                              animate={{ scale: isActive ? 1.04 : 1 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 22 }}
                               onClick={() => {
                                 setSelectedDate(date);
                                 setSelectedTime("");
                               }}
-                              className={`flex-shrink-0 w-24 py-5 border text-center transition-all ${
+                              className={`flex-shrink-0 w-24 py-5 border text-center rounded-xl transition-colors ${
                                 isActive
-                                  ? "bg-slate-100 border-slate-900"
+                                  ? "bg-violet-50 border-violet-600 shadow-sm shadow-violet-500/20"
                                   : "border-slate-300 hover:border-slate-400 bg-transparent"
                               }`}
                             >
                               <p
-                                className={`text-[10px] uppercase font-bold tracking-widest mb-1 ${isActive ? "text-slate-900" : "text-slate-500"}`}
+                                className={`text-[10px] uppercase font-bold tracking-widest mb-1 ${isActive ? "text-violet-700" : "text-slate-500"}`}
                               >
                                 {f.day}
                               </p>
                               <p
-                                className={`font-display text-4xl leading-none mb-1 ${isActive ? "text-slate-900" : "text-slate-300"}`}
+                                className={`font-display text-4xl leading-none mb-1 ${isActive ? "text-violet-700" : "text-slate-300"}`}
                               >
                                 {f.date}
                               </p>
                               <p
-                                className={`text-[10px] uppercase font-bold tracking-widest ${isActive ? "text-slate-900" : "text-slate-500"}`}
+                                className={`text-[10px] uppercase font-bold tracking-widest ${isActive ? "text-violet-700" : "text-slate-500"}`}
                               >
                                 {f.month}
                               </p>
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>
@@ -802,17 +949,20 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             bookedSlots.includes(time) ||
                             !isSlotAvailable(time);
                           return (
-                            <button
+                            <motion.button
                               key={time}
+                              whileTap={isBooked ? undefined : { scale: 0.95 }}
+                              animate={{ scale: isActive ? 1.05 : 1 }}
+                              transition={{ type: "spring", stiffness: 400, damping: 22 }}
                               onClick={() => {
                                 if (!isBooked) setSelectedTime(time);
                               }}
                               disabled={isBooked}
-                              className={`py-4 border text-xs font-bold tracking-widest transition-all relative ${
+                              className={`py-4 border text-xs font-bold tracking-widest transition-colors rounded-lg relative ${
                                 isBooked
                                   ? "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
                                   : isActive
-                                    ? "bg-slate-100 border-slate-900 text-slate-900"
+                                    ? "bg-violet-50 border-violet-600 text-violet-700 shadow-sm shadow-violet-500/20"
                                     : "border-slate-300 text-slate-500 hover:border-slate-400 hover:text-slate-900 bg-transparent"
                               }`}
                             >
@@ -822,7 +972,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   <div className="w-10 h-[1px] bg-slate-300 rotate-45" />
                                 </div>
                               )}
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>
@@ -849,7 +999,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       </p>
                       {loadingParts ? (
                         <div className="flex items-center justify-center py-12">
-                          <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-8 h-8 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
                         </div>
                       ) : availableParts.length === 0 ? (
                           <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl text-center">
@@ -865,12 +1015,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 (p) => p.id === part.id,
                               );
                               return (
-                                <div
+                                <motion.div
                                   key={part.id}
-                                  className={`p-4 border transition-all ${
+                                  animate={{ backgroundColor: selectedPart ? "#f5f3ff" : "#f8fafc" }}
+                                  whileTap={{ scale: 0.995 }}
+                                  className={`p-4 border rounded-xl transition-colors ${
                                     selectedPart
-                                      ? "bg-slate-100 border-slate-900"
-                                      : "border-slate-300 bg-slate-50 hover:border-slate-400"
+                                      ? "border-violet-600"
+                                      : "border-slate-300 hover:border-slate-400"
                                   }`}
                                 >
                                   <div className="flex items-start gap-4 mb-3">
@@ -901,7 +1053,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     <p
                                       className={`font-mono font-bold text-sm ml-4 text-right shrink-0 ${
                                         selectedPart
-                                          ? "text-slate-900"
+                                          ? "text-violet-700"
                                           : "text-slate-500"
                                       }`}
                                     >
@@ -926,7 +1078,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                               .filter((p) => p.quantity > 0),
                                           )
                                         }
-                                        className="px-3 py-1 border border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white transition text-xs font-bold"
+                                        className="px-3 py-1 border border-violet-600 text-violet-700 hover:bg-violet-600 hover:text-white transition text-xs font-bold"
                                       >
                                         −
                                       </button>
@@ -956,7 +1108,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           selectedPart.quantity >=
                                           part.quantity_in_stock
                                             ? "border-slate-300 text-slate-400 cursor-not-allowed"
-                                            : "border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
+                                            : "border-violet-600 text-violet-700 hover:bg-violet-600 hover:text-white"
                                         }`}
                                       >
                                         +
@@ -982,12 +1134,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           },
                                         ])
                                       }
-                                      className="w-full py-2 border border-slate-400 hover:border-slate-900 hover:text-slate-900 text-slate-500 text-xs font-bold uppercase transition"
+                                      className="w-full py-2 border border-slate-400 hover:border-violet-600 hover:text-violet-700 text-slate-500 text-xs font-bold uppercase transition"
                                     >
                                       ADD
                                     </button>
                                   )}
-                                </div>
+                                </motion.div>
                               );
                             })}
                           </div>
@@ -1050,6 +1202,19 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         Review your booking
                       </p>
 
+                      {!isAuthenticated && (
+                        <div className="bg-slate-900 text-white p-6 rounded-xl mb-8">
+                          <p className="font-display text-lg uppercase tracking-wide mb-1">
+                            Sign-Up To Confirm Your Booking
+                          </p>
+                          <p className="text-slate-300 text-sm font-light">
+                            Create a free account (or log in) to lock in this
+                            appointment. Your selections will be saved so you can
+                            finish right where you left off.
+                          </p>
+                        </div>
+                      )}
+
                       <div className="bg-slate-50 p-6 border border-slate-200 mb-8">
                         <div className="grid grid-cols-2 gap-6">
                           <div className="flex flex-col gap-1 col-span-2">
@@ -1064,7 +1229,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 return (
                                   <span
                                     key={svcId}
-                                    className="inline-flex items-center bg-slate-100 border border-slate-900 text-slate-900 px-2.5 py-1 text-xs font-bold tracking-wider uppercase"
+                                    className="inline-flex items-center bg-violet-50 border border-violet-600 text-violet-700 px-2.5 py-1 text-xs font-bold tracking-wider uppercase"
                                   >
                                     {svc?.label}
                                   </span>
@@ -1198,63 +1363,137 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   {currentStep > 0 ? "BACK" : "CANCEL"}
                 </button>
                 {currentStep < STEPS.length - 1 ? (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => setCurrentStep(currentStep + 1)}
                     disabled={
                       !canGoNext() ||
                       (currentStep === 0 && hasActiveAppointment)
                     }
-                    className={`flex items-center gap-3 px-8 py-3.5 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`flex items-center gap-3 px-8 py-3.5 transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() &&
                       !(currentStep === 0 && hasActiveAppointment)
-                        ? "bg-slate-900 text-white hover:bg-slate-800"
+                        ? "bg-violet-600 text-white hover:bg-violet-700 shadow-sm shadow-violet-500/30"
                         : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
                     }`}
                   >
                     NEXT <ChevronRight size={14} />
-                  </button>
+                  </motion.button>
+                ) : !isAuthenticated ? (
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => requireAuth("signup")}
+                      className="flex items-center gap-3 px-8 py-3.5 bg-violet-600 text-white transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-violet-700 shadow-sm shadow-violet-500/30"
+                    >
+                      Sign Up <ChevronRight size={14} />
+                    </motion.button>
+                    <button
+                      onClick={() => requireAuth("login")}
+                      className="flex items-center gap-3 px-8 py-3.5 border border-slate-300 text-slate-900 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-slate-100"
+                    >
+                      Log In
+                    </button>
+                  </div>
                 ) : (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     onClick={handleSubmit}
                     disabled={!canGoNext() || submitting}
-                    className={`flex items-center gap-3 px-8 py-3.5 transition uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`flex items-center gap-3 px-8 py-3.5 transition-colors uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() && !submitting
-                        ? "bg-slate-900 hover:bg-slate-800 text-white"
+                        ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-500/30"
                         : "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
                     }`}
                   >
-                    {submitting ? "PROCESSING..." : "CONFIRM"}{" "}
-                    {!submitting && <ChevronRight size={14} />}
-                  </button>
+                    {submitting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        PROCESSING...
+                      </>
+                    ) : (
+                      <>
+                        CONFIRM <ChevronRight size={14} />
+                      </>
+                    )}
+                  </motion.button>
                 )}
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center py-16 px-8 bg-white">
-              <div className="w-20 h-20 bg-slate-900 flex items-center justify-center mb-8 rounded-xl">
-                <CheckCircle
-                  size={36}
-                  className="text-white"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <h3 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase tracking-wide mb-4">
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col items-center justify-center py-16 px-8 bg-white"
+            >
+              <motion.div
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.05 }}
+                className="w-20 h-20 bg-emerald-500 flex items-center justify-center mb-8 rounded-full shadow-lg shadow-emerald-500/40"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 18, delay: 0.15 }}
+                >
+                  <CheckCircle
+                    size={36}
+                    className="text-white"
+                    strokeWidth={1.5}
+                  />
+                </motion.div>
+              </motion.div>
+              <h3 className="font-display text-4xl sm:text-5xl text-slate-900 uppercase tracking-wide mb-4 text-center">
                 APPOINTMENT BOOKED
               </h3>
-              <p className="text-slate-500 mb-10 text-sm text-center max-w-md font-light">
+              {lastBookingId && (
+                <div className="mb-5 px-6 py-4 rounded-xl border border-emerald-200 bg-emerald-50 text-center">
+                  <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-emerald-600 mb-1">
+                    Booking Reference
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <p className="font-display text-2xl text-emerald-700 tracking-wider">
+                      {lastBookingId}
+                    </p>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={copyBookingId}
+                      title="Copy Booking ID"
+                      aria-label="Copy Booking ID"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-300 text-emerald-700 text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-100 transition-colors"
+                    >
+                      {copied ? <Check size={14} strokeWidth={3} /> : <Copy size={14} />}
+                      {copied ? "Copied" : "Copy"}
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+              <p className="text-slate-500 mb-4 text-sm text-center max-w-md font-light">
                 Your appointment has been successfully scheduled. You'll receive
                 a confirmation soon.
               </p>
-              <button
+              <div className="flex items-start justify-center gap-2 mb-10 px-6 py-3 max-w-md text-center">
+                <Camera size={15} className="text-slate-400 shrink-0 mt-0.5" />
+                <p className="text-slate-500 text-sm font-light leading-relaxed">
+                  Please save this Booking ID or take a screenshot — you'll need
+                  to show it at the shop counter when you arrive.
+                </p>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={onClose}
-                className="px-10 py-4 bg-slate-900 text-white uppercase font-bold tracking-[0.15em] text-xs transition hover:bg-slate-800 rounded-xl"
+                className="px-10 py-4 bg-violet-600 text-white uppercase font-bold tracking-[0.15em] text-xs transition-colors hover:bg-violet-700 rounded-xl shadow-sm shadow-violet-500/30"
               >
                 DONE
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           )}
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
     </AnimatePresence>
   );
 };

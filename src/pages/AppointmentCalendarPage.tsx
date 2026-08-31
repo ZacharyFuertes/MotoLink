@@ -13,6 +13,7 @@ import {
   Phone,
   Clock,
   Wrench,
+  Tag,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -674,6 +675,12 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                           <Clock className="w-4 h-4 text-slate-300" />
                           {apt.scheduled_time}
                         </span>
+                        {apt.booking_id && (
+                          <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-moto-accent tabular-nums">
+                            <Tag className="w-4 h-4 text-moto-accent" />
+                            {apt.booking_id}
+                          </span>
+                        )}
                       </div>
 
                       <p
