@@ -34,3 +34,6 @@ dist-ssr
 !MEMORY.md
 !README.md
 docs/
+
+# macOS
+.DS_Store
