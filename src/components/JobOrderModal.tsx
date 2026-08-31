@@ -340,7 +340,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                             <option value="">Select part...</option>
                             {parts.map((part) => (
                               <option key={part.id} value={part.id}>
-                                {part.name} — {part.quantity_in_stock} in stock
+                                {part.name} {part.quantity_in_stock} in stock
                               </option>
                             ))}
                           </select>

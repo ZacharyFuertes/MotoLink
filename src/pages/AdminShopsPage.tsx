@@ -465,7 +465,7 @@ const AdminShopsPage: React.FC = () => {
                             ? "bg-emerald-500/15 text-emerald-400"
                             : "bg-amber-500/15 text-amber-400"
                         }`}
-                        title={`Set by the shop owner. ${shop.is_open ? "Open — accepting bookings & orders" : "Closed — browse only"}`}
+                        title={`Set by the shop owner. ${shop.is_open ? "Open, accepting bookings & orders" : "Closed, browse only"}`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${shop.is_open ? "bg-emerald-400" : "bg-amber-400"}`} />
                         {shop.is_open ? "Open" : "Closed"}

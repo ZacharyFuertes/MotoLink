@@ -416,7 +416,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                Revenue — Last 30 Days
+                Revenue Last 30 Days
               </h2>
               <p className="text-[13px] text-slate-400">Part sales + completed jobs</p>
             </div>

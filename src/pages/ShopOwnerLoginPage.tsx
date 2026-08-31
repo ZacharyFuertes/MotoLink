@@ -183,7 +183,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
       if (!authData.session) {
         throw new Error(
-          "Account created — please check your email to confirm your address, then sign in with the Shop Owner portal.",
+          "Account created, please check your email to confirm your address, then sign in with the Shop Owner portal.",
         );
       }
 
@@ -401,7 +401,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       if (user.role === "customer") {
         portalURL = "Your account is registered as a Customer. Please use the Customer Portal to login.";
       } else if (user.role === "mechanic") {
-        portalURL = "Your account is registered as a Mechanic. Mechanic accounts are managed by the shop owner — sign in as the Shop Owner to manage jobs.";
+        portalURL = "Your account is registered as a Mechanic. Mechanic accounts are managed by the shop owner, sign in as the Shop Owner to manage jobs.";
       } else if (user.role === "admin") {
         portalURL = "Your account is registered as a Platform Admin. Please use the Admin Portal to login.";
       }

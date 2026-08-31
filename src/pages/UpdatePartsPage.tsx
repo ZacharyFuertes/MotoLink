@@ -534,7 +534,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Adjust Stock — {adjustPart.name}
+                  Adjust Stock {adjustPart.name}
                 </h3>
                 <button
                   onClick={() => setAdjustPart(null)}

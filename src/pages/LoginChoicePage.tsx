@@ -87,7 +87,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             transition={{ delay: 0.24 }}
             className="mt-3 text-sm font-medium tracking-wide text-slate-400"
           >
-            Choose how you'd like to sign in to MotoLink — riders and shop teams each get a tailored experience.
+            Choose how you'd like to sign in to MotoLink riders and shop teams each get a tailored experience.
           </motion.p>
         </div>
 

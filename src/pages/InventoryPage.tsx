@@ -856,7 +856,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
             >
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Edit Part — {selectedPart?.name}
+                  Edit Part {selectedPart?.name}
                 </h3>
                 <button
                   onClick={() => setShowEditForm(false)}

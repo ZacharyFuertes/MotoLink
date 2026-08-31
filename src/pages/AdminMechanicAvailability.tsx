@@ -697,7 +697,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
                     <div className="flex items-center gap-2 p-3 bg-moto-gray/40 rounded-xl text-[13px] font-bold text-slate-200 tabular-nums">
                       <Clock className="w-4 h-4 text-slate-300" />
-                      {slot.start_time} — {slot.end_time}
+                      {slot.start_time} {slot.end_time}
                     </div>
                   </div>
 
