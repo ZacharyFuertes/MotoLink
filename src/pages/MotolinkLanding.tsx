@@ -20,7 +20,8 @@ interface MotolinkLandingProps {
   onOpenShopRegister?: () => void;
   onLogout?: () => void;
   onViewShop?: (shop: ShopSearchResult) => void;
-  onAppointments?: () => void;
+  onShopOwnerLogin?: () => void;
+  onOpenProfile?: () => void;
 }
 
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -79,7 +80,7 @@ const getCachedLocation = (): GeolocationCoordinates | undefined => {
   return undefined;
 };
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onLogout, onViewShop, onAppointments }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onLogout, onViewShop, onShopOwnerLogin, onOpenProfile }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates | undefined>(getCachedLocation);
   const [specialty, setSpecialty] = useState("");
@@ -251,7 +252,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (shop.is_open === false) { if (onViewShop) onViewShop(shop); return; } if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
 
   return <div className="min-h-screen bg-moto-dark text-slate-100">
-    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onAppointments={() => { if (onAppointments) onAppointments(); else onLoginRequired(selectedShop); }} />
+    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onShopOwnerLogin={onShopOwnerLogin} onOpenProfile={onOpenProfile} />
     <main>
       {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
       <motion.section
@@ -546,12 +547,19 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <Store size={20} />
             Register my shop
           </motion.button>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <motion.p variants={itemVariants} className="mt-4 text-sm text-slate-400">
               Signed in as a customer registering a new shop will start a
               separate Shop Owner account.
             </motion.p>
-          )}
+          ) : onShopOwnerLogin ? (
+            <motion.div variants={itemVariants} className="mt-6 text-sm text-slate-400">
+              Already have a shop?{" "}
+              <button onClick={onShopOwnerLogin} className="text-moto-accent font-semibold hover:underline transition-all">
+                Sign in here
+              </button>
+            </motion.div>
+          ) : null}
         </motion.div>
       </motion.section>
 
