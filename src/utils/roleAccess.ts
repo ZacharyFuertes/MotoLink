@@ -16,14 +16,15 @@ export type AppPage =
   | "services"
   | "low-stock"
   | "settings"
-  | "shop-settings";
+  | "shop-settings"
+  | "user-profile";
 
 // Role-based mapping (central source of truth for allowed pages per role)
 // NOTE: Top-level POVs are customer / owner / admin. The mechanic role still
 // exists in the DB (job-order assignment, mechanic_availability) but has NO
 // portal — owners manage all job-order work from their own pages.
 export const rolePagesMapping: Record<UserRole, AppPage[]> = {
-  customer: ["landing"],
+  customer: ["landing", "user-profile"],
   mechanic: [],
   owner: [
     "dashboard",
