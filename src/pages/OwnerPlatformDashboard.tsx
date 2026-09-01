@@ -331,7 +331,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   );
 
   return (
-    <div className="min-h-screen bg-moto-darker flex">
+    <div className="min-h-screen bg-[#14131A] flex text-[#F3F1F7]">
       {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
@@ -580,26 +580,18 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl p-8 mb-8 text-white relative overflow-hidden"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #c026d3 50%, #7c3aed 100%)",
-                }}
+                className="rounded-2xl border border-[#2B2A37] bg-[#1C1B24] p-5 mb-5 text-[#F3F1F7] relative overflow-hidden"
               >
                 {/* Subtle decorative elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10"
-                  style={{ background: "radial-gradient(circle, white 0%, transparent 70%)", transform: "translate(30%, -50%)" }}
-                />
-                <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-10"
-                  style={{ background: "radial-gradient(circle, white 0%, transparent 70%)", transform: "translate(-30%, 40%)" }}
-                />
+                <svg className="absolute -right-12 -top-20 h-64 w-64 opacity-30" viewBox="0 0 240 240" aria-hidden="true"><path d="M38 182a103 103 0 0 1 164-118" fill="none" stroke="#2B2A37" strokeWidth="14" /><path d="M38 182a103 103 0 0 1 125-130" fill="none" stroke="#FF7A3D" strokeWidth="3" /></svg>
 
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-5 h-5 text-violet-200" />
-                    <span className="text-[13px] font-medium text-violet-200 uppercase tracking-wider">Shop Overview</span>
+                    <Sparkles className="w-4 h-4 text-[#FF7A3D]" />
+                    <span className="text-[12px] font-medium text-[#FFB894]">Shop status</span>
                   </div>
-                  <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    Welcome back, {user?.name}!
+                  <h2 className="text-[19px] font-medium mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                    Welcome back, {shop?.name || user?.name}
                   </h2>
                   <p className="text-violet-100 text-sm max-w-lg">
                     Here's what's happening at{" "}
@@ -648,11 +640,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="rounded-2xl p-6 mb-8 border"
-                style={{
-                  background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,78,59,0.25) 100%)",
-                  border: "1px solid rgba(16, 185, 129, 0.35)",
-                }}
+                className="dashboard-card p-5 mb-5"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
