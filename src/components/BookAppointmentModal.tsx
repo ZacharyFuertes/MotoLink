@@ -19,6 +19,7 @@ import {
   Hammer,
   Sparkles,
   Package,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -164,6 +165,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [loadingParts, setLoadingParts] = useState(false);
   const [lastBookingId, setLastBookingId] = useState("");
   const [copied, setCopied] = useState(false);
+  const [addingVehicle, setAddingVehicle] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    make: "",
+    model: "",
+    year: "",
+  });
 
   // Snapshot the in-progress booking so a guest can resume at the confirm step
   // after signing up / logging in (the modal unmounts during the auth redirect).
@@ -272,6 +279,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSelectedParts([]);
         setLastBookingId("");
         setCopied(false);
+        setAddingVehicle(false);
+        setNewVehicle({ make: "", model: "", year: "" });
       }, 300);
     }
   }, [isOpen]);
@@ -333,6 +342,47 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     } finally {
       setLoadingVehicles(false);
     }
+  };
+
+  // Add a brand-new motorcycle to the customer's account, then select it for
+  // this booking so it also appears in their Profile & Garage list.
+  const handleAddVehicle = async () => {
+    if (!user?.id || !newVehicle.make.trim() || !newVehicle.model.trim()) return;
+    setAddingVehicle(true);
+    try {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .insert({
+          customer_id: user.id,
+          make: newVehicle.make.trim(),
+          model: newVehicle.model.trim(),
+          year: newVehicle.year ? Number(newVehicle.year) : null,
+        })
+        .select("id, make, model, year")
+        .single();
+      if (error) throw error;
+
+      if (data) {
+        setVehicles((prev) => [data, ...prev]);
+        setSelectedVehicleId(data.id);
+        setVehicleInfo("");
+      }
+      setNewVehicle({ make: "", model: "", year: "" });
+      setAddingVehicle(false);
+    } catch (err) {
+      console.error("Error adding vehicle:", err);
+      alert("Failed to add motorcycle. Please try again.");
+      setAddingVehicle(false);
+    }
+  };
+
+  const displayVehicle = (v: VehicleData) =>
+    `${[v.make, v.model].filter(Boolean).join(" ")}${v.year ? ` (${v.year})` : ""}`;
+
+  const pickVehicle = (v: VehicleData) => {
+    setSelectedVehicleId(v.id);
+    setVehicleInfo("");
+    setAddingVehicle(false);
   };
 
   const checkActiveAppointment = async () => {
@@ -534,6 +584,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         mechanic_id: selectedMechanic || null,
         notes: notes || null,
         estimated_price: selectedServicePrice,
+        vehicle_id:
+          selectedVehicleId && selectedVehicleId !== "manual"
+            ? selectedVehicleId
+            : null,
       };
 
       if (partsForStorage.length > 0) {
@@ -1340,54 +1394,184 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <label className="text-[10px] tracking-[0.2em] font-medium uppercase text-slate-400">
                             Select Your Motorcycle *
                           </label>
-                          <select
-                            value={vehicleInfo}
-                            onChange={(e) => {
-                              setVehicleInfo(e.target.value);
-                              setSelectedVehicleId(e.target.value);
-                            }}
-                            className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs font-medium appearance-none cursor-pointer"
-                            style={{
-                              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338b6c4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                              backgroundRepeat: "no-repeat",
-                              backgroundPosition: "right 0.75rem center",
-                              backgroundSize: "1.5em 1.5em",
-                              paddingRight: "2.5rem",
-                            }}
-                          >
-                            <option value="">-- Choose a Motorcycle --</option>
-                            <option value="Honda CB150R">Honda CB150R</option>
-                            <option value="Honda CB150 Deluxe">Honda CB150 Deluxe</option>
-                            <option value="Honda XRM 125">Honda XRM 125</option>
-                            <option value="Honda Wave 100">Honda Wave 100</option>
-                            <option value="Honda Click 150i">Honda Click 150i</option>
-                            <option value="Yamaha YZF-R15">Yamaha YZF-R15</option>
-                            <option value="Yamaha MT-15">Yamaha MT-15</option>
-                            <option value="Yamaha NMAX 155">Yamaha NMAX 155</option>
-                            <option value="Suzuki Raider 150">Suzuki Raider 150</option>
-                            <option value="Suzuki Smash 110">Suzuki Smash 110</option>
-                            <option value="Suzuki GSX-R150">Suzuki GSX-R150</option>
-                            <option value="Kawasaki Ninja 400">Kawasaki Ninja 400</option>
-                            <option value="KTM Duke 200">KTM Duke 200</option>
-                            <option value="Bajaj Pulsar 150">Bajaj Pulsar 150</option>
-                            <option value="TVS Apache RTR 160">TVS Apache RTR 160</option>
-                            <option value="Royal Enfield Bullet 350">Royal Enfield Bullet 350</option>
-                            <option value="Hero MotoCorp HF Deluxe">Hero MotoCorp HF Deluxe</option>
-                            <option value="Zongshen ZS 200">Zongshen ZS 200</option>
-                            <option value="manual">-- TYPE YOUR MOTORCYCLE MANUALLY --</option>
-                          </select>
 
-                          {/* Manual Input Field */}
-                          {selectedVehicleId === "manual" && (
-                            <input
-                              type="text"
-                              value={vehicleInfo === "manual" ? "" : vehicleInfo}
-                              onChange={(e) => {
-                                setVehicleInfo(e.target.value);
+                          {/* Saved vehicles from the customer's account */}
+                          {vehicles.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {vehicles.map((v) => {
+                                const isActive = selectedVehicleId === v.id;
+                                return (
+                                  <motion.button
+                                    key={v.id}
+                                    type="button"
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => pickVehicle(v)}
+                                    className={`flex items-center gap-3 p-4 text-left border rounded-xl transition-colors ${
+                                      isActive
+                                        ? "bg-moto-accent/10 border-moto-accent"
+                                        : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                                        isActive
+                                          ? "bg-moto-accent text-slate-950"
+                                          : "bg-moto-gray/40 text-slate-400"
+                                      }`}
+                                    >
+                                      <Car size={18} strokeWidth={1.75} />
+                                    </span>
+                                    <span className="min-w-0">
+                                      <span
+                                        className={`block text-xs font-bold uppercase tracking-wide truncate ${
+                                          isActive
+                                            ? "text-moto-accent"
+                                            : "text-slate-100"
+                                        }`}
+                                      >
+                                        {displayVehicle(v) || "Motorcycle"}
+                                      </span>
+                                      {v.make && (
+                                        <span className="block text-[11px] text-slate-400 mt-0.5 uppercase tracking-wide">
+                                          {v.make}
+                                          {v.year ? ` · ${v.year}` : ""}
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span
+                                      className={`ml-auto w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                        isActive
+                                          ? "border-moto-accent bg-moto-accent"
+                                          : "border-slate-500"
+                                      }`}
+                                    >
+                                      {isActive && (
+                                        <Check size={10} strokeWidth={3} className="text-slate-950" />
+                                      )}
+                                    </span>
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Add new / manual entry */}
+                          {!addingVehicle ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAddingVehicle(true);
+                                setSelectedVehicleId("");
+                                setVehicleInfo("");
                               }}
-                              placeholder="E.G. HONDA CLICK 150I"
-                              className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
-                            />
+                              className="w-full p-4 border border-dashed border-moto-gray text-slate-400 hover:border-moto-accent hover:text-moto-accent transition-colors rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                            >
+                              <Plus size={15} /> Add a different motorcycle
+                            </button>
+                          ) : (
+                            <div className="p-4 bg-moto-darker border border-moto-gray rounded-xl space-y-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-[10px] tracking-[0.2em] font-bold uppercase text-slate-300">
+                                  Add New Motorcycle
+                                </p>
+                                {/* Manual-entry mode toggles the free-text field */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedVehicleId("manual");
+                                    setVehicleInfo("");
+                                  }}
+                                  className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border transition-colors ${
+                                    selectedVehicleId === "manual"
+                                      ? "border-moto-accent text-moto-accent bg-moto-accent/10"
+                                      : "border-moto-gray text-slate-400 hover:border-moto-accent hover:text-moto-accent"
+                                  }`}
+                                >
+                                  Type manually
+                                </button>
+                              </div>
+
+                              {selectedVehicleId === "manual" ? (
+                                <input
+                                  type="text"
+                                  value={vehicleInfo}
+                                  onChange={(e) => setVehicleInfo(e.target.value)}
+                                  placeholder="E.G. HONDA CLICK 150I"
+                                  className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
+                                />
+                              ) : (
+                                <>
+                                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_80px] gap-2">
+                                    <input
+                                      type="text"
+                                      value={newVehicle.make}
+                                      onChange={(e) =>
+                                        setNewVehicle({
+                                          ...newVehicle,
+                                          make: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Make (e.g. HONDA)"
+                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={newVehicle.model}
+                                      onChange={(e) =>
+                                        setNewVehicle({
+                                          ...newVehicle,
+                                          model: e.target.value,
+                                        })
+                                      }
+                                      placeholder="Model (e.g. CLICK 150I)"
+                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
+                                    />
+                                    <input
+                                      type="number"
+                                      value={newVehicle.year}
+                                      onChange={(e) =>
+                                        setNewVehicle({
+                                          ...newVehicle,
+                                          year: e.target.value,
+                                        })
+                                      }
+                                      placeholder="YEAR"
+                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:outline-none transition rounded-xl uppercase text-xs"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={handleAddVehicle}
+                                      disabled={
+                                        addingVehicle ||
+                                        !newVehicle.make.trim() ||
+                                        !newVehicle.model.trim()
+                                      }
+                                      className="flex-1 py-2.5 bg-moto-accent text-slate-950 text-xs font-bold uppercase tracking-wider rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {addingVehicle ? "Saving..." : "Save to my account"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAddingVehicle(false);
+                                        setNewVehicle({
+                                          make: "",
+                                          model: "",
+                                          year: "",
+                                        });
+                                        setSelectedVehicleId("");
+                                        setVehicleInfo("");
+                                      }}
+                                      className="px-3 py-2.5 border border-moto-gray text-slate-400 text-xs font-bold uppercase tracking-wider rounded-xl transition hover:text-white hover:bg-moto-gray/30"
+                                    >
+                                      <X size={15} />
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="space-y-4">
