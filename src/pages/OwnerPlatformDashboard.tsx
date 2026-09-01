@@ -587,13 +587,13 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-[#FF7A3D]" />
-                    <span className="text-[12px] font-medium text-[#FFB894]">Shop status</span>
+                    <Sparkles className="w-4 h-4 text-[#35D0C0]" />
+                    <span className="text-[12px] font-medium text-[#8DE8DC]">Shop status</span>
                   </div>
                   <h2 className="text-[19px] font-medium mb-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                     Welcome back, {shop?.name || user?.name}
                   </h2>
-                  <p className="text-violet-100 text-sm max-w-lg">
+                  <p className="text-[#948FA3] text-sm max-w-lg">
                     Here's what's happening at{" "}
                     <span className="font-semibold text-white">
                       {shop?.name || "your shop"}
@@ -606,11 +606,11 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       {shop?.city || "—"}
                     </span>
                     <span className="bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${shop?.is_active ? "bg-emerald-400" : "bg-amber-400"}`} />
+                      <span className={`w-2 h-2 rounded-full ${shop?.is_active ? "bg-[#35D0C0]" : "bg-amber-400"}`} />
                       {shop?.is_active ? "Live on MotoLink" : "Awaiting approval"}
                     </span>
-                    <span className={`bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 ${shop?.is_open === false ? "bg-amber-500/90" : ""}`}>
-                      <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-200" : "bg-emerald-400 animate-pulse"}`} />
+                    <span className={`px-3 py-1.5 rounded-full text-[12px] font-medium flex items-center gap-2 ${shop?.is_open === false ? "bg-amber-500/15 text-amber-300" : "bg-[rgba(53,208,192,.12)] text-[#8DE8DC]"}`}>
+                      <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-200" : "bg-[#35D0C0] animate-pulse"}`} />
                       {shop?.is_open === false ? "Closed to bookings" : "Open"}
                     </span>
                   </div>
@@ -652,7 +652,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       onClick={handleToggleAvailability}
                       disabled={togglingAvailability || shop?.is_open === undefined}
                       className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
-                        shop?.is_open === false ? "bg-moto-gray" : "bg-emerald-500"
+                        shop?.is_open === false ? "bg-moto-gray" : "bg-[#35D0C0]"
                       } disabled:opacity-60 disabled:cursor-not-allowed`}
                     >
                       <span
@@ -680,10 +680,10 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-bold self-start sm:self-auto ${
                       shop?.is_open === false
                         ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                        : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-[rgba(53,208,192,.12)] text-[#8DE8DC] border border-[#35D0C0]/30"
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-500" : "bg-emerald-500 animate-pulse"}`} />
+                    <span className={`w-2 h-2 rounded-full ${shop?.is_open === false ? "bg-amber-500" : "bg-[#35D0C0] animate-pulse"}`} />
                     {shop?.is_open === false ? "Closed" : "Open"}
                   </span>
                 </div>
@@ -697,8 +697,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
-                      <Store className="w-5 h-5 text-moto-accent" />
+                      <div className="w-10 h-10 rounded-xl bg-[rgba(53,208,192,.12)] flex items-center justify-center">
+                      <Store className="w-5 h-5 text-[#35D0C0]" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -749,12 +749,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                         <span
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold mt-2 ${
                             shop.is_active
-                              ? "bg-emerald-500/15 text-emerald-400"
+                              ? "bg-[rgba(53,208,192,.12)] text-[#8DE8DC]"
                               : "bg-red-500/15 text-red-400"
                           }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-red-500"}`}
+                            className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-[#35D0C0]" : "bg-red-500"}`}
                           />
                           {shop.is_active
                             ? "Visible on landing page"

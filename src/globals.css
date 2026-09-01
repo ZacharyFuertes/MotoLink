@@ -288,8 +288,8 @@ textarea:focus {
 /* Sidebar nav item — active state with left accent */
 .sidebar-nav-active {
   position: relative;
-  background: rgba(255, 122, 61, .12);
-  color: #FFB894;
+  background: rgba(53, 208, 192, .12);
+  color: #8DE8DC;
 }
 .sidebar-nav-active::before {
   content: '';
@@ -299,11 +299,11 @@ textarea:focus {
   bottom: 4px;
   width: 2px;
   border-radius: 0 4px 4px 0;
-  background: #FF7A3D;
+  background: #35D0C0;
 }
 
 .sidebar-nav-active-violet::before {
-  background: #FF7A3D;
+  background: #35D0C0;
 }
 
 .sidebar-nav-item {
