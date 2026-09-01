@@ -239,12 +239,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="flex items-center justify-between h-16 px-4">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+            <div className="w-9 h-9 rounded-xl bg-[#35D0C0] flex items-center justify-center">
               <Store className="w-[22px] h-[22px] text-white" />
             </div>
             <div>
               <span className="font-bold text-white text-[15px] tracking-wide">MOTOLINK</span>
-              <p className="text-xs text-violet-300/70 font-medium tracking-widest uppercase">Shop</p>
+              <p className="text-xs text-[#35D0C0] font-medium tracking-widest uppercase">Shop</p>
             </div>
           </div>
         )}
@@ -711,7 +711,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   </div>
                   <button
                     onClick={() => onNavigate?.("shop-settings")}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold transition-all shadow-sm shadow-violet-600/20 hover:shadow-md hover:shadow-violet-600/30"
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#35D0C0] bg-[rgba(53,208,192,.12)] text-[#8DE8DC] text-[13px] font-medium transition-colors hover:bg-[rgba(53,208,192,.2)]"
                   >
                     <Pencil className="w-4 h-4" /> Edit Shop Info
                   </button>
