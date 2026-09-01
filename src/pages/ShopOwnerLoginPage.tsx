@@ -422,64 +422,48 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
+    "w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
-  const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1";
+  const labelClass = "block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 ml-1";
 
   const fieldWrapperClass = "relative";
 
   return (
-    <div className="h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 sm:p-4 relative overflow-hidden font-sans">
+    <div 
+      className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden font-sans bg-cover bg-center"
+      style={{ backgroundImage: `url(${heroImage})` }}
+    >
+      {/* Background glass blur */}
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
       {/* Ambient radial glow */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/30 via-slate-950 to-slate-950" />
-      {/* Technical grid */}
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent" />
+      
+      {/* Top Left Global Back Button */}
+      <button
+        onClick={onBack}
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-slate-700/50 hover:bg-slate-800 hover:text-cyan-400 hover:border-cyan-500/50 transition-all shadow-lg"
+      >
+        <ArrowLeft size={16} /> Return to Home
+      </button>
 
-      {/* Main split-screen card */}
+      {/* Main Single Centered Card */}
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full relative z-10 rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl flex flex-col h-full max-h-[calc(100vh-1.5rem)] ${
-          isSignup ? "max-w-5xl md:grid md:grid-cols-2" : "max-w-4xl md:grid md:grid-cols-2"
+        className={`w-full relative z-10 rounded-3xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-2xl shadow-2xl flex flex-col my-auto max-h-[90vh] overflow-hidden ${
+          isSignup ? "max-w-2xl" : "max-w-md"
         }`}
       >
-        {/* MOBILE TOP ARTWORK BANNER */}
-        <div
-          className="md:hidden relative h-28 sm:h-36 bg-cover bg-center shrink-0 border-b border-slate-800/80"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/30 to-transparent" />
-          <button
-            onClick={onBack}
-            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-cyan-400 transition-colors shadow-lg"
-          >
-            <ArrowLeft size={14} /> Back
-          </button>
-          {/* Brand label over hero */}
-          <div className="absolute bottom-4 left-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
-              {isSignup ? "Shop Registration" : "Shop Owner Portal"}
-            </p>
-          </div>
-        </div>
+        {/* FORM CONTAINER */}
+        <div className="p-5 sm:p-8 md:p-10 flex flex-col overflow-y-auto w-full scrollbar-hide">
 
-        {/* LEFT / MAIN — FORM */}
-        <div className="bg-slate-900/40 p-4 sm:p-6 md:p-8 flex flex-col overflow-y-auto flex-1 relative w-full scrollbar-hide">
-          {/* Desktop back button */}
-          <button
-            onClick={onBack}
-            className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors"
-          >
-            <ArrowLeft size={16} /> Back
-          </button>
-
-          <div className="relative p-0 bg-transparent pt-2 md:pt-8">
+          <div className="relative p-0 bg-transparent">
             {/* Header */}
             <motion.div
-              className="text-center mb-3"
+              className="text-center mb-6"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -489,11 +473,11 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1 tracking-tight">
-                  {isSignup ? "Open your shop" : "Welcome back"}
+                <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-300 mb-2 tracking-tight">
+                  {isSignup ? "Join MotoLink" : "Welcome back"}
                 </h1>
-                <p className="text-slate-400 text-sm">
-                  {isSignup ? "Register your shop on MotoLink" : "Sign in to your shop account"}
+                <p className="text-slate-400 text-sm font-medium">
+                  {isSignup ? "Register your shop to reach more customers" : "Sign in to manage your shop and appointments"}
                 </p>
               </motion.div>
             </motion.div>
@@ -514,32 +498,32 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 className="space-y-3"
               >
                 {/* Step progress indicator */}
-                <div className="mb-3">
-                  <div className="flex items-start justify-center">
+                <div className="mb-6 mt-2">
+                  <div className="flex items-start justify-center px-4">
                     {STEPS.map((label, i) => (
                       <Fragment key={label}>
-                        <div className="flex flex-col items-center gap-1.5">
+                        <div className="flex flex-col items-center gap-2">
                           <button
                             type="button"
                             onClick={() => i < currentStep && setCurrentStep(i)}
                             disabled={i > currentStep}
                             aria-current={i === currentStep ? "step" : undefined}
-                            className="flex flex-col items-center gap-1"
+                            className="flex flex-col items-center gap-1.5 focus:outline-none"
                           >
-                            <span className={`flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-all ${
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-all duration-300 ${
                               i < currentStep
-                                ? "border-moto-accent bg-moto-accent text-slate-950"
+                                ? "border-cyan-500 bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
                                 : i === currentStep
-                                  ? "border-moto-accent bg-moto-darker text-moto-accent shadow-lg"
-                                  : "border-moto-gray bg-moto-dark text-slate-500"
+                                  ? "border-cyan-400 bg-slate-950 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                                  : "border-slate-700 bg-slate-900 text-slate-500"
                             }`}>
-                              {i < currentStep ? <Check size={14} /> : i + 1}
+                              {i < currentStep ? <Check size={16} strokeWidth={3} /> : i + 1}
                             </span>
-                            <span className={`text-[10px] font-semibold ${i <= currentStep ? "text-slate-300" : "text-slate-600"}`}>{label}</span>
+                            <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors ${i <= currentStep ? "text-slate-200" : "text-slate-600"}`}>{label}</span>
                           </button>
                         </div>
                         {i < STEPS.length - 1 && (
-                          <div className={`mt-3 mx-2 h-0.5 w-10 rounded-full ${i < currentStep ? "bg-moto-accent" : "bg-moto-gray"}`} />
+                          <div className={`mt-4 mx-2 sm:mx-4 h-0.5 w-8 sm:w-16 rounded-full transition-colors duration-300 ${i < currentStep ? "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]" : "bg-slate-800"}`} />
                         )}
                       </Fragment>
                     ))}
@@ -550,22 +534,22 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Account section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-[10px] font-bold">1</span>
-                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Account</h2>
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">1</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Account Details</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Email</label>
                       <div className={fieldWrapperClass}>
-                        <Mail size={14} className={iconClass} />
+                        <Mail size={16} className={iconClass} />
                         <input type="email" name="email" value={signupData.email} onChange={(e) => setSignupData({ ...signupData, email: e.target.value })} placeholder="you@example.com" required className={inputClass} />
                       </div>
                     </div>
                     <div>
                       <label className={labelClass}>Password</label>
                       <div className={fieldWrapperClass}>
-                        <Lock size={14} className={iconClass} />
+                        <Lock size={16} className={iconClass} />
                         <input type="password" name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Create a password" required className={inputClass} />
                       </div>
                     </div>
@@ -573,16 +557,16 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 </div>
 
                 {/* Shop details section */}
-                <div className="mt-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-[10px] font-bold">2</span>
-                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Shop details</h2>
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">2</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Shop Information</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>Shop Name</label>
                       <div className={fieldWrapperClass}>
-                        <Store size={18} className={iconClass} />
+                        <Store size={16} className={iconClass} />
                         <input type="text" value={signupData.shop_name} onChange={(e) => setSignupData({ ...signupData, shop_name: e.target.value })} placeholder="e.g. MotoFix Garage" required className={inputClass} />
                       </div>
                     </div>
@@ -621,7 +605,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                 setSpecialtiesText(newText);
                                 setSignupData((prev) => ({ ...prev, shop_description: newText }));
                               }}
-                              className={isSelected ? "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-gradient-to-r from-cyan-500 to-teal-400 text-slate-950 border border-cyan-500" : "px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 bg-slate-950/50 border border-slate-800 text-slate-300 hover:border-cyan-500"}
+                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-slate-900/50 border border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200"}
                             >
                               {option}
                             </button>
@@ -641,9 +625,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Location section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">3</span>
-                    <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">Location</h2>
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">3</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Location</h2>
                   </div>
                   <div className="space-y-4">
                     <div>
@@ -682,8 +666,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Schedule section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-slate-950 text-xs font-bold">3</span>
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">3</span>
+                    <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Schedule</h2>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -781,14 +766,15 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       Register Shop
                     </motion.button>
                   )}
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    disabled={currentStep === 0}
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-2 rounded-xl border border-slate-800 bg-transparent text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800/60 hover:border-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <ArrowLeft size={16} /> Back
-                  </button>
+                  {currentStep > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800 hover:border-slate-600 hover:text-cyan-400"
+                    >
+                      <ArrowLeft size={16} /> Back
+                    </button>
+                  )}
                 </div>
 
                 {currentStep === 2 && (
@@ -829,24 +815,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
           </div>
         </div>
 
-        {/* RIGHT — VISUAL ARTWORK (desktop only) */}
-        <div
-          className="hidden md:block relative bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroImage})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-          {/* Brand overlay */}
-          <div className="absolute bottom-8 left-8 right-8">
-            <p className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-1">
-              {isSignup ? "Shop Registration" : "Shop Owner Portal"}
-            </p>
-            <p className="text-white/70 text-sm">
-              {isSignup
-                ? "Join MotoLink and connect with customers who need you."
-                : "Manage your shop, appointments and team in one place."}
-            </p>
-          </div>
-        </div>
       </motion.div>
     </div>
   );
