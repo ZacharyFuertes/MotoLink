@@ -64,26 +64,43 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
     >
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
 
-      <div className="relative z-10 flex h-44 items-center justify-center overflow-hidden border-b border-moto-gray/70 bg-moto-darker shrink-0 p-5">
-        <span className={`absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold backdrop-blur ${status.background} ${status.text}`}>
-          <span className={`h-2 w-2 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
-          {status.label}
-        </span>
-        <img
-          src={shop.logo_url || "/favicon.svg"}
-          alt={`${shop.name} logo`}
-          className="max-h-[115px] max-w-[72%] object-contain transition duration-300 group-hover:scale-105 group-hover:drop-shadow-[0_0_25px_rgba(56,182,196,0.35)]"
-        />
+      {/* ── Profile header — left avatar, no background ─────────────────── */}
+      <div className="relative z-10 flex items-center gap-4 px-5 pt-5 pb-4 border-b border-moto-gray/40 shrink-0">
+        {/* Circular avatar — left */}
+        <div className="relative h-16 w-16 shrink-0">
+          {/* Glow ring on hover */}
+          <div className="absolute inset-0 rounded-full bg-moto-accent/0 group-hover:bg-moto-accent/15 transition-all duration-300 scale-110 blur-sm" />
+          {/* Border ring */}
+          <div className="absolute inset-0 rounded-full border-2 border-moto-gray/60 group-hover:border-moto-accent/70 transition-colors duration-300 z-10" />
+          {shop.logo_url ? (
+            <img
+              src={shop.logo_url}
+              alt={`${shop.name} logo`}
+              className="relative z-10 h-full w-full rounded-full object-cover bg-slate-800 transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(56,182,196,0.5)]"
+            />
+          ) : (
+            <div className="relative z-10 h-full w-full rounded-full bg-slate-800 flex items-center justify-center text-xl font-black text-moto-accent border border-moto-gray/40 transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(56,182,196,0.5)]">
+              {shop.name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+          )}
+        </div>
+
+        {/* Name + status — right of avatar */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <span className={`self-start inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${status.background} ${status.text}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
+            {status.label}
+          </span>
+          <h3 className="font-display text-base sm:text-lg uppercase leading-tight tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-2" title={shop.name}>
+            {shop.name}
+          </h3>
+        </div>
       </div>
 
       <div className="relative z-10 flex flex-1 flex-col justify-between p-5">
         <div className="flex flex-col gap-3">
           <div>
-            <h3 className="font-display text-base sm:text-xl uppercase leading-snug tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-1" title={shop.name}>
-              {shop.name}
-            </h3>
-
-            <p className="mt-1.5 flex items-start gap-1.5 text-xs sm:text-sm text-slate-400 min-h-[2.25rem] line-clamp-2">
+            <p className="flex items-start gap-1.5 text-xs sm:text-sm text-slate-400 min-h-[2.25rem] line-clamp-2">
               <MapPin size={15} className="mt-0.5 shrink-0 text-moto-accent" />
               <span>{shop.address}</span>
             </p>
