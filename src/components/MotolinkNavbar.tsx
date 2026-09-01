@@ -9,10 +9,11 @@ interface MotolinkNavbarProps {
   onAbout: () => void;
   onGetStarted: () => void;
   onLogout?: () => void;
-  onAppointments: () => void;
+  onOpenProfile?: () => void;
+  onShopOwnerLogin?: () => void;
 }
 
-const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarted, onLogout, onAppointments }: MotolinkNavbarProps) => {
+const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarted, onLogout, onOpenProfile, onShopOwnerLogin }: MotolinkNavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeLabel, setActiveLabel] = useState<string>("");
@@ -32,8 +33,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
     { label: "Platform Info", action: onAbout },
   ];
 
-  // "Bookings" is only surfaced to authenticated visitors.
-  const authLinks = isAuthenticated ? [...links, { label: "Bookings", action: onAppointments }] : links;
+  const authLinks = links;
 
   const activate = (action: () => void, label?: string) => {
     if (label) setActiveLabel(label);
@@ -103,25 +103,52 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
             </span>
           )}
           {isAuthenticated ? (
-            onLogout && (
-              <motion.button
-                onClick={onLogout}
-                whileHover={{ y: -1 }}
-                whileTap={{ scale: 0.96 }}
-                className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/60 hover:text-white"
-              >
-                Log out
-              </motion.button>
-            )
+            <>
+              {onOpenProfile && (
+                <motion.button
+                  onClick={onOpenProfile}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/60 hover:text-white"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-slate-950">
+                    M
+                  </span>
+                  My Profile
+                </motion.button>
+              )}
+              {onLogout && (
+                <motion.button
+                  onClick={onLogout}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/60 hover:text-white"
+                >
+                  Log out
+                </motion.button>
+              )}
+            </>
           ) : (
-            <motion.button
-              onClick={onGetStarted}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.96 }}
-              className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950 whitespace-nowrap border border-cyan-300/40 transition-shadow duration-300 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]"
-            >
-              Get Started
-            </motion.button>
+            <>
+              {onShopOwnerLogin && (
+                <motion.button
+                  onClick={onShopOwnerLogin}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:text-white whitespace-nowrap"
+                >
+                  Shop Owner Login
+                </motion.button>
+              )}
+              <motion.button
+                onClick={onGetStarted}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.96 }}
+                className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950 whitespace-nowrap border border-cyan-300/40 transition-shadow duration-300 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]"
+              >
+                Get Started
+              </motion.button>
+            </>
           )}
         </div>
 
@@ -160,23 +187,45 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
               ))}
               <div className="mt-2 flex flex-col gap-2.5">
                 {isAuthenticated ? (
-                  onLogout && (
-                    <motion.button
-                      onClick={() => activate(onLogout)}
-                      whileTap={{ scale: 0.98 }}
-                      className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-base font-semibold text-slate-200 backdrop-blur-md"
-                    >
-                      Log out
-                    </motion.button>
-                  )
+                  <>
+                    {onOpenProfile && (
+                      <motion.button
+                        onClick={() => activate(onOpenProfile, "My Profile")}
+                        whileTap={{ scale: 0.98 }}
+                        className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-base font-semibold text-cyan-300 backdrop-blur-md"
+                      >
+                        My Profile
+                      </motion.button>
+                    )}
+                    {onLogout && (
+                      <motion.button
+                        onClick={() => activate(onLogout)}
+                        whileTap={{ scale: 0.98 }}
+                        className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-base font-semibold text-slate-200 backdrop-blur-md"
+                      >
+                        Log out
+                      </motion.button>
+                    )}
+                  </>
                 ) : (
-                  <motion.button
-                    onClick={() => activate(onGetStarted, "Get Started")}
-                    whileTap={{ scale: 0.98 }}
-                    className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 border border-cyan-300/40 shadow-[0_0_20px_rgba(34,211,238,0.25)]"
-                  >
-                    Get Started
-                  </motion.button>
+                  <>
+                    <motion.button
+                      onClick={() => activate(onGetStarted, "Get Started")}
+                      whileTap={{ scale: 0.98 }}
+                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 border border-cyan-300/40 shadow-[0_0_20px_rgba(34,211,238,0.25)]"
+                    >
+                      Get Started
+                    </motion.button>
+                    {onShopOwnerLogin && (
+                      <motion.button
+                        onClick={() => activate(onShopOwnerLogin, "Shop Owner Login")}
+                        whileTap={{ scale: 0.98 }}
+                        className="rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-3 text-center text-base font-semibold text-slate-300 backdrop-blur-md hover:bg-slate-800"
+                      >
+                        Shop Owner Login
+                      </motion.button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
