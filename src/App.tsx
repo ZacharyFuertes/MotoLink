@@ -39,13 +39,14 @@ import UpdatePartsPage from "./pages/UpdatePartsPage";
 // Landing page imports (original)
 import MotolinkLanding from "./pages/MotolinkLanding";
 import BookAppointmentModal from "./components/BookAppointmentModal";
-import ViewAppointmentsModal from "./components/ViewAppointmentsModal";
+
 import BrowsePartsModal from "./components/BrowsePartsModal";
 import ReceiptModal from "./components/ReceiptModal";
 import CustomerPortalModal from "./components/CustomerPortalModal";
 import CustomerSettingsModal from "./components/CustomerSettingsModal";
 import ServiceHistoryModal from "./components/ServiceHistoryModal";
 import ShopDetailPage from "./pages/ShopDetailPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import { ShopSearchResult } from "./types/shop";
 
 type PageType = AppPage;
@@ -83,7 +84,7 @@ const AppContent: React.FC = () => {
     });
   const [loginCompleted, setLoginCompleted] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
+  
   const [showPartsModal, setShowPartsModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
@@ -351,9 +352,9 @@ const AppContent: React.FC = () => {
               handleOpenLogin();
             }}
             onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
+            onShopOwnerLogin={() => setCurrentLoginType("owner")}
             onBook={() => handleOpenLogin()}
             onViewShop={openShopDetail}
-            onAppointments={() => handleOpenLogin()}
           />
         ) : currentLoginType === "customer-signup" ? (
           <LoginPage
@@ -427,6 +428,7 @@ const AppContent: React.FC = () => {
               isAuthenticated={true}
               onLoginRequired={() => {}}
               onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
+              onShopOwnerLogin={() => setCurrentLoginType("owner")}
               onBook={(shop) => {
                 if (shop.is_open === false) {
                   openShopDetail(shop);
@@ -442,7 +444,7 @@ const AppContent: React.FC = () => {
                 });
               }}
               onViewShop={openShopDetail}
-              onAppointments={() => setShowAppointmentsModal(true)}
+              onOpenProfile={() => navigateTo("user-profile")}
             />
             <BookAppointmentModal
               isOpen={showBookingModal}
@@ -453,10 +455,6 @@ const AppContent: React.FC = () => {
                 setShowReceiptModal(true);
                 setShowBookingModal(false);
               }}
-            />
-            <ViewAppointmentsModal
-              isOpen={showAppointmentsModal}
-              onClose={() => setShowAppointmentsModal(false)}
             />
             <BrowsePartsModal
               isOpen={showPartsModal}
@@ -488,6 +486,21 @@ const AppContent: React.FC = () => {
           </>
         )}
       </div>
+    );
+  }
+
+  // Standalone dark customer profile & garage dashboard.
+  if (isAuthenticated && user?.role === "customer" && currentPage === "user-profile") {
+    return (
+      <UserProfilePage
+        onBack={() => navigateTo("landing")}
+        onLogout={() => {
+          logout().catch((error) => {
+            console.error("Logout failed:", error);
+            window.location.href = "/";
+          });
+        }}
+      />
     );
   }
 
