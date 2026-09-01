@@ -307,9 +307,6 @@ const AppContent: React.FC = () => {
         navigateTo("admin-dashboard");
       } else {
         navigateTo("landing");
-        if (localStorage.getItem("motolink_selected_shop_id")) {
-          setShowBookingModal(true);
-        }
       }
     };
 
