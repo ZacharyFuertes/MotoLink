@@ -249,7 +249,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
       <div className="flex items-center justify-center py-24">
         <div className="relative w-10 h-10">
           <div className="absolute inset-0 rounded-full border-4 border-moto-gray" />
-          <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-accent border-t-transparent animate-spin" />
         </div>
       </div>
     );
@@ -275,7 +275,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
               <TrendingUp size={16} />
               <span>Today: ₱{todaySales.revenue.toLocaleString()}</span>
             </div>
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-violet-500/15 border border-violet-500/25 text-violet-400 text-[13px] font-bold">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-moto-accent/15 border border-moto-accent/25 text-moto-accent text-[13px] font-bold">
               <ShoppingBag size={16} />
               <span>{todaySales.count} Items Sold</span>
             </div>
@@ -334,7 +334,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                     key={part.id}
                     whileHover={{ y: -2 }}
                     className={`dashboard-card overflow-hidden flex flex-col transition-all ${
-                      inCart ? "ring-2 ring-violet-600" : ""
+                      inCart ? "ring-2 ring-moto-accent" : ""
                     }`}
                   >
                     <div className="relative aspect-[16/10] bg-moto-gray/40 border-b border-moto-gray overflow-hidden">
@@ -364,7 +364,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                       </div>
 
                       {inCart && (
-                        <div className="absolute top-2 right-2 bg-violet-600 text-white text-[13px] font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-md">
+                        <div className="absolute top-2 right-2 bg-moto-accent text-slate-950 text-[13px] font-bold w-7 h-7 rounded-full flex items-center justify-center shadow-md">
                           {inCart.quantity}
                         </div>
                       )}
@@ -389,7 +389,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                           disabled={!inStock}
                           className={`flex-1 py-2 rounded-xl text-[13px] font-bold transition flex items-center justify-center gap-1 ${
                             inStock
-                              ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm shadow-violet-600/20"
+                              ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25"
                               : "bg-moto-gray/40 text-slate-400 cursor-not-allowed"
                           }`}
                         >
@@ -495,10 +495,10 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
           <button
             onClick={handleCheckout}
             disabled={cart.length === 0 || processingCheckout}
-            className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20 flex items-center justify-center gap-2"
+            className="w-full py-3 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-moto-accent/25 flex items-center justify-center gap-2"
           >
             {processingCheckout ? (
-              <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-slate-950/40 border-t-slate-950 rounded-full animate-spin" />
             ) : (
               <>
                 <DollarSign size={18} />
@@ -584,7 +584,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
                 <button
                   onClick={handleStockAdjust}
                   disabled={adjusting || adjustQty <= 0}
-                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
+                  className="w-full py-2.5 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-moto-accent/25"
                 >
                   {adjusting ? "Updating..." : "Apply Adjustment"}
                 </button>

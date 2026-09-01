@@ -522,7 +522,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                 resetForm();
                 setShowAddForm(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+              className="flex items-center gap-2 px-4 py-2 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
             >
               <Plus className="w-4 h-4" />
               Add Part
@@ -545,10 +545,10 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="stat-card p-5"
-          style={{ "--stat-accent": "#8b5cf6" } as React.CSSProperties}
+          style={{ "--stat-accent": "#38b6c4" } as React.CSSProperties}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center">
               <Package className="w-5 h-5" />
             </div>
             <div>
@@ -826,7 +826,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                    className="px-5 py-2.5 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 disabled:opacity-50"
                   >
                     {saving ? "Saving..." : "Add Part"}
                   </button>
@@ -878,7 +878,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                    className="px-5 py-2.5 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 disabled:opacity-50"
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </button>

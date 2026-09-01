@@ -195,8 +195,8 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-accent/20" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-accent border-t-transparent animate-spin" />
         </div>
       </div>
     );
@@ -226,7 +226,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="stat-card p-5"
-          style={{ "--stat-accent": "#6366f1" } as React.CSSProperties}
+          style={{ "--stat-accent": "#38b6c4" } as React.CSSProperties}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center">
@@ -287,7 +287,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         >
           <div className="px-6 py-4 flex items-center justify-between border-b border-moto-gray">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-moto-accent/15 text-moto-accent flex items-center justify-center">
                 <Package size={18} />
               </div>
               <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
@@ -335,7 +335,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                         handleReservationAction(reservation, "confirm")
                       }
                       disabled={updatingReservation === reservation.id}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-bold transition disabled:opacity-50"
+                      className="px-3.5 py-2 rounded-xl bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-moto-accent/25"
                     >
                       Confirm
                     </button>
@@ -422,7 +422,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                   <tr key={customer.id}>
                     <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center text-violet-400 font-bold text-[13px]">
+                        <div className="w-9 h-9 rounded-full bg-moto-accent/15 text-moto-accent flex items-center justify-center font-bold text-[13px]">
                           {customer.name?.charAt(0)?.toUpperCase()}
                         </div>
                         <span className="font-semibold text-slate-100 text-sm">

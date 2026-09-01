@@ -345,8 +345,8 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     return (
       <div className="flex items-center justify-center py-24">
         <div className="relative w-10 h-10">
-          <div className="absolute inset-0 rounded-full border-4 border-violet-500/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-violet-600 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-accent/20" />
+          <div className="absolute inset-0 rounded-full border-4 border-moto-accent border-t-transparent animate-spin" />
         </div>
       </div>
     )
@@ -374,7 +374,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               setShowAddMechanic(!showAddMechanic)
               setShowAddForm(false)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            className="flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
           >
             <UserPlus size={16} /> Add New Mechanic
           </button>
@@ -406,7 +406,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               onClick={() => setSelectedMechanic(null)}
               className={`w-full p-2.5 rounded-xl text-[13px] font-bold text-left transition ${
                 selectedMechanic === null
-                  ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30'
+                  ? 'bg-moto-accent/15 text-moto-accent border border-moto-accent/30'
                   : 'text-slate-300 hover:bg-moto-gray/40'
               }`}
             >
@@ -418,7 +418,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   onClick={() => setSelectedMechanic(mechanic.id)}
                   className={`flex-1 p-2.5 rounded-xl text-left transition border ${
                     selectedMechanic === mechanic.id
-                      ? 'bg-violet-500/15 text-violet-400 border-violet-500/30 font-bold'
+                      ? 'bg-moto-accent/15 text-moto-accent border-moto-accent/30 font-bold'
                       : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
                   }`}
                 >
@@ -552,7 +552,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                     <button
                       onClick={handleCreateMechanic}
                       disabled={creatingMechanic}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20 disabled:opacity-60"
+                      className="flex-1 px-4 py-2 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition shadow-sm shadow-moto-accent/25 disabled:opacity-60"
                     >
                       {creatingMechanic ? 'Creating...' : 'Create Mechanic'}
                     </button>
@@ -645,7 +645,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                     </button>
                     <button
                       onClick={handleAddAvailability}
-                      className="flex-1 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+                      className="flex-1 px-4 py-2 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition shadow-sm shadow-moto-accent/25"
                     >
                       Save Shift
                     </button>

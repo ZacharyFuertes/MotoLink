@@ -57,12 +57,12 @@ const statusConfig: Record<
   },
   confirmed: {
     color: "bg-moto-accent/15 text-moto-accent border border-moto-accent/30",
-    dot: "bg-indigo-500",
+    dot: "bg-moto-accent",
     label: "Confirmed",
   },
   in_progress: {
-    color: "bg-violet-500/15 text-violet-400 border border-violet-500/30",
-    dot: "bg-violet-500",
+    color: "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30",
+    dot: "bg-cyan-500",
     label: "In Progress",
   },
   completed: {
