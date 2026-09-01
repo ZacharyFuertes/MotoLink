@@ -272,9 +272,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-slate-800 border-t-cyan-500 rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-10 h-10 border-4 border-moto-gray border-t-cyan-500 rounded-full mx-auto mb-4" />
           <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">
             Loading shop...
           </p>
@@ -285,7 +285,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
 
   if (error || !shop) {
     return (
-      <div className="min-h-screen bg-slate-950 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center max-w-sm">
           <AlertCircle className="w-12 h-12 text-cyan-500 mx-auto mb-4" />
           <p className="text-slate-100 text-sm font-bold uppercase tracking-widest mb-2">
@@ -318,9 +318,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     "inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-2.5 text-xs font-bold text-slate-950 uppercase tracking-wider transition active:scale-95";
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-100">
+    <div className="min-h-screen bg-moto-darker text-slate-100">
       {/* Ambient radial light */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-[#0a0a0f] to-[#0a0a0f]" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-moto-darker to-moto-darker" />
 
       <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[320px_1fr]">
         {/* ────────────────────────────── LEFT STICKY SIDEBAR ────────────────────────────── */}
@@ -331,12 +331,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 300, damping: 22 }}
-            className="relative rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center transition-colors hover:border-cyan-500/40"
+            className="relative rounded-2xl border border-moto-gray bg-moto-dark p-6 text-center transition-colors hover:border-cyan-500/40"
           >
             <button
               onClick={onBack}
               aria-label="Back to shops"
-              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-slate-800 bg-slate-950/60 text-slate-400 transition hover:border-cyan-500/40 hover:text-cyan-300 active:scale-95"
+              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-400 transition hover:border-cyan-500/40 hover:text-cyan-300 active:scale-95"
             >
               <ArrowLeft size={16} />
             </button>
@@ -346,10 +346,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 <img
                   src={shop.logo_url}
                   alt={`${shop.name} logo`}
-                  className="h-24 w-24 rounded-full border-2 border-slate-700 bg-slate-950 object-contain p-2"
+                  className="h-24 w-24 rounded-full border-2 border-slate-700 bg-moto-darker object-contain p-2"
                 />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-700 bg-slate-950">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-700 bg-moto-darker">
                   <span className="font-display text-4xl font-black uppercase text-cyan-400">
                     {shop.name.trim().charAt(0) || "?"}
                   </span>
@@ -386,7 +386,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 {shop.specialties.map((s) => (
                   <span
                     key={s}
-                    className="rounded-full bg-slate-900 border border-slate-800 px-3 py-1 text-[11px] text-slate-300"
+                    className="rounded-full bg-moto-dark border border-moto-gray px-3 py-1 text-[11px] text-slate-300"
                   >
                     {s}
                   </span>
@@ -396,8 +396,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           </motion.section>
 
           {/* ── Catalog Tabs & Lists ── */}
-          <section className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800 bg-slate-950/50 p-1.5">
+          <section className="rounded-2xl border border-moto-gray bg-moto-darker p-5">
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-moto-gray bg-moto-dark p-1.5">
               {([
                 { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
                 { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
@@ -430,7 +430,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               {/* ── SERVICES ── */}
               {activeTab === "services" && (
                 services.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
                     <Wrench size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No services listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any services to its menu yet.</p>
@@ -447,10 +447,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-cyan-500 bg-cyan-500/10"
-                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-slate-900 text-slate-400"}`}>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-moto-dark text-slate-400"}`}>
                           <Wrench size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
@@ -484,7 +484,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               {/* ── MECHANICS ── */}
               {activeTab === "mechanics" && (
                 mechanics.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
                     <Users size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No mechanics listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">No mechanics have been assigned to this shop yet.</p>
@@ -501,10 +501,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-cyan-500 bg-cyan-500/10"
-                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-cyan-500/50 bg-cyan-500/20" : "border-slate-800 bg-slate-900"}`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-cyan-500/50 bg-cyan-500/20" : "border-moto-gray bg-moto-dark"}`}>
                           <span className="font-display text-[10px] font-black uppercase text-cyan-400">
                             {mech.name.slice(0, 2).toUpperCase()}
                           </span>
@@ -516,7 +516,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           <p className="truncate text-xs text-slate-500">{mech.email}</p>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-moto-dark border border-moto-gray px-2 py-0.5 text-[10px] font-bold text-amber-300">
                             <Star size={9} className="fill-amber-400 text-amber-400" /> {profile.rating}
                           </span>
                           <span
@@ -539,7 +539,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               {/* ── PRODUCTS ── */}
               {activeTab === "products" && (
                 products.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
+                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
                     <Package size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No products listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any parts or products to its catalog yet.</p>
@@ -556,10 +556,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-cyan-500 bg-cyan-500/10"
-                            : "border-slate-800/80 bg-slate-950/40 hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-cyan-500/50" : "border-slate-800"} bg-slate-900`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-cyan-500/50" : "border-moto-gray"} bg-moto-dark`}>
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
                           ) : (
@@ -602,7 +602,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         <main className="min-w-0 space-y-6">
           {/* ── Photo Gallery ── */}
           <section
-            className="overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/40"
+            className="overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker"
             onKeyDown={handleGalleryKey}
           >
             <div className="flex items-center justify-between px-5 py-3">
@@ -629,7 +629,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   tabIndex={0}
                   onFocus={() => setGalleryFocused(true)}
                   onBlur={() => setGalleryFocused(false)}
-                  className="group relative h-[320px] overflow-hidden bg-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+                  className="group relative h-[320px] overflow-hidden bg-moto-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
                   aria-label="Gallery viewer"
                 >
                   <AnimatePresence mode="wait">
@@ -650,7 +650,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(-1)}
                         aria-label="Previous photo"
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-950/70 text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
                       >
                         <ChevronLeft size={18} />
                       </button>
@@ -658,7 +658,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(1)}
                         aria-label="Next photo"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-slate-950/70 text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -672,7 +672,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 </div>
 
                 {galleryFiltered.length > 1 && (
-                  <div className="flex gap-1.5 overflow-x-auto border-t border-slate-800/70 px-3 py-2.5">
+                  <div className="flex gap-1.5 overflow-x-auto border-t border-moto-gray px-3 py-2.5">
                     {galleryFiltered.map((photo, i) => (
                       <button
                         key={photo.id}
@@ -703,7 +703,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5"
+            className="rounded-2xl border border-moto-gray bg-moto-darker p-5"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -722,7 +722,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">
                   {shopStatus.state === "open"
@@ -740,31 +740,31 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Address</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">{shop.city}</p>
                 <p className="mt-0.5 text-xs text-slate-400 line-clamp-2">{shop.address}</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Services</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">{services.length}</p>
                 <p className="mt-0.5 text-xs text-slate-400">active menu items</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Team Size</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">{mechanics.length}</p>
                 <p className="mt-0.5 text-xs text-slate-400">assigned mechanics</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Parts Stocked</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">{products.length}</p>
                 <p className="mt-0.5 text-xs text-slate-400">catalog items</p>
               </div>
 
-              <div className="rounded-xl border border-slate-800/80 bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Response Rate</p>
                 <p className="mt-1.5 text-sm font-bold text-slate-100">{responseRate}</p>
                 <p className="mt-0.5 text-xs text-slate-400">{openDays} open days / week</p>
@@ -772,7 +772,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             </div>
 
             {/* ── 7-Day Operating Hours ── */}
-            <div className="mt-5 border-t border-slate-800/70 pt-4">
+            <div className="mt-5 border-t border-moto-gray pt-4">
               <div className="mb-3 flex items-center gap-2">
                 <CalendarDays size={15} className="text-cyan-400" />
                 <h3 className="text-sm font-bold text-slate-100">Operating Hours</h3>
@@ -788,7 +788,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                       className={`rounded-xl border p-2.5 text-center transition ${
                         isToday
                           ? "border-cyan-500/40 bg-cyan-500/10"
-                          : "border-slate-800/80 bg-slate-950/40"
+                          : "border-moto-gray bg-moto-dark"
                       }`}
                     >
                       <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-cyan-300" : "text-slate-400"}`}>
@@ -819,7 +819,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="flex flex-col gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-4 rounded-2xl border border-moto-gray bg-moto-darker p-6 sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <h2 className="text-lg font-black text-slate-100">
@@ -848,7 +848,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         initial={{ y: 80 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.2 }}
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-slate-800/80 bg-[#0a0a0f]/90 backdrop-blur-md px-4 py-3 lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-moto-gray bg-moto-darker/90 backdrop-blur-md px-4 py-3 lg:hidden"
       >
         <div className="min-w-0">
           <p className="text-xs text-slate-400">

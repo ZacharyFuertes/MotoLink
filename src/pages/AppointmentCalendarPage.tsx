@@ -22,6 +22,24 @@ import { sendServiceCompletionEmail } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
 
+// ─── Scroll-reveal / stagger presets matching the landing page ───────────────
+const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
+
+const containerStagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 18, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: REVEAL_EASE, willChange: "transform, opacity" },
+  },
+};
+
 interface Mechanic {
   id: string;
   name: string;
@@ -419,7 +437,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       value: filteredAppointments.filter((a) => a.scheduled_date === todayKey)
         .length,
       icon: Calendar,
-      tile: "bg-violet-500/15 text-violet-400",
+      tile: "bg-moto-accent/15 text-moto-accent",
     },
     {
       label: "Pending",
@@ -432,7 +450,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       value: filteredAppointments.filter((a) => a.status === "in_progress")
         .length,
       icon: Wrench,
-      tile: "bg-fuchsia-500/15 text-fuchsia-400",
+      tile: "bg-cyan-500/15 text-cyan-400",
     },
     {
       label: "Completed",
@@ -505,58 +523,62 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        variants={containerStagger}
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
       >
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-            Appointments
+        <motion.div variants={itemVariants}>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+            {isOwner ? "Manage your shop" : "Rider dashboard"}
+          </p>
+          <h1 className="mt-1 font-display text-4xl sm:text-5xl uppercase tracking-wide text-slate-100">
+            {isOwner ? "Appointments" : "My Bookings"}
+            <span className="text-moto-accent">.</span>
           </h1>
-          <p className="text-[13px] text-slate-300 mt-0.5">
+          <p className="mt-2 text-[13px] text-slate-300">
             {isOwner ? "Manage shop booking calendar and status workflow." : "Schedule and track your service appointments."}
           </p>
-        </div>
+        </motion.div>
         {canBookAppointments && (
-          <button
+          <motion.button
+            variants={itemVariants}
             onClick={() => setShowBookingForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-violet-600/20"
+            className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5"
           >
             <Plus className="w-4 h-4" />
             New Appointment
-          </button>
+          </motion.button>
         )}
       </motion.div>
 
       {/* Stats Row */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={containerStagger}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
       >
-        {statCards.map((stat, i) => {
+        {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              className="dashboard-card p-4 flex items-center gap-3.5"
+              variants={itemVariants}
+              className="stat-card p-5"
             >
-              <div
-                className={`w-10 h-10 rounded-xl ${stat.tile} flex items-center justify-center shrink-0`}
-              >
+              <span className="absolute right-4 top-3 font-display text-6xl font-black leading-none text-white/5">
+                {stat.value}
+              </span>
+              <div className={`w-11 h-11 rounded-xl ${stat.tile} flex items-center justify-center`}>
                 <Icon className="w-5 h-5" />
               </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-slate-300 truncate">
-                  {stat.label}
-                </p>
-                <p className="text-3xl font-extrabold text-slate-100 tabular-nums leading-tight">
-                  {stat.value}
-                </p>
-              </div>
+              <p className="mt-4 text-[13px] font-semibold text-slate-300">
+                {stat.label}
+              </p>
+              <p className="font-display text-4xl font-black text-cyan-400 leading-none">
+                {stat.value}
+              </p>
             </motion.div>
           );
         })}
@@ -564,9 +586,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
       {/* Filters Bar */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        variants={itemVariants}
+        initial="hidden"
+        animate="visible"
         className="dashboard-card p-4 flex flex-col gap-4"
       >
         <div className="relative w-full">
@@ -576,7 +598,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             placeholder="Search by customer, vehicle, service or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-moto-dark border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -588,7 +610,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 onClick={() => setFilterStatus(tab.key)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all ${
                   active
-                    ? "bg-moto-accent text-slate-950 shadow-sm"
+                    ? "bg-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
                     : "bg-moto-dark text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
                 }`}
               >
@@ -608,21 +630,18 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
       {/* Appointments List */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
+        variants={itemVariants}
+        initial="hidden"
+        animate="visible"
         className="dashboard-card overflow-hidden"
       >
-        <div className="px-6 py-4 flex items-center justify-between border-b border-moto-gray">
+        <div className="flex items-center justify-between border-b border-moto-gray bg-moto-dark/60 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-violet-500/15 text-violet-400 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg bg-moto-accent/15 text-moto-accent flex items-center justify-center">
               <Calendar size={18} />
             </div>
-            <h2
-              className="text-base font-bold text-slate-100"
-              style={{ fontFamily: "Inter, system-ui, sans-serif" }}
-            >
-              Appointments
+            <h2 className="font-display text-xl uppercase tracking-wide text-slate-100">
+              {isOwner ? "Appointments" : "Your Bookings"}
             </h2>
           </div>
           <span className="text-[13px] font-semibold text-slate-300">
@@ -633,10 +652,25 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
         {visibleAppointments.length === 0 ? (
           <div className="p-16 text-center">
-            <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-            <p className="text-slate-300 text-sm font-semibold">
-              No appointments match these filters
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
+              <Calendar className="w-8 h-8" />
+            </div>
+            <p className="font-display text-2xl uppercase tracking-wide text-slate-100">
+              No bookings found<span className="text-moto-accent">.</span>
             </p>
+            <p className="mt-2 text-sm text-slate-300">
+              {isOwner
+                ? "No appointments match these filters."
+                : "You don't have any bookings here yet. Book a shop to get started."}
+            </p>
+            {!isOwner && canBookAppointments && (
+              <button
+                onClick={() => setShowBookingForm(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-moto-accent px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5"
+              >
+                <Plus className="w-4 h-4" /> Book Appointment
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-moto-gray">
@@ -649,8 +683,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-moto-gray/40 transition-colors"
+                    layout
+                    className="relative px-6 py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-moto-gray/40 transition-colors"
                   >
+                    <span className={`absolute left-0 top-5 bottom-5 w-1 rounded-r-full ${conf.dot}`} />
                     {/* Left: status + service + customer */}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -755,16 +791,22 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             onClick={() => setShowBookingForm(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
               className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
             >
               <div className="flex items-center justify-between border-b border-moto-gray pb-3">
-                <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Book Appointment
-                </h3>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-moto-accent/15 text-moto-accent">
+                    <Calendar size={18} />
+                  </span>
+                  <h3 className="font-display text-xl uppercase tracking-wide text-slate-100">
+                    Book Appointment
+                  </h3>
+                </div>
                 <button
                   onClick={() => setShowBookingForm(false)}
                   className="p-1 rounded-lg hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
@@ -867,7 +909,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 <button
                   onClick={handleBookAppointment}
                   disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-violet-600/20"
+                  className="flex-1 px-4 py-2.5 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-moto-accent/25"
                 >
                   {saving ? "Booking..." : "Confirm Booking"}
                 </button>

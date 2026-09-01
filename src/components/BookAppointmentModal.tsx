@@ -640,81 +640,65 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray border-t-2 border-t-moto-accent shadow-2xl shadow-black/50 flex flex-col"
+            className="bg-slate-900 rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-slate-800 shadow-2xl shadow-black/50 flex flex-col"
           >
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-moto-gray flex-shrink-0 bg-moto-dark">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-moto-accent flex items-center justify-center shrink-0 rounded-xl shadow-lg shadow-moto-accent/30">
-                <ClipboardList
-                  size={28}
-                  className="text-slate-950"
-                  strokeWidth={1.5}
-                />
+          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800/80 flex-shrink-0 bg-slate-900/50">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-cyan-400 flex items-center justify-center shrink-0">
+                <ClipboardList size={20} strokeWidth={1.75} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-moto-accent text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-moto-accent" /> APPOINTMENT
-                </div>
-                <h2 className="font-display text-4xl sm:text-5xl text-slate-100 uppercase leading-none tracking-wide">
-                  {success ? "APPOINTMENT BOOKED" : "BOOK A SERVICE"}
+              <div className="flex flex-col">
+                <p className="text-[9px] font-semibold tracking-widest text-cyan-400 uppercase">
+                  Appointment
+                </p>
+                <h2 className="font-sans font-bold text-slate-100 text-xl tracking-tight leading-tight">
+                  {success ? "Appointment Booked" : "Book A Service"}
                 </h2>
-                <p className="text-slate-400 text-xs font-light tracking-wide">
-                  Schedule your visit takes less than 2 minutes
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Scheduling takes less than 2 minutes
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 border border-moto-gray hover:bg-moto-gray/40 transition text-slate-400 hover:text-white shrink-0 rounded-lg"
+              className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-white shrink-0"
             >
-              <X size={20} strokeWidth={1} />
+              <X size={18} strokeWidth={1.75} />
             </button>
           </div>
 
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="flex items-center px-6 sm:px-10 py-5 border-b border-moto-gray bg-moto-dark overflow-x-auto flex-shrink-0 scrollbar-hide">
+              <div className="flex items-center px-6 sm:px-8 py-4 border-b border-slate-800/80 bg-slate-900/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
                 {STEPS.map((step, i) => (
                   <div key={step} className="flex items-center shrink-0">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2.5">
                       <motion.div
-                        animate={{ scale: i === currentStep ? 1.1 : 1 }}
+                        animate={{ scale: i === currentStep ? 1.05 : 1 }}
                         transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                           i < currentStep
-                            ? "bg-emerald-500 text-slate-950"
+                            ? "bg-cyan-500/20 text-cyan-400"
                             : i === currentStep
-                              ? "bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/40"
-                              : "border border-moto-gray text-slate-500 bg-moto-darker"
+                              ? "bg-cyan-500 text-slate-950"
+                              : "bg-slate-900 border border-slate-800 text-slate-500"
                         }`}
                       >
                         {i < currentStep ? (
-                          <Check size={14} strokeWidth={3} />
+                          <Check size={13} strokeWidth={3} />
                         ) : (
-                          <motion.span
-                            key={`${i}-${i === currentStep ? "active" : "inactive"}`}
-                            initial={
-                              i === currentStep
-                                ? { scale: 0.6, opacity: 0 }
-                                : { scale: 1, opacity: 1 }
-                            }
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                            className="text-xs font-bold"
-                          >
-                            {i + 1}
-                          </motion.span>
+                          <span className="font-semibold">{i + 1}</span>
                         )}
                       </motion.div>
                       <span
-                        className={`whitespace-nowrap text-xs tracking-widest uppercase font-medium ${
+                        className={`whitespace-nowrap text-xs ${
                           i === currentStep
-                            ? "text-moto-accent"
+                            ? "text-cyan-400 font-semibold"
                             : i < currentStep
-                              ? "text-emerald-300"
-                              : "text-slate-500"
+                              ? "text-slate-300 font-medium"
+                              : "text-slate-500 font-medium"
                         }`}
                       >
                         {step}
@@ -722,8 +706,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     </div>
                     {i < STEPS.length - 1 && (
                       <div
-                        className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full transition-colors ${
-                          i < currentStep ? "bg-emerald-400" : "bg-moto-gray"
+                        className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full ${
+                          i < currentStep ? "bg-cyan-500/50" : "bg-slate-800/80"
                         }`}
                       />
                     )}
@@ -746,7 +730,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </AnimatePresence>
 
               {/* ── Step Content (scrollable) ── */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-moto-darker">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 bg-slate-950/40">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Select Service */}
                   {currentStep === 0 && (

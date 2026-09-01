@@ -635,7 +635,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Photo Gallery
+                  Shop Pictures
                 </h2>
                 <p className="text-[13px] text-slate-400">
                   Upload photos customers see on your public shop page.
