@@ -91,6 +91,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [showBikeModal, setShowBikeModal] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   // Bike registration form (existing schema: make, model, year, engine_number)
   const [bikeMake, setBikeMake] = useState("");
@@ -196,6 +198,41 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   };
 
   const completedCount = history.filter((h) => h.status === "completed").length;
+  const today = new Date().toISOString().split("T")[0];
+  const canCancelBooking = (entry: HistoryRecord) =>
+    (entry.status === "pending" || entry.status === "confirmed") &&
+    entry.scheduled_date >= today;
+
+  const handleCancelBooking = async (appointmentId: string) => {
+    if (!user?.id) return;
+
+    try {
+      setCancellingId(appointmentId);
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          status: "cancelled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", appointmentId)
+        .eq("customer_id", user.id);
+
+      if (error) throw error;
+
+      setHistory((prev) =>
+        prev.map((item) =>
+          item.id === appointmentId ? { ...item, status: "cancelled" } : item,
+        ),
+      );
+      setConfirmCancelId(null);
+    } catch (err) {
+      console.error("Error cancelling appointment:", err);
+      alert("Failed to cancel appointment. Please try again.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   // Real-data health estimate: progress toward the next routine service interval,
   // derived from the user's actual completed-service cadence.
   const healthProgress = Math.min(100, (completedCount % 5) * 20);
@@ -551,8 +588,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           {h.service_type}
                         </p>
                         <p className="text-sm text-slate-300">
-                          {h.shop_name || "An Autoshop"} ·{" "}
-                          {formatDate(h.scheduled_date)}
+                          {h.shop_name || "An Autoshop"} · {formatDate(h.scheduled_date)}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -568,6 +604,44 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           <span className="text-sm font-semibold text-slate-100">
                             ₱{Number(h.total_amount).toLocaleString()}
                           </span>
+                        )}
+                        {canCancelBooking(h) && (
+                          <div className="flex flex-col items-end gap-2">
+                            <button
+                              onClick={() =>
+                                setConfirmCancelId((current) =>
+                                  current === h.id ? null : h.id,
+                                )
+                              }
+                              disabled={cancellingId === h.id}
+                              className="inline-flex items-center justify-center rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {cancellingId === h.id ? "Cancelling..." : "Cancel"}
+                            </button>
+
+                            {confirmCancelId === h.id && (
+                              <div className="mt-1 w-full max-w-xs rounded-2xl border border-slate-800 bg-[#0d1420] p-3 shadow-2xl shadow-black/40">
+                                <p className="mb-2 text-left text-[11px] leading-relaxed text-slate-200">
+                                  Are you sure you want to cancel this appointment?
+                                </p>
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleCancelBooking(h.id)}
+                                    disabled={cancellingId === h.id}
+                                    className="rounded-full bg-cyan-500 px-5 py-1.75 text-[11px] font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    OK
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmCancelId(null)}
+                                    className="rounded-full border border-slate-700 bg-slate-800/80 px-4 py-1.75 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

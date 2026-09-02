@@ -6,6 +6,7 @@ import { productService } from "../services/productService";
 import { supabase } from "../services/supabaseClient";
 import { getShopGallery, ShopPhoto } from "../services/galleryService";
 import { Shop } from "../types/shop";
+import { useAuth } from "../contexts/AuthContext";
 import NavigationModal from "../components/NavigationModal";
 import BookAppointmentModal from "../components/BookAppointmentModal";
 
@@ -45,6 +46,16 @@ interface DaySchedule {
   open: boolean;
   openTime: string;
   closeTime: string;
+}
+
+interface ShopReview {
+  id: string;
+  customer_id: string | null;
+  rating: number;
+  title?: string | null;
+  comment: string;
+  created_at: string;
+  customer_name?: string;
 }
 
 const UI_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -143,10 +154,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   onBack,
   onAuthRequired,
 }) => {
+  const { user } = useAuth();
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [mechanics, setMechanics] = useState<ShopMechanic[]>([]);
   const [services, setServices] = useState<ShopService[]>([]);
+  const [reviews, setReviews] = useState<ShopReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -158,6 +171,11 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [selectedService, setSelectedService] = useState<ShopService | null>(null);
   const [selectedMechanic, setSelectedMechanic] = useState<ShopMechanic | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
 
   // Only show genuine owner-uploaded shop photos. Exclude any gallery entry
   // that is actually the shop's logo so the logo never shows inside the viewer.
@@ -223,6 +241,48 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     fetchShopDetail();
   }, [shopId]);
 
+  const fetchReviews = async (shopIdValue: string) => {
+    try {
+      const { data: reviewRows, error } = await supabase
+        .from("shop_reviews")
+        .select("id, customer_id, rating, title, comment, created_at")
+        .eq("shop_id", shopIdValue)
+        .eq("is_visible", true)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const customerIds = [...new Set((reviewRows || []).map((row) => row.customer_id).filter(Boolean))] as string[];
+      let customerMap: Record<string, string> = {};
+
+      if (customerIds.length > 0) {
+        const { data: customers } = await supabase
+          .from("users")
+          .select("id, name")
+          .in("id", customerIds);
+
+        (customers || []).forEach((customer: any) => {
+          customerMap[customer.id] = customer.name || "Customer";
+        });
+      }
+
+      setReviews(
+        (reviewRows || []).map((review: any) => ({
+          id: review.id,
+          customer_id: review.customer_id,
+          rating: Number(review.rating),
+          title: review.title,
+          comment: review.comment,
+          created_at: review.created_at,
+          customer_name: review.customer_id ? customerMap[review.customer_id] || "Customer" : "Customer",
+        })),
+      );
+    } catch (err) {
+      console.error("Error fetching shop reviews:", err);
+      setReviews([]);
+    }
+  };
+
   const fetchShopDetail = async () => {
     setLoading(true);
     setError("");
@@ -253,6 +313,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
       if (servicesData.status === "fulfilled")
         setServices(servicesData.value.data || []);
       if (galleryData.status === "fulfilled") setGallery(galleryData.value);
+      if (shopData.status === "fulfilled" && shopData.value) {
+        await fetchReviews(shopData.value.id);
+      }
 
       if (shopData.status === "fulfilled" && !shopData.value) {
         setError("Shop not found.");
@@ -268,6 +331,45 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const openBooking = () => {
     if (shop?.is_open === false) return;
     setShowBookingModal(true);
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!shop || !user?.id) {
+      onAuthRequired?.("login");
+      return;
+    }
+
+    if (!reviewText.trim() || reviewRating === 0) {
+      setReviewError("Please add a short review and select a star rating.");
+      return;
+    }
+
+    try {
+      setReviewSubmitting(true);
+      setReviewError("");
+
+      const { error } = await supabase.from("shop_reviews").insert({
+        shop_id: shop.id,
+        customer_id: user.id,
+        rating: reviewRating,
+        title: reviewTitle.trim() || null,
+        comment: reviewText.trim(),
+        is_verified: true,
+        is_visible: true,
+      });
+
+      if (error) throw error;
+
+      setReviewTitle("");
+      setReviewText("");
+      setReviewRating(0);
+      await fetchReviews(shop.id);
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      setReviewError("Unable to submit your review right now. Please try again.");
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -840,6 +942,136 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               <CalendarDays size={16} /> Book Now
             </button>
           </motion.section>
+
+          <section className="rounded-2xl border border-moto-gray bg-moto-darker p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-100">Customer Reviews</h2>
+                <p className="text-sm text-slate-400">What riders are saying about this shop.</p>
+              </div>
+              {reviews.length > 0 && (
+                <div className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-300">
+                  <Star size={11} className="fill-cyan-300 text-cyan-300" />
+                  {(
+                    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+                  ).toFixed(1)}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {reviews.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-moto-gray p-6 text-center">
+                  <Star size={24} className="mx-auto mb-3 text-slate-500" />
+                  <p className="text-sm font-semibold text-slate-300">No reviews yet</p>
+                  <p className="mt-1 text-xs text-slate-400">Be the first rider to share feedback.</p>
+                </div>
+              ) : (
+                reviews.map((review) => (
+                  <div key={review.id} className="rounded-2xl border border-moto-gray bg-moto-dark p-3.5">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-[10px] font-black uppercase text-cyan-400">
+                          {(review.customer_name || "C").slice(0, 2)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-100">{review.customer_name || "Customer"}</p>
+                          <p className="text-[10px] text-slate-500">
+                            {new Date(review.created_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={12}
+                            className={star <= review.rating ? "fill-amber-400 text-amber-400" : "text-slate-600"}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {review.title && (
+                      <p className="mb-1 text-sm font-bold text-cyan-300">{review.title}</p>
+                    )}
+                    <p className="text-sm leading-relaxed text-slate-300">{review.comment}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0d1420] p-4">
+              {!user ? (
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-300">Log in to leave a review for this shop.</p>
+                  <button
+                    type="button"
+                    onClick={() => onAuthRequired?.("login")}
+                    className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-400"
+                  >
+                    Login
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-100">Leave a review</p>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                          className="transition hover:scale-110"
+                        >
+                          <Star
+                            size={16}
+                            className={star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-600"}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <input
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    placeholder="Review title (optional)"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                  />
+
+                  <textarea
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                    rows={3}
+                    placeholder="Share your experience with this shop..."
+                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                  />
+
+                  {reviewError && (
+                    <p className="text-xs text-rose-300">{reviewError}</p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleReviewSubmit}
+                      disabled={reviewSubmitting || !reviewText.trim() || reviewRating === 0}
+                      className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-5 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {reviewSubmitting ? "Posting..." : "Post Review"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
         </main>
       </div>
 
