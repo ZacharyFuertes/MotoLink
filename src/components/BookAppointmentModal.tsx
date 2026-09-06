@@ -166,6 +166,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [lastBookingId, setLastBookingId] = useState("");
   const [copied, setCopied] = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
+  const [vehicleSaveError, setVehicleSaveError] = useState("");
   const [newVehicle, setNewVehicle] = useState({
     make: "",
     model: "",
@@ -349,8 +350,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const handleAddVehicle = async () => {
     if (!user?.id || !newVehicle.make.trim() || !newVehicle.model.trim()) return;
     setAddingVehicle(true);
+    setVehicleSaveError("");
     try {
-      const { data, error } = await supabase
+      const insertRequest = supabase
         .from("vehicles")
         .insert({
           customer_id: user.id,
@@ -360,6 +362,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         })
         .select("id, make, model, year")
         .single();
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error("The request timed out. Please check your connection and try again.")), 10000);
+      });
+      const { data, error } = await Promise.race([insertRequest, timeout]);
       if (error) throw error;
 
       if (data) {
@@ -368,10 +374,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setVehicleInfo("");
       }
       setNewVehicle({ make: "", model: "", year: "" });
-      setAddingVehicle(false);
     } catch (err) {
       console.error("Error adding vehicle:", err);
-      alert("Failed to add motorcycle. Please try again.");
+      setVehicleSaveError(err instanceof Error ? err.message : "Failed to add motorcycle. Please try again.");
+    } finally {
       setAddingVehicle(false);
     }
   };
@@ -1461,6 +1467,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               type="button"
                               onClick={() => {
                                 setAddingVehicle(true);
+                                setVehicleSaveError("");
                                 setSelectedVehicleId("");
                                 setVehicleInfo("");
                               }}
@@ -1569,6 +1576,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                       <X size={15} />
                                     </button>
                                   </div>
+                                  {vehicleSaveError && (
+                                    <p className="text-xs text-rose-300" role="alert">{vehicleSaveError}</p>
+                                  )}
                                 </>
                               )}
                             </div>

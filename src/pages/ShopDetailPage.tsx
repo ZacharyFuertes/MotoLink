@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
+import { inventoryService } from "../services/inventoryService";
 import { supabase } from "../services/supabaseClient";
 import { getShopGallery, ShopPhoto } from "../services/galleryService";
 import { Shop } from "../types/shop";
@@ -24,6 +25,7 @@ interface ShopProduct {
   unit_price: number;
   category: string | null;
   image_url?: string;
+  quantity_in_stock?: number;
 }
 
 interface ShopMechanic {
@@ -287,10 +289,11 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     setLoading(true);
     setError("");
     try {
-      const [shopData, productsData, mechanicsData, servicesData, galleryData] =
+      const [shopData, productsData, partsData, mechanicsData, servicesData, galleryData] =
         await Promise.allSettled([
           getShopById(shopId),
           productService.getAllProducts(shopId),
+          inventoryService.getParts(shopId),
           supabase
             .from("users")
             .select("id, name, email")
@@ -307,7 +310,25 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         ]);
 
       if (shopData.status === "fulfilled") setShop(shopData.value);
-      if (productsData.status === "fulfilled") setProducts(productsData.value);
+      if (productsData.status === "fulfilled" || partsData.status === "fulfilled") {
+        const catalogProducts = productsData.status === "fulfilled" ? productsData.value : [];
+        const availableParts = partsData.status === "fulfilled"
+          ? partsData.value.filter((part) => part.quantity_in_stock > 0)
+          : [];
+
+        setProducts([
+          ...catalogProducts,
+          ...availableParts.map((part) => ({
+            id: `part-${part.id}`,
+            name: part.name,
+            description: part.description,
+            unit_price: part.unit_price,
+            category: part.category,
+            image_url: part.image_url,
+            quantity_in_stock: part.quantity_in_stock,
+          })),
+        ]);
+      }
       if (mechanicsData.status === "fulfilled")
         setMechanics(mechanicsData.value.data || []);
       if (servicesData.status === "fulfilled")
@@ -681,7 +702,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                             ₱{Number(p.unit_price).toLocaleString()}
                           </p>
                           <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
-                            In-Store
+                            {p.quantity_in_stock !== undefined ? `${p.quantity_in_stock} in stock` : "In-Store"}
                           </span>
                         </div>
                       </button>
