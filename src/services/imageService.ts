@@ -109,6 +109,79 @@ export const imageService = {
   },
 
   /**
+   * Upload a shop logo to the 'shop-photos' bucket.
+   * Validates file type and size before uploading.
+   */
+  async uploadShopLogo(file: File, shopName: string): Promise<string | null> {
+    try {
+      const validationError = validateImageFile(file);
+      if (validationError) {
+        console.error("Validation error:", validationError);
+        return null;
+      }
+
+      const timestamp = Date.now();
+      const filename = `${sanitizeName(shopName)}_${timestamp}_${file.name}`;
+      const filePath = `shops/logos/${filename}`;
+
+      const { error } = await supabase.storage
+        .from(SHOP_BUCKET_NAME)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (error) {
+        console.error("Upload error details:", error);
+        throw error;
+      }
+
+      const { data: publicData } = supabase.storage
+        .from(SHOP_BUCKET_NAME)
+        .getPublicUrl(filePath);
+
+      console.log("✅ Shop logo uploaded:", publicData.publicUrl);
+      return publicData.publicUrl;
+    } catch (err) {
+      console.error("Error uploading shop logo:", err);
+      return null;
+    }
+  },
+
+  /**
+   * Delete a shop logo from the 'shop-photos' bucket.
+   */
+  async deleteShopLogo(imageUrl: string): Promise<boolean> {
+    try {
+      const bucketMarker = `${SHOP_BUCKET_NAME}/`;
+      const bucketIndex = imageUrl.indexOf(bucketMarker);
+
+      let filePath: string;
+      if (bucketIndex !== -1) {
+        filePath = imageUrl.substring(bucketIndex + bucketMarker.length);
+      } else {
+        const urlParts = imageUrl.split("/").pop();
+        if (!urlParts) throw new Error("Invalid image URL");
+        filePath = `shops/${urlParts}`;
+      }
+
+      const { error } = await supabase.storage
+        .from(SHOP_BUCKET_NAME)
+        .remove([filePath]);
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("✅ Shop logo deleted");
+      return true;
+    } catch (err) {
+      console.error("Error deleting shop logo:", err);
+      return false;
+    }
+  },
+
+  /**
    * Delete a shop gallery photo from the 'shop-photos' bucket.
    */
   async deleteShopPhoto(imageUrl: string): Promise<boolean> {

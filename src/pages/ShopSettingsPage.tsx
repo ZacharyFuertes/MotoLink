@@ -77,6 +77,11 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMsg, setLogoMsg] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const loadGallery = async (shopId: string) => {
     const photos = await getShopGallery(shopId);
@@ -107,6 +112,51 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   const showGalleryMsg = (type: "success" | "error", text: string) => {
     setGalleryMsg({ type, text });
     window.setTimeout(() => setGalleryMsg(null), 4000);
+  };
+
+  const showLogoMsg = (type: "success" | "error", text: string) => {
+    setLogoMsg({ type, text });
+    window.setTimeout(() => setLogoMsg(null), 4000);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      showLogoMsg("error", validationError);
+      return;
+    }
+
+    setLogoUploading(true);
+    try {
+      const url = await imageService.uploadShopLogo(file, shop.name || "shop");
+      if (!url) {
+        showLogoMsg("error", "Upload failed. Check the file and try again.");
+        return;
+      }
+      const previousLogo = shop.logo_url;
+      setShop((prev) => ({ ...prev, logo_url: url }));
+      if (previousLogo) {
+        await imageService.deleteShopLogo(previousLogo);
+      }
+      showLogoMsg("success", "Logo uploaded. Save your shop details to apply it.");
+    } catch (err) {
+      console.error("Error uploading logo:", err);
+      showLogoMsg("error", "Error uploading logo.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoRemove = () => {
+    const previousLogo = shop.logo_url;
+    if (!previousLogo) return;
+    setShop((prev) => ({ ...prev, logo_url: null }));
+    imageService.deleteShopLogo(previousLogo);
+    showLogoMsg("success", "Logo removed. Save your shop details to apply it.");
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,15 +433,64 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>
-                  <ImageIcon className="w-4 h-4 text-violet-500" /> Logo Image URL
+                  <ImageIcon className="w-4 h-4 text-violet-500" /> Shop Logo
                 </label>
-                <input
-                  type="text"
-                  value={shop.logo_url || ""}
-                  onChange={(e) => handleField("logo_url", e.target.value)}
-                  placeholder="https://..."
-                  className={inputClass}
-                />
+                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-moto-gray bg-moto-dark p-4">
+                  {shop.logo_url ? (
+                    <img
+                      src={shop.logo_url}
+                      alt="Shop logo"
+                      className="h-16 w-16 shrink-0 rounded-full border border-moto-gray object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-dashed border-moto-gray bg-moto-dark text-slate-600">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-moto-accent/40 bg-moto-accent/10 px-4 py-2.5 text-[13px] font-bold text-moto-accent transition hover:bg-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <UploadCloud className="w-4 h-4" />
+                      {logoUploading ? "Uploading..." : shop.logo_url ? "Replace Logo" : "Choose Logo"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handleLogoUpload}
+                        disabled={logoUploading}
+                        className="sr-only"
+                      />
+                    </label>
+                    {shop.logo_url && (
+                      <button
+                        type="button"
+                        onClick={handleLogoRemove}
+                        disabled={logoUploading}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 transition hover:bg-rose-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Trash2 className="w-4 h-4" /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {logoMsg && (
+                  <div
+                    className={`mt-2 flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] font-semibold ${
+                      logoMsg.type === "success"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                        : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                    }`}
+                  >
+                    {logoMsg.type === "success" ? (
+                      <CheckCircle2 size={15} />
+                    ) : (
+                      <AlertTriangle size={15} />
+                    )}
+                    {logoMsg.text}
+                  </div>
+                )}
+                <p className="mt-2 text-[12px] text-slate-500">
+                  JPEG, PNG, WEBP or GIF. Max 5 MB. This is the circular logo shown
+                  on the public shop page.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>Shop Description</label>
