@@ -262,7 +262,7 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`px-4 py-2 rounded-full font-semibold transition-all ${
                     selectedCategory === cat.id
-                      ? "bg-slate-900 text-white shadow-lg"
+                      ? "bg-moto-darker text-white shadow-lg"
                       : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-100"
                   }`}
                 >
@@ -585,7 +585,7 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
                               reserving ||
                               !isInStock(selectedPart)
                             }
-                            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest transition disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 bg-moto-darker hover:bg-moto-gray text-white py-3 rounded-xl font-bold text-sm uppercase tracking-widest transition disabled:opacity-50"
                           >
                             <ShoppingCart size={16} /> Reserve Part
                           </button>

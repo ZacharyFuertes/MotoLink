@@ -238,12 +238,12 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-slate-900 rounded-2xl border border-slate-800 w-full sm:max-w-[1200px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
+          className="bg-moto-darker rounded-2xl border border-moto-gray w-full sm:max-w-[1200px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
         >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800/80 flex-shrink-0 bg-slate-900/50">
+          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-xl bg-slate-800/80 flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-moto-gray/80 flex items-center justify-center shrink-0">
                 <CalendarDays size={20} className="text-moto-accent" strokeWidth={1.75} />
               </div>
               <div className="flex flex-col gap-0.5">
@@ -262,7 +262,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-moto-accent shrink-0"
+                className="p-2 rounded-lg border border-moto-gray hover:bg-moto-gray transition text-slate-400 hover:text-moto-accent shrink-0"
                 title="Refresh"
               >
                 <RefreshCw
@@ -273,7 +273,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
               </button>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-white shrink-0"
+                className="p-2 rounded-lg border border-moto-gray hover:bg-moto-gray transition text-slate-400 hover:text-white shrink-0"
               >
                 <X size={18} strokeWidth={1.75} />
               </button>
@@ -281,15 +281,15 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           </div>
 
           {/* ── Filter Tabs ── */}
-          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-4 border-b border-slate-800/80 flex-shrink-0 bg-slate-950/40">
-            <div className="flex items-center gap-1 p-1 border border-slate-800/80 bg-slate-950/60 rounded-xl">
+          <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-4 border-b border-moto-gray/80 flex-shrink-0 bg-moto-dark/40">
+            <div className="flex items-center gap-1 p-1 border border-moto-gray/80 bg-moto-dark/60 rounded-xl">
               {FILTER_TABS.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setFilter(tab.key)}
                   className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     filter === tab.key
-                      ? "bg-slate-800 text-moto-accent shadow-sm"
+                      ? "bg-moto-gray text-moto-accent shadow-sm"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -304,14 +304,14 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           </div>
 
           {/* ── Appointments List ── */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 bg-slate-950/40">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 bg-moto-dark/40">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="w-8 h-8 border-3 border-moto-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filteredAppointments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800/60 flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-moto-gray/60 flex items-center justify-center mb-4">
                   <AlertCircle
                     className="w-6 h-6 text-slate-500"
                     strokeWidth={1.5}
@@ -343,7 +343,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.04 }}
-                      className="border border-slate-800/80 bg-slate-900/40 rounded-2xl p-5 transition hover:border-slate-700 flex flex-col items-stretch"
+                      className="border border-moto-gray/80 bg-moto-darker/40 rounded-2xl p-5 transition hover:border-moto-gray-light flex flex-col items-stretch"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -399,7 +399,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
 
                       {/* Parts Section */}
                       {apt.parts && apt.parts.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-slate-800/80">
+                        <div className="mt-4 pt-4 border-t border-moto-gray/80">
                           <p className="text-[10px] font-semibold tracking-widest text-slate-500 uppercase mb-3">
                             Parts Included
                           </p>
@@ -441,7 +441,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                       )}
 
                       {/* Action Row */}
-                      <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between mt-5 pt-4 border-t border-moto-gray/80">
                         {/* Status Badge */}
                         <span
                           className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${status.bg} ${status.color}`}
@@ -483,14 +483,14 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                             exit={{ opacity: 0, height: 0 }}
                             className="overflow-hidden"
                           >
-                            <div className="mt-4 pt-4 border-t border-slate-800 border-dashed flex flex-col justify-between gap-4">
+                            <div className="mt-4 pt-4 border-t border-moto-gray border-dashed flex flex-col justify-between gap-4">
                               <p className="text-[10px] text-red-400 tracking-widest font-bold uppercase">
                                 Are you sure you want to cancel this appointment?
                               </p>
                               <div className="flex items-center gap-3 w-full">
                                 <button
                                   onClick={() => setConfirmCancelId(null)}
-                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition rounded-lg"
+                                  className="flex-1 px-4 py-2 text-[10px] font-bold tracking-widest uppercase text-slate-400 hover:text-white bg-moto-gray hover:bg-slate-700 transition rounded-lg"
                                 >
                                   Keep
                                 </button>

@@ -13,7 +13,7 @@ interface LoginChoicePageProps {
 
 // Shared glass portal card shell.
 const glassCard =
-  "group relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/50 backdrop-blur-lg p-8 text-left text-slate-100 transition-all duration-300 hover:-translate-y-1";
+  "group relative overflow-hidden rounded-3xl border border-moto-gray bg-moto-darker/50 backdrop-blur-lg p-8 text-left text-slate-100 transition-all duration-300 hover:-translate-y-1";
 
 const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onChooseCustomer,
@@ -23,15 +23,15 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
   onBack,
 }) => {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
+    <div className="min-h-screen bg-moto-dark text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
       {/* Ambient teal-and-crimson radial glow behind the centered content */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 from-30% via-slate-950 to-slate-950" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 from-30% via-moto-dark to-moto-dark" />
 
       {/* Ultra-faint technical grid overlay */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
 
       {/* Full-width translucent glass header */}
-      <header className="fixed inset-x-0 top-0 z-40 w-full border-b border-slate-800/60 bg-slate-900/20 px-8 py-3 backdrop-blur-md">
+      <header className="fixed inset-x-0 top-0 z-40 w-full border-b border-moto-gray/60 bg-moto-darker/20 px-8 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <motion.button
             onClick={onBack}
@@ -77,7 +77,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18 }}
-            className="font-display text-4xl sm:text-5xl uppercase tracking-wide text-white"
+            className="font-display text-4xl sm:text-5xl font-black tracking-tight text-white"
           >
             Select your portal
           </motion.h1>
@@ -149,7 +149,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
                     e.stopPropagation();
                     onChooseRegister();
                   }}
-                  className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:bg-white/5 hover:text-white"
+                  className="rounded-lg border border-moto-gray px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:bg-white/5 hover:text-white"
                 >
                   Register shop
                 </button>
@@ -167,7 +167,7 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             whileTap={{ scale: 0.98 }}
             className={`${glassCard} hover:border-rose-500/50 hover:shadow-2xl hover:shadow-rose-500/10`}
           >
-            <span className="absolute right-5 top-5 z-20 inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="absolute right-5 top-5 z-20 inline-flex items-center gap-1 rounded-full border border-moto-gray bg-moto-darker/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
               <Lock size={10} /> Restricted
             </span>
             <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-rose-500/10 blur-3xl" />

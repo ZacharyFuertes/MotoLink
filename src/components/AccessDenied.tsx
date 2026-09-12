@@ -43,7 +43,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4 py-12"
+      className="min-h-screen bg-moto-dark flex items-center justify-center px-4 py-12"
     >
       <div className="max-w-md w-full">
         <div className="text-center">
@@ -110,7 +110,7 @@ const AccessDenied: React.FC<AccessDeniedProps> = ({ requestedPage, onNavigate }
           >
             <button
               onClick={() => handleNavigate(defaultPage)}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-moto-darker hover:bg-moto-gray text-white rounded-xl font-medium transition"
             >
               <Home className="w-4 h-4" />
               Go to {defaultPage === 'appointments' ? 'Appointments' : 'Dashboard'}

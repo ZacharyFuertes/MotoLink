@@ -262,14 +262,14 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   // Input field style shared between login and signup
   const inputClass =
-    "w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
+    "w-full pl-11 pr-4 py-3 bg-moto-dark/80 border border-moto-gray rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-moto-dark text-slate-100 flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
       {/* Ambient radial glow */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 via-slate-950 to-slate-950" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 via-moto-dark to-moto-dark" />
       {/* Technical grid */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
 
@@ -278,24 +278,24 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         initial={{ opacity: 0, y: 30, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-5xl rounded-3xl overflow-hidden border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl flex flex-col md:grid md:grid-cols-2 z-10 my-auto"
+        className="w-full max-w-5xl rounded-3xl overflow-hidden border border-moto-gray bg-moto-darker/60 backdrop-blur-xl shadow-2xl flex flex-col md:grid md:grid-cols-2 z-10 my-auto"
       >
         {/* MOBILE TOP ARTWORK BANNER (visible on phone screens < md) */}
         <div
-          className="md:hidden relative h-40 sm:h-52 bg-cover bg-center shrink-0 border-b border-slate-800/80"
+          className="md:hidden relative h-40 sm:h-52 bg-cover bg-center shrink-0 border-b border-moto-gray/80"
           style={{ backgroundImage: `url(${heroImage})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-moto-darker via-moto-darker/40 to-transparent" />
           <button
             onClick={onBack}
-            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-moto-accent transition-colors shadow-lg"
+            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-moto-dark/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-moto-gray/80 hover:text-moto-accent transition-colors shadow-lg"
           >
             <ArrowLeft size={14} /> Back
           </button>
         </div>
 
         {/* LEFT / MAIN — AUTH FORM */}
-        <div className="bg-slate-900/40 p-6 sm:p-8 md:p-12 flex flex-col overflow-y-auto relative w-full scrollbar-hide">
+        <div className="bg-moto-darker/40 p-6 sm:p-8 md:p-12 flex flex-col overflow-y-auto relative w-full scrollbar-hide">
           {/* Back nav for desktop */}
           <button
             onClick={onBack}
@@ -564,11 +564,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
             {/* Divider */}
             <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-moto-gray" />
               <span className="text-slate-500 text-xs tracking-wider font-medium">
                 or
               </span>
-              <div className="flex-1 h-px bg-slate-800" />
+              <div className="flex-1 h-px bg-moto-gray" />
             </div>
 
             {/* Footer */}
@@ -604,7 +604,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           className="hidden md:block relative bg-cover bg-center min-h-full"
           style={{ backgroundImage: `url(${heroImage})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-moto-dark via-moto-dark/40 to-transparent" />
         </div>
       </motion.div>
     </div>

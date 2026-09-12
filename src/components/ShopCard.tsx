@@ -60,9 +60,9 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
       onClick={handleView}
       whileHover={{ y: -6 }}
       transition={{ type: "spring", damping: 22, stiffness: 300 }}
-      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(56,182,196,0.14)] flex flex-col h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
+      className="group relative overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark shadow-[0_8px_30px_rgba(0,0,0,0.35)] transition hover:border-moto-accent hover:shadow-[0_16px_44px_rgba(53,208,192,0.14)] flex flex-col h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
     >
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(56,182,196,0.12), transparent 60%)" }} />
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(53,208,192,0.12), transparent 60%)" }} />
 
       {/* ── Profile header — left avatar, no background ─────────────────── */}
       <div className="relative z-10 flex items-center gap-4 px-5 pt-5 pb-4 border-b border-moto-gray/40 shrink-0">
@@ -76,10 +76,10 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
             <img
               src={shop.logo_url}
               alt={`${shop.name} logo`}
-              className="relative z-10 h-full w-full rounded-full object-cover bg-slate-800 transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(56,182,196,0.5)]"
+              className="relative z-10 h-full w-full rounded-full object-cover bg-moto-gray transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(53,208,192,0.5)]"
             />
           ) : (
-            <div className="relative z-10 h-full w-full rounded-full bg-slate-800 flex items-center justify-center text-xl font-black text-moto-accent border border-moto-gray/40 transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(56,182,196,0.5)]">
+            <div className="relative z-10 h-full w-full rounded-full bg-moto-gray flex items-center justify-center text-xl font-black text-moto-accent border border-moto-gray/40 transition duration-300 group-hover:drop-shadow-[0_0_16px_rgba(53,208,192,0.5)]">
               {shop.name?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
@@ -91,7 +91,7 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />
             {status.label}
           </span>
-          <h3 className="font-display text-base sm:text-lg uppercase leading-tight tracking-wide text-slate-100 transition group-hover:text-moto-accent line-clamp-2" title={shop.name}>
+          <h3 className="font-display text-base sm:text-lg font-bold leading-snug tracking-tight text-slate-100 transition group-hover:text-moto-accent line-clamp-2" title={shop.name}>
             {shop.name}
           </h3>
         </div>
@@ -129,7 +129,7 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
             ) : shop.specialties && shop.specialties.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {shop.specialties.slice(0, 3).map((spec) => (
-                  <span key={spec} className="rounded-md bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-300 border border-slate-700/60">
+                  <span key={spec} className="rounded-md bg-moto-gray/80 px-2 py-0.5 text-[11px] font-medium text-slate-300 border border-moto-gray/60">
                     {spec}
                   </span>
                 ))}
@@ -163,7 +163,7 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
                     className={`flex flex-col items-center justify-between rounded-lg py-1 px-0.5 transition ${
                       isToday
                         ? "bg-moto-accent/20 border border-moto-accent/50 text-white shadow-md"
-                        : "bg-slate-900/80 border border-slate-700/60 text-slate-100"
+                        : "bg-moto-darker/80 border border-moto-gray/60 text-slate-100"
                     }`}
                   >
                     <span className={`text-[10px] font-black tracking-wide ${isToday ? "text-moto-accent" : "text-slate-200"}`}>
@@ -174,7 +174,7 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
                       className={`my-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${
                         open
                           ? "border border-emerald-400/60 bg-emerald-500/25 text-emerald-300"
-                          : "border border-slate-600 bg-slate-800 text-slate-400"
+                          : "border border-moto-gray bg-moto-gray text-slate-400"
                       }`}
                       title={`${day}: ${open ? "Open" : "Closed"}`}
                     >

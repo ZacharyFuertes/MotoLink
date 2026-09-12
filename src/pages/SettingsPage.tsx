@@ -98,7 +98,7 @@ const ToggleRow: React.FC<ToggleRowProps> = ({
       disabled={disabled}
       onClick={onChange}
       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-        checked ? "bg-indigo-600" : "bg-moto-gray"
+        checked ? "bg-moto-accent" : "bg-moto-gray"
       }`}
     >
       <span
@@ -481,7 +481,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             <button
               onClick={handleChangePassword}
               disabled={changingPassword}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-moto-accent/20"
             >
               {changingPassword ? (
                 <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -604,7 +604,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                   <button
                     onClick={searchRepairUser}
                     disabled={repairSearching}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-moto-accent/20"
                   >
                     {repairSearching ? (
                       <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -664,7 +664,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                     <button
                       onClick={saveRepairUser}
                       disabled={repairSaving}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-indigo-600/20"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-moto-accent/20"
                     >
                       {repairSaving ? (
                         <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

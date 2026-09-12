@@ -17,7 +17,7 @@ interface HeaderCardProps {
 
 export const HeaderCard: React.FC<HeaderCardProps> = ({ shop }) => {
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 relative">
+    <div className="bg-moto-gray border border-moto-gray rounded-xl p-6 relative">
       {/* Verified badge */}
       {shop.isVerified && (
         <BadgePill

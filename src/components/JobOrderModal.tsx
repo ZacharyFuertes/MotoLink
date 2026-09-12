@@ -228,7 +228,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                   <button
                     onClick={handleStartJobOrder}
                     disabled={saving}
-                    className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
+                    className="px-8 py-3 bg-moto-darker hover:bg-moto-gray text-white font-bold text-xs uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                   >
                     Start Job Order
                   </button>
@@ -280,7 +280,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                     <button
                       onClick={handleSaveLabor}
                       disabled={saving || jobOrder.status === "completed"}
-                      className="mt-3 w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
+                      className="mt-3 w-full bg-moto-darker hover:bg-moto-gray text-white py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                     >
                       Save Labor
                     </button>
@@ -360,7 +360,7 @@ const JobOrderModal: React.FC<JobOrderModalProps> = ({
                         <button
                           onClick={handleAddPart}
                           disabled={saving}
-                          className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
+                          className="flex items-center gap-1 bg-moto-darker hover:bg-moto-gray text-white px-4 py-2.5 font-bold text-[10px] uppercase tracking-widest transition disabled:opacity-50 rounded-xl"
                         >
                           <Plus size={14} /> Add
                         </button>

@@ -86,7 +86,7 @@ interface PendingShop {
 }
 
 const COLORS = [
-  "#6366f1",
+  "#35D0C0",
   "#10b981",
   "#f59e0b",
   "#ef4444",
@@ -329,7 +329,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           completed: "#10b981",
           pending: "#f59e0b",
           cancelled: "#6b7280",
-          in_progress: "#6366f1",
+          in_progress: "#35D0C0",
         };
         setAppointmentsByStatus(
           Object.entries(statusMap).length > 0
@@ -554,7 +554,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         <div className="text-center">
           <div className="relative w-12 h-12 mx-auto mb-4">
             <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+            <div className="absolute inset-0 rounded-full border-4 border-moto-accent border-t-transparent animate-spin" />
           </div>
           <p className="text-slate-300 text-sm font-medium">Loading platform analytics…</p>
         </div>
@@ -568,10 +568,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       value: totalShops,
       sub: `${activeShops} active`,
       icon: <Store className="w-6 h-6" />,
-      accent: "#6366f1",
-      bgTint: "bg-indigo-500/15",
-      iconBg: "bg-indigo-500/15",
-      iconColor: "text-indigo-400",
+      accent: "#35D0C0",
+      bgTint: "bg-moto-accent/15",
+      iconBg: "bg-moto-accent/15",
+      iconColor: "text-moto-accent",
     },
     {
       label: "Total Customers",
@@ -608,10 +608,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       value: `₱${totalRevenue.toLocaleString()}`,
       sub: "combined",
       icon: <DollarSign className="w-6 h-6" />,
-      accent: "#6366f1",
-      bgTint: "bg-indigo-500/15",
-      iconBg: "bg-indigo-500/15",
-      iconColor: "text-indigo-400",
+      accent: "#35D0C0",
+      bgTint: "bg-moto-accent/15",
+      iconBg: "bg-moto-accent/15",
+      iconColor: "text-moto-accent",
     },
     {
       label: "Active Shops",
@@ -632,12 +632,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       <div className="flex items-center justify-between h-16 px-4">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-lg shadow-moto-accent/20">
               <Shield className="w-[22px] h-[22px] text-white" />
             </div>
             <div>
               <span className="font-bold text-white text-[15px] tracking-wide">MOTOLINK</span>
-              <p className="text-xs text-indigo-300/70 font-medium tracking-widest uppercase">Admin</p>
+              <p className="text-xs text-moto-accent/70 font-medium tracking-widest uppercase">Admin</p>
             </div>
           </div>
         )}
@@ -680,7 +680,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 ${
                 isActive
-                  ? "sidebar-nav-active sidebar-nav-active-indigo"
+                  ? "sidebar-nav-active"
                   : "sidebar-nav-item"
               }`}
             >
@@ -697,7 +697,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       <div className="px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white text-[13px] font-bold shadow-lg">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center text-white text-[13px] font-bold shadow-lg">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -780,7 +780,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
-              className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-indigo-400 transition-colors"
+              className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
               title="Toggle language"
             >
               <Globe className="w-5 h-5" />
@@ -788,7 +788,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
             <div className="relative">
               <button
                 onClick={handleOpenNotifications}
-                className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-indigo-400 transition-colors relative"
+                className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors relative"
                 title="Notifications"
                 aria-label="Notifications"
               >
@@ -833,7 +833,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         {unreadCount > 0 && (
                           <button
                             onClick={handleMarkAllRead}
-                            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-indigo-400 hover:text-indigo-300 px-2.5 py-1.5 rounded-lg hover:bg-moto-gray/40 transition"
+                            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-moto-accent hover:text-moto-accent-dark px-2.5 py-1.5 rounded-lg hover:bg-moto-gray/40 transition"
                           >
                             <CheckCheck className="w-4 h-4" /> Mark all read
                           </button>
@@ -861,7 +861,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               className={`w-full text-left px-4 py-3.5 transition ${
                                 notification.read
                                   ? "bg-moto-darker hover:bg-moto-gray/30"
-                                  : "bg-indigo-500/10 hover:bg-indigo-500/15"
+                                  : "bg-moto-accent/10 hover:bg-moto-accent/15"
                               }`}
                             >
                               <div className="flex items-start gap-3">
@@ -869,7 +869,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                                   className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
                                     notification.read
                                       ? "bg-transparent"
-                                      : "bg-indigo-500"
+                                      : "bg-moto-accent"
                                   }`}
                                 />
                                 <div className="min-w-0">
@@ -901,7 +901,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               </AnimatePresence>
             </div>
             <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-moto-gray/60">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-sm">
                 <span className="text-slate-950 font-semibold text-[13px]">
                   {user?.name?.charAt(0)?.toUpperCase()}
                 </span>
@@ -1047,8 +1047,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-indigo-400" />
+                      <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-moto-accent" />
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Weekly Overview</h3>
@@ -1061,11 +1061,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                     <BarChart data={weeklyRevenue} barSize={32}>
                       <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" />
+                          <stop offset="0%" stopColor="#35D0C0" />
                           <stop offset="100%" stopColor="#818cf8" />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#25334e" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2B2A37" vertical={false} />
                       <XAxis
                         dataKey="day"
                         stroke="#64748b"
@@ -1081,7 +1081,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         axisLine={false}
                         tickFormatter={(v) => `₱${v.toLocaleString()}`}
                       />
-                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(56, 182, 196, 0.06)' }} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(53, 208, 192, 0.06)' }} />
                       <Bar
                         dataKey="revenue"
                         fill="url(#barGradient)"
@@ -1164,8 +1164,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   className="lg:col-span-2 dashboard-card p-6"
                 >
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-indigo-400" />
+                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-moto-accent" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Platform Revenue Trend</h3>
@@ -1176,11 +1176,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                     <AreaChart data={revenueTrend}>
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
-                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#35D0C0" stopOpacity={0.15} />
+                          <stop offset="100%" stopColor="#35D0C0" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#25334e" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2B2A37" vertical={false} />
                       <XAxis
                         dataKey="date"
                         stroke="#64748b"
@@ -1200,10 +1200,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       <Area
                         type="monotone"
                         dataKey="revenue"
-                        stroke="#6366f1"
+                        stroke="#35D0C0"
                         strokeWidth={2.5}
                         fill="url(#areaGradient)"
-                        dot={{ fill: "#6366f1", r: 3, strokeWidth: 0 }}
+                        dot={{ fill: "#35D0C0", r: 3, strokeWidth: 0 }}
                         activeDot={{ r: 5, fill: "#4f46e5", stroke: "#fff", strokeWidth: 2 }}
                       />
                     </AreaChart>
@@ -1233,7 +1233,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       </defs>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke="#25334e"
+                        stroke="#2B2A37"
                         horizontal={false}
                       />
                       <XAxis
@@ -1319,7 +1319,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               {shop.city}
                             </td>
                             <td className="text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 text-[13px] font-bold tabular-nums">
+                              <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-1 rounded-lg bg-moto-accent/15 text-moto-accent text-[13px] font-bold tabular-nums">
                                 {shop.customer_count}
                               </span>
                             </td>
@@ -1426,8 +1426,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               >
                 <div className="px-6 py-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-indigo-400" />
+                    <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-moto-accent" />
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Recent Users</h3>
@@ -1469,7 +1469,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                                   : u.role === "owner"
                                     ? "bg-rose-500/15 text-rose-400"
                                     : u.role === "mechanic"
-                                      ? "bg-indigo-500/15 text-indigo-400"
+                                      ? "bg-moto-accent/15 text-moto-accent"
                                       : "bg-emerald-500/15 text-emerald-400"
                               }`}
                             >

@@ -550,7 +550,7 @@ ${shopData}`;
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-lg shadow-moto-accent/20">
                   <Bot
                     size={18}
                     className="text-slate-950"
@@ -565,9 +565,9 @@ ${shopData}`;
                   <p className="text-slate-100 font-bold text-sm tracking-wide truncate">
                     Admin AI
                   </p>
-                  <Sparkles size={12} className="text-indigo-400 shrink-0" />
+                  <Sparkles size={12} className="text-moto-accent shrink-0" />
                   {dataLoading ? (
-                    <Loader2 size={11} className="text-indigo-400 animate-spin shrink-0" />
+                    <Loader2 size={11} className="text-moto-accent animate-spin shrink-0" />
                   ) : (
                     <span className="text-[9px] text-green-400 font-bold tracking-widest uppercase shrink-0">
                       ● Active
@@ -583,7 +583,7 @@ ${shopData}`;
               <span
                 title="Refresh data"
                 onClick={fetchShopData}
-                className="p-1.5 rounded-full text-slate-500 hover:text-indigo-400 hover:bg-moto-gray/40 transition cursor-pointer"
+                className="p-1.5 rounded-full text-slate-500 hover:text-moto-accent hover:bg-moto-gray/40 transition cursor-pointer"
               >
                 <RefreshCw size={13} />
               </span>
@@ -629,10 +629,10 @@ ${shopData}`;
                         key={idx}
                         onClick={() => handleSend(qp.prompt)}
                         disabled={loading || dataLoading || !groqClient.current}
-                        className="flex items-center gap-2 px-3 py-2.5 bg-moto-dark border border-moto-gray hover:border-indigo-500 hover:bg-moto-gray/30 transition text-left group disabled:opacity-40 rounded-xl"
+                        className="flex items-center gap-2 px-3 py-2.5 bg-moto-dark border border-moto-gray hover:border-moto-accent hover:bg-moto-gray/30 transition text-left group disabled:opacity-40 rounded-xl"
                       >
-                        <Icon size={13} className="text-indigo-400 shrink-0" />
-                        <span className="chat-chip text-slate-400 font-bold tracking-wider uppercase group-hover:text-indigo-400 transition truncate">
+                        <Icon size={13} className="text-moto-accent shrink-0" />
+                        <span className="chat-chip text-slate-400 font-bold tracking-wider uppercase group-hover:text-moto-accent transition truncate">
                           {qp.label}
                         </span>
                       </button>
@@ -660,7 +660,7 @@ ${shopData}`;
                   <div
                     className={`max-w-[88%] px-3.5 py-2.5 rounded-2xl ${
                       msg.role === "user"
-                        ? "bg-indigo-600 text-white rounded-br-md"
+                        ? "bg-moto-accent text-slate-950 rounded-br-md"
                         : "bg-moto-dark border border-moto-gray text-slate-200 rounded-bl-md"
                     }`}
                   >
@@ -690,7 +690,7 @@ ${shopData}`;
                           key={s}
                           onClick={() => handleSend(s)}
                           disabled={loading}
-                          className="chat-chip px-3 py-1.5 font-bold tracking-wider uppercase rounded-full border border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-200 transition-colors disabled:opacity-30"
+                          className="chat-chip px-3 py-1.5 font-bold tracking-wider uppercase rounded-full border border-moto-accent/40 text-moto-accent hover:bg-moto-accent/20 hover:text-moto-accent transition-colors disabled:opacity-30"
                         >
                           {s}
                         </button>
@@ -713,7 +713,7 @@ ${shopData}`;
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
                       transition={{ duration: 0.6, repeat: Infinity }}
-                      className="w-1.5 h-1.5 bg-indigo-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -722,7 +722,7 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.2,
                       }}
-                      className="w-1.5 h-1.5 bg-indigo-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                     <motion.div
                       animate={{ scale: [1, 1.3, 1] }}
@@ -731,7 +731,7 @@ ${shopData}`;
                         repeat: Infinity,
                         delay: 0.4,
                       }}
-                      className="w-1.5 h-1.5 bg-indigo-400 rounded-full"
+                      className="w-1.5 h-1.5 bg-moto-accent rounded-full"
                     />
                   </div>
                   <span className="chat-text-xs uppercase tracking-widest font-bold text-slate-500">
@@ -761,14 +761,14 @@ ${shopData}`;
                     : "Ask about revenue, inventory, appointments..."
                 }
                 disabled={loading || dataLoading || !groqClient.current}
-                className="flex-1 bg-moto-darker text-slate-100 px-4 py-2.5 rounded-full border border-moto-gray focus:border-indigo-500 focus:outline-none transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500"
+                className="flex-1 bg-moto-darker text-slate-100 px-4 py-2.5 rounded-full border border-moto-gray focus:border-moto-accent focus:outline-none transition text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={
                   loading || !input.trim() || dataLoading || !groqClient.current
                 }
-                className="w-10 h-10 shrink-0 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-moto-gray disabled:text-slate-500 text-white flex items-center justify-center transition-colors disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                className="w-10 h-10 shrink-0 rounded-full bg-moto-accent hover:bg-moto-accent-dark disabled:bg-moto-gray disabled:text-slate-500 text-slate-950 flex items-center justify-center transition-colors disabled:cursor-not-allowed shadow-lg shadow-moto-accent/20"
               >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />

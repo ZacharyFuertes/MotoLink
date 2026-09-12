@@ -21,7 +21,7 @@ export const Gallery: React.FC<GalleryProps> = ({ photos }) => {
   const thumbnails = filtered.slice(1, 5);
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+    <div className="bg-moto-gray border border-moto-gray rounded-xl p-4">
       {/* Filter pills */}
       <div className="flex gap-2 mb-4">
         {categories.map((cat) => (

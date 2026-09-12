@@ -51,7 +51,7 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
           <div className="flex gap-3">
             <button
               onClick={onTryAgain || onClose}
-              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 uppercase tracking-widest text-[10px] transition border border-slate-900 rounded-lg"
+              className="flex-1 bg-moto-darker hover:bg-moto-gray text-white font-bold py-3 uppercase tracking-widest text-[10px] transition border border-slate-900 rounded-lg"
             >
               Try Again
             </button>

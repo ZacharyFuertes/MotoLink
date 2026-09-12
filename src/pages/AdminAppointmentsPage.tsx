@@ -35,7 +35,7 @@ const STATUS_STYLES: Record<
   { label: string; classes: string; dot: string }
 > = {
   pending: { label: "Pending", classes: "bg-amber-500/15 text-amber-400", dot: "bg-amber-400" },
-  confirmed: { label: "Confirmed", classes: "bg-indigo-500/15 text-indigo-400", dot: "bg-indigo-500" },
+  confirmed: { label: "Confirmed", classes: "bg-moto-accent/15 text-moto-accent", dot: "bg-moto-accent" },
   in_progress: { label: "In Progress", classes: "bg-sky-500/15 text-sky-400", dot: "bg-sky-400" },
   completed: { label: "Completed", classes: "bg-emerald-500/15 text-emerald-400", dot: "bg-emerald-400" },
   declined: { label: "Declined", classes: "bg-red-500/15 text-red-400", dot: "bg-red-400" },
@@ -144,7 +144,7 @@ const AdminAppointmentsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 text-indigo-400 text-[13px] font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-moto-accent/15 text-moto-accent text-[13px] font-semibold">
             <Calendar className="w-4 h-4" />
             {appointments.length} total
           </span>
@@ -166,7 +166,7 @@ const AdminAppointmentsPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
                   active
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-moto-accent text-slate-950 shadow-sm"
                     : "bg-moto-darker border border-moto-gray text-slate-400 hover:text-slate-100"
                 }`}
               >
@@ -189,7 +189,7 @@ const AdminAppointmentsPage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search shop, customer, or service..."
-            className="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full lg:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
       </div>
@@ -198,7 +198,7 @@ const AdminAppointmentsPage: React.FC = () => {
       <div className="rounded-2xl border border-moto-gray bg-moto-dark overflow-hidden shadow-sm">
         {loading && appointments.length === 0 ? (
           <div className="flex items-center justify-center h-48">
-            <div className="w-8 h-8 border-2 border-moto-gray border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-moto-gray border-t-moto-accent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-56 text-center px-6">
@@ -231,13 +231,13 @@ const AdminAppointmentsPage: React.FC = () => {
                     <tr key={a.id} className="align-top">
                       <td>
                         <span className="inline-flex items-center gap-1.5 text-slate-100 font-medium">
-                          <Calendar className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <Calendar className="w-3.5 h-3.5 text-moto-accent shrink-0" />
                           {a.booking_id || "—"}
                         </span>
                       </td>
                       <td>
                         <span className="inline-flex items-center gap-1.5 text-slate-100 font-medium">
-                          <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <MapPin className="w-3.5 h-3.5 text-moto-accent shrink-0" />
                           {a.shop?.name || "—"}
                         </span>
                       </td>

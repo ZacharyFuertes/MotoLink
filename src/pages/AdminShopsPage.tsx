@@ -335,7 +335,7 @@ const AdminShopsPage: React.FC = () => {
               onClick={() => setFilter(tab.id)}
               className={`px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all ${
                 filter === tab.id
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-moto-accent text-slate-950 shadow-sm"
                   : "text-slate-300 hover:text-slate-200"
               }`}
             >
@@ -361,7 +361,7 @@ const AdminShopsPage: React.FC = () => {
             placeholder="Search shop, owner, or city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition"
+            className="w-full sm:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
       </motion.div>
@@ -377,7 +377,7 @@ const AdminShopsPage: React.FC = () => {
           <div className="flex items-center justify-center py-20">
             <div className="relative w-10 h-10">
               <div className="absolute inset-0 rounded-full border-4 border-moto-gray" />
-              <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+              <div className="absolute inset-0 rounded-full border-4 border-moto-accent border-t-transparent animate-spin" />
             </div>
           </div>
         ) : visibleShops.length > 0 ? (
@@ -413,7 +413,7 @@ const AdminShopsPage: React.FC = () => {
                           <button
                             onClick={() => openShopReview(shop)}
                             title="Review shop details"
-                            className="font-bold text-slate-100 text-sm truncate text-left hover:text-indigo-400 transition-colors block"
+                            className="font-bold text-slate-100 text-sm truncate text-left hover:text-moto-accent transition-colors block"
                           >
                             {shop.name}
                           </button>
@@ -430,7 +430,7 @@ const AdminShopsPage: React.FC = () => {
                       </p>
                     </td>
                     <td className="text-center">
-                      <span className="inline-flex items-center justify-center min-w-[28px] px-3 py-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 text-[13px] font-extrabold tabular-nums">
+                      <span className="inline-flex items-center justify-center min-w-[28px] px-3 py-1.5 rounded-lg bg-moto-accent/15 text-moto-accent text-[13px] font-extrabold tabular-nums">
                         {shop.appointment_count}
                       </span>
                     </td>
@@ -475,7 +475,7 @@ const AdminShopsPage: React.FC = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => openShopReview(shop)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-400 text-[13px] font-bold transition disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent text-[13px] font-bold transition disabled:opacity-50"
                         >
                           <Eye className="w-4 h-4" />
                           Review
@@ -596,8 +596,8 @@ const AdminShopsPage: React.FC = () => {
             >
               <div className="flex items-center justify-between px-6 py-5 border-b border-moto-gray bg-moto-dark">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-indigo-400" />
+                  <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-moto-accent" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
@@ -619,7 +619,7 @@ const AdminShopsPage: React.FC = () => {
               <div className="max-h-96 overflow-y-auto">
                 {customersLoading ? (
                   <div className="flex items-center justify-center py-16">
-                    <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : shopCustomers.length > 0 ? (
                   <table className="w-full text-sm dashboard-table dashboard-table-dark">
@@ -724,7 +724,7 @@ const AdminShopsPage: React.FC = () => {
 
                 <p className="text-[13px] text-slate-300 mb-2">
                   To confirm deletion, type{" "}
-                  <span className="font-mono font-bold text-indigo-400">
+                  <span className="font-mono font-bold text-moto-accent">
                     DELETE
                   </span>
                 </p>

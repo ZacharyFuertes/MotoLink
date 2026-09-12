@@ -134,12 +134,12 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
           {/* ── Header ── */}
           <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 bg-moto-darker flex items-center justify-center shrink-0">
                 <UserCircle size={28} className="text-white" strokeWidth={1.5} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-slate-900" /> DASHBOARD
+                  <div className="w-6 h-[1px] bg-moto-darker" /> DASHBOARD
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
                   MY ACCOUNT

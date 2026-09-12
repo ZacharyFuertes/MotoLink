@@ -510,7 +510,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 ? "bg-emerald-900 text-emerald-200 border-emerald-700"
                 : toast.type === "error"
                   ? "bg-red-900 text-red-200 border-red-700"
-                  : "bg-slate-900 text-slate-200 border-slate-700"
+                  : "bg-moto-darker text-slate-200 border-moto-gray"
             }`}
           >
             {toast.type === "success" && <CheckCircle className="w-4 h-4 text-emerald-400" />}

@@ -175,7 +175,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-left-6" : "-left-2 sm:-left-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
+              className={`absolute ${desktop ? "-left-6" : "-left-2 sm:-left-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-moto-gray bg-moto-darker/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
             >
               <ChevronLeft size={iconSize} />
             </motion.button>
@@ -185,7 +185,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-right-6" : "-right-2 sm:-right-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
+              className={`absolute ${desktop ? "-right-6" : "-right-2 sm:-right-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-moto-gray bg-moto-darker/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
             >
               <ChevronRight size={iconSize} />
             </motion.button>

@@ -48,7 +48,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
       transition={{ type: "spring", stiffness: 220, damping: 26, mass: 0.9 }}
       className={`fixed inset-x-0 top-0 z-40 border-b transition-all duration-500 ${
         scrolled
-          ? "border-slate-800/60 bg-slate-950/60 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
+          ? "border-moto-gray/60 bg-moto-dark/60 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
           : "border-transparent bg-transparent"
       }`}
     >
@@ -109,7 +109,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   onClick={onOpenProfile}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker/40 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-[10px] font-bold text-slate-950">
                     M
@@ -122,7 +122,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   onClick={onLogout}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
-                  className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
+                  className="rounded-xl border border-moto-gray bg-moto-darker/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
                 >
                   Log out
                 </motion.button>
@@ -156,7 +156,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
         <motion.button
           onClick={() => setMenuOpen((value) => !value)}
           whileTap={{ scale: 0.94 }}
-          className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-slate-800 bg-slate-900/40 backdrop-blur-md transition hover:border-moto-accent/60 md:hidden"
+          className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-moto-gray bg-moto-darker/40 backdrop-blur-md transition hover:border-moto-accent/60 md:hidden"
           aria-expanded={menuOpen}
           aria-label="Toggle navigation"
         >
@@ -172,7 +172,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="overflow-hidden md:hidden border-t border-slate-800/60 backdrop-blur-xl bg-slate-950/70"
+            className="overflow-hidden md:hidden border-t border-moto-gray/60 backdrop-blur-xl bg-moto-dark/70"
           >
             <div className="mx-auto flex max-w-7xl flex-col gap-1 px-5 py-4">
               {authLinks.map((link) => (
@@ -180,7 +180,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   key={link.label}
                   onClick={() => activate(link.action, link.label)}
                   whileTap={{ scale: 0.98, x: -2 }}
-                  className="rounded-xl px-4 py-3 text-left text-base font-semibold text-slate-100 transition hover:bg-slate-800/40 hover:text-white"
+                  className="rounded-xl px-4 py-3 text-left text-base font-semibold text-slate-100 transition hover:bg-moto-gray/40 hover:text-white"
                 >
                   {link.label}
                 </motion.button>
@@ -201,7 +201,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                       <motion.button
                         onClick={() => activate(onLogout)}
                         whileTap={{ scale: 0.98 }}
-                        className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-base font-semibold text-slate-200 backdrop-blur-md"
+                        className="rounded-xl border border-moto-gray bg-moto-darker/40 px-4 py-3 text-base font-semibold text-slate-200 backdrop-blur-md"
                       >
                         Log out
                       </motion.button>
@@ -220,7 +220,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                       <motion.button
                         onClick={() => activate(onShopOwnerLogin, "Shop Owner Login")}
                         whileTap={{ scale: 0.98 }}
-                        className="rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-3 text-center text-base font-semibold text-slate-300 backdrop-blur-md hover:bg-slate-800"
+                        className="rounded-xl border border-moto-gray/50 bg-moto-darker/50 px-4 py-3 text-center text-base font-semibold text-slate-300 backdrop-blur-md hover:bg-moto-gray"
                       >
                         Shop Owner Login
                       </motion.button>

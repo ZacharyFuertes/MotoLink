@@ -264,7 +264,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
       >
         <HeroSlideshow>
           <div className="w-full max-w-4xl px-2 sm:px-0">
-          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black uppercase leading-[0.92] tracking-wide text-white drop-shadow-lg">
+          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display text-[3.25rem] xs:text-6xl sm:text-7xl lg:text-8xl font-black leading-[0.92] tracking-tight text-white drop-shadow-lg">
             Find Your
             <span className="block text-moto-accent">Motor Shop.</span>
           </motion.h1>
@@ -278,7 +278,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <MapPin size={16} />
               Explore Live Map
             </button>
-            <button onClick={() => scrollTo("how-it-works")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-slate-900/70 px-6 py-3 text-xs sm:text-sm font-bold text-white backdrop-blur-md hover:bg-white/15 transition hover:-translate-y-0.5">
+            <button onClick={() => scrollTo("how-it-works")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-moto-darker/70 px-6 py-3 text-xs sm:text-sm font-bold text-white backdrop-blur-md hover:bg-white/15 transition hover:-translate-y-0.5">
               How it Works
             </button>
           </motion.div>
@@ -288,7 +288,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.32, willChange: "transform, opacity" }}
-            className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-slate-900/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0 ${isMobile ? "border-slate-800/60" : "border-slate-700/80 backdrop-blur-xl shadow-2xl"}`}
+            className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-moto-darker/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-moto-gray/80 gap-2 sm:gap-0 ${isMobile ? "border-moto-gray/60" : "border-moto-gray/80 backdrop-blur-xl shadow-2xl"}`}
           >
             <div className="px-2 sm:px-4 flex-1">
               <p className="font-display text-3xl sm:text-4xl font-black text-moto-accent">
@@ -340,7 +340,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             viewport={REVEAL_VIEWPORT}
           >
             <motion.div variants={itemVariants} className="mb-12 text-center">
-              <h2 className="mt-3 font-display text-4xl uppercase leading-none tracking-wide text-slate-100 sm:text-5xl">
+              <h2 className="mt-3 font-display text-4xl font-black leading-snug tracking-tight text-slate-100 sm:text-5xl">
                 How MotoLink Works<span className="text-moto-accent">.</span>
               </h2>
             </motion.div>
@@ -409,7 +409,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               variants={itemVariants}
               className="mb-8 sm:mb-10"
             >
-              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl font-black leading-snug tracking-tight text-slate-100">
                 Find Trusted Shops Near You<span className="text-moto-accent">.</span>
               </h2>
             </motion.div>
@@ -437,7 +437,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             viewport={REVEAL_VIEWPORT}
           >
             <motion.div variants={itemVariants} className="mb-8 sm:mb-10">
-              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl uppercase leading-none tracking-wide text-slate-100">
+              <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl font-black leading-snug tracking-tight text-slate-100">
                 Explore Shops On The Map<span className="text-moto-accent">.</span>
               </h2>
             </motion.div>
@@ -532,7 +532,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           <motion.span variants={itemVariants} className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
             <Store size={28} />
           </motion.span>
-          <motion.h2 variants={itemVariants} className="mt-6 font-display text-3xl sm:text-4xl uppercase leading-none tracking-wide text-slate-100">
+          <motion.h2 variants={itemVariants} className="mt-6 font-display text-3xl sm:text-4xl font-black leading-snug tracking-tight text-slate-100">
             Register your shop <span className="text-moto-accent">now!</span>
           </motion.h2>
           <motion.p variants={itemVariants} className="mx-auto mt-4 max-w-xl text-slate-300 sm:text-lg">

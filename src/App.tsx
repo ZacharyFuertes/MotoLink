@@ -280,12 +280,12 @@ const AppContent: React.FC = () => {
   // wrong-portal guard is dead code if the login page unmounts mid-login).
   if (isLoading && !isLoginScreen) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] text-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-moto-dark text-slate-100">
         <div className="text-center">
           <p className="text-xl font-semibold mb-2">
             Checking authentication and role permissions...
           </p>
-          <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+          <div className="animate-spin h-10 w-10 border-4 border-moto-accent border-t-transparent rounded-full mx-auto" />
         </div>
       </div>
     );
@@ -316,7 +316,7 @@ const AppContent: React.FC = () => {
     };
 
     return (
-      <div className="min-h-screen bg-white overflow-x-hidden">
+      <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
         {viewingShopId ? (
           <ShopDetailPage
@@ -393,12 +393,12 @@ const AppContent: React.FC = () => {
   // While user object is authenticated but role is not yet resolved, show loader
   if (isAuthenticated && !user?.role) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5] text-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-moto-dark text-slate-100">
         <div className="text-center">
           <p className="text-xl font-semibold mb-2">
             Loading role permissions...
           </p>
-          <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+          <div className="animate-spin h-10 w-10 border-4 border-moto-accent border-t-transparent rounded-full mx-auto" />
         </div>
       </div>
     );
@@ -407,7 +407,7 @@ const AppContent: React.FC = () => {
   // Render dashboard system or landing page if user navigates back
   if (currentPage === "landing") {
     return (
-      <div className="min-h-screen bg-white overflow-x-hidden">
+      <div className="min-h-screen bg-moto-dark overflow-x-hidden">
         <DatabaseStatus />
         {viewingShopId ? (
           <ShopDetailPage
@@ -537,7 +537,7 @@ const AppContent: React.FC = () => {
       />
     );
     return (
-      <div className="min-h-screen bg-[#f5f5f5]">
+      <div className="min-h-screen bg-moto-dark">
         {isAdminRole ? (
           <AdminPlatformDashboard
             onNavigate={(page: string) => handlePageChange(page as AppPage)}
@@ -576,7 +576,7 @@ const AppContent: React.FC = () => {
   // Admin layout: sidebar persists across all admin pages
   if (isAdminLayout) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5]">
+      <div className="min-h-screen bg-moto-dark">
         <DatabaseStatus />
         <AdminPlatformDashboard
           onNavigate={(page: string) => handlePageChange(page as PageType)}
@@ -607,7 +607,7 @@ const AppContent: React.FC = () => {
   // Owner layout: sidebar persists across all owner pages
   if (isOwnerLayout) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5]">
+      <div className="min-h-screen bg-moto-dark">
         <DatabaseStatus />
         <OwnerPlatformDashboard
           onNavigate={(page: string) => handlePageChange(page as PageType)}
@@ -670,7 +670,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
+    <div className="min-h-screen bg-moto-dark">
       <DatabaseStatus />
       <SystemNavbar
         currentPage={currentPage}

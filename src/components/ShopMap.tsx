@@ -398,12 +398,12 @@ const ShopMap = ({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative z-0 rounded-3xl border border-slate-800 bg-[#0a0f1d] shadow-2xl shadow-black/90 overflow-hidden flex flex-col lg:flex-row min-h-[500px] lg:min-h-[680px]"
+      className="relative z-0 rounded-3xl border border-moto-gray bg-[#0a0f1d] shadow-2xl shadow-black/90 overflow-hidden flex flex-col lg:flex-row min-h-[500px] lg:min-h-[680px]"
     >
       {/* ─── LEFT SIDEBAR PANEL (visible on desktop or when mobileTab === 'list') ── */}
-      <div className={`w-full lg:w-[420px] xl:w-[450px] shrink-0 bg-[#090d16] border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col p-4 z-10 select-none ${mobileTab === "list" ? "flex" : "hidden lg:flex"}`}>
+      <div className={`w-full lg:w-[420px] xl:w-[450px] shrink-0 bg-[#090d16] border-b lg:border-b-0 lg:border-r border-moto-gray flex flex-col p-4 z-10 select-none ${mobileTab === "list" ? "flex" : "hidden lg:flex"}`}>
         {/* Header Bar */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
+        <div className="flex items-center justify-between pb-3 border-b border-moto-gray/80 mb-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-moto-accent/20 text-moto-accent border border-moto-accent/30 shadow-md">
               <Store size={18} />
@@ -415,7 +415,7 @@ const ShopMap = ({
 
           <button
             onClick={() => setShowInfoModal(!showInfoModal)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-moto-accent/50 hover:text-moto-accent transition"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-slate-400 hover:border-moto-accent/50 hover:text-moto-accent transition"
             title="Shop Locator Info"
           >
             <Info size={16} />
@@ -423,7 +423,7 @@ const ShopMap = ({
         </div>
 
         {/* Mobile View Toggle Bar (visible on mobile < lg when in list view) */}
-        <div className="flex lg:hidden items-center gap-1 rounded-xl bg-slate-900/90 p-1 border border-slate-800 mb-3">
+        <div className="flex lg:hidden items-center gap-1 rounded-xl bg-moto-darker/90 p-1 border border-moto-gray mb-3">
           <button
             onClick={() => setMobileTab("map")}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold text-slate-400 hover:text-slate-200 transition"
@@ -449,7 +449,7 @@ const ShopMap = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search shops, city or service..."
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/90 pl-9 pr-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-moto-accent focus:outline-none focus:ring-1 focus:ring-moto-accent/50 transition"
+              className="w-full rounded-xl border border-moto-gray bg-moto-darker/90 pl-9 pr-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-moto-accent focus:outline-none focus:ring-1 focus:ring-moto-accent/50 transition"
             />
           </div>
         </div>
@@ -463,7 +463,7 @@ const ShopMap = ({
               className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
                 filterOpenOnly
                   ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-300"
-                  : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700"
+                  : "border-moto-gray bg-moto-darker text-slate-300 hover:border-moto-gray-light"
               }`}
             >
               <span>{filterOpenOnly ? "Open Now" : "All Status"}</span>
@@ -476,7 +476,7 @@ const ShopMap = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-300 focus:border-moto-accent focus:outline-none"
+              className="rounded-lg border border-moto-gray bg-moto-darker px-2.5 py-1.5 text-xs font-semibold text-slate-300 focus:border-moto-accent focus:outline-none"
             >
               <option value="nearest">Nearest</option>
               <option value="rating">Highest Rated</option>
@@ -525,13 +525,13 @@ const ShopMap = ({
                 onClick={() => handleSelectShop(shop)}
                 className={`group flex items-center justify-between rounded-xl border p-3 transition cursor-pointer ${
                   isSelected
-                    ? "border-moto-accent/60 bg-slate-900 shadow-md shadow-moto-accent/10"
-                    : "border-slate-800/80 bg-slate-900/60 hover:border-moto-accent/40 hover:bg-slate-900"
+                    ? "border-moto-accent/60 bg-moto-darker shadow-md shadow-moto-accent/10"
+                    : "border-moto-gray/80 bg-moto-darker/60 hover:border-moto-accent/40 hover:bg-moto-darker"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Vehicle / Sprocket Badge Icon */}
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/90 text-slate-300 group-hover:border-moto-accent/40 group-hover:text-moto-accent transition">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-moto-gray/80 bg-moto-gray/90 text-slate-300 group-hover:border-moto-accent/40 group-hover:text-moto-accent transition">
                     {shop.logo_url ? (
                       <img src={shop.logo_url} alt="" className="h-full w-full rounded-full object-cover" />
                     ) : isVehicleIcon ? (
@@ -566,7 +566,7 @@ const ShopMap = ({
                     className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
                       activeRouteShop?.id === shop.id
                         ? "border-moto-accent/70 bg-moto-accent/20 text-moto-accent"
-                        : "border-slate-700 bg-transparent text-slate-500 hover:border-moto-accent/50 hover:text-moto-accent"
+                        : "border-moto-gray bg-transparent text-slate-500 hover:border-moto-accent/50 hover:text-moto-accent"
                     }`}
                     title={activeRouteShop?.id === shop.id ? "Clear route" : "Get Directions"}
                   >
@@ -582,7 +582,7 @@ const ShopMap = ({
 
       {/* ─── RIGHT MAP CANVAS PANEL (ALWAYS MOUNTED FOR LEAFLET) ─────────── */}
       <div
-        className={`relative flex-1 bg-slate-950 min-h-[480px] sm:min-h-[520px] lg:min-h-[680px] ${
+        className={`relative flex-1 bg-moto-dark min-h-[480px] sm:min-h-[520px] lg:min-h-[680px] ${
           mobileTab === "map" ? "block w-full" : "hidden lg:block"
         }`}
       >
@@ -591,11 +591,11 @@ const ShopMap = ({
 
         {/* Location access fallback prompt if location not granted */}
         {!locationGranted && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/80 px-4 text-center backdrop-blur-sm pointer-events-none">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-moto-dark/80 px-4 text-center backdrop-blur-sm pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="pointer-events-auto max-w-xs rounded-2xl border border-slate-800 bg-slate-900/90 p-5 text-center shadow-2xl backdrop-blur-xl"
+              className="pointer-events-auto max-w-xs rounded-2xl border border-moto-gray bg-moto-darker/90 p-5 text-center shadow-2xl backdrop-blur-xl"
             >
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent border border-moto-accent/30">
                 <MapPin size={24} />
@@ -617,7 +617,7 @@ const ShopMap = ({
         {/* Floating Top Controls Overlay */}
         <div className="pointer-events-none absolute left-3 right-3 top-3 z-10 flex flex-wrap items-center justify-between gap-2">
           {/* Top-Left: Mobile Switch to Outlets button (shown only on mobile < lg) */}
-          <div className="pointer-events-auto flex lg:hidden items-center gap-1 rounded-xl bg-slate-900/95 p-1 border border-slate-800 shadow-xl backdrop-blur-md">
+          <div className="pointer-events-auto flex lg:hidden items-center gap-1 rounded-xl bg-moto-darker/95 p-1 border border-moto-gray shadow-xl backdrop-blur-md">
             <button
               onClick={() => setMobileTab("map")}
               className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-moto-accent text-slate-950 rounded-lg shadow-sm"
@@ -634,7 +634,7 @@ const ShopMap = ({
 
           {/* Desktop Shops Found Pill */}
           <div className="pointer-events-auto hidden lg:flex items-center gap-2">
-            <div className="flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[11px] font-bold text-slate-100">
+            <div className="flex h-8 items-center gap-1.5 rounded-full border border-moto-gray bg-moto-darker/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[11px] font-bold text-slate-100">
               <span className="h-2 w-2 rounded-full bg-moto-accent animate-pulse" />
               <span>{filteredShops.length} Shops Found</span>
             </div>
@@ -643,7 +643,7 @@ const ShopMap = ({
           {/* Top-Right: Location Enabled Badge / Button */}
           <button
             onClick={onRequestLocation}
-            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[10px] sm:text-xs font-black uppercase tracking-wider text-moto-accent hover:bg-slate-800 transition"
+            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-moto-gray bg-moto-darker/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[10px] sm:text-xs font-black uppercase tracking-wider text-moto-accent hover:bg-moto-gray transition"
           >
             <LocateFixed size={13} />
             <span className="whitespace-nowrap">
@@ -655,7 +655,7 @@ const ShopMap = ({
         {/* Floating Bottom Info Cards Overlay */}
         <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-end justify-between gap-3">
           {/* Bottom-Left Match Summary Card */}
-          <div className="pointer-events-auto max-w-xs rounded-2xl border border-slate-800/90 bg-slate-950/85 px-4 py-2.5 shadow-2xl backdrop-blur-md text-xs text-slate-200">
+          <div className="pointer-events-auto max-w-xs rounded-2xl border border-moto-gray/90 bg-moto-dark/85 px-4 py-2.5 shadow-2xl backdrop-blur-md text-xs text-slate-200">
             <p className="font-bold text-slate-100 truncate">
               Top Match: {activeShop ? activeShop.name : "LORD COBAIN"}
             </p>
@@ -663,7 +663,7 @@ const ShopMap = ({
           </div>
 
           {/* Bottom-Right Tile Attribution */}
-          <div className="pointer-events-auto flex items-center gap-1.5 rounded-xl border border-slate-800/80 bg-slate-950/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-xl backdrop-blur-md">
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-xl border border-moto-gray/80 bg-moto-dark/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-xl backdrop-blur-md">
             <span>OpenStreetMap</span>
           </div>
         </div>
@@ -673,8 +673,8 @@ const ShopMap = ({
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(56, 182, 196, 0.35); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(56, 182, 196, 0.7); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(53, 208, 192, 0.35); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(53, 208, 192, 0.7); }
 
         .shop-map-pin { background: transparent; border: none; }
         .shop-map-pin-container { position: relative; width: 40px; height: 48px; }
@@ -760,7 +760,7 @@ const ShopMap = ({
           0% { transform: scale(0.8); opacity: 0.9; }
           75%, 100% { transform: scale(2.2); opacity: 0; }
         }
-        .leaflet-popup-content-wrapper { background: #0f172a; border: 1px solid #334155; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); color: #f8fafc; }
+        .leaflet-popup-content-wrapper { background: #0f172a; border: 1px solid #3A3848; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.7); color: #f8fafc; }
         .leaflet-popup-tip { background: #0f172a; }
         .leaflet-popup-content { margin: 10px 12px; color: #f8fafc; }
       `}</style>

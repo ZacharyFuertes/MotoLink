@@ -144,7 +144,7 @@ const Footer: React.FC = () => {
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-slate-200 hover:bg-slate-900 text-slate-600 hover:text-white flex items-center justify-center transition-colors"
+                    className="w-10 h-10 rounded-full bg-slate-200 hover:bg-moto-darker text-slate-600 hover:text-white flex items-center justify-center transition-colors"
                     whileHover={{ scale: 1.1, rotate: 10 }}
                     whileTap={{ scale: 0.95 }}
                     aria-label={social.label}

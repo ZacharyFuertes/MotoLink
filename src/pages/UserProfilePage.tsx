@@ -246,12 +246,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   return (
     <div className="min-h-screen bg-[#090d16] font-sans tracking-tight text-slate-100">
       {/* ── Top Navbar ── */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-moto-gray/80 bg-moto-dark/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-700 hover:text-slate-100"
+              className="flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-moto-gray-light hover:text-slate-100"
             >
               <ArrowLeft size={16} /> Back
             </button>
@@ -264,9 +264,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           <div className="relative">
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-3 rounded-xl border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 transition hover:border-slate-700"
+              className="flex items-center gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/40 px-2.5 py-1.5 transition hover:border-moto-gray-light"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-sm font-bold text-moto-accent">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-sm font-bold text-moto-accent">
                 {initials(displayName)}
               </span>
               <span className="hidden text-left sm:block">
@@ -289,17 +289,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   className="fixed inset-0 z-10"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-slate-800 bg-[#0d1420] p-1 shadow-2xl shadow-black/50">
+                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-moto-gray bg-[#0d1420] p-1 shadow-2xl shadow-black/50">
                   <button
                     onClick={() => {
                       setActiveTab("profile");
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-800/60 hover:text-white"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-moto-gray/60 hover:text-white"
                   >
                     <User size={15} className="text-moto-accent" /> My Profile
                   </button>
-                  <div className="my-1 border-t border-slate-800" />
+                  <div className="my-1 border-t border-moto-gray" />
                   <button
                     onClick={onLogout}
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10"
@@ -317,8 +317,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         {/* ── LEFT SIDEBAR ── */}
         <aside className="space-y-5">
           {/* Avatar badge card */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-xl font-bold text-moto-accent">
+          <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-xl font-bold text-moto-accent">
               {initials(displayName)}
             </div>
             <div className="mt-5 space-y-1.5">
@@ -339,15 +339,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </div>
 
           {/* Vertical nav tabs */}
-          <nav className="space-y-1 rounded-2xl border border-slate-800/80 bg-slate-900/30 p-2">
+          <nav className="space-y-1 rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-2">
             {NAV_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
                   activeTab === tab.key
-                    ? "bg-slate-800/80 font-semibold text-moto-accent"
-                    : "font-medium text-slate-400 hover:bg-slate-800/50 hover:text-slate-100"
+                    ? "bg-moto-gray/80 font-semibold text-moto-accent"
+                    : "font-medium text-slate-400 hover:bg-moto-gray/50 hover:text-slate-100"
                 }`}
               >
                 <tab.icon size={16} className="shrink-0" />
@@ -358,14 +358,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
               <Car size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {vehicles.length}
               </p>
               <p className="text-xs font-medium text-slate-300">Bikes Registered</p>
             </div>
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
               <Wrench size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {completedCount}
@@ -380,7 +380,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {activeTab === "profile" && (
             <div className="space-y-6">
               {/* My Garage */}
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+              <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-slate-100">
@@ -399,7 +399,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
 
                 {vehicles.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-800 p-10 text-center">
+                  <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
                     <Car size={28} className="mx-auto mb-3 text-slate-400" />
                     <p className="font-semibold text-slate-300">
                       No motorcycles registered yet
@@ -413,10 +413,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     {vehicles.map((v, idx) => (
                       <div
                         key={v.id}
-                        className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 transition hover:border-slate-700"
+                        className="rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 transition hover:border-moto-gray-light"
                       >
                         <div className="mb-4 flex items-start justify-between">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-moto-accent">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
                             <Car size={18} />
                           </span>
                           {idx === 0 && (
@@ -449,7 +449,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </div>
 
               {/* Maintenance Health Tracker */}
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+              <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <Gauge size={16} className="text-moto-accent" />
                   <h2 className="text-lg font-bold text-slate-100">
@@ -464,7 +464,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     {100 - healthProgress}%
                   </span>
                 </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-moto-gray">
                   <div
                     className="h-full rounded-full bg-moto-accent transition-all"
                     style={{ width: `${healthProgress}%` }}
@@ -479,7 +479,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "history" && (
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="mb-5 flex items-center gap-2">
                 <History size={16} className="text-moto-accent" />
                 <h2 className="text-lg font-bold text-slate-100">
@@ -488,7 +488,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </div>
 
               {history.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-800 p-10 text-center">
+                <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
                   <Clock size={26} className="mx-auto mb-3 text-slate-400" />
                   <p className="font-semibold text-slate-300">
                     No service history yet
@@ -501,7 +501,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
                     <thead>
-                      <tr className="border-b border-slate-800 text-xs text-slate-300">
+                      <tr className="border-b border-moto-gray text-xs text-slate-300">
                         <th className="px-3 py-2 font-medium">Service</th>
                         <th className="px-3 py-2 font-medium">Shop</th>
                         <th className="px-3 py-2 font-medium">Date</th>
@@ -514,7 +514,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       {history.map((h) => (
                         <tr
                           key={h.id}
-                          className="border-b border-slate-800/60 last:border-0"
+                          className="border-b border-moto-gray/60 last:border-0"
                         >
                           <td className="px-3 py-3 font-medium text-slate-100">
                             {h.service_type}
@@ -558,7 +558,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "bookings" && (
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="mb-5 flex items-center gap-2">
                 <Calendar size={16} className="text-moto-accent" />
                 <h2 className="text-lg font-bold text-slate-100">
@@ -567,7 +567,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </div>
 
               {history.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-800 p-10 text-center">
+                <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
                   <Clock size={26} className="mx-auto mb-3 text-slate-400" />
                   <p className="font-semibold text-slate-300">
                     No bookings yet
@@ -581,7 +581,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   {history.map((h) => (
                     <div
                       key={h.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800/80 bg-slate-900/40 p-4"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4"
                     >
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-100">
@@ -620,7 +620,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                             </button>
 
                             {confirmCancelId === h.id && (
-                              <div className="mt-1 w-full max-w-xs rounded-2xl border border-slate-800 bg-[#0d1420] p-3 shadow-2xl shadow-black/40">
+                              <div className="mt-1 w-full max-w-xs rounded-2xl border border-moto-gray bg-[#0d1420] p-3 shadow-2xl shadow-black/40">
                                 <p className="mb-2 text-left text-[11px] leading-relaxed text-slate-200">
                                   Are you sure you want to cancel this appointment?
                                 </p>
@@ -634,7 +634,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                                   </button>
                                   <button
                                     onClick={() => setConfirmCancelId(null)}
-                                    className="rounded-full border border-slate-700 bg-slate-800/80 px-4 py-1.75 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700"
+                                    className="rounded-full border border-moto-gray bg-moto-gray/80 px-4 py-1.75 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700"
                                   >
                                     Cancel
                                   </button>
@@ -652,14 +652,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "saved" && (
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <h2 className="text-lg font-bold text-slate-100">
                 Saved Shops
               </h2>
               <p className="mt-1 text-sm text-slate-400">
                 Shops you follow will show up here.
               </p>
-              <div className="mt-8 rounded-xl border border-dashed border-slate-800 p-12 text-center">
+              <div className="mt-8 rounded-xl border border-dashed border-moto-gray p-12 text-center">
                 <Store size={28} className="mx-auto mb-3 text-slate-400" />
                 <p className="font-semibold text-slate-300">
                   No saved shops yet
@@ -669,7 +669,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "settings" && (
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
+            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <h2 className="text-lg font-bold text-slate-100">
                 Account Settings
               </h2>
@@ -677,18 +677,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 Your account details and preferences.
               </p>
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4">
+                <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
                   <p className="text-xs font-medium text-slate-300">Name</p>
                   <p className="mt-1 font-semibold text-slate-100">
                     {displayName}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4">
+                <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
                   <p className="text-xs font-medium text-slate-300">Email</p>
                   <p className="mt-1 font-semibold text-slate-100">{email}</p>
                 </div>
                 {phone && (
-                  <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4">
+                  <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
                     <p className="text-xs font-medium text-slate-300">Phone</p>
                     <p className="mt-1 font-semibold text-slate-100">
                       {phone}
@@ -696,7 +696,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </div>
                 )}
                 {user?.address && (
-                  <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-4">
+                  <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
                     <p className="text-xs font-medium text-slate-300">Address</p>
                     <p className="mt-1 font-semibold text-slate-100">
                       {user.address}
@@ -717,7 +717,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             if (e.target === e.currentTarget) setShowBikeModal(false);
           }}
         >
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0d1420] p-6">
+          <div className="w-full max-w-md rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-100">
                 Add Motorcycle
@@ -738,7 +738,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   value={bikeMake}
                   onChange={(e) => setBikeMake(e.target.value)}
                   placeholder="Honda"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                  className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                 />
               </div>
               <div>
@@ -749,7 +749,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   value={bikeModel}
                   onChange={(e) => setBikeModel(e.target.value)}
                   placeholder="Click 125i"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                  className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -762,7 +762,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     onChange={(e) => setBikeYear(e.target.value)}
                     placeholder="2023"
                     inputMode="numeric"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                    className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                   />
                 </div>
                 <div>
@@ -773,7 +773,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     value={bikePlate}
                     onChange={(e) => setBikePlate(e.target.value)}
                     placeholder="Optional"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                    className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                   />
                 </div>
               </div>

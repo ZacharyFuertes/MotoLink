@@ -23,7 +23,7 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
             return next;
           });
         }}
-        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-moto-accent hover:text-white"
+        className="flex h-9 items-center gap-2 rounded-full border border-moto-gray/80 bg-moto-darker/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-moto-accent hover:text-white"
       >
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent shrink-0">
           <Search size={13} />
@@ -54,9 +54,9 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.96 }}
               transition={{ duration: 0.15 }}
-              className="absolute bottom-full left-0 mb-2 z-50 w-72 sm:w-80 rounded-2xl border border-slate-700/80 bg-slate-900/95 p-3.5 shadow-2xl backdrop-blur-xl space-y-2.5"
+              className="absolute bottom-full left-0 mb-2 z-50 w-72 sm:w-80 rounded-2xl border border-moto-gray/80 bg-moto-darker/95 p-3.5 shadow-2xl backdrop-blur-xl space-y-2.5"
             >
-              <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+              <div className="flex items-center justify-between border-b border-moto-gray/80 pb-2">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-200">Search Shops</span>
                 <button type="button" onClick={() => setExpanded(false)} className="text-slate-400 hover:text-white">
                   <X size={13} />
@@ -71,7 +71,7 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
                   onChange={(event) => onCityChange(event.target.value)}
                   placeholder="Type shop name, city, or location..."
                   aria-label="Search shops"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2 pl-9 pr-8 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-moto-accent"
+                  className="w-full rounded-xl border border-moto-gray bg-moto-gray py-2 pl-9 pr-8 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-moto-accent"
                 />
                 {city && (
                   <button

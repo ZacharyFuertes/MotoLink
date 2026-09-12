@@ -700,12 +700,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 30 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="bg-slate-900 rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-slate-800 shadow-2xl shadow-black/50 flex flex-col"
+            className="bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray shadow-2xl shadow-black/50 flex flex-col"
           >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800/80 flex-shrink-0 bg-slate-900/50">
+          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-moto-accent flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-moto-darker border border-moto-gray text-moto-accent flex items-center justify-center shrink-0">
                 <ClipboardList size={20} strokeWidth={1.75} />
               </div>
               <div className="flex flex-col">
@@ -722,7 +722,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-white shrink-0"
+              className="p-2 rounded-lg border border-moto-gray hover:bg-moto-gray transition text-slate-400 hover:text-white shrink-0"
             >
               <X size={18} strokeWidth={1.75} />
             </button>
@@ -731,7 +731,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="flex items-center px-6 sm:px-8 py-4 border-b border-slate-800/80 bg-slate-900/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
+              <div className="flex items-center px-6 sm:px-8 py-4 border-b border-moto-gray/80 bg-moto-darker/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
                 {STEPS.map((step, i) => (
                   <div key={step} className="flex items-center shrink-0">
                     <div className="flex items-center gap-2.5">
@@ -743,7 +743,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             ? "bg-moto-accent/20 text-moto-accent"
                             : i === currentStep
                               ? "bg-moto-accent text-slate-950"
-                              : "bg-slate-900 border border-slate-800 text-slate-500"
+                              : "bg-moto-darker border border-moto-gray text-slate-500"
                         }`}
                       >
                         {i < currentStep ? (
@@ -767,7 +767,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     {i < STEPS.length - 1 && (
                       <div
                         className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full ${
-                          i < currentStep ? "bg-moto-accent/50" : "bg-slate-800/80"
+                          i < currentStep ? "bg-moto-accent/50" : "bg-moto-gray/80"
                         }`}
                       />
                     )}
@@ -790,7 +790,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </AnimatePresence>
 
               {/* ── Step Content (scrollable) ── */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 bg-slate-950/40">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 bg-moto-dark/40">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Select Service */}
                   {currentStep === 0 && (
@@ -1069,7 +1069,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               return (
                                 <motion.div
                                   key={part.id}
-                                  animate={{ backgroundColor: selectedPart ? "#25334e" : "#0f1723" }}
+                                  animate={{ backgroundColor: selectedPart ? "#2B2A37" : "#14131A" }}
                                   whileTap={{ scale: 0.995 }}
                                   className={`p-4 border rounded-xl transition-colors ${
                                     selectedPart
@@ -1699,7 +1699,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   />
                 </motion.div>
               </motion.div>
-              <h3 className="font-display text-4xl sm:text-5xl text-slate-100 uppercase tracking-wide mb-4 text-center">
+              <h3 className="font-display text-4xl sm:text-5xl text-slate-100 font-black tracking-tight mb-4 text-center">
                 APPOINTMENT BOOKED
               </h3>
               {lastBookingId && (

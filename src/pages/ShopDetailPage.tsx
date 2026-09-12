@@ -469,11 +469,11 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 <img
                   src={shop.logo_url}
                   alt={`${shop.name} logo`}
-                  className="h-24 w-24 rounded-full border-2 border-slate-700 bg-moto-darker object-contain p-2"
+                  className="h-24 w-24 rounded-full border-2 border-moto-gray bg-moto-darker object-contain p-2"
                 />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-700 bg-moto-darker">
-                  <span className="font-display text-4xl font-black uppercase text-moto-accent">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-moto-gray bg-moto-darker">
+                  <span className="font-display text-4xl font-black text-moto-accent">
                     {shop.name.trim().charAt(0) || "?"}
                   </span>
                 </div>
@@ -485,7 +485,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               )}
             </div>
 
-            <h1 className="mt-6 font-display font-black text-xl uppercase tracking-wide text-slate-100">
+            <h1 className="mt-6 font-display font-black text-xl tracking-tight text-slate-100">
               {shop.name}
             </h1>
 
@@ -540,7 +540,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   <span className="truncate">{tab.label}</span>
                   <span
                     className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      activeTab === tab.id ? "bg-slate-950/20 text-slate-950" : "bg-slate-800 text-slate-400"
+                      activeTab === tab.id ? "bg-moto-dark/20 text-slate-950" : "bg-moto-gray text-slate-400"
                     }`}
                   >
                     {tab.count}
@@ -570,7 +570,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
                         }`}
                       >
                         <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-moto-dark text-slate-400"}`}>
@@ -624,7 +624,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
                         }`}
                       >
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-moto-accent/50 bg-moto-accent/20" : "border-moto-gray bg-moto-dark"}`}>
@@ -646,7 +646,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                               profile.available
                                 ? "bg-emerald-500/10 text-emerald-300"
-                                : "bg-slate-800 text-slate-400"
+                                : "bg-moto-gray text-slate-400"
                             }`}
                           >
                             <span className={`h-1 w-1 rounded-full ${profile.available ? "bg-emerald-400" : "bg-slate-500"}`} />
@@ -679,7 +679,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
                             ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-slate-700"
+                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
                         }`}
                       >
                         <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-moto-accent/50" : "border-moto-gray"} bg-moto-dark`}>
@@ -773,7 +773,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(-1)}
                         aria-label="Previous photo"
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
                       >
                         <ChevronLeft size={18} />
                       </button>
@@ -781,14 +781,14 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(1)}
                         aria-label="Next photo"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
                       >
                         <ChevronRight size={18} />
                       </button>
                     </>
                   )}
                   {activePhoto?.caption && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent px-4 pb-3 pt-10">
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-moto-dark/90 via-moto-dark/20 to-transparent px-4 pb-3 pt-10">
                       <p className="text-xs font-semibold text-white">{activePhoto.caption}</p>
                     </div>
                   )}
@@ -806,7 +806,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
                           i === galleryIndex
                             ? "border-moto-accent ring-2 ring-moto-accent/40"
-                            : "border-slate-700/80 opacity-60 hover:opacity-100"
+                            : "border-moto-gray/80 opacity-60 hover:opacity-100"
                         }`}
                       >
                         <img
@@ -992,7 +992,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   <div key={review.id} className="rounded-2xl border border-moto-gray bg-moto-dark p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-[10px] font-black uppercase text-moto-accent">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-[10px] font-black uppercase text-moto-accent">
                           {(review.customer_name || "C").slice(0, 2)}
                         </div>
                         <div>
@@ -1026,7 +1026,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               )}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-slate-800 bg-[#0d1420] p-4">
+            <div className="mt-5 rounded-2xl border border-moto-gray bg-[#0d1420] p-4">
               {!user ? (
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-slate-300">Log in to leave a review for this shop.</p>
@@ -1064,7 +1064,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     value={reviewTitle}
                     onChange={(e) => setReviewTitle(e.target.value)}
                     placeholder="Review title (optional)"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
+                    className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
                   />
 
                   <textarea
@@ -1072,7 +1072,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     onChange={(e) => setReviewText(e.target.value)}
                     rows={3}
                     placeholder="Share your experience with this shop..."
-                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
+                    className="w-full resize-none rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
                   />
 
                   {reviewError && (

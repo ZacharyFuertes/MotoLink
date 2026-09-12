@@ -78,7 +78,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-slate-900" /> SERVICE RECEIPT
+                  <div className="w-6 h-[1px] bg-moto-darker" /> SERVICE RECEIPT
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
                   APPOINTMENT CONFIRMED
@@ -270,7 +270,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="px-6 sm:px-10 py-6 border-t border-slate-200 bg-slate-100 flex-shrink-0 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 font-bold uppercase tracking-widest transition rounded-xl"
+              className="flex-1 py-3 px-4 bg-moto-darker hover:bg-moto-gray text-white border border-slate-900 font-bold uppercase tracking-widest transition rounded-xl"
             >
               CLOSE
             </button>

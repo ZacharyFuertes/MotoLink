@@ -226,7 +226,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="stat-card p-5"
-          style={{ "--stat-accent": "#38b6c4" } as React.CSSProperties}
+          style={{ "--stat-accent": "#35D0C0" } as React.CSSProperties}
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center">

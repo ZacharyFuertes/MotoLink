@@ -383,7 +383,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               setShowAddForm(!showAddForm)
               setShowAddMechanic(false)
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
+            className="flex items-center gap-2 px-4 py-2 bg-moto-gray hover:bg-moto-darker text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
           >
             <Plus size={16} /> Add Shift Schedule
           </button>

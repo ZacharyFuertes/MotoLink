@@ -422,7 +422,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
+    "w-full pl-10 pr-4 py-2.5 bg-moto-darker/50 border border-moto-gray/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
@@ -432,18 +432,18 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   return (
     <div 
-      className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden font-sans bg-cover bg-center"
+      className="min-h-screen bg-moto-dark text-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden font-sans bg-cover bg-center"
       style={{ backgroundImage: `url(${heroImage})` }}
     >
       {/* Background glass blur */}
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-moto-dark/80 backdrop-blur-sm" />
       {/* Ambient radial glow */}
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/20 via-transparent to-transparent" />
       
       {/* Top Left Global Back Button */}
       <button
         onClick={onBack}
-        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-slate-700/50 hover:bg-slate-800 hover:text-moto-accent hover:border-moto-accent/50 transition-all shadow-lg"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-moto-darker/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-moto-gray/50 hover:bg-moto-gray hover:text-moto-accent hover:border-moto-accent/50 transition-all shadow-lg"
       >
         <ArrowLeft size={16} /> Return to Home
       </button>
@@ -453,7 +453,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full relative z-10 rounded-3xl border border-slate-700/50 bg-slate-900/70 backdrop-blur-2xl shadow-2xl flex flex-col my-auto max-h-[90vh] overflow-hidden ${
+        className={`w-full relative z-10 rounded-3xl border border-moto-gray/50 bg-moto-darker/70 backdrop-blur-2xl shadow-2xl flex flex-col my-auto max-h-[90vh] overflow-hidden ${
           isSignup ? "max-w-2xl" : "max-w-md"
         }`}
       >
@@ -514,8 +514,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                               i < currentStep
                                 ? "border-moto-accent bg-moto-accent text-slate-950 shadow-[0_0_12px_rgba(53,208,192,0.4)]"
                                 : i === currentStep
-                                  ? "border-moto-accent bg-slate-950 text-moto-accent shadow-[0_0_12px_rgba(53,208,192,0.2)]"
-                                  : "border-slate-700 bg-slate-900 text-slate-500"
+                                  ? "border-moto-accent bg-moto-dark text-moto-accent shadow-[0_0_12px_rgba(53,208,192,0.2)]"
+                                  : "border-moto-gray bg-moto-darker text-slate-500"
                             }`}>
                               {i < currentStep ? <Check size={16} strokeWidth={3} /> : i + 1}
                             </span>
@@ -523,7 +523,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           </button>
                         </div>
                         {i < STEPS.length - 1 && (
-                          <div className={`mt-4 mx-2 sm:mx-4 h-0.5 w-8 sm:w-16 rounded-full transition-colors duration-300 ${i < currentStep ? "bg-moto-accent shadow-[0_0_8px_rgba(53,208,192,0.4)]" : "bg-slate-800"}`} />
+                          <div className={`mt-4 mx-2 sm:mx-4 h-0.5 w-8 sm:w-16 rounded-full transition-colors duration-300 ${i < currentStep ? "bg-moto-accent shadow-[0_0_8px_rgba(53,208,192,0.4)]" : "bg-moto-gray"}`} />
                         )}
                       </Fragment>
                     ))}
@@ -534,7 +534,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Account section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-moto-gray">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">1</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Account Details</h2>
                   </div>
@@ -558,7 +558,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
                 {/* Shop details section */}
                 <div className="mt-6">
-                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-moto-gray">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">2</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Shop Information</h2>
                   </div>
@@ -605,7 +605,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                 setSpecialtiesText(newText);
                                 setSignupData((prev) => ({ ...prev, shop_description: newText }));
                               }}
-                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-accent/10 text-moto-accent border border-moto-accent/50 shadow-[0_0_12px_rgba(53,208,192,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-slate-900/50 border border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200"}
+                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-accent/10 text-moto-accent border border-moto-accent/50 shadow-[0_0_12px_rgba(53,208,192,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-darker/50 border border-moto-gray text-slate-400 hover:border-moto-gray-light hover:text-slate-200"}
                             >
                               {option}
                             </button>
@@ -625,7 +625,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Location section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-moto-gray">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">3</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Location</h2>
                   </div>
@@ -666,7 +666,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   <>
                 {/* Schedule section */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-moto-gray">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">3</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Schedule</h2>
                   </div>
@@ -690,7 +690,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     </div>
                     <div className="space-y-2">
                       {signupData.operating_schedule.map((day, idx) => (
-                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3 transition">
+                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-moto-gray bg-moto-darker/60 p-3 transition">
                           <button
                             type="button"
                             onClick={() => {
@@ -701,7 +701,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                             className={`flex-shrink-0 h-6 w-6 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${
                               day.open
                                 ? "bg-moto-accent border-moto-accent shadow-lg shadow-moto-accent/40"
-                                : "border-slate-700 hover:border-moto-accent/50 bg-slate-950 hover:bg-slate-900"
+                                : "border-moto-gray hover:border-moto-accent/50 bg-moto-dark hover:bg-moto-darker"
                             }`}
                           >
                             {day.open && (
@@ -719,7 +719,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], openTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
+                                className="rounded-md border border-moto-gray bg-moto-dark/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
                               />
                               <span className="text-xs text-slate-400">to</span>
                               <input
@@ -730,7 +730,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], closeTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
+                                className="rounded-md border border-moto-gray bg-moto-dark/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
                               />
                             </div>
                           ) : (
@@ -770,7 +770,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800 hover:border-slate-600 hover:text-moto-accent"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-moto-gray/50 bg-moto-darker/50 text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-moto-gray hover:border-moto-gray-light hover:text-moto-accent"
                     >
                       <ArrowLeft size={16} /> Back
                     </button>

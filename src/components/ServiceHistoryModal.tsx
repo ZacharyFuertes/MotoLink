@@ -54,7 +54,7 @@ interface ServiceHistoryModalProps {
 
 const STATUS_STYLES: Record<string, { color: string; bg: string; label: string }> = {
   completed: { color: "text-slate-900", bg: "bg-slate-100 border-slate-200", label: "COMPLETED" },
-  confirmed: { color: "text-white", bg: "bg-slate-900 border-slate-900", label: "CONFIRMED" },
+  confirmed: { color: "text-white", bg: "bg-moto-darker border-slate-900", label: "CONFIRMED" },
   pending: { color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", label: "PENDING" },
   cancelled: { color: "text-red-500", bg: "bg-red-900/20 border-red-500/50", label: "CANCELLED" },
   draft: { color: "text-slate-500", bg: "bg-slate-100 border-slate-200", label: "DRAFT" },
@@ -193,12 +193,12 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
           {/* ── Header ── */}
           <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
             <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-slate-900 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 bg-moto-darker flex items-center justify-center shrink-0">
                 <History size={28} className="text-white" strokeWidth={1.5} />
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-slate-900" /> RECORDS
+                  <div className="w-6 h-[1px] bg-moto-darker" /> RECORDS
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
                   SERVICE HISTORY
@@ -341,7 +341,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
                             <span className={`flex items-center gap-1.5 text-[9px] px-3 py-1.5 border font-bold tracking-widest ${status.bg} ${status.color}`}>
                               {status.label}
                             </span>
-                            <div className="w-8 h-8 rounded-xl border border-slate-300 flex items-center justify-center bg-white group-hover:bg-slate-100 group-hover:border-slate-700 transition-colors">
+                            <div className="w-8 h-8 rounded-xl border border-slate-300 flex items-center justify-center bg-white group-hover:bg-slate-100 group-hover:border-moto-gray-light transition-colors">
                               {isExpanded ? (
                                 <ChevronUp size={14} className="text-slate-900" strokeWidth={2} />
                               ) : (
