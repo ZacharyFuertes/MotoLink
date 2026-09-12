@@ -23,9 +23,9 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
             return next;
           });
         }}
-        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-cyan-400 hover:text-white"
+        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-moto-accent hover:text-white"
       >
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 shrink-0">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent shrink-0">
           <Search size={13} />
         </div>
         <span className="truncate max-w-[160px] sm:max-w-[200px]">
@@ -37,7 +37,7 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
               e.stopPropagation();
               onCityChange("");
             }}
-            className="ml-1 rounded-full bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/40 p-0.5"
+            className="ml-1 rounded-full bg-moto-accent/20 text-moto-accent hover:bg-moto-accent/40 p-0.5"
           >
             <X size={10} />
           </span>
@@ -64,14 +64,14 @@ const ShopSearch = ({ city, onCityChange }: ShopSearchProps) => {
               </div>
 
               <div className="group relative">
-                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 transition" />
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-moto-accent transition" />
                 <input
                   ref={inputRef}
                   value={city}
                   onChange={(event) => onCityChange(event.target.value)}
                   placeholder="Type shop name, city, or location..."
                   aria-label="Search shops"
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2 pl-9 pr-8 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-cyan-400"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 py-2 pl-9 pr-8 text-xs text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-moto-accent"
                 />
                 {city && (
                   <button

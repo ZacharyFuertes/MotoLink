@@ -262,14 +262,14 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   // Input field style shared between login and signup
   const inputClass =
-    "w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
+    "w-full pl-11 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative overflow-x-hidden font-sans">
       {/* Ambient radial glow */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/30 via-slate-950 to-slate-950" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 via-slate-950 to-slate-950" />
       {/* Technical grid */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
 
@@ -288,7 +288,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
           <button
             onClick={onBack}
-            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-cyan-400 transition-colors shadow-lg"
+            className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-slate-700/80 hover:text-moto-accent transition-colors shadow-lg"
           >
             <ArrowLeft size={14} /> Back
           </button>
@@ -299,7 +299,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           {/* Back nav for desktop */}
           <button
             onClick={onBack}
-            className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-cyan-400 transition-colors"
+            className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-moto-accent transition-colors"
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -542,7 +542,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   <a
                     href="#"
                     onClick={(e) => e.preventDefault()}
-                    className="text-xs font-semibold text-cyan-400 hover:underline"
+                    className="text-xs font-semibold text-moto-accent hover:underline"
                   >
                     Forgot Password?
                   </a>
@@ -555,7 +555,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 disabled={loading}
                 whileHover={{ scale: loading ? 1 : 1.02 }}
                 whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
                 {isSignup ? "Create Account" : "Login"}
@@ -590,7 +590,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                       vehicle_model: "",
                     });
                   }}
-                  className="ml-1.5 text-cyan-400 font-semibold hover:underline"
+                  className="ml-1.5 text-moto-accent font-semibold hover:underline"
                 >
                   {isSignup ? "Sign in" : "Sign up for free"}
                 </button>

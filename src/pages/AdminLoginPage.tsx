@@ -102,7 +102,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
+    "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
@@ -113,7 +113,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
         onClick={onBack}
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark border border-moto-accent rounded-lg text-slate-950 shadow-sm transition-all z-30"
+        className="fixed top-6 left-6 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400 rounded-lg text-white shadow-sm transition-all z-30"
         whileHover={{ scale: 1.05, x: -4 }}
       >
         <ArrowLeft size={18} />
@@ -126,7 +126,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
           onClick={onHome}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white rounded-xl shadow-sm transition-all z-30"
+          className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-sm transition-all z-30"
           whileHover={{ scale: 1.05, x: 4 }}
         >
           <span className="hidden sm:inline text-sm font-semibold">Home</span>
@@ -188,7 +188,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
                   <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                 </div>
               </motion.div>
-              <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-dark text-slate-950 hover:text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading && <Loader size={18} className="animate-spin" />}
                 Sign In
               </motion.button>

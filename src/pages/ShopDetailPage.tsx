@@ -397,7 +397,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     return (
       <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-moto-gray border-t-cyan-500 rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-10 h-10 border-4 border-moto-gray border-t-moto-accent rounded-full mx-auto mb-4" />
           <p className="text-slate-400 text-xs uppercase tracking-widest font-bold">
             Loading shop...
           </p>
@@ -410,13 +410,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     return (
       <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
         <div className="text-center max-w-sm">
-          <AlertCircle className="w-12 h-12 text-cyan-500 mx-auto mb-4" />
+          <AlertCircle className="w-12 h-12 text-moto-accent mx-auto mb-4" />
           <p className="text-slate-100 text-sm font-bold uppercase tracking-widest mb-2">
             {error || "Shop not found"}
           </p>
           <button
             onClick={onBack}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/15 px-6 py-3 text-xs font-bold uppercase tracking-widest text-cyan-300 transition hover:bg-cyan-500/25 hover:text-white"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-moto-accent/40 bg-moto-accent/15 px-6 py-3 text-xs font-bold uppercase tracking-widest text-moto-accent transition hover:bg-moto-accent/25 hover:text-white"
           >
             <ArrowLeft size={16} /> Back to shops
           </button>
@@ -438,12 +438,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
 
 
   const directionsButton =
-    "inline-flex items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-2.5 text-xs font-bold text-slate-950 uppercase tracking-wider transition active:scale-95";
+    "inline-flex items-center justify-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-5 py-2.5 text-xs font-bold text-slate-950 uppercase tracking-wider transition active:scale-95";
 
   return (
     <div className="min-h-screen bg-moto-darker text-slate-100">
       {/* Ambient radial light */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900/20 via-moto-darker to-moto-darker" />
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-moto-accent/20 via-moto-darker to-moto-darker" />
 
       <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[320px_1fr]">
         {/* ────────────────────────────── LEFT STICKY SIDEBAR ────────────────────────────── */}
@@ -454,12 +454,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 300, damping: 22 }}
-            className="relative rounded-2xl border border-moto-gray bg-moto-dark p-6 text-center transition-colors hover:border-cyan-500/40"
+            className="relative rounded-2xl border border-moto-gray bg-moto-dark p-6 text-center transition-colors hover:border-moto-accent/40"
           >
             <button
               onClick={onBack}
               aria-label="Back to shops"
-              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-400 transition hover:border-cyan-500/40 hover:text-cyan-300 active:scale-95"
+              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-400 transition hover:border-moto-accent/40 hover:text-moto-accent active:scale-95"
             >
               <ArrowLeft size={16} />
             </button>
@@ -473,13 +473,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 />
               ) : (
                 <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-700 bg-moto-darker">
-                  <span className="font-display text-4xl font-black uppercase text-cyan-400">
+                  <span className="font-display text-4xl font-black uppercase text-moto-accent">
                     {shop.name.trim().charAt(0) || "?"}
                   </span>
                 </div>
               )}
               {typeof shop.rating === "number" && (
-                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-cyan-500 px-2.5 py-0.5 text-xs font-bold text-slate-950 whitespace-nowrap">
+                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-moto-accent px-2.5 py-0.5 text-xs font-bold text-slate-950 whitespace-nowrap">
                   <Star size={12} className="fill-slate-950" /> {shop.rating.toFixed(1)}
                 </span>
               )}
@@ -489,18 +489,18 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               {shop.name}
             </h1>
 
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-moto-accent">
               <ShieldCheck size={11} /> Verified Partner
             </span>
 
             {shop.email && (
-              <a href={`mailto:${shop.email}`} className="mt-4 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-cyan-300">
-                <Mail size={14} className="text-cyan-400" /> {shop.email}
+              <a href={`mailto:${shop.email}`} className="mt-4 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-moto-accent">
+                <Mail size={14} className="text-moto-accent" /> {shop.email}
               </a>
             )}
             {shop.phone && (
-              <a href={`tel:${shop.phone}`} className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-cyan-300">
-                <Phone size={14} className="text-cyan-400" /> {shop.phone}
+              <a href={`tel:${shop.phone}`} className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-moto-accent">
+                <Phone size={14} className="text-moto-accent" /> {shop.phone}
               </a>
             )}
 
@@ -533,7 +533,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   aria-selected={activeTab === tab.id}
                   role="tab"
                   className={`relative inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-                    activeTab === tab.id ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"
+                    activeTab === tab.id ? "bg-moto-accent text-slate-950" : "text-slate-400 hover:text-white"
                   }`}
                 >
                   <tab.icon size={15} className="shrink-0" />
@@ -569,15 +569,15 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         onClick={() => setSelectedService(svc)}
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
-                            ? "border-cyan-500 bg-cyan-500/10"
+                            ? "border-moto-accent bg-moto-accent/10"
                             : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-moto-dark text-slate-400"}`}>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-moto-dark text-slate-400"}`}>
                           <Wrench size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
                             {svc.label}
                           </p>
                           {svc.description && (
@@ -585,14 +585,14 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <p className="text-sm font-bold text-cyan-400">
+                          <p className="text-sm font-bold text-moto-accent">
                             ₱{Number(svc.price).toLocaleString()}
                           </p>
                           <span
                             className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                               isPopular
-                                ? isSelected ? "bg-cyan-500/20 text-cyan-300" : "bg-cyan-500/10 text-cyan-300"
-                                : isSelected ? "bg-cyan-500/20 text-cyan-200" : "bg-emerald-500/10 text-emerald-300"
+                                ? isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-moto-accent/10 text-moto-accent"
+                                : isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-emerald-500/10 text-emerald-300"
                             }`}
                           >
                             {isPopular ? "Popular" : "Available"}
@@ -623,17 +623,17 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         onClick={() => setSelectedMechanic(mech)}
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
-                            ? "border-cyan-500 bg-cyan-500/10"
+                            ? "border-moto-accent bg-moto-accent/10"
                             : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-cyan-500/50 bg-cyan-500/20" : "border-moto-gray bg-moto-dark"}`}>
-                          <span className="font-display text-[10px] font-black uppercase text-cyan-400">
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-moto-accent/50 bg-moto-accent/20" : "border-moto-gray bg-moto-dark"}`}>
+                          <span className="font-display text-[10px] font-black uppercase text-moto-accent">
                             {mech.name.slice(0, 2).toUpperCase()}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
                             {mech.name}
                           </p>
                           <p className="truncate text-xs text-slate-500">{mech.email}</p>
@@ -678,19 +678,19 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         onClick={() => setSelectedProduct(p)}
                         className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
                           isSelected
-                            ? "border-cyan-500 bg-cyan-500/10"
+                            ? "border-moto-accent bg-moto-accent/10"
                             : "border-moto-gray bg-moto-dark hover:border-slate-700"
                         }`}
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-cyan-500/50" : "border-moto-gray"} bg-moto-dark`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-moto-accent/50" : "border-moto-gray"} bg-moto-dark`}>
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
                           ) : (
-                            <FallbackIcon size={14} className="text-cyan-500/60" />
+                            <FallbackIcon size={14} className="text-moto-accent/60" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-cyan-200" : "text-slate-100"}`}>
+                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
                             {p.name}
                           </p>
                           {p.description && (
@@ -698,10 +698,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <p className="text-sm font-bold text-cyan-400">
+                          <p className="text-sm font-bold text-moto-accent">
                             ₱{Number(p.unit_price).toLocaleString()}
                           </p>
-                          <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+                          <span className="rounded-full bg-moto-accent/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-moto-accent">
                             {p.quantity_in_stock !== undefined ? `${p.quantity_in_stock} in stock` : "In-Store"}
                           </span>
                         </div>
@@ -730,7 +730,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           >
             <div className="flex items-center justify-between px-5 py-3">
               <div className="flex items-center gap-2">
-                <Camera size={15} className="text-cyan-400" />
+                <Camera size={15} className="text-moto-accent" />
                 <h2 className="text-sm font-bold text-slate-100">Photo Gallery</h2>
               </div>
               {galleryFiltered.length > 1 && (
@@ -752,7 +752,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   tabIndex={0}
                   onFocus={() => setGalleryFocused(true)}
                   onBlur={() => setGalleryFocused(false)}
-                  className="group relative h-[320px] overflow-hidden bg-moto-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+                  className="group relative h-[320px] overflow-hidden bg-moto-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent/60"
                   aria-label="Gallery viewer"
                 >
                   <AnimatePresence mode="wait">
@@ -773,7 +773,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(-1)}
                         aria-label="Previous photo"
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
                       >
                         <ChevronLeft size={18} />
                       </button>
@@ -781,7 +781,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(1)}
                         aria-label="Next photo"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 active:scale-95"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -805,7 +805,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         aria-current={i === galleryIndex}
                         className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
                           i === galleryIndex
-                            ? "border-cyan-400 ring-2 ring-cyan-500/40"
+                            ? "border-moto-accent ring-2 ring-moto-accent/40"
                             : "border-slate-700/80 opacity-60 hover:opacity-100"
                         }`}
                       >
@@ -830,7 +830,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Navigation size={15} className="text-cyan-400" />
+                <Navigation size={15} className="text-moto-accent" />
                 <h2 className="text-sm font-bold text-slate-100">Shop Overview</h2>
               </div>
               {shopStatus.state === "open" ? (
@@ -897,7 +897,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             {/* ── 7-Day Operating Hours ── */}
             <div className="mt-5 border-t border-moto-gray pt-4">
               <div className="mb-3 flex items-center gap-2">
-                <CalendarDays size={15} className="text-cyan-400" />
+                <CalendarDays size={15} className="text-moto-accent" />
                 <h3 className="text-sm font-bold text-slate-100">Operating Hours</h3>
               </div>
 
@@ -910,13 +910,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                       key={dIdx}
                       className={`rounded-xl border p-2.5 text-center transition ${
                         isToday
-                          ? "border-cyan-500/40 bg-cyan-500/10"
+                          ? "border-moto-accent/40 bg-moto-accent/10"
                           : "border-moto-gray bg-moto-dark"
                       }`}
                     >
-                      <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-cyan-300" : "text-slate-400"}`}>
+                      <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-moto-accent" : "text-slate-400"}`}>
                         {d.day.slice(0, 3)}
-                        {isToday && <span className="ml-1 text-[9px] text-cyan-300">· Today</span>}
+                        {isToday && <span className="ml-1 text-[9px] text-moto-accent">· Today</span>}
                       </p>
                       {d.open ? (
                         <>
@@ -958,7 +958,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               type="button"
               onClick={openBooking}
               disabled={shop.is_open === false}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-6 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-6 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CalendarDays size={16} /> Book Now
             </button>
@@ -971,8 +971,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 <p className="text-sm text-slate-400">What riders are saying about this shop.</p>
               </div>
               {reviews.length > 0 && (
-                <div className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-300">
-                  <Star size={11} className="fill-cyan-300 text-cyan-300" />
+                <div className="inline-flex items-center gap-1 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-2.5 py-1 text-xs font-bold text-moto-accent">
+                  <Star size={11} className="fill-moto-accent text-moto-accent" />
                   {(
                     reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
                   ).toFixed(1)}
@@ -992,7 +992,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   <div key={review.id} className="rounded-2xl border border-moto-gray bg-moto-dark p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-[10px] font-black uppercase text-cyan-400">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-[10px] font-black uppercase text-moto-accent">
                           {(review.customer_name || "C").slice(0, 2)}
                         </div>
                         <div>
@@ -1018,7 +1018,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     </div>
 
                     {review.title && (
-                      <p className="mb-1 text-sm font-bold text-cyan-300">{review.title}</p>
+                      <p className="mb-1 text-sm font-bold text-moto-accent">{review.title}</p>
                     )}
                     <p className="text-sm leading-relaxed text-slate-300">{review.comment}</p>
                   </div>
@@ -1033,7 +1033,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onAuthRequired?.("login")}
-                    className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-400"
+                    className="inline-flex items-center justify-center rounded-full bg-moto-accent px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-moto-accent"
                   >
                     Login
                   </button>
@@ -1064,7 +1064,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     value={reviewTitle}
                     onChange={(e) => setReviewTitle(e.target.value)}
                     placeholder="Review title (optional)"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
                   />
 
                   <textarea
@@ -1072,7 +1072,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     onChange={(e) => setReviewText(e.target.value)}
                     rows={3}
                     placeholder="Share your experience with this shop..."
-                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
                   />
 
                   {reviewError && (
@@ -1084,7 +1084,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                       type="button"
                       onClick={handleReviewSubmit}
                       disabled={reviewSubmitting || !reviewText.trim() || reviewRating === 0}
-                      className="inline-flex items-center justify-center rounded-full bg-cyan-500 px-5 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex items-center justify-center rounded-full bg-moto-accent px-5 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {reviewSubmitting ? "Posting..." : "Post Review"}
                     </button>
@@ -1117,7 +1117,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           type="button"
           onClick={openBooking}
           disabled={shop.is_open === false}
-          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-cyan-500 hover:bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-5 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CalendarDays size={16} /> Book Now
         </button>

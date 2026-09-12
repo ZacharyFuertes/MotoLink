@@ -24,8 +24,8 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
 }) => {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
-      {/* Ambient cyan-and-crimson radial glow behind the centered content */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-950/30 from-30% via-slate-950 to-slate-950" />
+      {/* Ambient teal-and-crimson radial glow behind the centered content */}
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/30 from-30% via-slate-950 to-slate-950" />
 
       {/* Ultra-faint technical grid overlay */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem]" />
@@ -101,19 +101,19 @@ const LoginChoicePage: React.FC<LoginChoicePageProps> = ({
             transition={{ delay: 0.25 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className={`${glassCard} hover:border-cyan-500/50 hover:shadow-2xl hover:shadow-cyan-500/10`}
+            className={`${glassCard} hover:border-moto-accent/50 hover:shadow-2xl hover:shadow-moto-accent/10`}
           >
-            <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-cyan-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-moto-accent/10 blur-3xl" />
             <div className="relative z-10">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.25)] transition-transform duration-300 group-hover:scale-110">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-moto-accent/30 bg-moto-accent/10 text-moto-accent shadow-[0_0_20px_rgba(53,208,192,0.25)] transition-transform duration-300 group-hover:scale-110">
                 <Users size={30} />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Customer</h3>
               <p className="text-sm text-slate-400 mb-6">
                 Book appointments and track repairs
               </p>
-              <div className="flex items-center gap-2 text-cyan-400 font-semibold transition-transform duration-300 group-hover:translate-x-1">
-                <span className="rounded-lg bg-gradient-to-r from-cyan-500 to-teal-400 px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-950">
+              <div className="flex items-center gap-2 text-moto-accent font-semibold transition-transform duration-300 group-hover:translate-x-1">
+                <span className="rounded-lg bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-2 text-xs font-black uppercase tracking-wider text-slate-950">
                   Login
                 </span>
                 <ChevronRight className="h-5 w-5" />

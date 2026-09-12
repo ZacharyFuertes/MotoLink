@@ -51,8 +51,8 @@ const STATUS_CONFIG: Record<
     label: "Pending",
   },
   confirmed: {
-    color: "text-cyan-400",
-    bg: "bg-cyan-500/10 border-cyan-500/20",
+    color: "text-moto-accent",
+    bg: "bg-moto-accent/10 border-moto-accent/20",
     icon: <CheckCircle size={11} strokeWidth={2} />,
     label: "Confirmed",
   },
@@ -244,10 +244,10 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800/80 flex-shrink-0 bg-slate-900/50">
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-xl bg-slate-800/80 flex items-center justify-center shrink-0">
-                <CalendarDays size={20} className="text-cyan-400" strokeWidth={1.75} />
+                <CalendarDays size={20} className="text-moto-accent" strokeWidth={1.75} />
               </div>
               <div className="flex flex-col gap-0.5">
-                <p className="text-[9px] font-semibold tracking-widest text-cyan-400 uppercase">
+                <p className="text-[9px] font-semibold tracking-widest text-moto-accent uppercase">
                   My Schedule
                 </p>
                 <h2 className="font-sans font-bold text-2xl text-white tracking-tight leading-tight">
@@ -262,7 +262,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-cyan-400 shrink-0"
+                className="p-2 rounded-lg border border-slate-800 hover:bg-slate-800 transition text-slate-400 hover:text-moto-accent shrink-0"
                 title="Refresh"
               >
                 <RefreshCw
@@ -289,7 +289,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                   onClick={() => setFilter(tab.key)}
                   className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     filter === tab.key
-                      ? "bg-slate-800 text-cyan-400 shadow-sm"
+                      ? "bg-slate-800 text-moto-accent shadow-sm"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -348,7 +348,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg">
+                            <span className="text-xs font-semibold text-moto-accent bg-moto-accent/10 px-2.5 py-1 rounded-lg">
                               {new Date(
                                 apt.scheduled_date + "T00:00:00",
                               ).toLocaleDateString("en-US", {
@@ -432,7 +432,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                               <span className="text-sm font-medium text-slate-400">
                                 Total
                               </span>
-                              <span className="text-cyan-400 font-bold text-lg">
+                              <span className="text-moto-accent font-bold text-lg">
                                 ₱{apt.total_amount.toLocaleString()}
                               </span>
                             </div>
@@ -467,7 +467,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                               setRebookingAptId(apt.id);
                               setShowBookModal(true);
                             }}
-                            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-cyan-400 hover:text-white transition px-3 py-1.5 rounded-full bg-cyan-500/10 hover:bg-cyan-500"
+                            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-moto-accent hover:text-white transition px-3 py-1.5 rounded-full bg-moto-accent/10 hover:bg-moto-accent"
                           >
                             <RefreshCw size={11} /> Rebook
                           </button>

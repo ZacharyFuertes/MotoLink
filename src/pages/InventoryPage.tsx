@@ -501,7 +501,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
             Inventory Management
           </h1>
           <p className="text-[13px] text-slate-300 mt-0.5">

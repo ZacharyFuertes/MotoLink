@@ -30,7 +30,7 @@ export const HeaderCard: React.FC<HeaderCardProps> = ({ shop }) => {
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
         <h1 className="text-3xl font-bold text-white flex-1">{shop.name}</h1>
         {shop.rating !== undefined && (
-          <span className="inline-flex items-center gap-1 bg-cyan-500/20 text-cyan-400 text-sm font-medium px-2 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 bg-moto-accent/20 text-moto-accent text-sm font-medium px-2 py-1 rounded-full">
             <svg className="w-4 h-4" fill="currentColor"><path d="M12 .587l3.668 7.431 8.2 1.193-5.934 5.787 1.402 8.169L12 18.896l-7.336 3.86 1.402-8.169-5.934-5.787 8.2-1.193z"/></svg>
             {shop.rating.toFixed(1)}
           </span>

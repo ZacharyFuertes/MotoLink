@@ -705,11 +705,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-slate-800/80 flex-shrink-0 bg-slate-900/50">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-cyan-400 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-moto-accent flex items-center justify-center shrink-0">
                 <ClipboardList size={20} strokeWidth={1.75} />
               </div>
               <div className="flex flex-col">
-                <p className="text-[9px] font-semibold tracking-widest text-cyan-400 uppercase">
+                <p className="text-[9px] font-semibold tracking-widest text-moto-accent uppercase">
                   Appointment
                 </p>
                 <h2 className="font-sans font-bold text-slate-100 text-xl tracking-tight leading-tight">
@@ -740,9 +740,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         transition={{ type: "spring", stiffness: 400, damping: 20 }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                           i < currentStep
-                            ? "bg-cyan-500/20 text-cyan-400"
+                            ? "bg-moto-accent/20 text-moto-accent"
                             : i === currentStep
-                              ? "bg-cyan-500 text-slate-950"
+                              ? "bg-moto-accent text-slate-950"
                               : "bg-slate-900 border border-slate-800 text-slate-500"
                         }`}
                       >
@@ -755,7 +755,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       <span
                         className={`whitespace-nowrap text-xs ${
                           i === currentStep
-                            ? "text-cyan-400 font-semibold"
+                            ? "text-moto-accent font-semibold"
                             : i < currentStep
                               ? "text-slate-300 font-medium"
                               : "text-slate-500 font-medium"
@@ -767,7 +767,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     {i < STEPS.length - 1 && (
                       <div
                         className={`w-8 sm:w-12 h-[2px] mx-3 sm:mx-4 rounded-full ${
-                          i < currentStep ? "bg-cyan-500/50" : "bg-slate-800/80"
+                          i < currentStep ? "bg-moto-accent/50" : "bg-slate-800/80"
                         }`}
                       />
                     )}
@@ -1130,7 +1130,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                               .filter((p) => p.quantity > 0),
                                           )
                                         }
-                                        className="px-3 py-1 border border-moto-accent text-moto-accent hover:bg-moto-accent hover:text-slate-950 transition text-xs font-bold rounded-md"
+                                        className="px-3 py-1 border border-moto-accent text-moto-accent hover:bg-moto-accent-dark hover:text-slate-950 transition text-xs font-bold rounded-md"
                                       >
                                         −
                                       </button>
@@ -1160,7 +1160,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           selectedPart.quantity >=
                                           part.quantity_in_stock
                                             ? "border-moto-gray text-slate-600 cursor-not-allowed"
-                                            : "border-moto-accent text-moto-accent hover:bg-moto-accent hover:text-slate-950"
+                                            : "border-moto-accent text-moto-accent hover:bg-moto-accent-dark hover:text-slate-950"
                                         }`}
                                       >
                                         +

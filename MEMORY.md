@@ -6536,6 +6536,48 @@ without requiring manual owner interaction.
 
 ---
 
-**Last Updated**: Aug 31, 2026
+## TASK LOG — Global UI restyle: Shop Admin look for Customer + Main Admin
+
+Date: Sep 12, 2026
+
+### Decision
+User chose to bring the **Shop Admin (Owner) `OwnerPlatformDashboard` look** to the Customer UI and the
+Main Admin UI: charcoal shells, refined cards, Inter typography everywhere (incl. auth screens).
+Per-role accents: **customer = teal**, **main admin = indigo**, shop owner unchanged (violet sidebar + teal).
+Styled via a token re-point so it applies app-wide, then per-file role accent overrides.
+
+### Design tokens (tailwind.config.ts)
+- `accent` is now `#35D0C0` (teal), `accent-dark` `#27A99C`, `dark` `#14131A` (charcoal shell),
+  `darker` `#1C1B24` (card), `gray` `#2B2A37`, `gray-light` `#3A3848`, `gray-muted`/`muted` `#948FA3`.
+- `fontFamily.display` → Inter (was Bebas Neue); Bebas Neue import removed from globals.css.
+- body radial glows → teal/violet tints. Added `.sidebar-nav-active-indigo` utility (indigo variant
+  of `.sidebar-nav-active`).
+
+### Files changed
+- `tailwind.config.ts`: token + font re-point.
+- `src/globals.css`: font import, body bg, `.sidebar-nav-active-indigo`.
+- Admin → indigo: `AdminPlatformDashboard.tsx` (sidebar-dark→sidebar-dark-violet, active nav indigo,
+  header Inter (no uppercase), all `moto-accent`→indigo classes, revenue accent), `AdminShopsPage.tsx`,
+  `AdminAppointmentsPage.tsx`, `AdminLoginPage.tsx` (buttons bg-indigo-600 text-white), `AdminChatbot.tsx`.
+- Customer/owner-auth cyan → teal token: ShopDetailPage, UserProfilePage, MotolinkLanding,
+  ShopMap/Filters/Search/Gallery, BookAppointmentModal, ViewAppointmentsModal, MotolinkNavbar,
+  HeaderCard, BadgePill, Gallery, LoginPage, ShopOwnerLoginPage, LoginChoicePage, AppointmentCalendarPage.
+  Mapped `cyan-*` → `moto-accent`/`accent-dark` variants (e.g. `bg-cyan-500`→`bg-moto-accent`,
+  `border-cyan-500/30`→`border-moto-accent/30`, `hover:bg-cyan-400`→`hover:bg-moto-accent-dark`,
+  gradients `from-cyan-500 to-teal-400` → `from-moto-accent to-moto-accent-dark`).
+- Inline `Bebas Neue, sans-serif` fontFamily → `Inter, system-ui, sans-serif` everywhere.
+
+### Notes
+- `LoginChoicePage` is dead code (never imported outside its own file) — restyled anyway for consistency.
+- `SystemNavbar` (light) only renders on the rarely-reachable customer AccessDenied fallback — left as-is.
+- `font-display` classes now render as Inter; uppercase/tracking headings keep their style.
+
+### Verified
+- `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size warning).
+- No `Bebas`/`cyan-` class tokens remain in src (only comments).
+
+---
+
+**Last Updated**: Sep 12, 2026
 **Compatibility Version**: 1.0
 

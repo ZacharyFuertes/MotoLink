@@ -291,7 +291,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-slate-900/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-slate-800/80 gap-2 sm:gap-0 ${isMobile ? "border-slate-800/60" : "border-slate-700/80 backdrop-blur-xl shadow-2xl"}`}
           >
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
+              <p className="font-display text-3xl sm:text-4xl font-black text-moto-accent">
                 {stats.shopCount}
                 <span className="text-white">+</span>
               </p>
@@ -301,7 +301,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             </div>
             {stats.avgRating !== null && stats.avgRating > 0 && (
               <div className="px-2 sm:px-4 flex-1 hidden sm:block">
-                <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400 flex items-center justify-center gap-1">
+                <p className="font-display text-3xl sm:text-4xl font-black text-moto-accent flex items-center justify-center gap-1">
                   <span>{stats.avgRating.toFixed(1)}</span>
                   <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
                 </p>
@@ -311,7 +311,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               </div>
             )}
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display text-3xl sm:text-4xl font-black text-cyan-400">
+              <p className="font-display text-3xl sm:text-4xl font-black text-moto-accent">
                 {stats.riderCount}
                 <span className="text-white">+</span>
               </p>

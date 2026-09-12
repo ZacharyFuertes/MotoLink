@@ -55,7 +55,7 @@ const NAV_TABS: { key: TabKey; label: string; icon: typeof User }[] = [
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  confirmed: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+  confirmed: "text-moto-accent bg-moto-accent/10 border-moto-accent/20",
   in_progress: "text-sky-400 bg-sky-500/10 border-sky-500/20",
   completed: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
   cancelled: "text-rose-400 bg-rose-500/10 border-rose-500/20",
@@ -266,7 +266,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               onClick={() => setMenuOpen((o) => !o)}
               className="flex items-center gap-3 rounded-xl border border-slate-800/80 bg-slate-900/40 px-2.5 py-1.5 transition hover:border-slate-700"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-sm font-bold text-cyan-400">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-sm font-bold text-moto-accent">
                 {initials(displayName)}
               </span>
               <span className="hidden text-left sm:block">
@@ -297,7 +297,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     }}
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-800/60 hover:text-white"
                   >
-                    <User size={15} className="text-cyan-400" /> My Profile
+                    <User size={15} className="text-moto-accent" /> My Profile
                   </button>
                   <div className="my-1 border-t border-slate-800" />
                   <button
@@ -318,7 +318,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         <aside className="space-y-5">
           {/* Avatar badge card */}
           <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-xl font-bold text-cyan-400">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-xl font-bold text-moto-accent">
               {initials(displayName)}
             </div>
             <div className="mt-5 space-y-1.5">
@@ -327,7 +327,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </h1>
               <p className="text-sm text-slate-400">{email}</p>
               {phone && <p className="text-sm text-slate-400">{phone}</p>}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-xs font-semibold text-moto-accent">
                 <ShieldCheck size={12} /> Verified Rider
               </span>
               {user?.address && (
@@ -346,7 +346,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
                   activeTab === tab.key
-                    ? "bg-slate-800/80 font-semibold text-cyan-400"
+                    ? "bg-slate-800/80 font-semibold text-moto-accent"
                     : "font-medium text-slate-400 hover:bg-slate-800/50 hover:text-slate-100"
                 }`}
               >
@@ -359,14 +359,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
-              <Car size={16} className="mb-2 text-cyan-400" />
+              <Car size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {vehicles.length}
               </p>
               <p className="text-xs font-medium text-slate-300">Bikes Registered</p>
             </div>
             <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
-              <Wrench size={16} className="mb-2 text-cyan-400" />
+              <Wrench size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {completedCount}
               </p>
@@ -392,7 +392,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </div>
                   <button
                     onClick={() => setShowBikeModal(true)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-cyan-400 active:scale-95"
+                    className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
                   >
                     <Plus size={15} /> Add Motorcycle
                   </button>
@@ -416,7 +416,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         className="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 transition hover:border-slate-700"
                       >
                         <div className="mb-4 flex items-start justify-between">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-cyan-400">
+                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-moto-accent">
                             <Car size={18} />
                           </span>
                           {idx === 0 && (
@@ -451,7 +451,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               {/* Maintenance Health Tracker */}
               <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
                 <div className="mb-4 flex items-center gap-2">
-                  <Gauge size={16} className="text-cyan-400" />
+                  <Gauge size={16} className="text-moto-accent" />
                   <h2 className="text-lg font-bold text-slate-100">
                     Maintenance Health
                   </h2>
@@ -460,13 +460,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   <span className="text-slate-300">
                     Estimated time until next routine service
                   </span>
-                  <span className="font-semibold text-cyan-300">
+                  <span className="font-semibold text-moto-accent">
                     {100 - healthProgress}%
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-cyan-500 transition-all"
+                    className="h-full rounded-full bg-moto-accent transition-all"
                     style={{ width: `${healthProgress}%` }}
                   />
                 </div>
@@ -481,7 +481,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {activeTab === "history" && (
             <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
               <div className="mb-5 flex items-center gap-2">
-                <History size={16} className="text-cyan-400" />
+                <History size={16} className="text-moto-accent" />
                 <h2 className="text-lg font-bold text-slate-100">
                   Service History
                 </h2>
@@ -543,7 +543,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           <td className="px-3 py-3 text-right">
                             <button
                               onClick={() => setActiveTab("bookings")}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
                             >
                               <RotateCcw size={12} /> Rebook
                             </button>
@@ -560,7 +560,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {activeTab === "bookings" && (
             <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-6">
               <div className="mb-5 flex items-center gap-2">
-                <Calendar size={16} className="text-cyan-400" />
+                <Calendar size={16} className="text-moto-accent" />
                 <h2 className="text-lg font-bold text-slate-100">
                   My Bookings
                 </h2>
@@ -628,7 +628,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                                   <button
                                     onClick={() => handleCancelBooking(h.id)}
                                     disabled={cancellingId === h.id}
-                                    className="rounded-full bg-cyan-500 px-5 py-1.75 text-[11px] font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-full bg-moto-accent px-5 py-1.75 text-[11px] font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     OK
                                   </button>
@@ -738,7 +738,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   value={bikeMake}
                   onChange={(e) => setBikeMake(e.target.value)}
                   placeholder="Honda"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-500/50"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                 />
               </div>
               <div>
@@ -749,7 +749,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   value={bikeModel}
                   onChange={(e) => setBikeModel(e.target.value)}
                   placeholder="Click 125i"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-500/50"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -762,7 +762,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     onChange={(e) => setBikeYear(e.target.value)}
                     placeholder="2023"
                     inputMode="numeric"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-500/50"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                   />
                 </div>
                 <div>
@@ -773,14 +773,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     value={bikePlate}
                     onChange={(e) => setBikePlate(e.target.value)}
                     placeholder="Optional"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-500/50"
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
                   />
                 </div>
               </div>
               <button
                 onClick={handleAddBike}
                 disabled={submitting || !bikeMake.trim() || !bikeModel.trim()}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 active:scale-95 disabled:opacity-40"
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95 disabled:opacity-40"
               >
                 <Package size={15} />{" "}
                 {submitting ? "Adding..." : "Add Motorcycle"}

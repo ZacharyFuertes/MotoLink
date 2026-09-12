@@ -262,7 +262,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
         {/* Top Header */}
         <div className="px-6 py-4 bg-moto-dark border-b border-moto-gray/80 flex items-center justify-between gap-4 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+            <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               POS &amp; Stock Counter
             </h1>
             <p className="text-[13px] text-slate-300 mt-0.5">

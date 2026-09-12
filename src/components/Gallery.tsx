@@ -29,7 +29,7 @@ export const Gallery: React.FC<GalleryProps> = ({ photos }) => {
             key={cat}
             onClick={() => setActiveCat(cat)}
             className={`px-3 py-1 rounded-full text-sm transition-colors 
-              ${activeCat === cat ? 'bg-cyan-500 text-slate-900' : 'bg-slate-700 text-slate-300'}`}
+              ${activeCat === cat ? 'bg-moto-accent text-slate-900' : 'bg-slate-700 text-slate-300'}`}
           >
             {cat}
           </button>

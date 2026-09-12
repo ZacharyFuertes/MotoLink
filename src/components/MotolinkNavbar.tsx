@@ -81,7 +81,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   <motion.span
                     layoutId="navbar-active"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-teal-300 shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                    className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-gradient-to-r from-moto-accent to-moto-accent-dark shadow-[0_0_12px_rgba(34,211,238,0.6)]"
                   />
                 )}
                 <span className="relative z-10">{link.label}</span>
@@ -109,9 +109,9 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   onClick={onOpenProfile}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/60 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-slate-950">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent text-[10px] font-bold text-slate-950">
                     M
                   </span>
                   My Profile
@@ -122,7 +122,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                   onClick={onLogout}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.96 }}
-                  className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/60 hover:text-white"
+                  className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-moto-accent/60 hover:text-white"
                 >
                   Log out
                 </motion.button>
@@ -144,7 +144,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                 onClick={onGetStarted}
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.96 }}
-                className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-5 py-2.5 text-sm font-bold text-slate-950 whitespace-nowrap border border-cyan-300/40 transition-shadow duration-300 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]"
+                className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-5 py-2.5 text-sm font-bold text-slate-950 whitespace-nowrap border border-moto-accent/40 transition-shadow duration-300 shadow-[0_0_20px_rgba(53,208,192,0.25)] hover:shadow-[0_0_28px_rgba(34,211,238,0.45)]"
               >
                 Get Started
               </motion.button>
@@ -156,7 +156,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
         <motion.button
           onClick={() => setMenuOpen((value) => !value)}
           whileTap={{ scale: 0.94 }}
-          className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-slate-800 bg-slate-900/40 backdrop-blur-md transition hover:border-cyan-400/60 md:hidden"
+          className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-slate-800 bg-slate-900/40 backdrop-blur-md transition hover:border-moto-accent/60 md:hidden"
           aria-expanded={menuOpen}
           aria-label="Toggle navigation"
         >
@@ -192,7 +192,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                       <motion.button
                         onClick={() => activate(onOpenProfile, "My Profile")}
                         whileTap={{ scale: 0.98 }}
-                        className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-base font-semibold text-cyan-300 backdrop-blur-md"
+                        className="rounded-xl border border-moto-accent/40 bg-moto-accent/10 px-4 py-3 text-base font-semibold text-moto-accent backdrop-blur-md"
                       >
                         My Profile
                       </motion.button>
@@ -212,7 +212,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                     <motion.button
                       onClick={() => activate(onGetStarted, "Get Started")}
                       whileTap={{ scale: 0.98 }}
-                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 px-4 py-3 text-base font-extrabold text-slate-950 border border-cyan-300/40 shadow-[0_0_20px_rgba(34,211,238,0.25)]"
+                      className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-3 text-base font-extrabold text-slate-950 border border-moto-accent/40 shadow-[0_0_20px_rgba(53,208,192,0.25)]"
                     >
                       Get Started
                     </motion.button>

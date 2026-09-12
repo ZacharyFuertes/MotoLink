@@ -61,8 +61,8 @@ const statusConfig: Record<
     label: "Confirmed",
   },
   in_progress: {
-    color: "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30",
-    dot: "bg-cyan-500",
+    color: "bg-moto-accent/15 text-moto-accent border border-moto-accent/30",
+    dot: "bg-moto-accent",
     label: "In Progress",
   },
   completed: {
@@ -450,7 +450,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       value: filteredAppointments.filter((a) => a.status === "in_progress")
         .length,
       icon: Wrench,
-      tile: "bg-cyan-500/15 text-cyan-400",
+      tile: "bg-moto-accent/15 text-moto-accent",
     },
     {
       label: "Completed",
@@ -576,7 +576,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               <p className="mt-4 text-[13px] font-semibold text-slate-300">
                 {stat.label}
               </p>
-              <p className="font-display text-4xl font-black text-cyan-400 leading-none">
+              <p className="font-display text-4xl font-black text-moto-accent leading-none">
                 {stat.value}
               </p>
             </motion.div>

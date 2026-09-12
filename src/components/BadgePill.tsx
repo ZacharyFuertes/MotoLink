@@ -17,7 +17,7 @@ export const BadgePill: React.FC<BadgePillProps> = ({ icon: Icon, text, variant 
   const variants = {
     default: 'bg-slate-700 text-slate-300',
     success: 'bg-emerald-500/20 text-emerald-400',
-    accent: 'bg-cyan-500/20 text-cyan-400',
+    accent: 'bg-moto-accent/20 text-moto-accent',
   } as const;
 
   return (

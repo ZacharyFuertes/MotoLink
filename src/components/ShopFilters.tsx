@@ -19,18 +19,18 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-cyan-400 hover:text-white"
+        className="flex h-9 items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/90 px-3.5 py-1.5 text-xs font-bold text-slate-100 backdrop-blur-xl shadow-xl transition hover:border-moto-accent hover:text-white"
       >
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 shrink-0">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent shrink-0">
           <SlidersHorizontal size={13} />
         </div>
         <span>Filters</span>
         {hasActiveFilters && (
-          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-cyan-500 px-1 text-[10px] font-black text-slate-950">
+          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-moto-accent px-1 text-[10px] font-black text-slate-950">
             {(specialty ? 1 : 0) + (availabilityOnly ? 1 : 0)}
           </span>
         )}
-        <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180 text-cyan-400" : ""}`} />
+        <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180 text-moto-accent" : ""}`} />
       </button>
 
       <AnimatePresence>
@@ -53,12 +53,12 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
 
               <label className="relative block">
                 <span className="sr-only">Select specialty</span>
-                <MapPin size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" />
+                <MapPin size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-moto-accent" />
                 <select
                   value={specialty}
                   onChange={(event) => onSpecialtyChange(event.target.value)}
                   aria-label="Select specialty"
-                  className="w-full appearance-none rounded-xl border border-slate-700 bg-slate-800 py-2.5 pl-9 pr-8 text-xs font-semibold text-slate-100 outline-none transition focus:border-cyan-400"
+                  className="w-full appearance-none rounded-xl border border-slate-700 bg-slate-800 py-2.5 pl-9 pr-8 text-xs font-semibold text-slate-100 outline-none transition focus:border-moto-accent"
                 >
                   <option value="" className="bg-slate-900 text-slate-100">All specialties</option>
                   {specialties.map((item) => (
@@ -70,12 +70,12 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
                 <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
               </label>
 
-              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-400 hover:text-white">
+              <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-white">
                 <input
                   type="checkbox"
                   checked={availabilityOnly}
                   onChange={(event) => onAvailabilityChange(event.target.checked)}
-                  className="h-4 w-4 accent-cyan-500 rounded border-slate-700 bg-slate-800 text-cyan-400"
+                  className="h-4 w-4 accent-moto-accent rounded border-slate-700 bg-slate-800 text-moto-accent"
                 />
                 Available now
               </label>

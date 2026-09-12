@@ -150,7 +150,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={`pointer-events-none absolute ${desktop ? "-bottom-6 h-14 w-4/5" : "-bottom-4 h-10 w-3/4"} left-1/2 -translate-x-1/2 rounded-full bg-cyan-500/25 blur-2xl`}
+                    className={`pointer-events-none absolute ${desktop ? "-bottom-6 h-14 w-4/5" : "-bottom-4 h-10 w-3/4"} left-1/2 -translate-x-1/2 rounded-full bg-moto-accent/25 blur-2xl`}
                   />
                 )}
                 {/* Side card click overlay */}
@@ -175,7 +175,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-left-6" : "-left-2 sm:-left-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
+              className={`absolute ${desktop ? "-left-6" : "-left-2 sm:-left-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
             >
               <ChevronLeft size={iconSize} />
             </motion.button>
@@ -185,7 +185,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               style={{ width: arrowSize, height: arrowSize }}
-              className={`absolute ${desktop ? "-right-6" : "-right-2 sm:-right-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-cyan-400 hover:text-cyan-400 hover:shadow-cyan-500/15`}
+              className={`absolute ${desktop ? "-right-6" : "-right-2 sm:-right-6"} top-1/2 -translate-y-1/2 z-30 flex items-center justify-center rounded-full border border-slate-700 bg-slate-900/95 text-slate-200 shadow-2xl backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent hover:shadow-moto-accent/15`}
             >
               <ChevronRight size={iconSize} />
             </motion.button>

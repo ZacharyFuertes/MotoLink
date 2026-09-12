@@ -422,7 +422,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   // Input field style
   const inputClass =
-    "w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all text-sm";
+    "w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
 
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
@@ -438,12 +438,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       {/* Background glass blur */}
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
       {/* Ambient radial glow */}
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/20 via-transparent to-transparent" />
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-moto-accent/20 via-transparent to-transparent" />
       
       {/* Top Left Global Back Button */}
       <button
         onClick={onBack}
-        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-slate-700/50 hover:bg-slate-800 hover:text-cyan-400 hover:border-cyan-500/50 transition-all shadow-lg"
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-slate-700/50 hover:bg-slate-800 hover:text-moto-accent hover:border-moto-accent/50 transition-all shadow-lg"
       >
         <ArrowLeft size={16} /> Return to Home
       </button>
@@ -473,7 +473,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-300 mb-2 tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-moto-accent to-moto-accent-dark mb-2 tracking-tight">
                   {isSignup ? "Join MotoLink" : "Welcome back"}
                 </h1>
                 <p className="text-slate-400 text-sm font-medium">
@@ -512,9 +512,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           >
                             <span className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-all duration-300 ${
                               i < currentStep
-                                ? "border-cyan-500 bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.4)]"
+                                ? "border-moto-accent bg-moto-accent text-slate-950 shadow-[0_0_12px_rgba(53,208,192,0.4)]"
                                 : i === currentStep
-                                  ? "border-cyan-400 bg-slate-950 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                                  ? "border-moto-accent bg-slate-950 text-moto-accent shadow-[0_0_12px_rgba(53,208,192,0.2)]"
                                   : "border-slate-700 bg-slate-900 text-slate-500"
                             }`}>
                               {i < currentStep ? <Check size={16} strokeWidth={3} /> : i + 1}
@@ -523,7 +523,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           </button>
                         </div>
                         {i < STEPS.length - 1 && (
-                          <div className={`mt-4 mx-2 sm:mx-4 h-0.5 w-8 sm:w-16 rounded-full transition-colors duration-300 ${i < currentStep ? "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.4)]" : "bg-slate-800"}`} />
+                          <div className={`mt-4 mx-2 sm:mx-4 h-0.5 w-8 sm:w-16 rounded-full transition-colors duration-300 ${i < currentStep ? "bg-moto-accent shadow-[0_0_8px_rgba(53,208,192,0.4)]" : "bg-slate-800"}`} />
                         )}
                       </Fragment>
                     ))}
@@ -535,7 +535,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {/* Account section */}
                 <div>
                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">1</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">1</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Account Details</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -559,7 +559,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {/* Shop details section */}
                 <div className="mt-6">
                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">2</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">2</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Shop Information</h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -605,7 +605,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                 setSpecialtiesText(newText);
                                 setSignupData((prev) => ({ ...prev, shop_description: newText }));
                               }}
-                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-cyan-500/10 text-cyan-400 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-slate-900/50 border border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200"}
+                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-accent/10 text-moto-accent border border-moto-accent/50 shadow-[0_0_12px_rgba(53,208,192,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-slate-900/50 border border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200"}
                             >
                               {option}
                             </button>
@@ -626,7 +626,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {/* Location section */}
                 <div>
                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">3</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">3</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Location</h2>
                   </div>
                   <div className="space-y-4">
@@ -667,7 +667,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {/* Schedule section */}
                 <div>
                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold">3</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">3</span>
                     <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wide">Schedule</h2>
                   </div>
                   <div className="space-y-3">
@@ -700,8 +700,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                             }}
                             className={`flex-shrink-0 h-6 w-6 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${
                               day.open
-                                ? "bg-cyan-500 border-cyan-500 shadow-lg shadow-cyan-500/40"
-                                : "border-slate-700 hover:border-cyan-500/50 bg-slate-950 hover:bg-slate-900"
+                                ? "bg-moto-accent border-moto-accent shadow-lg shadow-moto-accent/40"
+                                : "border-slate-700 hover:border-moto-accent/50 bg-slate-950 hover:bg-slate-900"
                             }`}
                           >
                             {day.open && (
@@ -719,7 +719,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], openTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
                               />
                               <span className="text-xs text-slate-400">to</span>
                               <input
@@ -730,7 +730,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                                   next[idx] = { ...next[idx], closeTime: e.target.value };
                                   setSignupData({ ...signupData, operating_schedule: next });
                                 }}
-                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                                className="rounded-md border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all"
                               />
                             </div>
                           ) : (
@@ -750,7 +750,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   {currentStep < 2 ? (
                     <button
                       type="submit"
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20"
                     >
                       Next <ArrowLeft size={16} className="rotate-180" />
                     </button>
@@ -760,7 +760,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       disabled={loading}
                       whileHover={{ scale: loading ? 1 : 1.02 }}
                       whileTap={{ scale: loading ? 1 : 0.98 }}
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading && <Loader size={18} className="animate-spin" />}
                       Register Shop
@@ -770,7 +770,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800 hover:border-slate-600 hover:text-cyan-400"
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-slate-700/50 bg-slate-900/50 text-slate-300 text-sm font-bold transition-all duration-300 hover:bg-slate-800 hover:border-slate-600 hover:text-moto-accent"
                     >
                       <ArrowLeft size={16} /> Back
                     </button>
@@ -799,7 +799,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
                   </div>
                 </motion.div>
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>

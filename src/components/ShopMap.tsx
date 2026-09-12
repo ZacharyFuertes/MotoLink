@@ -405,7 +405,7 @@ const ShopMap = ({
         {/* Header Bar */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-md">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-moto-accent/20 text-moto-accent border border-moto-accent/30 shadow-md">
               <Store size={18} />
             </div>
             <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-slate-100 font-display">
@@ -415,7 +415,7 @@ const ShopMap = ({
 
           <button
             onClick={() => setShowInfoModal(!showInfoModal)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/50 hover:text-cyan-400 transition"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-400 hover:border-moto-accent/50 hover:text-moto-accent transition"
             title="Shop Locator Info"
           >
             <Info size={16} />
@@ -433,7 +433,7 @@ const ShopMap = ({
           </button>
           <button
             onClick={() => setMobileTab("list")}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold bg-cyan-500 text-slate-950 shadow-md transition"
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold bg-moto-accent text-slate-950 shadow-md transition"
           >
             <Store size={14} />
             Outlets ({filteredShops.length})
@@ -449,7 +449,7 @@ const ShopMap = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search shops, city or service..."
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/90 pl-9 pr-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition"
+              className="w-full rounded-xl border border-slate-800 bg-slate-900/90 pl-9 pr-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-moto-accent focus:outline-none focus:ring-1 focus:ring-moto-accent/50 transition"
             />
           </div>
         </div>
@@ -476,7 +476,7 @@ const ShopMap = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-300 focus:border-cyan-500 focus:outline-none"
+              className="rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-300 focus:border-moto-accent focus:outline-none"
             >
               <option value="nearest">Nearest</option>
               <option value="rating">Highest Rated</option>
@@ -494,16 +494,16 @@ const ShopMap = ({
               exit={{ opacity: 0, height: 0 }}
               className="mb-3 overflow-hidden"
             >
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-moto-accent/40 bg-moto-accent/10 px-3 py-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Navigation size={13} className="text-cyan-400 shrink-0" />
-                  <span className="text-[11px] font-bold text-cyan-300 truncate">
+                  <Navigation size={13} className="text-moto-accent shrink-0" />
+                  <span className="text-[11px] font-bold text-moto-accent truncate">
                     Route to: {activeRouteShop.name}
                   </span>
                 </div>
                 <button
                   onClick={() => setActiveRouteShop(null)}
-                  className="shrink-0 rounded-full p-0.5 text-cyan-400 hover:bg-cyan-500/20"
+                  className="shrink-0 rounded-full p-0.5 text-moto-accent hover:bg-moto-accent/20"
                   title="Clear route"
                 >
                   <X size={12} />
@@ -525,13 +525,13 @@ const ShopMap = ({
                 onClick={() => handleSelectShop(shop)}
                 className={`group flex items-center justify-between rounded-xl border p-3 transition cursor-pointer ${
                   isSelected
-                    ? "border-cyan-500/60 bg-slate-900 shadow-md shadow-cyan-500/10"
-                    : "border-slate-800/80 bg-slate-900/60 hover:border-cyan-500/40 hover:bg-slate-900"
+                    ? "border-moto-accent/60 bg-slate-900 shadow-md shadow-moto-accent/10"
+                    : "border-slate-800/80 bg-slate-900/60 hover:border-moto-accent/40 hover:bg-slate-900"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Vehicle / Sprocket Badge Icon */}
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/90 text-slate-300 group-hover:border-cyan-500/40 group-hover:text-cyan-400 transition">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-700/80 bg-slate-800/90 text-slate-300 group-hover:border-moto-accent/40 group-hover:text-moto-accent transition">
                     {shop.logo_url ? (
                       <img src={shop.logo_url} alt="" className="h-full w-full rounded-full object-cover" />
                     ) : isVehicleIcon ? (
@@ -544,7 +544,7 @@ const ShopMap = ({
                   {/* Shop Details */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold text-slate-200 group-hover:text-cyan-300 truncate">
+                      <h4 className="text-xs font-bold text-slate-200 group-hover:text-moto-accent truncate">
                         {shop.name}
                       </h4>
                       <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
@@ -565,8 +565,8 @@ const ShopMap = ({
                     onClick={(e) => { e.stopPropagation(); handleStartDirections(shop); }}
                     className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
                       activeRouteShop?.id === shop.id
-                        ? "border-cyan-400/70 bg-cyan-500/20 text-cyan-400"
-                        : "border-slate-700 bg-transparent text-slate-500 hover:border-cyan-400/50 hover:text-cyan-400"
+                        ? "border-moto-accent/70 bg-moto-accent/20 text-moto-accent"
+                        : "border-slate-700 bg-transparent text-slate-500 hover:border-moto-accent/50 hover:text-moto-accent"
                     }`}
                     title={activeRouteShop?.id === shop.id ? "Clear route" : "Get Directions"}
                   >
@@ -597,7 +597,7 @@ const ShopMap = ({
               animate={{ opacity: 1, scale: 1 }}
               className="pointer-events-auto max-w-xs rounded-2xl border border-slate-800 bg-slate-900/90 p-5 text-center shadow-2xl backdrop-blur-xl"
             >
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent border border-moto-accent/30">
                 <MapPin size={24} />
               </div>
               <p className="text-sm font-black text-white uppercase tracking-wider">Location access required</p>
@@ -606,7 +606,7 @@ const ShopMap = ({
               </p>
               <button
                 onClick={onRequestLocation}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-cyan-500 px-5 py-2 text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-cyan-500/30 transition hover:bg-cyan-400 active:scale-95"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-moto-accent px-5 py-2 text-xs font-black uppercase tracking-wider text-slate-950 shadow-lg shadow-moto-accent/30 transition hover:bg-moto-accent-dark active:scale-95"
               >
                 <LocateFixed size={15} /> Enable Location
               </button>
@@ -620,7 +620,7 @@ const ShopMap = ({
           <div className="pointer-events-auto flex lg:hidden items-center gap-1 rounded-xl bg-slate-900/95 p-1 border border-slate-800 shadow-xl backdrop-blur-md">
             <button
               onClick={() => setMobileTab("map")}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-cyan-500 text-slate-950 rounded-lg shadow-sm"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold bg-moto-accent text-slate-950 rounded-lg shadow-sm"
             >
               <MapPin size={12} /> Map
             </button>
@@ -635,7 +635,7 @@ const ShopMap = ({
           {/* Desktop Shops Found Pill */}
           <div className="pointer-events-auto hidden lg:flex items-center gap-2">
             <div className="flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[11px] font-bold text-slate-100">
-              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="h-2 w-2 rounded-full bg-moto-accent animate-pulse" />
               <span>{filteredShops.length} Shops Found</span>
             </div>
           </div>
@@ -643,7 +643,7 @@ const ShopMap = ({
           {/* Top-Right: Location Enabled Badge / Button */}
           <button
             onClick={onRequestLocation}
-            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[10px] sm:text-xs font-black uppercase tracking-wider text-cyan-400 hover:bg-slate-800 transition"
+            className="pointer-events-auto flex h-8 items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 shadow-xl backdrop-blur-xl text-[10px] sm:text-xs font-black uppercase tracking-wider text-moto-accent hover:bg-slate-800 transition"
           >
             <LocateFixed size={13} />
             <span className="whitespace-nowrap">
