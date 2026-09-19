@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Navigation, MapPin, Clock3, Route } from "lucide-react";
 import { ShopSearchResult } from "../types/shop";
+import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
 
 declare const L: any;
 
@@ -50,6 +51,9 @@ const NavigationModal = ({ isOpen, onClose, shop, origin, onRequestLocation }: N
     const map = Leaflet.map(mapRef.current, {
       zoomControl: false,
       scrollWheelZoom: false,
+      maxBounds: PH_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: PH_MIN_ZOOM,
     }).setView([shop.latitude, shop.longitude], 14);
 
     Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

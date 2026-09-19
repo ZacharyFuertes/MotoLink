@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
 
 declare const L: any;
 
@@ -196,7 +197,6 @@ const searchPlaces = async (query: string): Promise<SearchResult[]> => {
   const photon = await searchPhoton(query);
   const preferred = photon.filter((r) => r.countrycode === "PH" || r.countrycode === "ph");
   if (preferred.length) return preferred;
-  if (photon.length) return photon;
   return searchNominatim(query);
 };
 
@@ -282,6 +282,9 @@ const LocationPicker = ({
     const map = Leaflet.map(mapRef.current, {
       zoomControl: false,
       scrollWheelZoom: true,
+      maxBounds: PH_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: PH_MIN_ZOOM,
     }).setView(DEFAULT_CENTER, 13);
     Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
     leafletMapRef.current = map;
@@ -318,7 +321,11 @@ const LocationPicker = ({
     const map = leafletMapRef.current;
     if (!map) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => map.setView([pos.coords.latitude, pos.coords.longitude], 16),
+      (pos) => {
+        const lat = Math.min(Math.max(pos.coords.latitude, PH_BOUNDS[0][0]), PH_BOUNDS[1][0]);
+        const lng = Math.min(Math.max(pos.coords.longitude, PH_BOUNDS[0][1]), PH_BOUNDS[1][1]);
+        map.setView([lat, lng], 16);
+      },
       () => {
         // permission denied — stay where the user is
       },

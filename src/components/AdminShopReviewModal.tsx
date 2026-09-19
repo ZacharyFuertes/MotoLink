@@ -13,6 +13,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
+import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
 
 declare const L: any;
 
@@ -287,6 +288,9 @@ const ReviewShopMap: React.FC<{
     const map = Leaflet.map(mapRef.current, {
       zoomControl: false,
       scrollWheelZoom: true,
+      maxBounds: PH_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: PH_MIN_ZOOM,
     }).setView(center, typeof lat === "number" ? 16 : 12);
     Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

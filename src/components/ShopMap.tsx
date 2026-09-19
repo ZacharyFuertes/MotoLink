@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { ShopSearchResult } from "../types/shop";
+import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
 
 declare const L: any;
 
@@ -62,8 +63,11 @@ const ShopMap = ({
   const [_showFiltersModal, _setShowFiltersModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  // Mobile View Mode Toggle ("map" vs "list")
+  // Mobile View Mode Toggle ("map" = sheet closed, "list" = bottom sheet open)
   const [mobileTab, setMobileTab] = useState<"map" | "list">("map");
+
+  // Desktop floating drawer open/closed (Grab-style)
+  const [drawerOpen, setDrawerOpen] = useState(true);
 
   // In-map route state — draws real road route on Leaflet canvas via OSRM
   const [activeRouteShop, setActiveRouteShop] = useState<ShopSearchResult | null>(null);
@@ -221,6 +225,10 @@ const ShopMap = ({
     const map = Leaflet.map(mapRef.current, {
       zoomControl: false,
       scrollWheelZoom: true,
+      attributionControl: false,
+      maxBounds: PH_BOUNDS,
+      maxBoundsViscosity: 1.0,
+      minZoom: PH_MIN_ZOOM,
     }).setView([MAP_CENTER_LAT, MAP_CENTER_LNG], 13);
 
     mapInstanceRef.current = map;
