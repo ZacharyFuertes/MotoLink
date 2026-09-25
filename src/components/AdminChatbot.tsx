@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
 import {
   buildAdminSystemPrompt,
   STATIC_REFUSAL_MESSAGE,
@@ -81,10 +82,17 @@ const QUICK_PROMPTS = [
 /* ------------------------------------------------------------------ */
 
 const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
+  // This chatbot serves SHOP OWNERS ONLY — always scoped to their own shop.
+  const role: "admin" | "owner" = "owner";
+  const isAdmin = false;
+  const shopId = user?.shop_id;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [shopData, setShopData] = useState<string>("");
+  const [shopName, setShopName] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const groqClient = useRef<Groq | null>(null);
@@ -103,17 +111,36 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
     }
   }, []);
 
-  // Fetch all business data for context
+  // Fetch all business data for context (scoped by role)
   const fetchShopData = useCallback(async () => {
     setDataLoading(true);
     try {
-      // Parallel fetch all data
+      // Owners only ever see their OWN shop's rows (platform admins see all)
+      const applyShopScope = (query: any) => {
+        if (isAdmin) return query;
+        if (!shopId) return query.eq("shop_id", "__none__");
+        return query.eq("shop_id", shopId);
+      };
+
+      let shopNameData: string | null = null;
+      if (!isAdmin && shopId) {
+        const { data: shopRes } = await supabase
+          .from("shops")
+          .select("name")
+          .eq("id", shopId)
+          .single();
+        shopNameData = shopRes?.name ?? null;
+        setShopName(shopNameData);
+      }
+
       // Fetch reservations separately with error handling
       let reservationsData: any[] = [];
       try {
-        const reservationsRes = await supabase
-          .from("reservations")
-          .select("*, part:parts(name, unit_price)");
+        const reservationsRes = await applyShopScope(
+          supabase
+            .from("reservations")
+            .select("*, part:parts(name, unit_price)"),
+        );
         reservationsData = reservationsRes.data || [];
       } catch {
         // reservations table may not exist yet
@@ -122,7 +149,9 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
       // Fetch part_sales separately with error handling
       let partSalesData: any[] = [];
       try {
-        const partSalesRes = await supabase.from("part_sales").select("*");
+        const partSalesRes = await applyShopScope(
+          supabase.from("part_sales").select("*"),
+        );
         partSalesData = partSalesRes.data || [];
       } catch {
         partSalesData = [];
@@ -130,11 +159,13 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
 
       const [partsRes, appointmentsRes, usersRes, jobOrdersRes, productsRes] =
         await Promise.all([
-          supabase.from("parts").select("*"),
-          supabase.from("appointments").select("*"),
-          supabase.from("users").select("id, name, role, email, created_at"),
-          supabase.from("job_orders").select("*"),
-          supabase.from("products").select("*"),
+          applyShopScope(supabase.from("parts").select("*")),
+          applyShopScope(supabase.from("appointments").select("*")),
+          applyShopScope(
+            supabase.from("users").select("id, name, role, email, shop_id, created_at"),
+          ),
+          applyShopScope(supabase.from("job_orders").select("*")),
+          applyShopScope(supabase.from("products").select("*")),
         ]);
 
       const parts = partsRes.data || [];
@@ -230,8 +261,8 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
 
       // Build context string
       const context = `
-=== MOTOLINK BUSINESS DATA (LIVE) ===
-Date: ${new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+=== ${isAdmin ? "MOTOLINK BUSINESS DATA (LIVE)" : "YOUR SHOP DATA (LIVE)"} ===
+${isAdmin ? "" : `Shop: ${shopNameData ?? "your shop"}\n`}Date: ${new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
 OVERVIEW:
 - Total Mechanics: ${mechanics.length}
@@ -277,7 +308,7 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     } finally {
       setDataLoading(false);
     }
-  }, []);
+  }, [isAdmin, shopId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -288,7 +319,9 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
   // Restore previous conversation when the chat opens
   useEffect(() => {
     if (isOpen) {
-      const saved = sessionStorage.getItem("motolink_admin_ai_chat");
+      const saved = sessionStorage.getItem(
+        `motolink_ai_chat_${role}_${shopId ?? "all"}`,
+      );
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -305,14 +338,17 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
         }
       }
     }
-  }, [isOpen]);
+  }, [isOpen, role, shopId]);
 
   // Persist the conversation so it survives closing / re-opening the chat
   useEffect(() => {
     if (messages.length > 0) {
-      sessionStorage.setItem("motolink_admin_ai_chat", JSON.stringify(messages));
+      sessionStorage.setItem(
+        `motolink_ai_chat_${role}_${shopId ?? "all"}`,
+        JSON.stringify(messages),
+      );
     }
-  }, [messages]);
+  }, [messages, role, shopId]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -364,7 +400,11 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     setLoading(true);
 
     try {
-      const systemPrompt = buildAdminSystemPrompt(shopData);
+      const systemPrompt = buildAdminSystemPrompt(
+        shopData,
+        role,
+        shopName ?? undefined,
+      );
 
       const conversationHistory = messages.map((msg) => ({
         role: msg.role as "user" | "assistant",
@@ -489,7 +529,7 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-slate-100 font-bold text-sm tracking-wide truncate">
-                    Admin AI
+                    {isAdmin ? "Admin AI" : "Shop AI"}
                   </p>
                   <Sparkles size={12} className="text-moto-accent shrink-0" />
                   {dataLoading ? (
@@ -501,7 +541,11 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
                   )}
                 </div>
                 <p className="text-[9px] text-slate-500 font-bold tracking-[0.16em] uppercase truncate">
-                  Business Intelligence Assistant
+                  {isAdmin
+                    ? "Platform Business Intelligence"
+                    : shopName
+                      ? `${shopName} Business Intelligence`
+                      : "Shop Business Intelligence"}
                 </p>
               </div>
             </div>
@@ -542,8 +586,9 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
                 >
                   <div className="bg-moto-dark border border-moto-gray px-3.5 py-2.5 rounded-2xl rounded-bl-md text-slate-200 max-w-[88%]">
                     <p className="chat-text font-light">
-                      Ask me anything about your shop — revenue, inventory,
-                      appointments, and more.
+                      {isAdmin
+                        ? "Ask me anything about the MotoLink platform or any shop — revenue, inventory, appointments, and more."
+                        : "Ask me anything about your shop — revenue, inventory, appointments, and more."}
                     </p>
                   </div>
                 </motion.div>
