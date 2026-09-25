@@ -138,7 +138,7 @@ async function fetchCustomerContext(
 // ─── Guardrail & Refusal Config ─────────────────────────────────────────────
 
 export const FRIENDLY_PIVOT_REFUSAL =
-  "I'm here as your MotoLink shop receptionist! While I can't help with that topic, I'd love to help you with our services, check parts inventory, or help you find the best MotoLink shop for your motorcycle. What can I do for you today?";
+  "I'm here as your MotoLink assistant! While I can't help with that topic, I'd love to help you with our services, check parts inventory, or help you find the best MotoLink shop for your motorcycle. What can I do for you today?";
 
 // Client-side pre-filter to catch obvious non-motorcycle queries instantly and save API tokens
 const NON_MOTORCYCLE_KEYWORDS = /\b(cooking|recipe|adobo|food|programming|python|react|javascript|code|movie|actor|crypto|bitcoin|election|politics|nba|football|homework|essay)\b/i;
