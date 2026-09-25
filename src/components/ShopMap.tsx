@@ -67,7 +67,7 @@ const ShopMap = ({
   const [mobileTab, setMobileTab] = useState<"map" | "list">("map");
 
   // Desktop floating drawer open/closed (Grab-style)
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [_drawerOpen, _setDrawerOpen] = useState(true);
 
   // In-map route state — draws real road route on Leaflet canvas via OSRM
   const [activeRouteShop, setActiveRouteShop] = useState<ShopSearchResult | null>(null);

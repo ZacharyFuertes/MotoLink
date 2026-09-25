@@ -166,6 +166,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [lastBookingId, setLastBookingId] = useState("");
   const [copied, setCopied] = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
+  const [savingVehicle, setSavingVehicle] = useState(false);
   const [vehicleSaveError, setVehicleSaveError] = useState("");
   const [newVehicle, setNewVehicle] = useState({
     make: "",
@@ -281,6 +282,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setLastBookingId("");
         setCopied(false);
         setAddingVehicle(false);
+        setSavingVehicle(false);
         setNewVehicle({ make: "", model: "", year: "" });
       }, 300);
     }
@@ -348,16 +350,38 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   // Add a brand-new motorcycle to the customer's account, then select it for
   // this booking so it also appears in their Profile & Garage list.
   const handleAddVehicle = async () => {
-    if (!user?.id || !newVehicle.make.trim() || !newVehicle.model.trim()) return;
-    setAddingVehicle(true);
+    if (!user?.id) {
+      setVehicleSaveError("Please log in to save a new motorcycle.");
+      return;
+    }
+    const make = newVehicle.make.trim();
+    const model = newVehicle.model.trim();
+    if (!make || !model) {
+      setVehicleSaveError("Make and model are required.");
+      return;
+    }
+    setSavingVehicle(true);
     setVehicleSaveError("");
     try {
+      const existing = vehicles.find(
+        (v) =>
+          v.make.trim().toLowerCase() === make.toLowerCase() &&
+          v.model.trim().toLowerCase() === model.toLowerCase() &&
+          (v.year ?? null) === (newVehicle.year ? Number(newVehicle.year) : null),
+      );
+      if (existing) {
+        setSelectedVehicleId(existing.id);
+        setVehicleInfo(displayVehicle(existing));
+        setAddingVehicle(false);
+        setNewVehicle({ make: "", model: "", year: "" });
+        return;
+      }
       const insertRequest = supabase
         .from("vehicles")
         .insert({
           customer_id: user.id,
-          make: newVehicle.make.trim(),
-          model: newVehicle.model.trim(),
+          make,
+          model,
           year: newVehicle.year ? Number(newVehicle.year) : null,
         })
         .select("id, make, model, year")
@@ -371,14 +395,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (data) {
         setVehicles((prev) => [data, ...prev]);
         setSelectedVehicleId(data.id);
-        setVehicleInfo("");
+        setVehicleInfo(displayVehicle(data));
+        setAddingVehicle(false);
       }
       setNewVehicle({ make: "", model: "", year: "" });
     } catch (err) {
       console.error("Error adding vehicle:", err);
       setVehicleSaveError(err instanceof Error ? err.message : "Failed to add motorcycle. Please try again.");
     } finally {
-      setAddingVehicle(false);
+      setSavingVehicle(false);
     }
   };
 
@@ -1551,13 +1576,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                       type="button"
                                       onClick={handleAddVehicle}
                                       disabled={
-                                        addingVehicle ||
+                                        savingVehicle ||
                                         !newVehicle.make.trim() ||
                                         !newVehicle.model.trim()
                                       }
                                       className="flex-1 py-2.5 bg-moto-accent text-slate-950 text-xs font-bold uppercase tracking-wider rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                      {addingVehicle ? "Saving..." : "Save to my account"}
+                                      {savingVehicle ? "Saving..." : "Save to my account"}
                                     </button>
                                     <button
                                       type="button"
