@@ -594,12 +594,6 @@ const AppContent: React.FC = () => {
             />
           )}
         </AdminPlatformDashboard>
-        {user?.role === "admin" && (
-          <AdminChatbot
-            isOpen={showAIChat}
-            onClose={() => setShowAIChat(false)}
-          />
-        )}
       </div>
     );
   }
@@ -612,6 +606,7 @@ const AppContent: React.FC = () => {
         <OwnerPlatformDashboard
           onNavigate={(page: string) => handlePageChange(page as PageType)}
           currentPage={currentPage}
+          onOpenAI={() => setShowAIChat(true)}
         >
           {currentPage === "shop-settings" && (
             <ShopSettingsPage

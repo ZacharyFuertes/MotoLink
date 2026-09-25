@@ -28,6 +28,7 @@ import {
   Loader,
   Sparkles,
   CheckCircle2,
+  Bot,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -47,12 +48,14 @@ import { getRoleLabel } from "../utils/roleAccess";
 interface OwnerDashboardProps {
   onNavigate?: (page: string) => void;
   currentPage?: string;
+  onOpenAI?: () => void;
   children?: React.ReactNode;
 }
 
 const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   onNavigate,
   currentPage,
+  onOpenAI,
   children,
 }) => {
   const { user, logout } = useAuth();
@@ -799,6 +802,16 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
           )}
         </main>
       </div>
+
+      {/* Floating AI chatbot button (same placement as the customer chatbot) */}
+      <button
+        onClick={onOpenAI}
+        aria-label="Open Motolink AI chat"
+        title="Open AI assistant"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-xl shadow-moto-accent/30 transition hover:-translate-y-1 hover:bg-moto-accent-dark"
+      >
+        <Bot size={26} />
+      </button>
     </div>
   );
 };
