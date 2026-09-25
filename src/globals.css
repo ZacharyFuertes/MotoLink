@@ -102,6 +102,38 @@ body {
   line-height: 1.4;
 }
 
+/* AI Chat widgets — premium typography for the MotoLink chatbots */
+.ai-chat .chat-text {
+  font-size: clamp(13.5px, 1.6vw, 16.5px);
+  line-height: 1.7;
+  letter-spacing: -0.005em;
+  text-rendering: optimizeLegibility;
+}
+
+.ai-chat .chat-text-sm {
+  font-size: clamp(10.5px, 1.25vw, 12.5px);
+  line-height: 1.5;
+}
+
+.ai-chat .chat-text-xs {
+  font-size: clamp(9px, 1vw, 11px);
+  letter-spacing: 0.12em;
+}
+
+.ai-chat .chat-chip {
+  font-size: clamp(9px, 1.05vw, 12px);
+  letter-spacing: 0.09em;
+}
+
+.ai-chat .chat-input {
+  font-size: clamp(12.5px, 1.45vw, 15px);
+  letter-spacing: 0.02em;
+}
+
+.ai-chat .chat-title {
+  font-size: clamp(14px, 1.6vw, 17px);
+}
+
 /* Smooth transitions */
 button, a {
   @apply transition duration-300 ease-out;

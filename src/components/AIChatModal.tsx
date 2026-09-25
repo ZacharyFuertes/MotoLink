@@ -31,8 +31,7 @@ interface AIChatModalProps {
 interface ShopContext {
   services: any[];
   parts: any[];
-  mechanics: any[];
-  availability: any[];
+  shops: any[];
   loadedAt: string;
 }
 
@@ -59,50 +58,41 @@ interface CustomerContext {
 // ─── Supabase Fetchers ──────────────────────────────────────────────────────────
 
 async function fetchShopContext(shopId?: string): Promise<ShopContext> {
-  const [servicesRes, partsRes, mechanicsRes, availRes] =
-    await Promise.allSettled([
-      (() => {
-        let q = supabase
-          .from("products")
-          .select("name, description, unit_price, category")
-          .order("unit_price");
-        if (shopId) q = q.eq("shop_id", shopId);
-        return q;
-      })(),
-      (() => {
-        let q = supabase
-          .from("parts")
-          .select("name, category, quantity_in_stock, unit_price")
-          .gt("quantity_in_stock", 0)
-          .order("category");
-        if (shopId) q = q.eq("shop_id", shopId);
-        return q;
-      })(),
-      (() => {
-        let q = supabase.from("users").select("id, name, phone").eq("role", "mechanic");
-        if (shopId) q = q.eq("shop_id", shopId);
-        return q;
-      })(),
-      (() => {
-        let q = supabase
-          .from("mechanic_availability")
-          .select("mechanic_id, day_of_week, start_time, end_time, is_available")
-          .eq("is_available", true);
-        if (shopId) q = q.eq("shop_id", shopId);
-        return q;
-      })(),
-    ]);
+  const [servicesRes, partsRes, shopsRes] = await Promise.allSettled([
+    (() => {
+      let q = supabase
+        .from("products")
+        .select("name, description, unit_price, category")
+        .order("unit_price");
+      if (shopId) q = q.eq("shop_id", shopId);
+      return q;
+    })(),
+    (() => {
+      let q = supabase
+        .from("parts")
+        .select("name, category, quantity_in_stock, unit_price")
+        .gt("quantity_in_stock", 0)
+        .order("category");
+      if (shopId) q = q.eq("shop_id", shopId);
+      return q;
+    })(),
+    (() => {
+      return supabase
+        .from("shops")
+        .select(
+          "id, name, slug, description, address, city, specialties, operating_hours, phone",
+        )
+        .eq("is_active", true)
+        .order("name");
+    })(),
+  ]);
 
   return {
     services:
       servicesRes.status === "fulfilled" ? (servicesRes.value.data ?? []) : [],
     parts: partsRes.status === "fulfilled" ? (partsRes.value.data ?? []) : [],
-    mechanics:
-      mechanicsRes.status === "fulfilled"
-        ? (mechanicsRes.value.data ?? [])
-        : [],
-    availability:
-      availRes.status === "fulfilled" ? (availRes.value.data ?? []) : [],
+    shops:
+      shopsRes.status === "fulfilled" ? (shopsRes.value.data ?? []) : [],
     loadedAt: new Date().toLocaleTimeString("en-PH"),
   };
 }
@@ -145,6 +135,18 @@ async function fetchCustomerContext(
   }
 }
 
+// ─── Guardrail & Refusal Config ─────────────────────────────────────────────
+
+export const FRIENDLY_PIVOT_REFUSAL =
+  "I'm here as your MotoLink shop receptionist! While I can't help with that topic, I'd love to help you with our services, check parts inventory, or help you find the best MotoLink shop for your motorcycle. What can I do for you today?";
+
+// Client-side pre-filter to catch obvious non-motorcycle queries instantly and save API tokens
+const NON_MOTORCYCLE_KEYWORDS = /\b(cooking|recipe|adobo|food|programming|python|react|javascript|code|movie|actor|crypto|bitcoin|election|politics|nba|football|homework|essay)\b/i;
+
+export const isOffTopicQuery = (query: string): boolean => {
+  return NON_MOTORCYCLE_KEYWORDS.test(query);
+};
+
 // ─── System Prompt Builder ──────────────────────────────────────────────────────
 
 function buildSystemPrompt(
@@ -158,17 +160,18 @@ function buildSystemPrompt(
     day: "numeric",
   });
 
-  // --- Shop data blocks ---
+  // Services Block
   const servicesBlock =
     ctx.services.length > 0
       ? ctx.services
           .map(
             (s) =>
-              `- ${s.name}: PHP ${Number(s.unit_price).toFixed(2)}${s.description ? ` — ${s.description}` : ""}`,
+              `- **${s.name}**: ₱${Number(s.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}${s.description ? ` — ${s.description}` : ""}`,
           )
           .join("\n")
-      : "No services listed. Advise customer to call the shop.";
+      : "No services listed currently. Please invite the customer to call the shop.";
 
+  // Parts Block
   const partsByCategory: Record<string, any[]> = {};
   for (const p of ctx.parts) {
     const cat = p.category ?? "other";
@@ -180,31 +183,29 @@ function buildSystemPrompt(
       ? Object.entries(partsByCategory)
           .map(
             ([cat, items]) =>
-              `${cat.toUpperCase()}:\n` +
+              `**${cat.toUpperCase()}**:\n` +
               items
                 .map(
                   (p) =>
-                    `  - ${p.name}: PHP ${Number(p.unit_price).toFixed(2)} (In Stock)`,
+                    `  - ${p.name}: ₱${Number(p.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })} (In Stock)`,
                 )
                 .join("\n"),
           )
           .join("\n")
-      : "No parts listed. Advise customer to visit the shop.";
+      : "No parts listed currently.";
 
-  const mechanicsBlock =
-    ctx.mechanics.length > 0
-      ? ctx.mechanics
-          .map((m) => {
-            const sched = ctx.availability
-              .filter((a) => a.mechanic_id === m.id)
-              .map((a) => `${a.day_of_week}: ${a.start_time}–${a.end_time}`)
-              .join(", ");
-            return `- ${m.name}${m.phone ? ` (${m.phone})` : ""}${sched ? ` | Schedule: ${sched}` : ""}`;
-          })
+  // Shops Block
+  const shopsBlock =
+    ctx.shops.length > 0
+      ? ctx.shops
+          .map(
+            (s) =>
+              `- **${s.name}** — ${s.city ?? "N/A"}${s.specialties ? ` | Specialties: ${s.specialties}` : ""}${s.operating_hours ? ` | Hours: ${s.operating_hours}` : ""}${s.description ? ` | ${s.description}` : ""}`,
+          )
           .join("\n")
-      : "No mechanics listed.";
+      : "No shops listed on the MotoLink directory.";
 
-  // --- Customer context block ---
+  // Customer Context Block
   let customerBlock = "";
   if (customer) {
     const vehicleList =
@@ -212,7 +213,7 @@ function buildSystemPrompt(
         ? customer.vehicles
             .map((v) => `  - ${v.year} ${v.make} ${v.model}`)
             .join("\n")
-        : "  - No vehicles registered yet.";
+        : "  - No registered vehicles yet.";
 
     const apptList =
       customer.recentAppointments.length > 0
@@ -225,85 +226,73 @@ function buildSystemPrompt(
         : "  - No recent appointments.";
 
     customerBlock = `
-=== LOGGED-IN CUSTOMER (use this to personalize) ===
-Name: ${customer.name}
+=== LOGGED-IN CUSTOMER PROFILE ===
+Customer Name: ${customer.name}
 Email: ${customer.email}
-Phone: ${customer.phone ?? "not provided"}
-Address: ${customer.address ?? "not provided"}
+Phone: ${customer.phone ?? "Not provided"}
 Registered Vehicles:
 ${vehicleList}
 Recent Appointments:
 ${apptList}`;
   }
 
-  return `You are Motolink AI, the 24/7 virtual assistant for Motolink.
+  return `YOU ARE MOTOMECH AI — THE WARM, POLITE, AND HELPFUL VIRTUAL RECEPTIONIST FOR THE MOTOLINK MOTOR SHOP DIRECTORY. You help customers find the best MotoLink shop for their motorcycle needs.
 Today is ${today}. Live shop data loaded at ${ctx.loadedAt}.
 
-=== SHOP SERVICES ===
+=== SHOP DATA CONTEXT ===
+<shop_services>
 ${servicesBlock}
+</shop_services>
 
-=== PARTS IN STOCK ===
+<parts_inventory>
 ${partsBlock}
+</parts_inventory>
 
-=== MECHANICS & AVAILABILITY ===
-${mechanicsBlock}
+<shop_recommendations>
+${shopsBlock}
+</shop_recommendations>
 ${customerBlock}
 
-=== YOUR ROLE ===
-You are a helpful, professional, and friendly shop assistant.
-- Use ONLY the data above to answer questions. NEVER invent prices, schedules, or availability.
-- When a customer describes a vehicle problem, suggest relevant parts from the list above.
-- Always recommend visiting or calling the shop for complex issues.
-- If data lists are empty, honestly say so and ask the customer to contact the shop.
+=== PERSONA & TONE ===
+- Speak as a welcoming, enthusiastic, and polite shop receptionist.
+${customer ? `- Greet the customer by their first name (${customer.name.split(" ")[0]}) to make them feel at home.` : "- Be warm and hospitable to guest customers, encouraging them to explore shop services."}
+- Use clear bullet points and bold formatting for pricing and service details. Always use Philippine Peso (₱).
+- Appointments are always booked with a MotoLink SHOP. NEVER mention mechanics, mechanic availability, or book/recommend a specific mechanic.
 
-=== STRICT TOPIC LIMITATION (CRITICAL) ===
-You may ONLY answer questions related to Motolink and the motor shop: services, pricing, parts, inventory, mechanics, schedules, appointments, bookings, vehicles, shop hours, location, and general motorcycle maintenance advice.
-- If a customer asks about anything UNRELATED to Motolink or motor shops (e.g., math homework, programming, cooking recipes, general knowledge, news, politics, religion, sports, other businesses), DO NOT answer the question.
-- Instead, politely decline and redirect, for example: "I'm sorry, I can only help with questions about Motolink and our motor shop services. Would you like to know about our services, parts, or mechanic schedules instead?"
-- NEVER provide answers, advice, or opinions on topics outside Motolink's scope.
-- Stay on-topic at all times.
-${customer ? `- Address the customer by their first name (${customer.name.split(" ")[0]}) to personalize the experience.` : ""}
+=== SCOPE & PERMITTED TOPICS ===
+1. PERMITTED TOPICS:
+   - MotoLink shop services, pricing, parts availability, store hours, and location.
+   - Recommending the best MotoLink shop for a customer's motorcycle problem or need.
+   - Motorcycle maintenance advice, symptom diagnostics, riding safety tips, and vehicle-part compatibility.
+   - Polite greetings and light small talk.
+2. STRICTLY FORBIDDEN TOPICS:
+   - Non-motorcycle topics (cooking/recipes, software programming, news, politics, sports, general trivia).
+   - Mechanics: their identities, availability, schedules, or booking a specific mechanic. If a customer asks to book a mechanic or see a mechanic's schedule, respond with the best matching MotoLink SHOP and THAT SHOP's operating hours and booking details instead.
 
-=== SERVICES INFORMATION ===
-When a customer asks "What services do you offer?" or similar questions:
-1. Display ALL services from the SHOP SERVICES section above with their descriptions
-2. Format each service clearly with:
-   • Service name in BOLD or uppercase
-   • Complete description (if available)
-   • Price in PHP
-3. Group services by category if descriptions indicate different types
-4. For each service, briefly explain what it includes or covers
-5. If a service has no description, still list it with the price and suggest they call for details
+=== FRIENDLY PIVOT REFUSAL INSTRUCTION ===
+If a customer asks a question completely unrelated to motorcycles or shop business, respond politely with EXACTLY this sentence:
+"${FRIENDLY_PIVOT_REFUSAL}"
 
-EXAMPLE RESPONSE FORMAT:
-• SERVICE NAME — PHP 1,500
-  Description: [full description from database]
-  
-• ANOTHER SERVICE — PHP 2,000
-  Description: [full description from database]
+=== CONVERSATIONAL BOOKING & RESERVATION GUIDANCE ===
+When a customer expresses interest in a service or part:
+- Encourage them to book an appointment with a MotoLink SHOP: "Would you like me to guide you on how to book this service with [shop name]?" or "We have this part in stock! You can reserve it or visit the recommended shop to have it installed."
+- Always tie bookings to a shop, never to a mechanic.
 
-=== VEHICLE COMPATIBILITY ASSISTANCE ===
-When a customer asks if a specific part can be added to or is suitable for their vehicle (e.g., "Can brake pads work on my Honda City?"):
-1. Use the customer's registered vehicles to check compatibility
-2. For part compatibility questions:
-   - Universal parts (oils, filters, batteries, coolant, wipers, bulbs): ✅ work on ALL vehicles
-   - Suspension, brakes, tires: ✅ work on virtually all vehicles (but verify specifications like size)
-   - Electrical parts: Check if motorcycle vs. car (motorcycle parts won't work on cars and vice versa)
-   - Exhaust parts: Most are adaptable but need correct mounting/connection
-3. ALWAYS recommend verifying exact specifications in the vehicle manual or visiting the shop
-4. If unsure, suggest the customer visit or call for verification
+=== SHOP RECOMMENDATION GUIDANCE ===
+When a customer describes a motorcycle problem, a service need, or asks which shop is best:
+- Match their need against each shop's specialties, city/proximity, and services in <shop_recommendations>.
+- Show ALL matching shops clearly (name + city) with one line each so the customer can compare, then recommend the best 1-2 with reasons.
+- If the customer mentions their area, prioritize shops in that city.
+- If no shop clearly matches, suggest the closest shop and invite them to call for details.
+- If a customer wants to book a mechanic or asks about a mechanic's schedule: do NOT give mechanic info. Recommend the best matching MotoLink shop, share THAT SHOP's operating hours from <shop_recommendations>, and guide them on booking an appointment at that shop.
 
-EXAMPLE CUSTOMER QUESTIONS TO HANDLE:
-- "Is this brake fluid good for my Yamaha Mio?" → ✅ Yes, universal fluid works on all vehicles
-- "Can I use this battery on my motorcycle?" → ✅ Yes, but verify amp-hours match
-- "Will motorcycle suspension fit my Toyota?" → ❌ No, it's vehicle-type specific
-
-- IMPORTANT: At the END of EVERY response, always suggest 2-3 short follow-up questions the customer might want to ask next. Format them as a brief list like:
-  "You might also want to ask:
-  • [suggestion 1]
-  • [suggestion 2]
-  • [suggestion 3]"
-  This keeps the conversation going and helps the customer explore more options.`;
+=== MANDATORY FOLLOW-UP SECTION ===
+At the VERY END of EVERY response, you MUST include a section titled:
+You might also want to ask:
+• [Short follow-up question 1]?
+• [Short follow-up question 2]?
+• [Short follow-up question 3]?
+(Keep follow-up questions short, under 60 characters, each starting with "•" and ending with a question mark "?").`;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────────
@@ -329,8 +318,8 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     sender: "bot",
     timestamp: new Date(),
     content: customer
-      ? `Hello, ${customer.name.split(" ")[0]}! I'm MotoMech AI, your MotoLink assistant.\n\nI can see you have ${customer.vehicles.length > 0 ? customer.vehicles.map((v) => `a ${v.year} ${v.make} ${v.model}`).join(" and ") : "no registered vehicles yet"}. How can I help you today?\n\n- Service info and pricing\n- Parts availability\n- Mechanic schedules`
-      : `Hello! I'm MotoMech AI, MotoLink's 24/7 assistant. How can I help you today?\n\n- Service info and pricing\n- Parts availability and recommendations\n- Mechanic schedules and availability\n\nTip: Log in for a faster booking experience!`,
+      ? `Hello, ${customer.name.split(" ")[0]}! I'm MotoMech AI, your MotoLink assistant.\n\nI can see you have ${customer.vehicles.length > 0 ? customer.vehicles.map((v) => `a ${v.year} ${v.make} ${v.model}`).join(" and ") : "no registered vehicles yet"}. How can I help you today?\n\n- Service info and pricing\n- Parts availability\n- Best shop recommendations`
+      : `Hello! I'm MotoMech AI, MotoLink's 24/7 assistant. How can I help you today?\n\n- Service info and pricing\n- Parts availability and recommendations\n- Best shop recommendations\n\nTip: Log in for a faster booking experience!`,
   });
 
   // Init Groq
@@ -430,26 +419,46 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
 
   // Reusable: send a text message to the AI
   const sendMessageFromText = async (text: string) => {
-    if (!text.trim() || !groqClient.current || loading) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || !groqClient.current || loading) return;
     if (error) return;
+
+    // 1. Client-side guardrail check for blatant non-motorcycle queries
+    if (isOffTopicQuery(trimmedText)) {
+      const userMsg: ChatMessageType = {
+        id: Date.now().toString(),
+        content: trimmedText,
+        sender: "user",
+        timestamp: new Date(),
+      };
+      const botRefusal: ChatMessageType = {
+        id: (Date.now() + 1).toString(),
+        content: FRIENDLY_PIVOT_REFUSAL,
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMsg, botRefusal]);
+      setInput("");
+      return;
+    }
 
     const userMessage: ChatMessageType = {
       id: Date.now().toString(),
-      content: text.trim(),
+      content: trimmedText,
       sender: "user",
       timestamp: new Date(),
     };
 
     setMessages((prev) => {
       const newMessages = [...prev, userMessage];
-      // Trigger AI call
+      setInput("");
+      setLoading(true);
+
       (async () => {
-        setInput("");
-        setLoading(true);
         try {
           const systemPrompt = shopCtx
             ? buildSystemPrompt(shopCtx, customerCtx)
-            : `You are Motolink AI for Motolink. Today is ${new Date().toLocaleDateString("en-PH")}. The database is loading. Advise customers to wait a moment or call the shop.`;
+            : `You are MotoMech AI, receptionist for MotoLink. The database is loading. Advise the customer to wait a moment or visit the shop.`;
           const history = newMessages
             .filter((m) => m.id !== "initial")
             .map((m) => ({
@@ -462,11 +471,11 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
             model: "openai/gpt-oss-120b",
             messages: [{ role: "system", content: systemPrompt }, ...history],
             max_tokens: 1024,
-            temperature: 0.5,
+            temperature: 0.3, // Temperature 0.3 strictly adheres to refusal rules while keeping tone warm
           });
           const raw =
             response.choices[0]?.message?.content ??
-            "I could not generate a response. Please try again.";
+            "I couldn't generate a response. Please try again or contact our shop!";
           setMessages((p) => [
             ...p,
             {
@@ -476,12 +485,12 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
               timestamp: new Date(),
             },
           ]);
-        } catch (err: any) {
+        } catch {
           setMessages((p) => [
             ...p,
             {
               id: (Date.now() + 1).toString(),
-              content: `Sorry, I encountered an error. ${err.message ?? "Please try again."}`,
+              content: "Something went wrong, please try again.",
               sender: "bot",
               timestamp: new Date(),
             },
@@ -509,7 +518,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 24, scale: 0.96 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
+          className="ai-chat fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
         >
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
@@ -599,7 +608,11 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                         : "bg-moto-dark border border-moto-gray text-slate-200 rounded-bl-md"
                     }`}
                   >
-                    <p className="chat-text font-light whitespace-pre-wrap">
+                    <p
+                      className={`chat-text whitespace-pre-wrap ${
+                        message.sender === "user" ? "font-semibold" : "font-medium"
+                      }`}
+                    >
                       {message.content}
                     </p>
                     <p
@@ -670,13 +683,12 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
               {(isLoggedInCustomer && customerCtx?.vehicles.length
                 ? [
                     "What services do you offer?",
+                    "Which MotoLink shop is best for my motorcycle?",
                     `Check parts for my ${customerCtx.vehicles[0].make}`,
-                    "When are mechanics available?",
                   ]
                 : [
                     "What services do you offer?",
-                    "Available Mechanics and Schedules?",
-                    "Check brake pads in stock",
+                    "Which MotoLink shop should I visit?",
                   ]
               ).map((chip) => (
                 <button

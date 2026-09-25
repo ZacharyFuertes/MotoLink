@@ -950,7 +950,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               </h2>
               <p className="mt-1 max-w-md text-sm text-slate-400">
                 {shopStatus.state === "open"
-                  ? `Pick a service or mechanic and confirm your booking with ${shop.name}.`
+                  ? `Pick a service and confirm your booking with ${shop.name}.`
                   : `This shop is currently closed. You can still browse, and bookings will be available when it reopens${shopStatus.nextOpenLabel ? ` (next opens ${shopStatus.nextOpenLabel})` : ""}.`}
               </p>
             </div>

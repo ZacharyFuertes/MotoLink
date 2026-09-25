@@ -3,7 +3,7 @@
  * TODO: implemented — Powerful context-aware Admin AI Assistant (Groq-powered)
  *
  * This chatbot fetches full business data (revenue, inventory, appointments,
- * reservations, mechanic workload) and injects it into the system prompt so
+ * reservations) and injects it into the system prompt so
  * the AI can answer analytical business questions naturally.
  */
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -16,7 +16,6 @@ import {
   BarChart3,
   Package,
   Calendar,
-  Users,
   TrendingUp,
   AlertCircle,
   Loader2,
@@ -24,6 +23,11 @@ import {
 } from "lucide-react";
 import { Groq } from "groq-sdk";
 import { supabase } from "../services/supabaseClient";
+import {
+  buildAdminSystemPrompt,
+  STATIC_REFUSAL_MESSAGE,
+} from "../prompts/adminChatbotPrompt";
+import { checkIsOffTopic } from "../utils/aiGuardrails";
 
 /* ------------------------------------------------------------------ */
 /*  TYPES                                                              */
@@ -63,12 +67,6 @@ const QUICK_PROMPTS = [
     icon: Calendar,
     prompt:
       "How many appointments are scheduled for today? List them with details.",
-  },
-  {
-    label: "Mechanic Workload",
-    icon: Users,
-    prompt:
-      "Show me each mechanic's current workload — how many active appointments and job orders they each have.",
   },
   {
     label: "Business Insights",
@@ -210,24 +208,6 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
         revenueJobOrders +
         revenuePOS;
 
-      // Mechanic workload
-      const mechanicWorkload = mechanics.map((m: any) => {
-        const assignedAppts = appointments.filter(
-          (a: any) =>
-            a.mechanic_id === m.id &&
-            a.status !== "completed" &&
-            a.status !== "cancelled",
-        );
-        const completedJobs = jobOrders.filter(
-          (j: any) => j.mechanic_id === m.id && j.status === "completed",
-        );
-        return {
-          name: m.name,
-          activeAppointments: assignedAppts.length,
-          completedJobs: completedJobs.length,
-        };
-      });
-
       // Most popular parts (by job order usage)
       const partUsage: Record<string, number> = {};
       jobOrders.forEach((jo: any) => {
@@ -253,43 +233,40 @@ const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
 === MOTOLINK BUSINESS DATA (LIVE) ===
 Date: ${new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
-📊 OVERVIEW:
+OVERVIEW:
 - Total Mechanics: ${mechanics.length}
 - Total Customers: ${customers.length}
 - Total Parts in Inventory: ${parts.length}
 - Total Inventory Value: ₱${totalInventoryValue.toLocaleString()}
 
-💰 REVENUE:
+REVENUE:
 - Total Overall Revenue: ₱${totalRevenue.toLocaleString()}
 - Total Completed Job Orders: ${completedAppointments.length}
 
-📅 APPOINTMENTS:
+APPOINTMENTS:
 - Today's Appointments: ${todayAppointments.length}
 - Pending: ${pendingAppointments.length}
 - In Progress: ${inProgressAppointments.length}
 - Total Completed: ${completedAppointments.length}
 - Total All-Time: ${appointments.length}
 
-📦 INVENTORY:
+INVENTORY:
 - Low Stock Items (≤ min level): ${lowStockParts.length}
 ${lowStockParts.map((p: any) => `  • ${p.name} — ${p.quantity_in_stock} left (min: ${p.min_stock_level || 5}), SKU: ${p.sku}`).join("\n")}
 - Out of Stock: ${outOfStockParts.length}
 ${outOfStockParts.map((p: any) => `  • ${p.name} (SKU: ${p.sku})`).join("\n")}
 
-🔖 RESERVATIONS:
+RESERVATIONS:
 - Pending Reservations: ${pendingReservations.length}
 ${pendingReservations.map((r: any) => `  • Part: ${r.part?.name || "Unknown"} — Qty: ${r.quantity} — Price: ₱${r.part?.unit_price?.toLocaleString() || "N/A"}`).join("\n")}
 
-👷 MECHANIC WORKLOAD:
-${mechanicWorkload.map((m) => `  • ${m.name}: ${m.activeAppointments} active appointments, ${m.completedJobs} completed jobs`).join("\n")}
-
-🏆 MOST POPULAR PARTS (by usage in job orders):
+MOST POPULAR PARTS (by usage in job orders):
 ${popularParts.length > 0 ? popularParts.map((p) => `  • ${p}`).join("\n") : "  No usage data available yet"}
 
-�️ SERVICES OFFERED:
+SERVICES OFFERED:
 ${products.length > 0 ? products.map((prod: any) => `  • ${prod.name} | Category: ${prod.category || "N/A"} | Price: ₱${prod.unit_price} | Description: ${prod.description || "No description"}`).join("\n") : "  No services listed"}
 
-�📋 ALL PARTS LIST:
+ALL PARTS LIST:
 ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Price: ₱${p.unit_price} | Stock: ${p.quantity_in_stock || 0} | SKU: ${p.sku}`).join("\n")}
 `.trim();
 
@@ -353,6 +330,28 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     const userInput = overrideMessage || input.trim();
     if (!userInput || !groqClient.current) return;
 
+    // 1. Instant Client-Side Guardrail
+    if (checkIsOffTopic(userInput)) {
+      const refusalMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: STATIC_REFUSAL_MESSAGE,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "user",
+          content: userInput,
+          timestamp: new Date(),
+        },
+        refusalMsg,
+      ]);
+      setInput("");
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -365,78 +364,7 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
     setLoading(true);
 
     try {
-      const systemPrompt = `You are MotoLink Admin AI — a powerful business intelligence assistant for the shop owner. You have access to REAL-TIME business data below. Answer the owner's questions using this data. Be specific with numbers, names, and actionable insights.
-
-RULES:
-1. Always reference real data from the context below
-2. Format responses clearly with bullet points and sections
-3. Use Philippine Peso (₱) for all monetary values
-4. Provide actionable recommendations only when absolutely necessary
-5. If data is insufficient, say so honestly
-6. Be highly concise and straight to the point. Give brief answers without fluff.
-7. When asked about trends, use available data to make reasonable inferences
-8. For questions outside the shop's scope, politely redirect to business topics
-
-=== STRICT TOPIC LIMITATION (CRITICAL) ===
-You may ONLY answer questions related to Motolink and this motor shop's business: revenue, inventory, parts, services, appointments, reservations, job orders, mechanics, customers, and shop operations.
-- If the admin asks about anything UNRELATED to Motolink or shop business (e.g., math, programming, cooking, general knowledge, news, politics, religion, sports, other businesses), DO NOT answer the question.
-- Instead, politely decline and redirect, for example: "I'm sorry, I can only help with questions about your Motolink shop's business data — revenue, inventory, appointments, mechanics, and operations. What would you like to know?"
-- NEVER provide answers, advice, or opinions on topics outside Motolink's business scope.
-- Stay on-topic at all times.
-
-=== SERVICES INFORMATION (CRITICAL) ===
-WHEN ADMIN ASKS "What services do we offer?" or ANY similar question about services:
-1. Copy and display the EXACT list from the "SERVICES OFFERED" section above
-2. Show EVERY service available with:
-   • Service name
-   • Category
-   • Price in PHP
-   • Full description (exactly as listed in database)
-3. Format like this:
-   
-   OUR SERVICES:
-   
-   • SERVICE NAME 1 — ₱[price]
-     Category: [category]
-     Description: [Full description]
-   
-   • SERVICE NAME 2 — ₱[price]
-     Category: [category]
-     Description: [Full description]
-
-4. IMPORTANT: Use EXACTLY what's in the SERVICES OFFERED section from database
-5. If a service has no description, note: "[Service Name] — ₱[price]"
-6. After listing, suggest related questions like "Which services are most popular?" or "What's the revenue from services?"
-
-=== PARTS & INVENTORY REPORTING ===
-When admin asks about parts, inventory, or stock:
-1. List parts with: Name | Category | Price | Current Stock | SKU
-2. Highlight LOW STOCK items (at or below minimum level)
-3. Highlight OUT OF STOCK items (quantity = 0)
-4. Include inventory value calculations
-5. Provide reorder recommendations for low-stock parts
-
-=== VEHICLE COMPATIBILITY ASSISTANCE ===
-When admin asks if a specific part is compatible with a vehicle (e.g., "Can brake pads be added to Honda City?"):
-- Identify the part name and vehicle make/model from the question
-- Use the PARTS LIST to find the part category
-- Provide a clear COMPATIBILITY ANSWER based on these guidelines:
-  * Universal parts (oils, filters, batteries, coolant, wipers) → ✅ work on ALL vehicles
-  * Suspension, brakes, and tires → ✅ work on virtually all vehicles (verify specifications)
-  * Electrical parts → ⚠️ Motorcycle ≠ Car (check vehicle type)
-  * Exhaust parts → ✅ mostly adaptable (verify mounting)
-- Always recommend verifying specs with vehicle manual
-- Format answers as: ✅ Compatible / ⚠️ Check Specs / ❌ Incompatible
-
-EXAMPLE ANSWERS:
-- "Is brake fluid compatible with Toyota Camry?" → ✅ Universal fluid, all vehicles
-- "Can motorcycle alternator fit Honda CB150?" → ✅ Both motorcycles, check amps
-- "Can motorcycle suspension fit Toyota Vios?" → ❌ Wrong vehicle type (motorcycle vs car)
-- "Is synthetic oil good for Honda Civic?" → ✅ Universal oil, all vehicles
-
-IMPORTANT: At the END of EVERY response, always add a section titled "You might also want to ask:" with exactly 3 short follow-up questions the admin might want to ask next. Each question should end with a "?" and be on its own line starting with "•". This keeps the conversation going.
-
-${shopData}`;
+      const systemPrompt = buildAdminSystemPrompt(shopData);
 
       const conversationHistory = messages.map((msg) => ({
         role: msg.role as "user" | "assistant",
@@ -472,13 +400,11 @@ ${shopData}`;
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err) {
-      console.error("Admin AI error:", err);
+    } catch {
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content:
-          "⚠️ Error connecting to AI service. Please check your Groq API key.",
+        content: "Something went wrong, please try again.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -544,7 +470,7 @@ ${shopData}`;
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 24, scale: 0.96 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
+          className="ai-chat fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
         >
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
@@ -617,7 +543,7 @@ ${shopData}`;
                   <div className="bg-moto-dark border border-moto-gray px-3.5 py-2.5 rounded-2xl rounded-bl-md text-slate-200 max-w-[88%]">
                     <p className="chat-text font-light">
                       Ask me anything about your shop — revenue, inventory,
-                      appointments, mechanic workload, and more.
+                      appointments, and more.
                     </p>
                   </div>
                 </motion.div>
@@ -664,7 +590,11 @@ ${shopData}`;
                         : "bg-moto-dark border border-moto-gray text-slate-200 rounded-bl-md"
                     }`}
                   >
-                    <p className="chat-text font-light whitespace-pre-wrap">
+                    <p
+                      className={`chat-text whitespace-pre-wrap ${
+                        msg.role === "user" ? "font-semibold" : "font-medium"
+                      }`}
+                    >
                       {msg.role === "assistant"
                         ? msg.content
                             .split(
