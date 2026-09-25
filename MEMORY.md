@@ -6586,8 +6586,67 @@ Styled via a token re-point so it applies app-wide, then per-file role accent ov
 - `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size warning).
 - No `Bebas`/`cyan-` class tokens remain in src (only comments).
 
+## TASK LOG — Booking modal redesign to match landing page polish
+
+Date: Sep 25, 2026
+
+### Decision
+Redesigned the entire **"Book A Service" booking modal** (`BookAppointmentModal.tsx`) — all 4 steps
+(Service, Parts, Date & Time, Confirm) plus vehicle selection, "Add a different motorcycle" form, and
+success screen — as a pure visual/UX pass to match the landing page design language. NO changes to booking
+logic, validation, Supabase calls, or state management (the prior `savingVehicle` split + 10s timeout
+behavior is preserved untouched). Mirrors `MotolinkLanding.tsx`: big `font-display font-black` step
+headlines with teal accent period, solid teal primary buttons / ghost bordered secondary buttons,
+tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet radial glow on the panel
+(closure of the globals.css body glow), and fast (150–250ms) framer-motion micro-animations
+(hover lift y, tap scale ~0.98, direction-aware step slide+fade via `stepDir`/`goStep`).
+
+### Design applied (tokens all re-used, none added)
+- Header: teal icon tile, `font-display font-black text-2xl` title with teal period, eyebrow
+  `text-[10px] font-bold tracking-widest text-moto-accent`.
+- Step indicator: 8×8 rounded-full steps (done = solid teal + check; active = teal ring + `animate-pulse`
+  halo; upcoming = muted) with 3px connector bars carrying a teal fill whose width animates by progress;
+  Uses `scrollbar-hide` utility where needed.
+- Step sections: `motion.div` `initial/exit` x-offset scaled by `stepDir.current` (read before state change),
+  0.2s easeOut. Step 1 cards: gap-3 grid (1/2/3 cols), hover lift y -3 / tap 0.98, active
+  `bg-moto-accent/[0.07] ring-moto-accent/40 shadow-moto-accent/10`. Icon tiles 12×12 rounded-xl, price
+  pills `font-mono`, custom checkboxes. Selected-summary panels `bg-moto-accent/[0.06]` + pill chips.
+- Date cards rounded-2xl, time slots rounded-xl (selected = solid teal).
+- Parts cards rounded-2xl (removed per-card `animate backgroundColor`), teal ring on selection, stock
+  pills w/ emerald/red dots, steppers `rounded-lg` teal.
+- Confirm: review box `bg-moto-darker/80 rounded-2xl`, section labels
+  `text-[11px] font-semibold uppercase tracking-widest text-slate-300`, totals breakdown
+  `bg-moto-dark/50 rounded-2xl` with teal-highlighted Estimated Total box.
+- Vehicle cards: 11×11 rounded-xl teal icon + radio check; "Add a different motorcycle" dashed ghost
+  w/ circled Plus; add-new form `rounded-2xl bg-moto-darker/80`, inputs `rounded-xl` + teal focus ring,
+  save button motion (guarded when `savingVehicle`), Cancel icon button.
+- Footer: ghost Back/Cancel (`hover:-translate-y-0.5`), solid teal Next/Confirm/Sign Up w/ hover lift +
+  tap scale (guarded when disabled), ghost Log In; Back/Next wired to `goStep(±1)`.
+- Success screen keeps its emerald accent; Done button → `rounded-2xl` + hover/tap motion.
+
+### Files changed
+- `src/components/BookAppointmentModal.tsx` (outer served copy; uncommitted, not yet pushed).
+- No Tailwind config / globals.css changes (all existing tokens).
+
+### Notes
+- Scope intentionally visual/animation only; booking logic, validation, and auth gating untouched.
+- Still to push once the user confirms.
+- Second (refined) pass additions: header X close button → motion (scale/rotate on hover, tap 0.9,
+  rounded-lg + hover border accent); Step 2 empty state → dashed rounded-2xl panel with teal Wrench tile
+  + display headline ("No parts available." / restocking note); Step 4 now shows a **Vehicle summary
+  block** (Car tile + name, derived from existing `selectedVehicleId`/`vehicleInfo` state — display
+  only, no data-flow change) at the top of the review grid; Step 4 Services chips → rounded-full pill
+  treatment matching Step 1's selected chips; Step 4 price disclaimer → bordered `bg-moto-darker/60`
+  panel matching Step 1; "Save to my account" now shows an inline spinner (same as Confirm button)
+  while `savingVehicle` so the saving state feels intentional.
+
+### Verified
+- `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size warning).
+- Served module (`http://localhost:3000/src/components/BookAppointmentModal.tsx`) reflects the redesign;
+  ambient panel gradient confirmed in built CSS (`rgba(139,92,246,.1)`).
+
 ---
 
-**Last Updated**: Sep 12, 2026
+**Last Updated**: Sep 25, 2026
 **Compatibility Version**: 1.0
 
