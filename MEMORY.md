@@ -471,7 +471,7 @@ This is the ONLY path that creates a shop (no admin approval)
 - ROUND-2 CHANGES:
   - Phase 1 (admin → owner look): reversed all indigo in AdminPlatformDashboard/AdminShopsPage/AdminAppointmentsPage/AdminLoginPage/AdminChatbot → moto teal (text/bg/border/ring/shadow; #6366f1→#35D0C0 incl. chart stops/strokes/status color; nav-active → teal sidebar-nav-active; brand tile + avatar gradients copied from OwnerPlatformDashboard); AdminLoginPage + AdminChatbot accent buttons text-white → text-slate-950 (teal buttons need dark text); removed unused `.sidebar-nav-active-indigo` CSS.
   - Phase 2 (globals.css): navy hardcodes → charcoal/teal (#0f1723→#14131A chart bg; #25334e→#2B2A37 table/chart borders; #94a3b8→#948FA3 th; rgba(37,51,78,.55)→rgba(43,42,55,.55); stat-card default #38b6c4→#35D0C0; table hover rgba(56,182,196,.06)→rgba(53,208,192,.06)).
-  - Phase 3 (charcoal sweep — the "nothing changed" fix): bulk surface map over 38 customer/shared/owner files: bg-slate-950→bg-moto-dark, bg-slate-900→bg-moto-darker, bg-slate-800→bg-moto-gray, border-slate-800/700→border-moto-gray, hover:border-slate-700/600→hover:border-moto-gray-light, from/via/to-slate-*→moto gradient equivalents, divide/ring/border-t-slate-800→moto, heavy-cyan rgba/hex (#38b6c4, rgba(56,182,196), #0f1723, #25334e, #0b1526) → teal/charcoal. Intentional KEEPS: text-slate-* gray text, bg-white/border-slate-? in light "white-sheet" modals (CustomerSettings/CustomerPortal/BrowseParts/Receipt/ServiceHistory/JobOrder/NotificationPreferences/ErrorModal = legit light documents), SystemNavbar light navbar, dark navy buttons on white sheets shifted to moto-darker (hue-only).
+  - Phase 3 (charcoal sweep — the "nothing changed" fix): bulk surface map over 38 customer/shared/owner files: bg-slate-950→bg-moto-dark, bg-slate-900→bg-moto-darker, bg-slate-800→bg-moto-gray, border-slate-800/700→border-moto-gray, hover:border-slate-700/600→hover:border-moto-gray-light, from/via/to-slate-*→moto gradient equivalents, divide/ring/border-t-slate-800→moto, heavy-cyan rgba/hex (#38b6c4, rgba(56,182,196), #0f1723, #25334e, #0b1526) → teal/charcoal. Intentional KEEPS: text-slate-* gray text, bg-white/border-slate-? in light "white-sheet" modals (CustomerSettings/CustomerPortal/BrowseParts/Receipt/ServiceHistory/JobOrder/NotificationPreferences/ErrorModal = legit light documents), SystemNavbar light navbar, dark navy buttons on white sheets shifted to moto-darker (hue-only). **[SUPERSEDED 2026-09-26: the "white-sheet" convention is no longer the rule — `ServiceHistoryModal` + `CustomerSettingsModal` have since been converted to the dark moto theme at the user's request, matching the newer `TermsModal` precedent. Still light: CustomerPortal/BrowseParts/JobOrder/NotificationPreferences/ErrorModal/SystemNavbar/LocationPicker.]**
   - Phase 4 (clean headings): MotolinkLanding hero h1 + section h2s and ShopDetailPage shop-name/price drop `uppercase tracking-wide` → `font-black tracking-tight`; also ShopCard name, BookAppointmentModal success title, LoginChoicePage title. Brand wordmarks + tiny eyebrow labels kept uppercase; owner/admin sub-page headers (the shop-admin style) intentionally untouched.
   - Phase 5 (chrome): App.tsx loading/fallback wrappers + inline spinners bg-[#f5f5f5]→bg-moto-dark, border-blue-500→border-moto-accent; AccessDenied wrapper → bg-moto-dark; DatabaseStatus pill → moto-darker; SettingsPage lingering indigo (owner page) → teal; AdminPlatformDashboard chart grid #25334e→#2B2A37 + tooltip cursor cyan→teal.
 - Verify: `npx tsc --noEmit` clean + `npm run build` passes (7.04s, only pre-existing >500kB chunk warning). Grep-final: ZERO `indigo`/`#6366f1`/`#25334e`/`#0f1723`/`#38b6c4`/`rgba(56,182,196)`/`cyan-`/`Bebas` anywhere in src.
@@ -6787,6 +6787,115 @@ serviced bike would orphan the service history shops and invoices reference. `up
   `Toyota`, `aero`, `NMAX` — all correct.
 - Not verified in a browser: dropdown focus/click-outside feel, per-bike stat totals against real
   rows, and the full request → approve → save round trip (needs the migration applied first).
+
+---
+**Last Updated**: Sep 26, 2026
+**Compatibility Version**: 1.0
+
+## TASK LOG — Dark restyle of the repair history popup + customer settings (white-sheet → moto dark)
+
+### Why
+- User: the repair history popup "currently uses the legacy UI" — restyle it to complement the new
+  UI used everywhere else. Chose scope = **ServiceHistoryModal + CustomerSettingsModal** (the other
+  vehicle-facing modal); layout = **keep the accordion**, just restyle it; status colours =
+  **consolidate into one shared palette**.
+- IMPORTANT — this reverses a recorded earlier decision. The charcoal sweep in the recolor task
+  (see the line above) deliberately KEPT `bg-white` "white-sheet" modals, naming
+  `CustomerSettings`/`ServiceHistory`/CustomerPortal/BrowseParts/Receipt/JobOrder/
+  NotificationPreferences/ErrorModal as "legit light documents". The newer `TermsModal` was then
+  built explicitly dark "to match the site theme", so the newest precedent wins. The stale KEEPS
+  note has been corrected to record the two files that have since moved to dark.
+
+### New shared file
+- `src/utils/appointmentStatus.ts` — single source of truth for status colours. Exports
+  `AppointmentStatusStyle` (`label`/`pill`/`soft`/`dot`), `APPOINTMENT_STATUS`, the neutral
+  `UNKNOWN_APPOINTMENT_STATUS` ("Recorded"), the `getAppointmentStatus(status)` lookup, and
+  `PAYMENT_STATUS_TONE`. Replaces THREE separate `STATUS_STYLES` consts that had drifted: the
+  modal's light one, `UserProfilePage`'s pill map, and `AdminAppointmentsPage`'s `{label, classes,
+  dot}` map — which even disagreed on `cancelled` (slate vs rose vs red). Canonical:
+  pending amber, confirmed moto-accent, in_progress sky, completed emerald, declined red,
+  cancelled rose, draft slate. `PAYMENT_STATUS_TONE` covers every value the schema CHECK allows
+  (unpaid/paid/overdue/cancelled) plus `partial`, which the app also uses.
+- Consumers: `ServiceHistoryModal` (`.pill` + `.label`), `UserProfilePage` (both history pills →
+  `.pill`), `AdminAppointmentsPage` (`.soft`/`.dot`/`.label`; its `fallbackStyle` const deleted
+  since `getAppointmentStatus` now handles the fallback).
+
+### Restyle details (both files)
+- Shell: `bg-white border-slate-200 border-t-2 border-t-slate-900` → `bg-moto-darker border
+  border-moto-gray rounded-2xl shadow-2xl shadow-black/50 relative`, plus a `pointer-events-none`
+  ambient wash (teal top-left + purple bottom-right blurred circles). Content blocks are now
+  `relative` so they layer over the wash; the scroll area lost its opaque `bg-white`.
+- Header: the square `w-14 h-14 bg-moto-darker` white-icon tile → `w-11 h-11 rounded-2xl
+  bg-moto-accent/15 border border-moto-accent/40 text-moto-accent` (the `TermsModal` pattern).
+  Dropped the `font-display text-3xl sm:text-4xl uppercase` headline per the clean-headings
+  convention (drop `uppercase tracking-wide` → `font-black tracking-tight`); uppercase is now only
+  the tiny teal eyebrow. Close button → rounded `border-moto-gray` ghost with `aria-label`.
+- `ServiceHistoryModal` header reworked so a scoped view fits: the eyebrow carries the scope
+  (`vehicleLabel` or "All vehicles", teal + `truncate`) and the title is always "Service History",
+  since the old code put the vehicle name in a 4xl uppercase heading that long bike names blew out.
+  "View all vehicles" chip → dark ghost, and it now has a separate `sm:hidden` copy because the
+  header no longer has room for it on mobile.
+- Stats: 3-up on mobile (was 1-up) with `border-moto-gray` dividers; TOTAL SPENT is now
+  `font-mono font-black text-moto-accent` to match booking-modal money styling. Filter tabs became
+  count pills (All/Completed/Cancelled) copied from `AdminAppointmentsPage`: active
+  `bg-moto-accent text-slate-950`, inactive `bg-moto-darker border border-moto-gray`.
+- Accordion rows (structure untouched): `bg-moto-darker/40 border border-moto-gray` +
+  `hover:border-moto-gray-light`; date badge `bg-moto-dark` with a teal month; service title
+  `group-hover:text-moto-accent`; Calendar/Clock/Wrench icons teal; the description quote got a
+  real `border-l-2 border-moto-accent/50`; amount → `font-mono font-black text-moto-accent`;
+  status pill → shared `.pill`; added `aria-expanded` on the row button.
+- Expanded detail: Job Order / Invoice cards → `bg-moto-dark/50 border border-moto-gray/80`,
+  `text-slate-500` labels vs `text-slate-100` values. Fixed cramped long values with
+  `text-right font-mono normal-case tracking-normal` (the parent still forces
+  `tracking-widest uppercase`, which mangled money and dates). Invoice payment colour now comes
+  from `PAYMENT_STATUS_TONE` instead of an inline `paid/partial/else` ternary.
+- Empty state → dashed `border-moto-gray bg-moto-dark/30` with a helpful second line that differs
+  for "no records at all" vs "no records match this filter". Spinners `border-moto-accent` (the
+  old `border-3` class isn't a real Tailwind border width either).
+- `CustomerSettingsModal`: success toast was still LIGHT (`bg-green-50 border-green-200
+  text-green-600`) while the error toast beside it was already dark → both are now
+  `emerald-500/10` / `rose-500/10` with `/30` borders. Primary buttons were
+  `bg-moto-darker hover:bg-moto-gray text-white border-slate-900`, which is invisible on a dark
+  panel → now `bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg
+  shadow-moto-accent/25`. Section panels `bg-slate-50 border-slate-200` → `bg-moto-dark/40
+  border-moto-gray rounded-2xl`; tabs became the same accent pills as the history filters; inputs
+  → `bg-moto-darker text-slate-100 border-moto-gray` + teal focus ring, uppercase/tracking kept.
+  Vehicle cards → dark + teal icon tile, and the delete button is now always visible
+  (`sm:opacity-0 group-hover:opacity-100` hid it from keyboard/touch users) with an `aria-label`.
+  Repeated class strings were hoisted to module consts (`inputClass`, `labelClass`, `sectionClass`,
+  `sectionTitleClass`, `ghostBtnClass`, `primaryBtnClass`) so the file can't drift internally;
+  `TABS` also moved to module scope (it was being rebuilt every render).
+- `VehicleMakeModelFields` (found while restyling the vehicles tab): its suggestion dropdown panel
+  and highlighted row were hardcoded LIGHT (`bg-white`, `border-slate-200`, `bg-slate-100
+  text-slate-900`) even though all four call sites are dark — so the list flashed white over the
+  dark UIs. Panel → `border-moto-gray bg-moto-dark`, active row → `bg-moto-accent/15
+  text-moto-accent`, idle → `text-slate-300`, and the light default `inputClassName` is now dark.
+- Fixed a stray `};;` double semicolon in `UserProfilePage.tsx` `openHistory`.
+
+### Bug fix: dead exit animations
+- `ServiceHistoryModal` and `CustomerSettingsModal` both did `if (!isOpen) return null` BEFORE their
+  `AnimatePresence`, which unmounts the child immediately and means framer-motion's `exit` never
+  runs — both modals popped out with no scale/fade. Verified both are unconditionally mounted by
+  their parents (`App.tsx` ×2, `UserProfilePage.tsx` ×1) and neither is conditionally rendered, so
+  the fix is the safe `{isOpen && <motion.div key=...>}` inside the existing `AnimatePresence`
+  (added `key` props so the children are identifiable). This matches `BookAppointmentModal`, which
+  has no such guard. `fetchHistory` was already guarded on `isOpen`, so data loading is unaffected.
+
+### Verified
+- `.\node_modules\.bin\tsc.cmd --noEmit` passes (exit 0).
+- `npm run build` passes in 7.16s (only the pre-existing >500 kB chunk warning).
+- Grep of the 3 touched components: zero `bg-white` / `border-slate-*` / `text-slate-900` remain
+  (the only `text-slate-95*` hits are the intended `text-slate-950` on teal accent buttons).
+- Not verified in a browser: the history modal unscoped + scoped, expanded accordion, filter
+  counts, empty states, long vehicle names, mobile widths, and the settings modal on all 3 tabs.
+  Recommend a hard refresh — stale cache previously made a restyle look like a no-op.
+
+### Known follow-ups (not done, deliberately out of scope)
+- Still light "white sheets": `CustomerPortalModal`, `BrowsePartsModal`, `JobOrderModal`,
+  `NotificationPreferencesModal`, `ErrorModal` (+ `SystemNavbar` and `LocationPicker`).
+- The history query only fetches `completed, cancelled, confirmed, pending`, so a service that is
+  `in_progress` stays invisible in the customer's repair history until the shop completes it.
+- Neither restyled modal locks `document.body` scroll or closes on Escape, unlike `TermsModal`.
 
 ---
 **Last Updated**: Sep 26, 2026

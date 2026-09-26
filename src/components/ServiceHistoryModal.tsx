@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { getAppointmentStatus, PAYMENT_STATUS_TONE } from "../utils/appointmentStatus";
 
 interface ServiceRecord {
   id: string;
@@ -58,14 +59,6 @@ interface ServiceHistoryModalProps {
   /** Called when the user clears the vehicle filter. */
   onClearVehicle?: () => void;
 }
-
-const STATUS_STYLES: Record<string, { color: string; bg: string; label: string }> = {
-  completed: { color: "text-slate-900", bg: "bg-slate-100 border-slate-200", label: "COMPLETED" },
-  confirmed: { color: "text-white", bg: "bg-moto-darker border-slate-900", label: "CONFIRMED" },
-  pending: { color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", label: "PENDING" },
-  cancelled: { color: "text-red-500", bg: "bg-red-900/20 border-red-500/50", label: "CANCELLED" },
-  draft: { color: "text-slate-500", bg: "bg-slate-100 border-slate-200", label: "DRAFT" },
-};
 
 const FILTER_TABS = [
   { key: "all" as const, label: "All" },
@@ -188,11 +181,11 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
 
   const completedCount = records.filter((r) => r.status === "completed").length;
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
+      {isOpen && (
       <motion.div
+        key="service-history"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -204,98 +197,143 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-xl flex flex-col"
+          className="bg-moto-darker w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden rounded-2xl border border-moto-gray shadow-2xl shadow-black/50 flex flex-col relative"
         >
+          {/* ambient accent wash */}
+          <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+            <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-moto-accent/10 blur-3xl" />
+            <div className="absolute -bottom-24 -right-16 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+          </div>
+
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-moto-darker flex items-center justify-center shrink-0">
-                <History size={28} className="text-white" strokeWidth={1.5} />
+          <div className="relative flex items-start justify-between gap-4 px-6 sm:px-8 py-5 border-b border-moto-gray bg-moto-darker/60 flex-shrink-0">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-moto-accent/15 border border-moto-accent/40 flex items-center justify-center shrink-0">
+                <History size={20} className="text-moto-accent" strokeWidth={1.75} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-moto-darker" /> RECORDS
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-moto-accent truncate">
+                  {vehicleLabel || "All vehicles"}
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
-                  {vehicleLabel || "Service History"}
+                <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-100 leading-none tracking-tight">
+                  Service History
                 </h2>
-                <p className="text-slate-500 text-xs font-light tracking-wide hidden sm:block">
+                <p className="text-xs text-slate-400 hidden sm:block">
                   {vehicleLabel
                     ? "Repairs and services for this motorcycle"
                     : "Your past repairs and services"}
                 </p>
-                {vehicleId && onClearVehicle && (
-                  <button
-                    onClick={onClearVehicle}
-                    className="mt-1 self-start inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-600 transition hover:border-slate-900 hover:text-slate-900"
-                  >
-                    <Car size={11} /> View all vehicles
-                  </button>
-                )}
               </div>
             </div>
-            <button onClick={onClose} className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0">
-              <X size={20} strokeWidth={1} />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {vehicleId && onClearVehicle && (
+                <button
+                  onClick={onClearVehicle}
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-moto-gray bg-moto-dark px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition hover:border-moto-accent/50 hover:text-moto-accent"
+                >
+                  <Car size={11} /> View all vehicles
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                aria-label="Close service history"
+                className="p-2 rounded-xl border border-moto-gray text-slate-400 transition hover:text-slate-100 hover:border-moto-gray-light hover:bg-moto-dark shrink-0"
+              >
+                <X size={18} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
 
+          {/* mobile-only clear-filter chip */}
+          {vehicleId && onClearVehicle && (
+            <div className="relative sm:hidden px-6 pt-4 flex-shrink-0">
+              <button
+                onClick={onClearVehicle}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray bg-moto-dark px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition hover:border-moto-accent/50 hover:text-moto-accent"
+              >
+                <Car size={11} /> View all vehicles
+              </button>
+            </div>
+          )}
+
           {/* ── Summary Stats ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 border-b border-slate-200 flex-shrink-0 bg-white">
-            <div className="flex flex-col gap-1 px-6 sm:px-10 py-4 sm:border-r border-slate-200">
-              <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
-                <CheckCircle size={12} className="text-slate-900" /> COMPLETED
+          <div className="relative grid grid-cols-3 border-b border-moto-gray flex-shrink-0 bg-moto-dark/40">
+            <div className="flex flex-col gap-1 px-4 sm:px-8 py-4 border-r border-moto-gray">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
+                <CheckCircle size={12} className="text-emerald-400" /> Completed
               </div>
-              <span className="font-display text-2xl text-slate-900">{completedCount} <span className="text-xs font-sans text-slate-500 lowercase tracking-normal">jobs</span></span>
+              <span className="font-display text-xl sm:text-2xl text-slate-100 leading-none tabular-nums">
+                {completedCount}
+              </span>
             </div>
-            <div className="flex flex-col gap-1 px-6 sm:px-10 py-4 sm:border-r border-slate-200">
-              <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
-                <DollarSign size={12} className="text-slate-900" /> TOTAL SPENT
+            <div className="flex flex-col gap-1 px-4 sm:px-8 py-4 border-r border-moto-gray">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
+                <DollarSign size={12} className="text-moto-accent" /> Total spent
               </div>
-              <span className="font-display text-2xl text-slate-900">₱{totalSpent.toLocaleString()}</span>
+              <span className="font-mono text-lg sm:text-2xl font-black text-moto-accent leading-none tabular-nums">
+                ₱{totalSpent.toLocaleString()}
+              </span>
             </div>
-            <div className="flex flex-col gap-1 px-6 sm:px-10 py-4">
-              <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold tracking-[0.2em] uppercase">
-                <FileText size={12} className="text-slate-900" /> TOTAL RECORDS
+            <div className="flex flex-col gap-1 px-4 sm:px-8 py-4">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
+                <FileText size={12} className="text-slate-300" /> Records
               </div>
-              <span className="font-display text-2xl text-slate-900">{records.length}</span>
+              <span className="font-display text-xl sm:text-2xl text-slate-100 leading-none tabular-nums">
+                {records.length}
+              </span>
             </div>
           </div>
 
           {/* ── Filter Tabs ── */}
-          <div className="flex items-center gap-2 px-6 sm:px-10 py-4 border-b border-slate-200 flex-shrink-0 bg-white">
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setFilter(tab.key)}
-                className={`px-5 py-2 text-[10px] font-bold tracking-widest uppercase transition-all border ${
-                  filter === tab.key
-                    ? "bg-slate-100 text-slate-900 border-slate-900"
-                    : "text-slate-500 border-slate-200 hover:text-slate-500 hover:bg-slate-100 hover:border-slate-300"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="relative flex flex-wrap items-center gap-2 px-6 sm:px-8 py-4 border-b border-moto-gray flex-shrink-0 bg-moto-darker/40">
+            {FILTER_TABS.map((tab) => {
+              const active = filter === tab.key;
+              const count =
+                tab.key === "all" ? records.length : records.filter((r) => r.status === tab.key).length;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className={`px-3.5 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                    active
+                      ? "bg-moto-accent text-slate-950 shadow-sm"
+                      : "bg-moto-darker border border-moto-gray text-slate-400 hover:text-slate-100"
+                  }`}
+                >
+                  {tab.label}
+                  <span className={`ml-1.5 tabular-nums ${active ? "text-slate-800" : "text-slate-500"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
             <div className="ml-auto text-[10px] font-bold tracking-widest uppercase text-slate-500">
-              {filtered.length} RECORD{filtered.length !== 1 ? "S" : ""}
+              {filtered.length} record{filtered.length !== 1 ? "s" : ""}
             </div>
           </div>
 
           {/* ── History List ── */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-white">
+          <div className="relative flex-1 overflow-y-auto px-6 sm:px-8 py-6">
             {loading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-moto-accent border-t-transparent rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 border border-slate-200 bg-slate-100">
-                <AlertCircle className="w-14 h-14 text-slate-400 mb-4" strokeWidth={1} />
-                <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold">NO SERVICE RECORDS FOUND</p>
+              <div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border border-dashed border-moto-gray bg-moto-dark/30 px-6">
+                <AlertCircle className="w-12 h-12 text-slate-500 mb-4" strokeWidth={1} />
+                <p className="text-[10px] tracking-widest uppercase font-bold text-slate-400">
+                  No service records found
+                </p>
+                <p className="text-xs text-slate-500 mt-2 max-w-xs">
+                  {filter === "all"
+                    ? "Your completed repairs and services across MotoLink partner shops will appear here."
+                    : "No records match this filter. Try viewing all."}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {filtered.map((record, index) => {
-                  const status = STATUS_STYLES[record.status] || STATUS_STYLES.pending;
+                  const status = getAppointmentStatus(record.status);
                   const isExpanded = expandedId === record.id;
                   const laborTotal = record.job_order
                     ? record.job_order.labor_hours * record.job_order.labor_rate
@@ -310,68 +348,69 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      className="bg-slate-50 border border-slate-200 rounded-xl hover:border-slate-300 transition-all overflow-hidden"
+                      className="bg-moto-darker/40 border border-moto-gray rounded-2xl hover:border-moto-gray-light transition-colors overflow-hidden"
                     >
                       {/* Main Row */}
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : record.id)}
-                        className="w-full p-6 flex flex-col sm:flex-row sm:items-start justify-between text-left gap-4 sm:gap-0 group"
+                        aria-expanded={isExpanded}
+                        className="w-full p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start justify-between text-left gap-4 sm:gap-0 group"
                       >
                         <div className="flex items-start gap-4 flex-1 min-w-0">
                           {/* Date Badge */}
-                          <div className="w-16 h-16 bg-white border border-slate-300 flex flex-col items-center justify-center flex-shrink-0">
-                            <span className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-1">
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-moto-dark border border-moto-gray flex flex-col items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] text-moto-accent font-bold tracking-widest uppercase leading-none mb-1">
                               {new Date(record.scheduled_date + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}
                             </span>
-                            <span className="font-display text-2xl text-slate-900 leading-none">
+                            <span className="font-display text-xl sm:text-2xl text-slate-100 leading-none">
                               {new Date(record.scheduled_date + "T00:00:00").getDate()}
                             </span>
                           </div>
 
-                          <div>
-                            <h4 className="font-display text-xl text-slate-900 uppercase leading-none mb-3 group-hover:text-slate-700 transition-colors">{record.service_type}</h4>
+                          <div className="min-w-0">
+                            <h4 className="font-display text-lg sm:text-xl text-slate-100 leading-tight mb-2 group-hover:text-moto-accent transition-colors">{record.service_type}</h4>
                             {record.booking_id && (
-                              <p className="text-[10px] tracking-widest font-bold text-slate-400 uppercase mb-2">
+                              <p className="text-[10px] tracking-widest font-bold text-slate-500 uppercase mb-2">
                                 Ref: {record.booking_id}
                               </p>
                             )}
-                            <div className="flex flex-col gap-2">
-                              <span className="flex items-center gap-2 text-slate-500 text-[10px] tracking-widest font-bold uppercase">
-                                <Calendar size={12} className="text-slate-500" />
+                            <div className="flex flex-col gap-1.5">
+                              <span className="flex items-center gap-2 text-slate-400 text-[10px] tracking-widest font-bold uppercase">
+                                <Calendar size={12} className="text-moto-accent shrink-0" />
                                 {new Date(record.scheduled_date + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                               </span>
-                              <span className="flex items-center gap-2 text-slate-500 text-[10px] tracking-widest font-bold uppercase">
-                                <Clock size={12} className="text-slate-500" />
+                              <span className="flex items-center gap-2 text-slate-400 text-[10px] tracking-widest font-bold uppercase">
+                                <Clock size={12} className="text-moto-accent shrink-0" />
                                 {formatTime(record.scheduled_time)}
                               </span>
                               {record.mechanic_name && (
-                                <span className="flex items-center gap-2 text-slate-500 text-[10px] tracking-widest font-bold uppercase">
-                                  <Wrench size={12} className="text-slate-900" />
+                                <span className="flex items-center gap-2 text-slate-400 text-[10px] tracking-widest font-bold uppercase">
+                                  <Wrench size={12} className="text-moto-accent shrink-0" />
                                   {record.mechanic_name}
                                 </span>
                               )}
                             </div>
                             {record.description && (
-                              <p className="text-slate-500 text-xs mt-4 font-light italic border-l block border-slate-900 pl-2 line-clamp-1">{record.description}</p>
+                              <p className="text-slate-400 text-xs mt-4 font-light italic border-l-2 border-moto-accent/50 pl-3 line-clamp-1">{record.description}</p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-3 flex-shrink-0 self-end sm:self-auto">
+                        <div className="flex flex-row sm:flex-col items-end justify-between sm:justify-end gap-3 flex-shrink-0 self-end sm:self-auto">
                           {(record.invoice || record.total_amount || record.estimated_price) && (
-                            <span className="font-display text-2xl text-slate-900">
+                            <span className="font-mono text-lg sm:text-2xl font-black text-moto-accent tabular-nums">
                               ₱{(record.invoice?.total_amount || record.total_amount || record.estimated_price || 0).toLocaleString()}
                             </span>
                           )}
-                          <div className="flex items-center gap-3">
-                            <span className={`flex items-center gap-1.5 text-[9px] px-3 py-1.5 border font-bold tracking-widest ${status.bg} ${status.color}`}>
+                          <div className="flex items-center gap-2 sm:gap-3">
+                            <span className={`flex items-center gap-1.5 text-[9px] px-3 py-1.5 border rounded-full font-bold tracking-widest uppercase ${status.pill}`}>
                               {status.label}
                             </span>
-                            <div className="w-8 h-8 rounded-xl border border-slate-300 flex items-center justify-center bg-white group-hover:bg-slate-100 group-hover:border-moto-gray-light transition-colors">
+                            <div className="w-8 h-8 rounded-xl border border-moto-gray flex items-center justify-center bg-moto-dark group-hover:border-moto-accent/50 group-hover:text-moto-accent transition-colors">
                               {isExpanded ? (
-                                <ChevronUp size={14} className="text-slate-900" strokeWidth={2} />
+                                <ChevronUp size={14} className="text-moto-accent" strokeWidth={2} />
                               ) : (
-                                <ChevronDown size={14} className="text-slate-500 group-hover:text-slate-700" strokeWidth={2} />
+                                <ChevronDown size={14} className="text-slate-500 group-hover:text-moto-accent" strokeWidth={2} />
                               )}
                             </div>
                           </div>
@@ -388,39 +427,39 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-6 pb-6 pt-0 border-t border-slate-200 space-y-4">
-                              <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="px-5 sm:px-6 pb-6 border-t border-moto-gray space-y-4">
+                              <div className="pt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Job Order Details */}
                                 {record.job_order && (
-                                  <div className="bg-white rounded-xl p-5 border border-slate-200">
-                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                      <Wrench size={12} className="text-slate-900" /> JOB DETAILS
+                                  <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
+                                    <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                      <Wrench size={12} className="text-moto-accent" /> Job details
                                     </h5>
                                     <div className="space-y-3 text-[10px] tracking-widest uppercase font-bold">
-                                      <div className="flex justify-between">
-                                        <span className="text-slate-500">STATUS</span>
-                                        <span className="text-slate-900">{record.job_order.status.replace("_", " ")}</span>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">Status</span>
+                                        <span className="text-slate-100 text-right">{record.job_order.status.replace("_", " ")}</span>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-slate-500">LABOR</span>
-                                        <span className="text-slate-900">{record.job_order.labor_hours}H × ₱{record.job_order.labor_rate} = ₱{laborTotal.toLocaleString()}</span>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">Labor</span>
+                                        <span className="text-slate-100 text-right font-mono normal-case tracking-normal">{record.job_order.labor_hours}h × ₱{record.job_order.labor_rate} = ₱{laborTotal.toLocaleString()}</span>
                                       </div>
                                       {(record.job_order.parts_used || []).length > 0 && (
-                                        <div className="flex justify-between">
-                                          <span className="text-slate-500">PARTS ({record.job_order.parts_used.length})</span>
-                                          <span className="text-slate-900">₱{partsTotal.toLocaleString()}</span>
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-slate-500">Parts ({record.job_order.parts_used.length})</span>
+                                          <span className="text-slate-100 text-right font-mono normal-case tracking-normal">₱{partsTotal.toLocaleString()}</span>
                                         </div>
                                       )}
                                       {record.job_order.completed_at && (
-                                        <div className="flex justify-between border-t border-slate-200 pt-3 mt-3">
-                                          <span className="text-slate-500">COMPLETED</span>
-                                          <span className="text-slate-900">
+                                        <div className="flex justify-between border-t border-moto-gray/80 pt-3 mt-3 gap-4">
+                                          <span className="text-slate-500">Completed</span>
+                                          <span className="text-slate-100 text-right normal-case tracking-normal">
                                             {new Date(record.job_order.completed_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                           </span>
                                         </div>
                                       )}
                                       {record.job_order.notes && (
-                                        <div className="pt-3 border-t border-slate-200 mt-3">
+                                        <div className="pt-3 border-t border-moto-gray/80 mt-3">
                                           <p className="text-slate-400 font-light lowercase normal-case tracking-normal italic">"{record.job_order.notes}"</p>
                                         </div>
                                       )}
@@ -430,34 +469,31 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
 
                                 {/* Invoice Details */}
                                 {record.invoice && (
-                                  <div className="bg-white rounded-xl p-5 border border-slate-200">
-                                    <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                      <DollarSign size={12} className="text-slate-900" /> INVOICE
+                                  <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
+                                    <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                      <DollarSign size={12} className="text-moto-accent" /> Invoice
                                     </h5>
                                     <div className="space-y-3 text-[10px] tracking-widest uppercase font-bold">
-                                      <div className="flex justify-between">
-                                        <span className="text-slate-500">TOTAL</span>
-                                        <span className="text-slate-900 text-sm">₱{record.invoice.total_amount.toLocaleString()}</span>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">Total</span>
+                                        <span className="text-moto-accent text-sm text-right font-mono normal-case tracking-normal">₱{record.invoice.total_amount.toLocaleString()}</span>
                                       </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-slate-500">PAYMENT</span>
-                                        <span className={`${
-                                          record.invoice.payment_status === "paid" ? "text-green-500" :
-                                          record.invoice.payment_status === "partial" ? "text-yellow-500" : "text-red-500"
-                                        }`}>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-slate-500">Payment</span>
+                                        <span className={PAYMENT_STATUS_TONE[record.invoice.payment_status] || "text-slate-400"}>
                                           {record.invoice.payment_status}
                                         </span>
                                       </div>
                                       {record.invoice.payment_method && (
-                                        <div className="flex justify-between">
-                                          <span className="text-slate-500">METHOD</span>
-                                          <span className="text-slate-900">{record.invoice.payment_method}</span>
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-slate-500">Method</span>
+                                          <span className="text-slate-100 text-right normal-case tracking-normal">{record.invoice.payment_method}</span>
                                         </div>
                                       )}
                                       {record.invoice.paid_date && (
-                                        <div className="flex justify-between border-t border-slate-200 pt-3 mt-3">
-                                          <span className="text-slate-500">PAID ON</span>
-                                          <span className="text-slate-900">
+                                        <div className="flex justify-between border-t border-moto-gray/80 pt-3 mt-3 gap-4">
+                                          <span className="text-slate-500">Paid on</span>
+                                          <span className="text-slate-100 text-right normal-case tracking-normal">
                                             {new Date(record.invoice.paid_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                           </span>
                                         </div>
@@ -468,17 +504,19 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
 
                                 {/* No job order or invoice */}
                                 {!record.job_order && !record.invoice && (
-                                  <div className="sm:col-span-2 bg-white rounded-xl p-6 border border-slate-200 flex flex-col items-center justify-center gap-3">
-                                    <Package size={20} className="text-slate-400" />
-                                    <p className="text-slate-500 text-[10px] tracking-widest uppercase font-bold">NO DETAILED JOB ORDER OR INVOICE AVAILABLE FOR THIS SERVICE.</p>
+                                  <div className="sm:col-span-2 bg-moto-dark/50 rounded-xl p-6 border border-moto-gray/80 flex flex-col items-center justify-center gap-3 text-center">
+                                    <Package size={20} className="text-slate-500" />
+                                    <p className="text-slate-400 text-[10px] tracking-widest uppercase font-bold">
+                                      No detailed job order or invoice available for this service.
+                                    </p>
                                   </div>
                                 )}
                               </div>
 
                               {/* Notes */}
                               {record.notes && (
-                                <div className="bg-white rounded-xl p-5 border border-slate-200">
-                                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">NOTES</p>
+                                <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
+                                  <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-2">Notes</p>
                                   <p className="text-xs text-slate-400 font-light leading-relaxed">{record.notes}</p>
                                 </div>
                               )}
@@ -494,6 +532,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 };

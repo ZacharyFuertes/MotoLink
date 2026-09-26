@@ -27,6 +27,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import ServiceHistoryModal from "../components/ServiceHistoryModal";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
+import { getAppointmentStatus } from "../utils/appointmentStatus";
 import {
   EMPTY_VEHICLE_STATS,
   VehicleRecord,
@@ -67,14 +68,6 @@ const NAV_TABS: { key: TabKey; label: string; icon: typeof User }[] = [
   { key: "saved", label: "Saved Shops", icon: Store },
   { key: "settings", label: "Account Settings", icon: Settings },
 ];
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-  confirmed: "text-moto-accent bg-moto-accent/10 border-moto-accent/20",
-  in_progress: "text-sky-400 bg-sky-500/10 border-sky-500/20",
-  completed: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-  cancelled: "text-rose-400 bg-rose-500/10 border-rose-500/20",
-};
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return "";
@@ -343,7 +336,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const openHistory = (vehicle: VehicleRecord) => {
     setHistoryAll(false);
     setHistoryVehicle(vehicle);
-  };;
+  };
 
   const completedCount = history.filter((h) => h.status === "completed").length;
   const today = new Date().toISOString().split("T")[0];
@@ -817,8 +810,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           <td className="px-3 py-3">
                             <span
                               className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-                                STATUS_STYLES[h.status] ||
-                                "text-slate-300 bg-slate-500/10 border-slate-500/20"
+                                getAppointmentStatus(h.status).pill
                               }`}
                             >
                               {h.status}
@@ -878,8 +870,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       <div className="flex items-center gap-3">
                         <span
                           className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-                            STATUS_STYLES[h.status] ||
-                            "text-slate-300 bg-slate-500/10 border-slate-500/20"
+                            getAppointmentStatus(h.status).pill
                           }`}
                         >
                           {h.status}

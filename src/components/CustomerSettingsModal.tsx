@@ -36,6 +36,25 @@ interface CustomerSettingsModalProps {
   onClose: () => void;
 }
 
+const TABS = [
+  { key: "profile" as const, label: "Profile", icon: User },
+  { key: "vehicles" as const, label: "Vehicles", icon: Car },
+  { key: "security" as const, label: "Security", icon: Lock },
+];
+
+/* ── Shared dark "moto" styling ── */
+const inputClass =
+  "w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:outline-none focus:ring-2 focus:ring-moto-accent/20 transition text-xs font-bold tracking-widest uppercase placeholder-slate-500 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed";
+const labelClass =
+  "text-slate-400 text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 mb-2";
+const sectionClass = "bg-moto-dark/40 p-6 sm:p-8 border border-moto-gray rounded-2xl";
+const sectionTitleClass =
+  "text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2";
+const ghostBtnClass =
+  "px-5 py-2.5 bg-moto-darker hover:bg-moto-gray/50 text-slate-400 hover:text-slate-100 border border-moto-gray text-[10px] font-bold tracking-widest uppercase transition flex items-center justify-center gap-2 rounded-xl";
+const primaryBtnClass =
+  "flex items-center justify-center gap-2 px-5 py-2.5 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[10px] font-bold tracking-widest uppercase transition rounded-xl shadow-lg shadow-moto-accent/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-moto-accent";
+
 const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   isOpen,
   onClose,
@@ -236,17 +255,11 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
-  const TABS = [
-    { key: "profile" as const, label: "Profile", icon: User },
-    { key: "vehicles" as const, label: "Vehicles", icon: Car },
-    { key: "security" as const, label: "Security", icon: Lock },
-  ];
-
   return (
     <AnimatePresence>
+      {isOpen && (
       <motion.div
+        key="customer-settings"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -260,38 +273,46 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 30 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl border border-slate-200 border-t-2 border-t-slate-900 w-full sm:max-w-[800px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden shadow-xl flex flex-col"
+          className="bg-moto-darker w-full sm:max-w-[800px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden rounded-2xl border border-moto-gray shadow-2xl shadow-black/50 flex flex-col relative"
         >
+          {/* ambient accent wash */}
+          <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+            <div className="absolute -top-24 -left-16 h-56 w-56 rounded-full bg-moto-accent/10 blur-3xl" />
+            <div className="absolute -bottom-24 -right-16 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+          </div>
+
           {/* ── Header ── */}
-          <div className="flex items-start justify-between px-6 sm:px-10 py-6 border-b border-slate-200 flex-shrink-0 bg-slate-50">
-            <div className="flex items-center gap-6">
-              <div className="w-14 h-14 bg-moto-darker flex items-center justify-center shrink-0">
-                <Settings size={28} className="text-white" strokeWidth={1.5} />
+          <div className="relative flex items-start justify-between gap-4 px-6 sm:px-8 py-5 border-b border-moto-gray flex-shrink-0 bg-moto-darker/60">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="w-11 h-11 rounded-2xl bg-moto-accent/15 border border-moto-accent/40 flex items-center justify-center shrink-0">
+                <Settings size={20} className="text-moto-accent" strokeWidth={1.75} />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-3 text-slate-900 text-[10px] font-bold tracking-[0.2em] uppercase">
-                  <div className="w-6 h-[1px] bg-moto-darker" /> ACCOUNT
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-moto-accent">
+                  Account
                 </div>
-                <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
-                  SETTINGS
+                <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-100 leading-none tracking-tight">
+                  Settings
                 </h2>
-                <p className="text-slate-500 text-xs font-light tracking-wide hidden sm:block">
-                  Manage your profile, vehicles & security
+                <p className="text-xs text-slate-400 hidden sm:block">
+                  Manage your profile, vehicles &amp; security
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0"
+              aria-label="Close settings"
+              className="p-2 rounded-xl border border-moto-gray text-slate-400 transition hover:text-slate-100 hover:border-moto-gray-light hover:bg-moto-dark shrink-0"
             >
-              <X size={20} strokeWidth={1} />
+              <X size={18} strokeWidth={1.5} />
             </button>
           </div>
 
           {/* ── Tabs ── */}
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 px-6 sm:px-10 py-4 border-b border-slate-200 overflow-x-auto flex-shrink-0 bg-white">
+          <div className="relative flex flex-wrap sm:flex-nowrap items-center gap-2 px-6 sm:px-8 py-4 border-b border-moto-gray flex-shrink-0 bg-moto-darker/40">
             {TABS.map((tab) => {
               const Icon = tab.icon;
+              const active = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
@@ -300,10 +321,10 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                     setError("");
                     setSuccess("");
                   }}
-                  className={`flex items-center gap-2 px-5 py-3 text-[10px] font-bold tracking-widest uppercase transition-all border ${
-                    activeTab === tab.key
-                      ? "bg-slate-100 text-slate-700 border-slate-300"
-                      : "text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-500 hover:border-slate-300"
+                  className={`flex items-center gap-2 px-4 py-2 text-[13px] font-semibold transition-all duration-200 rounded-xl ${
+                    active
+                      ? "bg-moto-accent text-slate-950 shadow-sm"
+                      : "bg-moto-darker border border-moto-gray text-slate-400 hover:text-slate-100"
                   }`}
                 >
                   <Icon size={14} />
@@ -320,7 +341,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="mx-6 sm:mx-10 mt-6 px-4 py-3 bg-green-50 border border-green-200 flex items-center gap-3 text-green-600 text-[10px] tracking-widest uppercase font-bold"
+                className="relative mx-6 sm:mx-8 mt-5 px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3 text-emerald-400 text-[10px] tracking-widest uppercase font-bold rounded-xl"
               >
                 <CheckCircle size={14} /> {success}
               </motion.div>
@@ -330,15 +351,15 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="mx-6 sm:mx-10 mt-6 px-4 py-3 bg-red-900/20 border border-red-500 flex items-center gap-3 text-red-500 text-[10px] tracking-widest uppercase font-bold"
+                className="relative mx-6 sm:mx-8 mt-5 px-4 py-3 bg-rose-500/10 border border-rose-500/30 flex items-center gap-3 text-rose-400 text-[10px] tracking-widest uppercase font-bold rounded-xl"
               >
-                <AlertCircle size={14} className="text-red-500" /> {error}
+                <AlertCircle size={14} className="text-rose-400" /> {error}
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* ── Content ── */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 sm:py-8 bg-white">
+          <div className="relative flex-1 overflow-y-auto px-6 sm:px-8 py-6 sm:py-8">
             <AnimatePresence mode="wait">
               {/* ── Profile Tab ── */}
               {activeTab === "profile" && (
@@ -348,81 +369,76 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                 >
-                  <div className="bg-slate-50 p-6 sm:p-8 border border-slate-200">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                      <User size={14} className="text-slate-900" /> PROFILE
-                      INFORMATION
+                  <div className={sectionClass}>
+                    <h3 className={sectionTitleClass}>
+                      <User size={14} className="text-moto-accent" /> Profile information
                     </h3>
 
                     <div className="space-y-6">
                       {/* Name */}
                       <div>
-                        <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                          <User size={12} /> FULL NAME *
+                        <label className={labelClass}>
+                          <User size={12} /> Full name *
                         </label>
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase placeholder-slate-400 rounded-xl"
-                          placeholder="YOUR FULL NAME"
+                          className={inputClass}
+                          placeholder="Your full name"
                         />
                       </div>
 
                       {/* Email (read-only) */}
                       <div>
-                        <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                          <Mail size={12} /> EMAIL
+                        <label className={labelClass}>
+                          <Mail size={12} /> Email
                         </label>
                         <input
                           type="email"
                           value={user?.email || ""}
                           disabled
-                          className="w-full bg-slate-100 text-slate-500 px-4 py-3 border border-slate-200 transition text-xs font-bold tracking-widest uppercase cursor-not-allowed rounded-xl"
+                          className={`${inputClass} bg-moto-dark text-slate-500`}
                         />
                         <p className="text-[9px] text-slate-500 tracking-widest uppercase font-bold mt-2">
-                          EMAIL CANNOT BE CHANGED
+                          Email cannot be changed
                         </p>
                       </div>
 
                       {/* Phone */}
                       <div>
-                        <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                          <Phone size={12} /> PHONE NUMBER
+                        <label className={labelClass}>
+                          <Phone size={12} /> Phone number
                         </label>
                         <input
                           type="tel"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase placeholder-slate-400 rounded-xl"
+                          className={inputClass}
                           placeholder="09XX XXX XXXX"
                         />
                       </div>
 
                       {/* Address */}
                       <div>
-                        <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                          <MapPin size={12} /> ADDRESS
+                        <label className={labelClass}>
+                          <MapPin size={12} /> Address
                         </label>
                         <textarea
                           value={address}
                           onChange={(e) => setAddress(e.target.value)}
                           rows={2}
-                          className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase resize-none placeholder-slate-400 rounded-xl"
-                          placeholder="YOUR HOME OR OFFICE ADDRESS"
+                          className={`${inputClass} resize-none`}
+                          placeholder="Your home or office address"
                         />
                       </div>
 
                       {/* Save Button */}
-                      <div className="pt-4 border-t border-slate-200">
+                      <div className="pt-4 border-t border-moto-gray">
                         <button
                           onClick={handleSaveProfile}
                           disabled={saving}
-                          className={`flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 text-[10px] font-bold tracking-widest uppercase transition border rounded-xl ${
-                            saving
-                              ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
-                              : "bg-moto-darker hover:bg-moto-gray text-white border-slate-900"
-                          }`}
+                          className={primaryBtnClass}
                         >
                           {saving ? (
                             <Loader size={14} className="animate-spin" />
@@ -445,16 +461,16 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                 >
-                  <div className="bg-slate-50 p-6 sm:p-8 border border-slate-200">
+                  <div className={sectionClass}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                        <Car size={14} className="text-slate-900" /> MY VEHICLES
+                      <h3 className={`${sectionTitleClass} mb-0`}>
+                        <Car size={14} className="text-moto-accent" /> My vehicles
                       </h3>
                       <button
                         onClick={() => setShowAddVehicle(!showAddVehicle)}
-                        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-moto-darker text-slate-700 hover:text-white border border-slate-300 text-[10px] font-bold tracking-widest uppercase transition rounded-xl"
+                        className={ghostBtnClass}
                       >
-                        <Plus size={12} /> ADD VEHICLE
+                        <Plus size={12} /> Add vehicle
                       </button>
                     </div>
 
@@ -465,7 +481,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-white p-5 border border-slate-300 mb-6 space-y-4 overflow-hidden rounded-xl"
+                          className="bg-moto-darker/70 p-5 border border-moto-gray mb-6 space-y-4 overflow-hidden rounded-2xl"
                         >
                           <VehicleMakeModelFields
                             make={newVehicle.make}
@@ -476,18 +492,18 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                             onModelChange={(model) =>
                               setNewVehicle((prev) => ({ ...prev, model }))
                             }
-                            makeLabel="BRAND"
-                            modelLabel="MODEL"
+                            makeLabel="Brand"
+                            modelLabel="Model"
                             makePlaceholder="Type brand name..."
                             modelPlaceholder="Type model name..."
-                            inputClassName="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                            inputClassName={inputClass}
                             labelClassName="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block"
                             idPrefix="settings-vehicle"
                             uppercaseOptions
                           >
                             <div>
                               <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
-                                YEAR
+                                Year
                               </label>
                               <input
                                 type="number"
@@ -500,12 +516,12 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                     year: e.target.value,
                                   }))
                                 }
-                                className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold placeholder-slate-400 rounded-xl"
+                                className={inputClass}
                               />
                             </div>
                             <div>
                               <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
-                                ENGINE NUMBER (OPTIONAL)
+                                Engine number (optional)
                               </label>
                               <input
                                 type="text"
@@ -517,7 +533,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                     engineNumber: e.target.value,
                                   }))
                                 }
-                                className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl"
+                                className={inputClass}
                               />
                             </div>
                           </VehicleMakeModelFields>
@@ -525,14 +541,14 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                             <button
                               onClick={handleAddVehicle}
                               disabled={savingVehicle}
-                              className="flex items-center gap-2 px-5 py-2.5 bg-moto-darker hover:bg-moto-gray text-white border border-slate-900 text-[10px] font-bold tracking-widest uppercase transition rounded-xl"
+                              className={primaryBtnClass}
                             >
                               {savingVehicle ? (
                                 <Loader size={12} className="animate-spin" />
                               ) : (
                                 <Plus size={12} />
                               )}
-                              {savingVehicle ? "ADDING..." : "ADD VEHICLE"}
+                              {savingVehicle ? "Adding..." : "Add vehicle"}
                             </button>
                             <button
                               onClick={() => {
@@ -544,9 +560,9 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                   engineNumber: "",
                                 });
                               }}
-                              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-300 text-[10px] font-bold tracking-widest uppercase transition rounded-xl"
+                              className={ghostBtnClass}
                             >
-                              CANCEL
+                              Cancel
                             </button>
                           </div>
                         </motion.div>
@@ -556,43 +572,47 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                     {/* Vehicle List */}
                     {loading ? (
                       <div className="flex items-center justify-center py-12">
-                        <div className="w-8 h-8 border-3 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-2 border-moto-accent border-t-transparent rounded-full animate-spin" />
                       </div>
                     ) : vehicles.length === 0 ? (
-                      <div className="text-center py-12 border border-slate-200 bg-white rounded-xl">
-                        <Car className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                        <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">
-                          NO VEHICLES REGISTERED YET
+                      <div className="text-center py-12 border border-dashed border-moto-gray bg-moto-dark/30 rounded-2xl">
+                        <Car className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                        <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">
+                          No vehicles registered yet
+                        </p>
+                        <p className="text-xs text-slate-500 mt-2">
+                          Add your motorcycle to book services faster.
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {vehicles.map((vehicle) => (
                           <div
                             key={vehicle.id}
-                            className="bg-white p-5 border border-slate-200 hover:border-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group transition-colors rounded-xl"
+                            className="bg-moto-darker/40 p-5 border border-moto-gray hover:border-moto-accent/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group transition-colors rounded-2xl"
                           >
-                            <div className="flex items-start sm:items-center gap-4">
-                              <div className="w-12 h-12 bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 rounded-xl">
-                                <Car size={16} className="text-slate-500" />
+                            <div className="flex items-start sm:items-center gap-4 min-w-0">
+                              <div className="w-11 h-11 rounded-xl bg-moto-accent/15 border border-moto-accent/40 flex items-center justify-center shrink-0">
+                                <Car size={16} className="text-moto-accent" />
                               </div>
-                              <div>
-                                <p className="font-display text-xl text-slate-900 uppercase tracking-wide leading-none mb-2 group-hover:text-slate-700 transition-colors">
+                              <div className="min-w-0">
+                                <p className="font-display text-lg text-slate-100 leading-tight mb-1 truncate">
                                   {vehicle.make} {vehicle.model}
                                 </p>
-                                <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">
+                                <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">
                                   {vehicle.year}
                                   {vehicle.engine_number &&
-                                    ` • ENGINE: ${vehicle.engine_number}`}
+                                    ` • Engine: ${vehicle.engine_number}`}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 self-end sm:self-auto">
+                            <div className="flex items-center gap-3 self-end sm:self-auto">
 
                               <button
                                 onClick={() => handleDeleteVehicle(vehicle.id)}
-                                className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-white hover:bg-red-600 border border-transparent hover:border-red-600 transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 rounded-xl"
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-rose-600 border border-transparent hover:border-rose-600 transition-all rounded-xl"
                                 title="Remove Vehicle"
+                                aria-label={`Remove ${vehicle.make} ${vehicle.model}`}
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -613,37 +633,36 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                 >
-                  <div className="bg-slate-50 p-6 sm:p-8 border border-slate-200">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                      <Lock size={14} className="text-slate-900" /> PASSWORD &
-                      SECURITY
+                  <div className={sectionClass}>
+                    <h3 className={sectionTitleClass}>
+                      <Lock size={14} className="text-moto-accent" /> Password &amp; security
                     </h3>
 
                     {!showPasswordChange ? (
                       <button
                         onClick={() => setShowPasswordChange(true)}
-                        className="flex items-center justify-center sm:justify-start gap-2 px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 hover:border-slate-900 text-[10px] font-bold tracking-widest uppercase transition w-full sm:w-auto rounded-xl"
+                        className={`${ghostBtnClass} px-6 py-3`}
                       >
-                        <Lock size={12} /> CHANGE PASSWORD
+                        <Lock size={12} /> Change password
                       </button>
                     ) : (
                       <div className="space-y-6">
                         <div>
-                          <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                            <Lock size={12} /> NEW PASSWORD *
+                          <label className={labelClass}>
+                            <Lock size={12} /> New password *
                           </label>
                           <div className="relative">
                             <input
                               type={showPassword ? "text" : "password"}
                               value={newPassword}
                               onChange={(e) => setNewPassword(e.target.value)}
-                              className="w-full bg-white text-slate-900 px-4 py-3 pr-12 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase placeholder-slate-400 rounded-xl"
-                              placeholder="AT LEAST 6 CHARACTERS"
+                              className={`${inputClass} pr-12`}
+                              placeholder="At least 6 characters"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-moto-accent transition"
                             >
                               {showPassword ? (
                                 <EyeOff size={14} />
@@ -654,26 +673,22 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                           </div>
                         </div>
                         <div>
-                          <label className="text-[10px] text-slate-500 font-bold tracking-widest uppercase flex items-center gap-2 mb-2">
-                            <Lock size={12} /> CONFIRM PASSWORD *
+                          <label className={labelClass}>
+                            <Lock size={12} /> Confirm password *
                           </label>
                           <input
                             type={showPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none transition text-xs font-bold tracking-widest uppercase placeholder-slate-400 rounded-xl"
-                            placeholder="RE-ENTER NEW PASSWORD"
+                            className={inputClass}
+                            placeholder="Re-enter new password"
                           />
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+                        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-moto-gray">
                           <button
                             onClick={handleChangePassword}
                             disabled={changingPassword}
-                            className={`flex items-center justify-center gap-2 px-6 py-3 text-[10px] font-bold tracking-widest uppercase transition border rounded-xl ${
-                              changingPassword
-                                ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
-                                : "bg-moto-darker hover:bg-moto-gray text-white border-slate-900"
-                            }`}
+                            className={`${primaryBtnClass} px-6 py-3`}
                           >
                             {changingPassword ? (
                               <Loader size={12} className="animate-spin" />
@@ -681,8 +696,8 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                               <Save size={12} />
                             )}
                             {changingPassword
-                              ? "CHANGING..."
-                              : "UPDATE PASSWORD"}
+                              ? "Changing..."
+                              : "Update password"}
                           </button>
                           <button
                             onClick={() => {
@@ -690,9 +705,9 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                               setNewPassword("");
                               setConfirmPassword("");
                             }}
-                            className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-300 text-[10px] font-bold tracking-widest uppercase transition flex items-center justify-center rounded-xl"
+                            className={`${ghostBtnClass} px-6 py-3`}
                           >
-                            CANCEL
+                            Cancel
                           </button>
                         </div>
                       </div>
@@ -704,6 +719,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
           </div>
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 };

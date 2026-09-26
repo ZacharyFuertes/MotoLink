@@ -19,6 +19,7 @@ import {
   resolveVehicleEditRequest,
   vehicleLabel,
 } from "../services/vehicleService";
+import { getAppointmentStatus } from "../utils/appointmentStatus";
 
 interface AdminAppointment {
   id: string;
@@ -58,24 +59,6 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "declined", label: "Declined" },
   { id: "cancelled", label: "Cancelled" },
 ];
-
-const STATUS_STYLES: Record<
-  string,
-  { label: string; classes: string; dot: string }
-> = {
-  pending: { label: "Pending", classes: "bg-amber-500/15 text-amber-400", dot: "bg-amber-400" },
-  confirmed: { label: "Confirmed", classes: "bg-moto-accent/15 text-moto-accent", dot: "bg-moto-accent" },
-  in_progress: { label: "In Progress", classes: "bg-sky-500/15 text-sky-400", dot: "bg-sky-400" },
-  completed: { label: "Completed", classes: "bg-emerald-500/15 text-emerald-400", dot: "bg-emerald-400" },
-  declined: { label: "Declined", classes: "bg-red-500/15 text-red-400", dot: "bg-red-400" },
-  cancelled: { label: "Cancelled", classes: "bg-slate-500/15 text-slate-400", dot: "bg-slate-400" },
-};
-
-const fallbackStyle = {
-  label: "Recorded",
-  classes: "bg-slate-500/15 text-slate-400",
-  dot: "bg-slate-400",
-};
 
 const AdminAppointmentsPage: React.FC = () => {
   const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
@@ -382,7 +365,7 @@ const AdminAppointmentsPage: React.FC = () => {
               </thead>
               <tbody>
                 {filtered.map((a) => {
-                  const st = STATUS_STYLES[a.status] || fallbackStyle;
+                  const st = getAppointmentStatus(a.status);
                   return (
                     <tr key={a.id} className="align-top">
                       <td>
@@ -417,7 +400,7 @@ const AdminAppointmentsPage: React.FC = () => {
                       </td>
                       <td>
                         <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${st.classes}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${st.soft}`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${st.dot}`}

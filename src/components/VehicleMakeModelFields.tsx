@@ -162,7 +162,7 @@ const Combobox: React.FC<ComboboxProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+            className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-xl border border-moto-gray bg-moto-dark shadow-xl shadow-black/40"
             // Keep the input focused so the list survives the click
             onMouseDown={(e) => e.preventDefault()}
           >
@@ -178,8 +178,8 @@ const Combobox: React.FC<ComboboxProps> = ({
                     onClick={() => select(option)}
                     className={`cursor-pointer px-4 py-2.5 text-sm transition-colors ${
                       idx === activeIndex
-                        ? "bg-slate-100 text-slate-900"
-                        : "text-slate-700 hover:bg-slate-50"
+                        ? "bg-moto-accent/15 text-moto-accent"
+                        : "text-slate-300 hover:bg-moto-gray/50 hover:text-slate-100"
                     }`}
                   >
                     {renderOption(option)}
@@ -187,7 +187,7 @@ const Combobox: React.FC<ComboboxProps> = ({
                 ))}
               </ul>
             ) : (
-              <p className="px-4 py-2.5 text-sm text-slate-400">
+              <p className="px-4 py-2.5 text-sm text-slate-500">
                 {emptyMessage}
               </p>
             )}
@@ -225,7 +225,7 @@ const VehicleMakeModelFields: React.FC<VehicleMakeModelFieldsProps> = ({
   modelPlaceholder = "e.g. Click 125i",
   makeLabel,
   modelLabel,
-  inputClassName = "w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-moto-accent",
+  inputClassName = "w-full rounded-xl border border-moto-gray bg-moto-darker px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-moto-accent",
   labelClassName = "mb-1 block text-xs font-medium text-slate-300",
   containerClassName = "space-y-4",
   disabled = false,
