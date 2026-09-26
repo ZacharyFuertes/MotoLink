@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, Home } from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import adminIcon from "../pictures/icons/admin.png";
 import InlineError from "../components/InlineError";
+import TermsModal from "../components/TermsModal";
 
 interface AdminLoginPageProps {
   onLoginSuccess: () => void;
@@ -21,6 +22,8 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [formData, setFormData] = useState(() => ({
     // Restore the email after a reload (password is never saved).
     email: localStorage.getItem("moto_admin_login_email") || "",
@@ -104,6 +107,9 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   const inputClass =
     "w-full pl-11 pr-4 py-3.5 bg-moto-dark border border-moto-gray rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition-all duration-300 text-sm";
 
+  // Extra right padding so the show/hide eye button never overlaps the text
+  const passwordInputClass = `${inputClass} pr-11`;
+
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
@@ -185,17 +191,41 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 <div className="relative">
                   <Lock size={18} className={iconClass} />
-                  <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={inputClass} />
+                  <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="Password" required className={passwordInputClass} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </motion.div>
               <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading && <Loader size={18} className="animate-spin" />}
                 Sign In
               </motion.button>
+
+              {/* Terms and Conditions link */}
+              <p className="mt-5 text-center text-xs text-slate-500">
+                By continuing, you agree to MotoLink's{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="font-semibold text-moto-accent hover:underline"
+                >
+                  Terms &amp; Conditions
+                </button>
+              </p>
             </form>
           </div>
         </div>
       </motion.div>
+
+      {/* Terms and Conditions popup */}
+      <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   );
 };

@@ -8,10 +8,13 @@ import {
   Phone,
   MapPin,
   Truck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import InlineError from "../components/InlineError";
+import TermsModal from "../components/TermsModal";
 import {
   filterMakes,
   filterModels,
@@ -35,6 +38,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [formData, setFormData] = useState(() => {
     // Restore the customer form after a reload (password is never saved).
     try {
@@ -264,6 +269,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const inputClass =
     "w-full pl-11 pr-4 py-3 bg-moto-dark/80 border border-moto-gray rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
 
+  // Extra right padding so the show/hide eye button never overlaps the text
+  const passwordInputClass = `${inputClass} pr-11`;
+
   const iconClass = "absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400";
 
   return (
@@ -379,14 +387,29 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     <div className="relative">
                       <Lock size={18} className={iconClass} />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Password"
                         required
-                        className={inputClass}
+                        className={passwordInputClass}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        title={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -560,6 +583,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 {loading && <Loader size={18} className="animate-spin" />}
                 {isSignup ? "Create Account" : "Login"}
               </motion.button>
+
+              {/* Terms and Conditions link */}
+              <p className="text-center text-xs text-slate-500">
+                By continuing, you agree to MotoLink's{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="font-semibold text-moto-accent hover:underline"
+                >
+                  Terms &amp; Conditions
+                </button>
+              </p>
             </form>
 
             {/* Divider */}
@@ -580,6 +615,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   onClick={() => {
                     setIsSignup(!isSignup);
                     setError("");
+                    setShowPassword(false);
                     setFormData({
                       email: "",
                       password: "",
@@ -607,6 +643,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-moto-dark via-moto-dark/40 to-transparent" />
         </div>
       </motion.div>
+
+      {/* Terms and Conditions popup */}
+      <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
     </div>
   );
 };

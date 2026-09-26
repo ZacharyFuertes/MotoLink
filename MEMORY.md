@@ -477,6 +477,18 @@ This is the ONLY path that creates a shop (no admin approval)
 - Verify: `npx tsc --noEmit` clean + `npm run build` passes (7.04s, only pre-existing >500kB chunk warning). Grep-final: ZERO `indigo`/`#6366f1`/`#25334e`/`#0f1723`/`#38b6c4`/`rgba(56,182,196)`/`cyan-`/`Bebas` anywhere in src.
 - NOTE for user: hard-refresh the browser / rebuild dev server — stale cache is part of why round 1 "looked the same".
 
+### TASK: Password show/hide eye toggle on all auth screens + Terms & Conditions popup
+- User request: (1) password eye icon so a person logging in can verify what they typed; (2) the footer's dead "Terms" link should pop up the site's Terms & Conditions. USER DECISIONS: eye toggle on ALL auth screens; terms reachable from footer + all 3 login/signup screens; dark charcoal modal matching the site theme; leave the dead "Privacy" link untouched.
+- NEW `src/components/TermsModal.tsx`: props `{ isOpen, onClose }` (same contract as NotificationPreferencesModal/ErrorModal). Content is a module-level `SECTIONS: { heading, body }[]` array (10 sections) so it renders via `.map()` instead of JSX blobs; paragraphs split on `\n\n`. Shell copied from BrowsePartsModal (AnimatePresence → `fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm` overlay with `e.target === e.currentTarget` backdrop-close → inner `motion.div` spring scale-in, `bg-moto-darker border-moto-gray rounded-2xl max-w-2xl max-h-[85vh]`). Header = FileText icon tile (moto-accent/15) + "Terms and Conditions" + "Last Updated: September 26, 2026" + X. Body scrolls; footer has mailto:support@motolink.com + the vercel URL. Extra: closes on Escape, locks `document.body.style.overflow` while open, `role="dialog" aria-modal="true"`.
+- Password eye toggle added to 4 fields, all following the existing CustomerSettingsModal.tsx:691-710 pattern (Eye/EyeOff from lucide, `type={showPassword ? "text" : "password"}`, `type="button"` + aria-label/title, absolute right-centered toggle). Each page got a `passwordInputClass = \`${inputClass} pr-11\`` (pr-10 in ShopOwnerLoginPage) variant so the eye never overlaps typed text — the shared `inputClass` itself was left untouched:
+  - `src/pages/LoginPage.tsx` — password field (:387) + `passwordInputClass` (:272)
+  - `src/pages/ShopOwnerLoginPage.tsx` — owner login (:814) AND the signup wizard step-1 "Create a password" field (:559); also a shared `passwordToggleClass` since the two toggles are identical
+  - `src/pages/AdminLoginPage.tsx` — admin login (:191)
+- `showPassword` resets to false when flipping login↔signup on LoginPage and ShopOwnerLoginPage so a revealed password never carries into the other form.
+- Terms links: Footer.tsx dead `<a href="#">Terms</a>` → `<button type="button">` opening the modal (Privacy link intentionally left as a dead `#` anchor per user choice). Each of the 3 login pages got a "By continuing, you agree to MotoLink's Terms & Conditions" line (placed AFTER the submit button, and OUTSIDE the `<form>` on the owner page so it can't submit).
+- No auth/DB logic touched — purely presentational. New deps: none (framer-motion + lucide-react already installed).
+- Verify: `tsc --noEmit` clean + `npm run build` passes (2817 modules, 6.16s). No eslint config exists in the repo, so `npm run lint` is not runnable.
+
 - Build: passes clean (tsc + vite build) ✅
 - Git: branch main; working tree currently has availability-toggle + notifications-bell changes UNCOMMITTED (new uncommitted work on top of the previously-pushed 5 commits)
 - Code: multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built; landing/login white-slate theme + new logo + favicon done

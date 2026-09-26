@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Facebook, Instagram, Twitter, Linkedin, Mail, MapPin, Phone } from 'lucide-react'
 import motolinkLogo from '../../public/favicon.svg'
+import TermsModal from './TermsModal'
 
 /**
  * Footer Component
@@ -17,6 +18,7 @@ import motolinkLogo from '../../public/favicon.svg'
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear()
+  const [termsOpen, setTermsOpen] = useState(false)
 
   const socialLinks = [
     {
@@ -177,11 +179,18 @@ const Footer: React.FC = () => {
             Privacy
           </a>{' '}
           |{' '}
-          <a href="#" className="text-white hover:text-moto-accent">
+          <button
+            type="button"
+            onClick={() => setTermsOpen(true)}
+            className="text-white hover:text-moto-accent"
+          >
             Terms
-          </a>
+          </button>
         </p>
       </motion.div>
+
+      {/* Terms and Conditions popup */}
+      <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
     </footer>
   )
 }
