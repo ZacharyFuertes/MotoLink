@@ -7,7 +7,6 @@ import {
   User,
   Phone,
   MapPin,
-  Truck,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -15,10 +14,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import InlineError from "../components/InlineError";
 import TermsModal from "../components/TermsModal";
-import {
-  filterMakes,
-  filterModels,
-} from "../utils/vehicleData";
+import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import heroImage from "../pictures/hero-slide-images/hero-slide-image-2.png";
 
 interface CustomerLoginPageProps {
@@ -69,10 +65,6 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       vehicle_model: "",
     };
   });
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
   // Refs so the loginAttempted useEffect can read signup context
   const wasSignupRef = React.useRef(false);
   const notifPrefRef = React.useRef(true);
@@ -99,54 +91,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Handle vehicle make suggestions
+    // Models are make-scoped, so a new make invalidates the current model
     if (name === "vehicle_make") {
-      if (value.trim()) {
-        const suggestions = filterMakes(value);
-        setMakeSuggestions(suggestions);
-        setShowMakeSuggestions(true);
-      } else {
-        setMakeSuggestions([]);
-        setShowMakeSuggestions(false);
-      }
-      // Reset model when make changes
       setFormData((prev) => ({ ...prev, vehicle_model: "" }));
-      setModelSuggestions([]);
-      setShowModelSuggestions(false);
     }
-
-    // Handle vehicle model suggestions
-    if (name === "vehicle_model") {
-      if (value.trim() && formData.vehicle_make) {
-        const suggestions = filterModels(formData.vehicle_make, value);
-        setModelSuggestions(suggestions);
-        setShowModelSuggestions(true);
-      } else {
-        setModelSuggestions([]);
-        setShowModelSuggestions(false);
-      }
-    }
-  };
-
-  const handleSelectMake = (make: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      vehicle_make: make,
-      vehicle_model: "",
-    }));
-    setMakeSuggestions([]);
-    setShowMakeSuggestions(false);
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
-  const handleSelectModel = (model: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      vehicle_model: model,
-    }));
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,6 +216,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   // Input field style shared between login and signup
   const inputClass =
     "w-full pl-11 pr-4 py-3 bg-moto-dark/80 border border-moto-gray rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-1 focus:ring-moto-accent transition-all text-sm";
+  // Vehicle make/model have no leading icon, so they need no icon padding
+  const vehicleInputClass = inputClass.replace("pl-11", "pl-4");
 
   // Extra right padding so the show/hide eye button never overlaps the text
   const passwordInputClass = `${inputClass} pr-11`;
@@ -454,106 +404,34 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     <div className="pt-2 mt-4 border-t border-slate-200" />
                   )}
 
-                  {/* Motorcycle Make (Signup only) */}
+                  {/* Motorcycle Information (Signup only) */}
                   {isSignup && (
-                    <div>
-                      <label className="text-xs text-slate-400 ml-1 mb-1 block">
+                    <div className="space-y-3">
+                      <label className="text-xs text-slate-400 ml-1 block">
                         Motorcycle Information
                       </label>
-                      <div className="relative">
-                        <Truck size={18} className={iconClass} />
-                        <input
-                          type="text"
-                          name="vehicle_make"
-                          value={formData.vehicle_make}
-                          onChange={handleChange}
-                          onFocus={() =>
-                            formData.vehicle_make &&
-                            setShowMakeSuggestions(true)
-                          }
-                          placeholder="Motorcycle Make (e.g., YAMAHA)"
-                          required
-                          className={inputClass}
-                          autoComplete="off"
-                        />
-                        {/* Make Suggestions Dropdown */}
-                        <AnimatePresence>
-                          {showMakeSuggestions &&
-                            makeSuggestions.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
-                              >
-                                {makeSuggestions.map((make, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => handleSelectMake(make)}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg"
-                                  >
-                                    {make}
-                                  </button>
-                                ))}
-                              </motion.div>
-                            )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Motorcycle Model (Signup only) */}
-                  {isSignup && (
-                    <div>
-                      <div className="relative">
-                        <Truck size={18} className={iconClass} />
-                        <input
-                          type="text"
-                          name="vehicle_model"
-                          value={formData.vehicle_model}
-                          onChange={handleChange}
-                          onFocus={() =>
-                            formData.vehicle_model &&
-                            setShowModelSuggestions(true)
-                          }
-                          placeholder="Motorcycle Model (e.g., AEROX 150)"
-                          required
-                          disabled={!formData.vehicle_make}
-                          className={`${inputClass} ${!formData.vehicle_make ? "opacity-50 cursor-not-allowed" : ""}`}
-                          autoComplete="off"
-                        />
-                        {!formData.vehicle_make && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                            Select Make First
-                          </span>
-                        )}
-                        {/* Model Suggestions Dropdown */}
-                        <AnimatePresence>
-                          {showModelSuggestions &&
-                            modelSuggestions.length > 0 && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -8 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
-                              >
-                                {modelSuggestions.map((model, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => handleSelectModel(model)}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg"
-                                  >
-                                    {model}
-                                  </button>
-                                ))}
-                              </motion.div>
-                            )}
-                        </AnimatePresence>
-                      </div>
+                      <VehicleMakeModelFields
+                        make={formData.vehicle_make}
+                        model={formData.vehicle_model}
+                        onMakeChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            vehicle_make: value,
+                          }))
+                        }
+                        onModelChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            vehicle_model: value,
+                          }))
+                        }
+                        makePlaceholder="Motorcycle Make (e.g., YAMAHA)"
+                        modelPlaceholder="Motorcycle Model (e.g., AEROX 155)"
+                        inputClassName={vehicleInputClass}
+                        labelClassName="text-xs text-slate-400 ml-1 block"
+                        idPrefix="signup"
+                        uppercaseOptions
+                      />
                     </div>
                   )}
                 </motion.div>

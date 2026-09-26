@@ -6659,6 +6659,136 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 
 ---
 
-**Last Updated**: Sep 25, 2026
+
+---
+
+## TASK LOG — Shared motorcycle make/model autocomplete + interactive Profile & Garage cards
+
+### What was asked
+- Add the motorcycle make/model suggestion feature to customer signup and to the customer profile
+  when adding a motorcycle.
+- Make registered motorcycles in Profile & Garage interactive: per-bike repair history, per-bike
+  stats, and an edit option.
+- User's rule: a customer may edit a bike's make/model/year etc. freely UNTIL a repair has been
+  done on it; after that only an admin may change those details, and only on request.
+
+### Decisions confirmed with the user
+1. **Suggestions = motorcycle-only.** Use `philippineMotorcycles` (16 PH makes), NOT the legacy
+   mixed car+motorcycle `vehicleDatabase`. The old customer-signup dropdown was showing car makes.
+2. **One shared component, fixed everywhere.** Replace the 3 drifted autocomplete copies rather
+   than patching each.
+3. **History lives on the Profile & Garage cards only** (not on every vehicle list).
+4. **Per-bike stats on the card**: completed-service count, total spent, last service date.
+5. **Lock trigger = any NON-CANCELLED appointment** (pending/confirmed/in_progress/completed all
+   lock; cancelled does not). Chosen over "after job order" and "after completion".
+6. **Unlock = request button + admin queue.** Customer clicks "Request a change"; an admin
+   approves a one-time unlock. NOT a support-email dead end, and NOT admin-only SQL.
+7. **Admin queue lives on the Admin Appointments page** (mirrors the dashboard's "New Shop
+   Approvals" card), not the dashboard or Admin Shops.
+
+### Root-cause bugs fixed in the suggestions
+- `getVehicleModels` resolved make keys **case-sensitively** against `Object.keys`, so a stored
+  `yamaha` (live data has both `Yamaha` and `yamaha`) returned no models. Now resolved through a
+  `trim().toLowerCase()` lookup map built once at module scope.
+- The signup dropdown only opened `onFocus` when the field was already non-empty, so an empty
+  focused field showed nothing. The shared combobox opens on empty focus.
+- No click-outside dismissal anywhere. The shared combobox uses a document `mousedown` listener
+  plus `onMouseDown preventDefault` on the list, so choosing an option never closes the list first.
+- `UserProfilePage` and `BookAppointmentModal` had NO suggestions at all.
+
+### Files changed
+- `src/utils/vehicleData.ts` — deleted `vehicleDatabase` (24-make car list, 0 live users) and the
+  4 redundant `getPhMoto*`/`filterPh*` aliases. Primary functions now read
+  `philippineMotorcycles`. `resolveMakeKey` is module-private.
+- `src/components/VehicleMakeModelFields.tsx` (NEW) — one combobox pair. Keyboard
+  (ArrowUp/Down/Enter/Escape), `role=listbox`/`option` + `aria-activedescendant`, matched-substring
+  highlight, outside-click close, make-scoped model reset on make selection. Takes a
+  `containerClassName` (BookAppointment passes `contents` so the year input joins the same grid)
+  and renders `children` after the model field so callers keep their own year/engine inputs.
+- `src/pages/LoginPage.tsx` — dropped 4 suggestion state hooks, 2 select handlers, and both
+  dropdown JSX blocks. Removed the now-unused `Truck` icon; added `vehicleInputClass` (the shared
+  `inputClass` had `pl-11` for an icon that no longer exists there).
+- `src/components/CustomerSettingsModal.tsx` — same removal; **`year` was hardcoded to
+  `getFullYear()`** (line ~231) and is now a real validated input, plus an optional engine number.
+  Delete is now blocked for bikes with service records (see below).
+- `src/components/BookAppointmentModal.tsx` — add-motorcycle row gained suggestions; make/model/year
+  sit in the original 3-column grid via `containerClassName="contents"`.
+- `src/services/vehicleService.ts` (NEW) — the codebase had NO vehicle service layer; all 4 create
+  sites hit Supabase inline. `getMyVehicles`, `addVehicle`, `updateVehicle`, `deleteVehicle`,
+  `setPrimaryVehicle`, `getVehicleStats` (one `.in("vehicle_id", ids)` query, no N+1),
+  `hasServiceActivity`, `isVehicleLocked`, `requestVehicleEdit`, `resolveVehicleEditRequest`,
+  `findDuplicateVehicle`, `vehicleLabel`.
+- `src/components/ServiceHistoryModal.tsx` — optional `vehicleId` / `vehicleLabel` /
+  `onClearVehicle` props. When scoped it adds `.eq("vehicle_id", …)`, shows the bike in the header
+  instead of "SERVICE HISTORY", and offers a "View all vehicles" chip. **No new modal file, and no
+  migration needed** — the existing appointment → job_orders → invoices chain already works.
+- `src/pages/UserProfilePage.tsx` — vehicles now typed `VehicleRecord`; `refreshData` loads
+  vehicles + the per-bike stats map; cards are interactive (click title → scoped history), show the
+  3 stats, and gained Edit / Set primary / Remove with the lock + request states. Added an edit
+  modal reusing `VehicleMakeModelFields`, and mounted its own `ServiceHistoryModal` instance (this
+  page returns standalone, so nothing is threaded through App.tsx).
+- `src/pages/AdminAppointmentsPage.tsx` — "Vehicle Change Requests" card above the status filters.
+  Rows join `vehicles → users(name, email)`; actions are **Unlock editing** (stamps
+  `edit_approved_at`, clears `edit_requested`) and **Dismiss**. Also subscribes to `vehicles`
+  postgres_changes so the queue updates live.
+- `supabase/migrations/20260926_vehicle_edit_lock.sql` (NEW) + `supabase/admin_rls.sql` — see below.
+- `src/types/index.ts` `Vehicle` was left alone: only `AuthContext` uses it, and the garage now uses
+  `VehicleRecord` which carries `year`/`engine_number` (the old local `ProfileVehicle` had them as
+  loose optionals).
+
+### Migration the user must run (Supabase SQL Editor)
+`supabase/migrations/20260926_vehicle_edit_lock.sql` adds `vehicles.is_primary`,
+`edit_requested`, `edit_approved_at`, `edit_note`; indexes `appointments.vehicle_id`; adds
+`"Admin can update all vehicles"` (FOR UPDATE USING `public.is_admin()`) — vehicles previously had
+ONLY an admin SELECT policy, so the Approve button would have failed silently, the same trap as
+`20260816_admin_shop_update_delete.sql`; backfills the oldest bike per customer as primary; and adds
+a partial unique index for one primary per customer.
+
+### Unapplied-migration resilience (the MEMORY rule, applied again)
+`vehicleService.runVehicleQuery` mirrors `shopService.runShopQuery`: the first select names the new
+columns, and on `42703` / "column does not exist" it retries with the legacy column set and sets
+`editLockColumnsAvailable = false`. `getMyVehicles` then marks the first bike primary so the old
+"first card" behaviour survives. Verified live: selecting the new columns returns **HTTP 400** while
+the legacy select returns **HTTP 200**, so the fallback is doing real work. `UserProfilePage` hides
+"Set primary" when the columns are unavailable, `requestVehicleEdit` throws a clear message rather
+than silently no-op, and `AdminAppointmentsPage` hides the whole queue card
+(`isMissingEditLockColumn` + `markEditLockColumnsUnavailable`) instead of showing an empty one.
+
+### Lock rule implementation
+`isVehicleLocked(vehicle, stats)` = `activeCount > 0 && !edit_approved_at`. `activeCount` comes from
+the stats map (any non-cancelled appointment), so the profile tab and the customer history tab can
+never disagree. A locked bike shows a read-only lock note, a "Request a change" button (then a
+"waiting for admin approval" pill), and its Remove is replaced with a "Locked" hint — removing a
+serviced bike would orphan the service history shops and invoices reference. `updateVehicle` clears
+`edit_requested`/`edit_approved_at`, so an admin approval covers exactly one change.
+
+### Notes / deliberate non-choices
+- **No UNIQUE constraint on (customer_id, make, model).** Live data already has 3 duplicate pairs
+  (`honda|click 125i`, `yamaha|sniper 155`, `yamaha|aerox 155`) and 2 genuinely identical bikes are
+  legal, so a constraint would fail today. `findDuplicateVehicle` warns in the UI instead. The 3
+  existing duplicates were NOT auto-deleted — destructive, needs the user's call.
+- The positional `idx === 0` "Primary Bike" badge is gone, replaced by the real `is_primary` column.
+- `CustomerSettingsModal` delete now calls `hasServiceActivity` first, so the lock cannot be
+  bypassed by deleting from settings instead of the garage.
+- "Request a change" opens a native `confirm()`-free direct action (no note field); `edit_note`
+  exists in the schema and is displayed by the admin queue if present.
+- Bike make/model/year/engine_number are never upper-cased on save; only the display layer uses
+  `text-transform: uppercase` on the booking/settings inputs, via the `uppercaseOptions` prop.
+- `hasServiceActivity` is deliberately not used by the lock itself (that would be N+1); it guards
+  the destructive delete path only.
+
+### Verified
+- `.\node_modules\.bin\tsc.cmd --noEmit` passes (exit 0).
+- `npm run build` passes (only the pre-existing chunk-size warning).
+- Live REST: new edit-lock columns → HTTP 400 (pre-migration), legacy select → HTTP 200,
+  `appointments?select=vehicle_id,status,total_amount,estimated_price,scheduled_date` → HTTP 200
+  (so `getVehicleStats` needs no migration).
+- Ran the `filterMakes`/`filterModels` logic standalone over `yamaha`, `Yamaha`, `"  honda  "`,
+  `Toyota`, `aero`, `NMAX` — all correct.
+- Not verified in a browser: dropdown focus/click-outside feel, per-bike stat totals against real
+  rows, and the full request → approve → save round trip (needs the migration applied first).
+
+---
+**Last Updated**: Sep 26, 2026
 **Compatibility Version**: 1.0
 

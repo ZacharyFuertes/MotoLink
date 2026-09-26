@@ -1,7 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Search, Inbox, MapPin, Clock } from "lucide-react";
+import {
+  Calendar,
+  Search,
+  Inbox,
+  MapPin,
+  Clock,
+  ShieldCheck,
+  Car,
+  X,
+  Check,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "../services/supabaseClient";
+import {
+  isMissingEditLockColumn,
+  markEditLockColumnsUnavailable,
+  resolveVehicleEditRequest,
+  vehicleLabel,
+} from "../services/vehicleService";
 
 interface AdminAppointment {
   id: string;
@@ -18,6 +35,18 @@ interface AdminAppointment {
   created_at: string;
   shop?: { name: string } | null;
   customer?: { name: string } | null;
+}
+
+interface VehicleEditRequest {
+  id: string;
+  make: string;
+  model: string;
+  year: number | null;
+  engine_number: string | null;
+  created_at: string;
+  customer_id: string;
+  edit_note: string | null;
+  customer?: { name: string; email: string } | null;
 }
 
 const STATUS_TABS: { id: string; label: string }[] = [
@@ -54,6 +83,51 @@ const AdminAppointmentsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
 
+  const [editRequests, setEditRequests] = useState<VehicleEditRequest[]>([]);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [editLockReady, setEditLockReady] = useState(true);
+
+  const fetchEditRequests = useCallback(async () => {
+    if (!editLockReady) return;
+    try {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select(
+          "id, make, model, year, engine_number, created_at, customer_id, edit_note, customer:users!customer_id (name, email)",
+        )
+        .eq("edit_requested", true)
+        .order("created_at", { ascending: true });
+      if (error) {
+        // The edit-lock columns only exist after migration 20260926 is applied.
+        if (isMissingEditLockColumn(error)) {
+          markEditLockColumnsUnavailable();
+          setEditLockReady(false);
+          return;
+        }
+        throw error;
+      }
+      setEditRequests((data || []) as VehicleEditRequest[]);
+    } catch (err) {
+      console.error("Error fetching vehicle edit requests:", err);
+    }
+  }, [editLockReady]);
+
+  const handleResolveRequest = async (
+    vehicleId: string,
+    approve: boolean,
+  ) => {
+    setResolvingId(vehicleId);
+    try {
+      await resolveVehicleEditRequest(vehicleId, approve);
+      await fetchEditRequests();
+    } catch (err) {
+      console.error("Error resolving vehicle edit request:", err);
+      alert("Failed to update the request. Please try again.");
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
@@ -74,6 +148,7 @@ const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchAppointments();
+    fetchEditRequests();
 
     const channel = supabase
       .channel("admin-appointments-changes")
@@ -82,12 +157,17 @@ const AdminAppointmentsPage: React.FC = () => {
         { event: "*", schema: "public", table: "appointments" },
         () => fetchAppointments(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "vehicles" },
+        () => fetchEditRequests(),
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchAppointments]);
+  }, [fetchAppointments, fetchEditRequests]);
 
   const counts = STATUS_TABS.reduce(
     (acc, t) => {
@@ -154,6 +234,82 @@ const AdminAppointmentsPage: React.FC = () => {
           </span>
         </div>
       </motion.div>
+
+      {/* Vehicle change requests */}
+      {editLockReady && editRequests.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 sm:p-5"
+        >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-amber-400" />
+              <h2 className="text-sm font-bold uppercase tracking-widest text-amber-300">
+                Vehicle Change Requests
+              </h2>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-xs font-semibold text-amber-300">
+              {editRequests.length} pending
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {editRequests.map((req) => (
+              <div
+                key={req.id}
+                className="flex flex-col gap-3 rounded-xl border border-moto-gray bg-moto-dark p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                    <Car className="w-4 h-4 shrink-0 text-moto-accent" />
+                    {vehicleLabel(req)}
+                    {req.year ? (
+                      <span className="text-slate-400">· {req.year}</span>
+                    ) : null}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {req.customer?.name || "Unknown customer"}
+                    {req.customer?.email ? ` · ${req.customer.email}` : ""}
+                  </p>
+                  {req.edit_note && (
+                    <p className="mt-2 rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-300">
+                      “{req.edit_note}”
+                    </p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    onClick={() => handleResolveRequest(req.id, false)}
+                    disabled={resolvingId === req.id}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray px-3 py-2 text-xs font-semibold text-slate-300 transition hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-50"
+                  >
+                    <X className="w-3.5 h-3.5" /> Dismiss
+                  </button>
+                  <button
+                    onClick={() => handleResolveRequest(req.id, true)}
+                    disabled={resolvingId === req.id}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-moto-accent px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:opacity-50"
+                  >
+                    {resolvingId === req.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    Unlock editing
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-3 text-xs text-slate-500">
+            Approving lets the customer correct this bike once. The unlock closes
+            as soon as they save.
+          </p>
+        </motion.div>
+      )}
 
       {/* Filters */}
       <div className="rounded-2xl border border-moto-gray bg-moto-dark p-4 flex flex-col lg:flex-row lg:items-center gap-4 shadow-sm">

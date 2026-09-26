@@ -62,6 +62,10 @@ CREATE POLICY "Admin can view all reservations" ON public.reservations FOR SELEC
 DROP POLICY IF EXISTS "Admin can view all vehicles" ON public.vehicles;
 CREATE POLICY "Admin can view all vehicles" ON public.vehicles FOR SELECT USING (public.is_admin());
 
+-- VEHICLES: Admin can update any vehicle (approve/dismiss a change request)
+DROP POLICY IF EXISTS "Admin can update all vehicles" ON public.vehicles;
+CREATE POLICY "Admin can update all vehicles" ON public.vehicles FOR UPDATE USING (public.is_admin());
+
 -- MECHANIC AVAILABILITY: Admin can view all
 DROP POLICY IF EXISTS "Admin can view all mechanic availability" ON public.mechanic_availability;
 CREATE POLICY "Admin can view all mechanic availability" ON public.mechanic_availability FOR SELECT USING (public.is_admin());

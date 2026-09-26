@@ -24,6 +24,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { notifyOwnerOfNewAppointment } from "../services/notificationService";
+import VehicleMakeModelFields from "./VehicleMakeModelFields";
 
 interface Mechanic {
   id: string;
@@ -1657,42 +1658,42 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               ) : (
                                 <>
                                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_80px] gap-2">
-                                    <input
-                                      type="text"
-                                      value={newVehicle.make}
-                                      onChange={(e) =>
-                                        setNewVehicle({
-                                          ...newVehicle,
-                                          make: e.target.value,
-                                        })
+                                    <VehicleMakeModelFields
+                                      make={newVehicle.make}
+                                      model={newVehicle.model}
+                                      onMakeChange={(make) =>
+                                        setNewVehicle((prev) => ({
+                                          ...prev,
+                                          make,
+                                          model: "",
+                                        }))
                                       }
-                                      placeholder="Make (e.g. HONDA)"
-                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={newVehicle.model}
-                                      onChange={(e) =>
-                                        setNewVehicle({
-                                          ...newVehicle,
-                                          model: e.target.value,
-                                        })
+                                      onModelChange={(model) =>
+                                        setNewVehicle((prev) => ({
+                                          ...prev,
+                                          model,
+                                        }))
                                       }
-                                      placeholder="Model (e.g. CLICK 150I)"
-                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
-                                    />
-                                    <input
-                                      type="number"
-                                      value={newVehicle.year}
-                                      onChange={(e) =>
-                                        setNewVehicle({
-                                          ...newVehicle,
-                                          year: e.target.value,
-                                        })
-                                      }
-                                      placeholder="YEAR"
-                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
-                                    />
+                                      makePlaceholder="Make (e.g. HONDA)"
+                                      modelPlaceholder="Model (e.g. CLICK 150I)"
+                                      inputClassName="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
+                                      containerClassName="contents"
+                                      idPrefix="booking-vehicle"
+                                      uppercaseOptions
+                                    >
+                                      <input
+                                        type="number"
+                                        value={newVehicle.year}
+                                        onChange={(e) =>
+                                          setNewVehicle({
+                                            ...newVehicle,
+                                            year: e.target.value,
+                                          })
+                                        }
+                                        placeholder="YEAR"
+                                        className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
+                                      />
+                                    </VehicleMakeModelFields>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <motion.button

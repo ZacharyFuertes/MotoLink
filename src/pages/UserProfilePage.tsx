@@ -4,30 +4,45 @@ import {
   Calendar,
   Car,
   ChevronDown,
+  ChevronRight,
   Clock,
+  DollarSign,
   Gauge,
   History,
+  Lock,
   LogOut,
   MapPin,
   Package,
+  Pencil,
   Plus,
   RotateCcw,
   Settings,
   ShieldCheck,
   Store,
+  Trash2,
   User,
   Wrench,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-
-interface ProfileVehicle {
-  id: string;
-  make?: string;
-  model?: string;
-  year?: string | number;
-  engine_number?: string;
-}
+import ServiceHistoryModal from "../components/ServiceHistoryModal";
+import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
+import {
+  EMPTY_VEHICLE_STATS,
+  VehicleRecord,
+  VehicleStats,
+  addVehicle,
+  areEditLockColumnsAvailable,
+  deleteVehicle,
+  findDuplicateVehicle,
+  getMyVehicles,
+  getVehicleStats,
+  isVehicleLocked,
+  requestVehicleEdit,
+  setPrimaryVehicle,
+  updateVehicle,
+  vehicleLabel,
+} from "../services/vehicleService";
 
 interface HistoryRecord {
   id: string;
@@ -80,6 +95,17 @@ const initials = (name: string) =>
     .map((n) => n[0]?.toUpperCase())
     .join("") || "U";
 
+const fieldClass =
+  "w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50 disabled:opacity-50";
+const labelClass = "mb-1 block text-xs font-medium text-slate-300";
+
+const emptyBikeForm = {
+  make: "",
+  model: "",
+  year: "",
+  engineNumber: "",
+};
+
 const UserProfilePage: React.FC<UserProfilePageProps> = ({
   onBack,
   onLogout,
@@ -88,18 +114,30 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [vehicles, setVehicles] = useState<ProfileVehicle[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
+  const [stats, setStats] = useState<Record<string, VehicleStats>>({});
   const [history, setHistory] = useState<HistoryRecord[]>([]);
-  const [showBikeModal, setShowBikeModal] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
-  // Bike registration form (existing schema: make, model, year, engine_number)
-  const [bikeMake, setBikeMake] = useState("");
-  const [bikeModel, setBikeModel] = useState("");
-  const [bikeYear, setBikeYear] = useState("");
-  const [bikePlate, setBikePlate] = useState("");
+  // Add motorcycle
+  const [showBikeModal, setShowBikeModal] = useState(false);
+  const [bike, setBike] = useState(emptyBikeForm);
   const [submitting, setSubmitting] = useState(false);
+  const [bikeError, setBikeError] = useState("");
+  const [bikeWarning, setBikeWarning] = useState("");
+
+  // Edit motorcycle
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyBikeForm);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  // Per-bike actions
+  const [busyVehicleId, setBusyVehicleId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [historyVehicle, setHistoryVehicle] = useState<VehicleRecord | null>(null);
+  const [historyAll, setHistoryAll] = useState(false);
 
   const displayName = user?.name || "Motorist";
   const email = user?.email || "";
@@ -108,12 +146,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const refreshData = async () => {
     if (!user?.id) return;
     try {
-      const [vehRes, aptRes] = await Promise.allSettled([
-        supabase
-          .from("vehicles")
-          .select("id, make, model, year, engine_number")
-          .eq("customer_id", user.id)
-          .order("created_at", { ascending: false }),
+      const [vehiclesResult, appointmentsResult] = await Promise.allSettled([
+        getMyVehicles(user.id),
         supabase
           .from("appointments")
           .select(
@@ -123,15 +157,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           .order("scheduled_date", { ascending: false }),
       ]);
 
-      let rows: ProfileVehicle[] = [];
-      if (vehRes.status === "fulfilled" && vehRes.value.data) {
-        rows = vehRes.value.data;
-      }
+      const rows =
+        vehiclesResult.status === "fulfilled" ? vehiclesResult.value : [];
       setVehicles(rows);
+      setStats(
+        rows.length
+          ? await getVehicleStats(rows.map((v) => v.id)).catch(() => ({}))
+          : {},
+      );
 
       let records: HistoryRecord[] = [];
-      if (aptRes.status === "fulfilled" && aptRes.value.data) {
-        records = aptRes.value.data.map((a: any) => ({
+      if (appointmentsResult.status === "fulfilled" && appointmentsResult.value.data) {
+        records = appointmentsResult.value.data.map((a: any) => ({
           id: a.id,
           shop_id: a.shop_id,
           service_type: a.service_type,
@@ -171,31 +208,142 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const vehicleStats = (id: string) => stats[id] ?? EMPTY_VEHICLE_STATS;
+
+  const openAddBike = () => {
+    setBike(emptyBikeForm);
+    setBikeError("");
+    setBikeWarning("");
+    setShowBikeModal(true);
+  };
+
   const handleAddBike = async () => {
-    if (!user?.id || !bikeMake.trim() || !bikeModel.trim()) return;
+    if (!user?.id) return;
+    if (!bike.make.trim() || !bike.model.trim()) {
+      setBikeError("Make and model are required.");
+      return;
+    }
+    const year = bike.year.trim() ? Number(bike.year) : null;
+    if (year && (year < 1900 || year > new Date().getFullYear() + 1)) {
+      setBikeError("Please enter a valid year.");
+      return;
+    }
+    const draft = {
+      make: bike.make,
+      model: bike.model,
+      year,
+      engine_number: bike.engineNumber,
+    };
+    const duplicate = findDuplicateVehicle(vehicles, draft);
+    if (duplicate) {
+      setBikeWarning(
+        `You already registered a ${vehicleLabel(duplicate)}${
+          duplicate.year ? ` (${duplicate.year})` : ""
+        }. Adding another is fine if you own two.`,
+      );
+    }
+
     setSubmitting(true);
+    setBikeError("");
     try {
-      const { error } = await supabase.from("vehicles").insert({
-        customer_id: user.id,
-        make: bikeMake.trim(),
-        model: bikeModel.trim(),
-        year: bikeYear ? Number(bikeYear) : null,
-        engine_number: bikePlate.trim() || null,
-      });
-      if (error) throw error;
-      setBikeMake("");
-      setBikeModel("");
-      setBikeYear("");
-      setBikePlate("");
+      await addVehicle(user.id, draft);
       setShowBikeModal(false);
-      refreshData();
+      setBike(emptyBikeForm);
+      await refreshData();
     } catch (err) {
       console.error("Error adding motorcycle:", err);
-      alert("Failed to add motorcycle. Please try again.");
+      setBikeError("Failed to add motorcycle. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
+
+  const openEditBike = (vehicle: VehicleRecord) => {
+    setEditingId(vehicle.id);
+    setEditForm({
+      make: vehicle.make ?? "",
+      model: vehicle.model ?? "",
+      year: vehicle.year ? String(vehicle.year) : "",
+      engineNumber: vehicle.engine_number ?? "",
+    });
+    setEditError("");
+  };
+
+  const handleSaveBike = async () => {
+    if (!editingId) return;
+    if (!editForm.make.trim() || !editForm.model.trim()) {
+      setEditError("Make and model are required.");
+      return;
+    }
+    const year = editForm.year.trim() ? Number(editForm.year) : null;
+    if (year && (year < 1900 || year > new Date().getFullYear() + 1)) {
+      setEditError("Please enter a valid year.");
+      return;
+    }
+    setSavingEdit(true);
+    setEditError("");
+    try {
+      await updateVehicle(editingId, {
+        make: editForm.make,
+        model: editForm.model,
+        year,
+        engine_number: editForm.engineNumber,
+      });
+      setEditingId(null);
+      await refreshData();
+    } catch (err) {
+      console.error("Error updating motorcycle:", err);
+      setEditError("Failed to save changes. Please try again.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleRequestEdit = async (vehicle: VehicleRecord) => {
+    setBusyVehicleId(vehicle.id);
+    try {
+      await requestVehicleEdit(vehicle.id);
+      await refreshData();
+    } catch (err: any) {
+      console.error("Error requesting vehicle edit:", err);
+      alert(err?.message || "Failed to send your request. Please try again.");
+    } finally {
+      setBusyVehicleId(null);
+    }
+  };
+
+  const handleDeleteVehicle = async (vehicle: VehicleRecord) => {
+    setBusyVehicleId(vehicle.id);
+    try {
+      await deleteVehicle(vehicle.id);
+      setDeleteId(null);
+      await refreshData();
+    } catch (err) {
+      console.error("Error deleting motorcycle:", err);
+      alert("Failed to remove this motorcycle. Please try again.");
+    } finally {
+      setBusyVehicleId(null);
+    }
+  };
+
+  const handleSetPrimary = async (vehicle: VehicleRecord) => {
+    if (!user?.id) return;
+    setBusyVehicleId(vehicle.id);
+    try {
+      await setPrimaryVehicle(user.id, vehicle.id);
+      await refreshData();
+    } catch (err) {
+      console.error("Error setting primary bike:", err);
+      alert("Failed to set the primary bike. Please try again.");
+    } finally {
+      setBusyVehicleId(null);
+    }
+  };
+
+  const openHistory = (vehicle: VehicleRecord) => {
+    setHistoryAll(false);
+    setHistoryVehicle(vehicle);
+  };;
 
   const completedCount = history.filter((h) => h.status === "completed").length;
   const today = new Date().toISOString().split("T")[0];
@@ -391,7 +539,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     </p>
                   </div>
                   <button
-                    onClick={() => setShowBikeModal(true)}
+                    onClick={openAddBike}
                     className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
                   >
                     <Plus size={15} /> Add Motorcycle
@@ -410,40 +558,176 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {vehicles.map((v, idx) => (
-                      <div
-                        key={v.id}
-                        className="rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 transition hover:border-moto-gray-light"
-                      >
-                        <div className="mb-4 flex items-start justify-between">
-                          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
-                            <Car size={18} />
-                          </span>
-                          {idx === 0 && (
-                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">
-                              Primary Bike
+                    {vehicles.map((v) => {
+                      const s = vehicleStats(v.id);
+                      const locked = isVehicleLocked(v, stats[v.id]);
+                      const busy = busyVehicleId === v.id;
+                      const label = vehicleLabel(v);
+                      return (
+                        <div
+                          key={v.id}
+                          className="flex flex-col rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 transition hover:border-moto-gray-light"
+                        >
+                          <div className="mb-4 flex items-start justify-between">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
+                              <Car size={18} />
                             </span>
-                          )}
-                        </div>
-                        <h3 className="text-base font-semibold text-slate-100">
-                          {[v.make, v.model].filter(Boolean).join(" ") || "Motorcycle"}
-                        </h3>
-                        <div className="mt-3 space-y-1.5 text-sm text-slate-300">
-                          {v.year != null && v.year !== "" && (
-                            <p className="flex items-center gap-2">
-                              <Calendar size={13} className="text-slate-400" />{" "}
-                              Year · {v.year}
+                            {v.is_primary && (
+                              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                                Primary Bike
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => openHistory(v)}
+                            className="group text-left"
+                          >
+                            <h3 className="flex items-center gap-1.5 text-base font-semibold text-slate-100 transition group-hover:text-moto-accent">
+                              {label}
+                              <ChevronRight
+                                size={15}
+                                className="shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-moto-accent"
+                              />
+                            </h3>
+                            <p className="mt-0.5 text-xs text-slate-400">
+                              View repair history
+                            </p>
+                          </button>
+
+                          <div className="mt-3 space-y-1.5 text-sm text-slate-300">
+                            {v.year != null && (
+                              <p className="flex items-center gap-2">
+                                <Calendar size={13} className="text-slate-400" />{" "}
+                                Year · {v.year}
+                              </p>
+                            )}
+                            {v.engine_number && (
+                              <p className="flex items-center gap-2">
+                                <Gauge size={13} className="text-slate-400" />{" "}
+                                Engine No. · {v.engine_number}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Per-bike stats */}
+                          <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-moto-gray/60 pt-4 text-center">
+                            <div>
+                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                <Wrench size={10} /> Services
+                              </dt>
+                              <dd className="mt-1 text-sm font-bold text-slate-100">
+                                {s.completedCount}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                <DollarSign size={10} /> Spent
+                              </dt>
+                              <dd className="mt-1 text-sm font-bold text-slate-100">
+                                ₱{s.totalSpent.toLocaleString()}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                                <Clock size={10} /> Last
+                              </dt>
+                              <dd className="mt-1 text-sm font-bold text-slate-100">
+                                {s.lastServiceDate
+                                  ? formatDate(s.lastServiceDate)
+                                  : "—"}
+                              </dd>
+                            </div>
+                          </dl>
+
+                          {/* Lock / request state */}
+                          {v.edit_requested && (
+                            <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                              Change requested — waiting for admin approval.
                             </p>
                           )}
-                          {v.engine_number && (
-                            <p className="flex items-center gap-2">
-                              <Gauge size={13} className="text-slate-400" />{" "}
-                              Engine No. · {v.engine_number}
+                          {locked && !v.edit_requested && (
+                            <p className="mt-4 flex items-start gap-2 rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-400">
+                              <Lock size={12} className="mt-0.5 shrink-0" />
+                              Details are locked because this bike has service
+                              records.
                             </p>
                           )}
+                          {!locked && v.edit_approved_at && (
+                            <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                              Admin approved a change — save it before it
+                              closes.
+                            </p>
+                          )}
+
+                          {/* Actions */}
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            {locked ? (
+                              v.edit_requested ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-300">
+                                  <Clock size={12} /> Pending
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleRequestEdit(v)}
+                                  disabled={busy}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent disabled:opacity-50"
+                                >
+                                  <ShieldCheck size={12} /> Request a change
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                onClick={() => openEditBike(v)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent"
+                              >
+                                <Pencil size={12} /> Edit
+                              </button>
+                            )}
+                            {!v.is_primary && areEditLockColumnsAvailable() && (
+                              <button
+                                onClick={() => handleSetPrimary(v)}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-moto-gray-light hover:text-slate-100 disabled:opacity-50"
+                              >
+                                <RotateCcw size={12} /> Set primary
+                              </button>
+                            )}
+                            {locked ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-1 py-1.5 text-xs text-slate-500"
+                                title="A bike with service records cannot be removed"
+                              >
+                                <Trash2 size={12} /> Locked
+                              </span>
+                            ) : deleteId === v.id ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleDeleteVehicle(v)}
+                                  disabled={busy}
+                                  className="rounded-lg bg-rose-500/90 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500 disabled:opacity-50"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => setDeleteId(null)}
+                                  className="rounded-lg border border-moto-gray px-2.5 py-1.5 text-xs text-slate-400 transition hover:text-slate-100"
+                                >
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteId(v.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-rose-500/50 hover:text-rose-300"
+                              >
+                                <Trash2 size={12} /> Remove
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -729,66 +1013,165 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 ✕
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">
-                  Make
-                </label>
-                <input
-                  value={bikeMake}
-                  onChange={(e) => setBikeMake(e.target.value)}
-                  placeholder="Honda"
-                  className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">
-                  Model
-                </label>
-                <input
-                  value={bikeModel}
-                  onChange={(e) => setBikeModel(e.target.value)}
-                  placeholder="Click 125i"
-                  className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
-                />
-              </div>
+            <VehicleMakeModelFields
+              make={bike.make}
+              model={bike.model}
+              onMakeChange={(make) => setBike((p) => ({ ...p, make, model: "" }))}
+              onModelChange={(model) => setBike((p) => ({ ...p, model }))}
+              makeLabel="Make"
+              modelLabel="Model"
+              makePlaceholder="Honda"
+              modelPlaceholder="Click 125i"
+              inputClassName={fieldClass}
+              labelClassName={labelClass}
+              idPrefix="add-bike"
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-300">
-                    Year
-                  </label>
+                  <label className={labelClass}>Year</label>
                   <input
-                    value={bikeYear}
-                    onChange={(e) => setBikeYear(e.target.value)}
+                    value={bike.year}
+                    onChange={(e) =>
+                      setBike((p) => ({ ...p, year: e.target.value }))
+                    }
                     placeholder="2023"
                     inputMode="numeric"
-                    className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-300">
-                    Engine / MV Number
-                  </label>
+                  <label className={labelClass}>Engine / MV Number</label>
                   <input
-                    value={bikePlate}
-                    onChange={(e) => setBikePlate(e.target.value)}
+                    value={bike.engineNumber}
+                    onChange={(e) =>
+                      setBike((p) => ({ ...p, engineNumber: e.target.value }))
+                    }
                     placeholder="Optional"
-                    className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50"
+                    className={fieldClass}
                   />
                 </div>
               </div>
+            </VehicleMakeModelFields>
+            {bikeWarning && (
+              <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                {bikeWarning}
+              </p>
+            )}
+            {bikeError && (
+              <p className="mt-3 text-sm text-rose-400">{bikeError}</p>
+            )}
+            <button
+              onClick={handleAddBike}
+              disabled={submitting || !bike.make.trim() || !bike.model.trim()}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95 disabled:opacity-40"
+            >
+              <Package size={15} />{" "}
+              {submitting ? "Adding..." : "Add Motorcycle"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Motorcycle Modal ── */}
+      {editingId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditingId(null);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-100">
+                Edit Motorcycle
+              </h3>
               <button
-                onClick={handleAddBike}
-                disabled={submitting || !bikeMake.trim() || !bikeModel.trim()}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95 disabled:opacity-40"
+                onClick={() => setEditingId(null)}
+                className="rounded-lg p-1 text-slate-400 transition hover:text-white"
               >
-                <Package size={15} />{" "}
-                {submitting ? "Adding..." : "Add Motorcycle"}
+                ✕
+              </button>
+            </div>
+            <VehicleMakeModelFields
+              make={editForm.make}
+              model={editForm.model}
+              onMakeChange={(make) =>
+                setEditForm((p) => ({ ...p, make, model: "" }))
+              }
+              onModelChange={(model) => setEditForm((p) => ({ ...p, model }))}
+              makeLabel="Make"
+              modelLabel="Model"
+              inputClassName={fieldClass}
+              labelClassName={labelClass}
+              idPrefix="edit-bike"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>Year</label>
+                  <input
+                    value={editForm.year}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, year: e.target.value }))
+                    }
+                    placeholder="2023"
+                    inputMode="numeric"
+                    className={fieldClass}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Engine / MV Number</label>
+                  <input
+                    value={editForm.engineNumber}
+                    onChange={(e) =>
+                      setEditForm((p) => ({
+                        ...p,
+                        engineNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="Optional"
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            </VehicleMakeModelFields>
+            {editError && (
+              <p className="mt-3 text-sm text-rose-400">{editError}</p>
+            )}
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleSaveBike}
+                disabled={savingEdit}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95 disabled:opacity-40"
+              >
+                <Pencil size={15} />
+                {savingEdit ? "Saving..." : "Save Changes"}
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                className="rounded-xl border border-moto-gray px-5 py-3 text-sm font-semibold text-slate-300 transition hover:text-slate-100"
+              >
+                Cancel
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ── Per-bike Service History ── */}
+      <ServiceHistoryModal
+        isOpen={Boolean(historyVehicle) || historyAll}
+        onClose={() => {
+          setHistoryVehicle(null);
+          setHistoryAll(false);
+        }}
+        vehicleId={historyAll ? null : (historyVehicle?.id ?? null)}
+        vehicleLabel={
+          historyAll || !historyVehicle
+            ? undefined
+            : vehicleLabel(historyVehicle)
+        }
+        onClearVehicle={() => setHistoryAll(true)}
+      />
     </div>
   );
 };

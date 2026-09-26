@@ -8,6 +8,7 @@ import {
   Clock,
   CheckCircle,
   DollarSign,
+  Car,
   ChevronDown,
   ChevronUp,
   Package,
@@ -50,6 +51,12 @@ interface ServiceRecord {
 interface ServiceHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Scope the list to one vehicle. Omit to show every vehicle. */
+  vehicleId?: string | null;
+  /** Shown in the header when scoped to a vehicle. */
+  vehicleLabel?: string;
+  /** Called when the user clears the vehicle filter. */
+  onClearVehicle?: () => void;
 }
 
 const STATUS_STYLES: Record<string, { color: string; bg: string; label: string }> = {
@@ -66,7 +73,13 @@ const FILTER_TABS = [
   { key: "cancelled" as const, label: "Cancelled" },
 ];
 
-const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClose }) => {
+const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
+  isOpen,
+  onClose,
+  vehicleId = null,
+  vehicleLabel,
+  onClearVehicle,
+}) => {
   const { user } = useAuth();
   const [records, setRecords] = useState<ServiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +88,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
 
   useEffect(() => {
     if (isOpen && user?.id) fetchHistory();
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, vehicleId]);
 
   const fetchHistory = async () => {
     if (!user?.id) return;
@@ -83,12 +96,15 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
       setLoading(true);
 
       // Fetch all appointments (completed, in_progress, cancelled)
-      const { data: appointments, error: aptErr } = await supabase
+      let query = supabase
         .from("appointments")
         .select("id, booking_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price")
         .eq("customer_id", user.id)
         .in("status", ["completed", "cancelled", "confirmed", "pending"])
         .order("scheduled_date", { ascending: false });
+      if (vehicleId) query = query.eq("vehicle_id", vehicleId);
+
+      const { data: appointments, error: aptErr } = await query;
 
       if (aptErr) throw aptErr;
 
@@ -201,11 +217,21 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({ isOpen, onClo
                   <div className="w-6 h-[1px] bg-moto-darker" /> RECORDS
                 </div>
                 <h2 className="font-display text-3xl sm:text-4xl text-slate-900 uppercase leading-none tracking-wide">
-                  SERVICE HISTORY
+                  {vehicleLabel || "Service History"}
                 </h2>
                 <p className="text-slate-500 text-xs font-light tracking-wide hidden sm:block">
-                  Your past repairs and services
+                  {vehicleLabel
+                    ? "Repairs and services for this motorcycle"
+                    : "Your past repairs and services"}
                 </p>
+                {vehicleId && onClearVehicle && (
+                  <button
+                    onClick={onClearVehicle}
+                    className="mt-1 self-start inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-600 transition hover:border-slate-900 hover:text-slate-900"
+                  >
+                    <Car size={11} /> View all vehicles
+                  </button>
+                )}
               </div>
             </div>
             <button onClick={onClose} className="p-2 border border-slate-300 hover:bg-slate-100 transition text-slate-500 hover:text-slate-900 shrink-0">

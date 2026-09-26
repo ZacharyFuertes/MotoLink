@@ -1,212 +1,10 @@
 /**
  * Vehicle Data
- * Contains common vehicle makes and models for suggestion autocomplete
+ * Motorcycle-only makes and models used by the customer-facing
+ * make/model suggestion autocomplete. MotoLink is a motorcycle
+ * platform, so car makes are intentionally not listed.
  */
 
-export const vehicleDatabase: Record<string, string[]> = {
-  Toyota: [
-    "Altis",
-    "Corolla",
-    "Camry",
-    "Avanza",
-    "Rush",
-    "Vios",
-    "Innova",
-    "Fortuner",
-    "Land Cruiser",
-    "Highlander",
-    "RAV4",
-    "Yaris",
-    "Hiace",
-  ],
-  Honda: [
-    "Click 125i",
-    "Click 150i",
-    "Click 160",
-    "Beat",
-    "PCX 160",
-    "ADV 160",
-    "TMX 125 Alpha",
-    "TMX Supremo",
-    "Wave RSX",
-    "XRM 125 DS",
-    "Supra GTR 150",
-    "CBR150R",
-    "CRF150L",
-    "Civic",
-    "CR-V",
-    "Accord",
-    "City",
-    "Brio",
-    "HR-V",
-    "BRV",
-    "Jazz",
-    "Pilot",
-    "Odyssey",
-  ],
-  Yamaha: [
-    "Sniper 155",
-    "Sniper 150",
-    "Mio i 125",
-    "Mio Sporty",
-    "Mio Soul i 125",
-    "Mio Gravis",
-    "Mio Gear",
-    "Mio Fazzio",
-    "Aerox 155",
-    "NMAX 155",
-    "XMAX 300",
-    "YZF-R15",
-    "MT-15",
-    "TFX 150",
-    "Vega Force i",
-    "Sight",
-    "Fazzio",
-    "Gravis",
-  ],
-  Kawasaki: [
-    "Barako II",
-    "Rouser NS125",
-    "Rouser NS160",
-    "Rouser NS200",
-    "Rouser RS200",
-    "Dominar 400",
-    "Ninja 400",
-    "Ninja ZX-25R",
-    "Ninja ZX-6R",
-    "W175",
-    "Eliminator",
-    "Vulcan S",
-    "Z400",
-    "Z900",
-    "Fury 125",
-  ],
-  Nissan: [
-    "Navara",
-    "Terra",
-    "Almera",
-    "Urvan",
-    "Patrol",
-    "Altima",
-    "Sentra",
-    "Kicks",
-    "Juke",
-  ],
-  Mitsubishi: [
-    "Montero Sport",
-    "L300",
-    "Mirage G4",
-    "Xpander",
-    "Triton",
-    "Strada",
-    "Pajero",
-    "Outlander",
-    "Lancer",
-  ],
-  Hyundai: [
-    "Staria",
-    "Stargazer",
-    "Creta",
-    "Tucson",
-    "Santa Fe",
-    "Ioniq 5",
-    "Ioniq 6",
-    "Elantra",
-    "Accent",
-    "Eon",
-  ],
-  Kia: [
-    "Stonic",
-    "Seltos",
-    "Sportage",
-    "Sorento",
-    "Carnival",
-    "Soluto",
-    "Picanto",
-    "Rio",
-    "K2500",
-  ],
-  Ford: [
-    "Ranger Raptor",
-    "Next-Gen Ranger",
-    "Next-Gen Everest",
-    "Territory",
-    "Explorer",
-    "Mustang",
-    "F-150",
-    "EcoSport",
-    "Fiesta",
-  ],
-  Mazda: [
-    "Mazda2",
-    "Mazda3",
-    "Mazda6",
-    "CX-3",
-    "CX-30",
-    "CX-5",
-    "CX-60",
-    "CX-8",
-    "CX-9",
-    "MX-5",
-  ],
-  BMW: [
-    "3 Series",
-    "5 Series",
-    "7 Series",
-    "X1",
-    "X3",
-    "X5",
-    "X7",
-    "Z4",
-    "M3",
-    "M5",
-  ],
-  Mercedes: [
-    "A-Class",
-    "C-Class",
-    "E-Class",
-    "S-Class",
-    "GLA",
-    "GLB",
-    "GLC",
-    "GLE",
-    "GLS",
-    "G-Class",
-  ],
-  Audi: ["A1", "A3", "A4", "A6", "Q2", "Q3", "Q5", "Q7", "Q8", "e-tron"],
-  Volkswagen: ["Santana", "Lavida", "Lamando", "T-Cross", "Multivan"],
-  Chevrolet: ["Suburban", "Tahoe", "Traverse", "Camaro", "Corvette", "Tracker"],
-  Suzuki: [
-    "Raider R150 Fi",
-    "Raider R150 Carb",
-    "Smash 115",
-    "Burgman Street",
-    "Skydrive Sport",
-    "S-Presso",
-    "Ertiga",
-    "Jimny",
-    "Dzire",
-    "Swift",
-    "Celerio",
-    "Carry",
-    "Vitara",
-  ],
-  isuzu: ["D-Max", "MU-X", "Traviz", "N-Series", "F-Series"],
-  Datsun: ["GO", "GO+", "Redi-GO"],
-  BYD: ["Atto 3", "Dolphin", "Han", "Tang"],
-  Geely: ["Coolray", "Emgrand", "Okavango", "Azkarra", "Tugella"],
-  Changan: ["Alsvin", "CS35 Plus", "CS55 Plus", "Uni-T", "Uni-K"],
-  JAC: ["JS2", "JS4", "JS6", "JS8", "T8"],
-  KTM: ["Duke 200", "Duke 390", "RC 200", "RC 390", "Adventure 390"],
-  Vespa: ["Primavera", "Sprint", "GTS 300", "S 125"],
-};
-
-/**
- * Philippine motorcycle marketplace — motorcycle-only makes/models.
- * Used by customer-facing booking flows (ShopDetailPage) where riders pick
- * the make and model of their bike. Distinct from `vehicleDatabase` above,
- * which is the legacy mixed car+motorcycle list.
- */
 export const philippineMotorcycles: Record<string, string[]> = {
   Honda: [
     "Click 125i",
@@ -296,65 +94,60 @@ export const philippineMotorcycles: Record<string, string[]> = {
   Keeway: ["Viper 150", "Sprint 150"],
 };
 
-export const getPhMotoMakes = (): string[] => {
-  return Object.keys(philippineMotorcycles).sort();
-};
+const normalizeKey = (value: string): string =>
+  (value ?? "").trim().toLowerCase();
 
-export const getPhMotoModels = (make: string): string[] => {
-  return philippineMotorcycles[make] || [];
-};
+/**
+ * Make keys are matched case-insensitively and trimmed. Live data has stored
+ * makes like both `Yamaha` and `yamaha`, so a case-sensitive lookup would
+ * return no models for a hand-typed or previously saved make.
+ */
+const modelsByNormalizedMake: Record<string, string[]> = Object.entries(
+  philippineMotorcycles,
+).reduce<Record<string, string[]>>((acc, [make, models]) => {
+  acc[normalizeKey(make)] = models;
+  return acc;
+}, {});
 
-export const filterPhMakes = (input: string): string[] => {
-  if (!input.trim()) return getPhMotoMakes();
-  const searchTerm = input.toLowerCase();
-  return getPhMotoMakes().filter((make) =>
-    make.toLowerCase().includes(searchTerm),
-  );
-};
-
-export const filterPhModels = (make: string, input: string): string[] => {
-  if (!make) return [];
-  const models = getPhMotoModels(make);
-  if (!input.trim()) return models;
-  const searchTerm = input.toLowerCase();
-  return models.filter((model) => model.toLowerCase().includes(searchTerm));
-};
+/** Resolve a make to its canonical key, or null when it is not a known make. */
+const resolveMakeKey = (make: string): string | null =>
+  normalizeKey(make) in modelsByNormalizedMake
+    ? normalizeKey(make)
+    : null;
 
 /**
  * Get all vehicle makes (sorted)
  */
-export const getVehicleMakes = (): string[] => {
-  return Object.keys(vehicleDatabase).sort();
-};
+export const getVehicleMakes = (): string[] =>
+  Object.keys(philippineMotorcycles).sort();
 
 /**
- * Get models for a specific make
+ * Get models for a specific make. Case-insensitive; unknown makes return [].
  */
 export const getVehicleModels = (make: string): string[] => {
-  return vehicleDatabase[make] || [];
+  const key = resolveMakeKey(make);
+  return key ? modelsByNormalizedMake[key] : [];
 };
 
 /**
  * Filter makes based on search input
  */
 export const filterMakes = (input: string): string[] => {
-  if (!input.trim()) return getVehicleMakes();
+  const all = getVehicleMakes();
+  if (!input.trim()) return all;
 
-  const searchTerm = input.toLowerCase();
-  return getVehicleMakes().filter((make) =>
-    make.toLowerCase().includes(searchTerm),
-  );
+  const searchTerm = normalizeKey(input);
+  return all.filter((make) => normalizeKey(make).includes(searchTerm));
 };
 
 /**
  * Filter models based on search input and selected make
  */
 export const filterModels = (make: string, input: string): string[] => {
-  if (!make) return [];
-
   const models = getVehicleModels(make);
+  if (!models.length) return [];
   if (!input.trim()) return models;
 
-  const searchTerm = input.toLowerCase();
-  return models.filter((model) => model.toLowerCase().includes(searchTerm));
+  const searchTerm = normalizeKey(input);
+  return models.filter((model) => normalizeKey(model).includes(searchTerm));
 };

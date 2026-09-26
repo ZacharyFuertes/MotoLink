@@ -20,10 +20,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import {
-  filterMakes,
-  filterModels,
-} from "../utils/vehicleData";
+import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import { hasServiceActivity } from "../services/vehicleService";
 
 interface VehicleData {
   id: string;
@@ -62,11 +60,9 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   const [newVehicle, setNewVehicle] = useState({
     make: "",
     model: "",
+    year: "",
+    engineNumber: "",
   });
-  const [makeSuggestions, setMakeSuggestions] = useState<string[]>([]);
-  const [modelSuggestions, setModelSuggestions] = useState<string[]>([]);
-  const [showMakeSuggestions, setShowMakeSuggestions] = useState(false);
-  const [showModelSuggestions, setShowModelSuggestions] = useState(false);
 
   // UI state
   const [saving, setSaving] = useState(false);
@@ -172,53 +168,15 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
     }
   };
 
-  const handleMakeChange = (value: string) => {
-    setNewVehicle({ ...newVehicle, make: value, model: "" });
-    if (value.trim()) {
-      const suggestions = filterMakes(value);
-      setMakeSuggestions(suggestions);
-      setShowMakeSuggestions(true);
-    } else {
-      setMakeSuggestions([]);
-      setShowMakeSuggestions(false);
-    }
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
-  const handleSelectMake = (make: string) => {
-    setNewVehicle({ ...newVehicle, make, model: "" });
-    setMakeSuggestions([]);
-    setShowMakeSuggestions(false);
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
-  const handleModelChange = (value: string) => {
-    setNewVehicle({ ...newVehicle, model: value });
-    if (value.trim() && newVehicle.make) {
-      const suggestions = filterModels(newVehicle.make, value);
-      setModelSuggestions(suggestions);
-      setShowModelSuggestions(true);
-    } else {
-      setModelSuggestions([]);
-      setShowModelSuggestions(false);
-    }
-  };
-
-  const handleSelectModel = (model: string) => {
-    setNewVehicle({ ...newVehicle, model });
-    setModelSuggestions([]);
-    setShowModelSuggestions(false);
-  };
-
   const handleAddVehicle = async () => {
     if (!user?.id) return;
-    if (
-      !newVehicle.make.trim() ||
-      !newVehicle.model.trim()
-    ) {
+    if (!newVehicle.make.trim() || !newVehicle.model.trim()) {
       setError("Brand and Model are required.");
+      return;
+    }
+    const year = Number(newVehicle.year);
+    if (newVehicle.year.trim() && (!year || year < 1900 || year > new Date().getFullYear() + 1)) {
+      setError("Please enter a valid year.");
       return;
     }
     try {
@@ -228,12 +186,15 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
         customer_id: user.id,
         make: newVehicle.make.trim(),
         model: newVehicle.model.trim(),
-        year: new Date().getFullYear(),
+        ...(newVehicle.year.trim() ? { year } : {}),
+        ...(newVehicle.engineNumber.trim()
+          ? { engine_number: newVehicle.engineNumber.trim() }
+          : {}),
       });
 
       if (insertError) throw insertError;
 
-      setNewVehicle({ make: "", model: "" });
+      setNewVehicle({ make: "", model: "", year: "", engineNumber: "" });
       setShowAddVehicle(false);
       setSuccess("Vehicle added successfully!");
       setTimeout(() => setSuccess(""), 3000);
@@ -247,6 +208,19 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   };
 
   const handleDeleteVehicle = async (vehicleId: string) => {
+    // A bike with service records is the audit trail shops and invoices
+    // reference, so it must not be removable — the same rule the garage cards
+    // in UserProfilePage enforce.
+    try {
+      if (await hasServiceActivity(vehicleId)) {
+        setError(
+          "This motorcycle has service records and cannot be removed. Contact support if the details are wrong.",
+        );
+        return;
+      }
+    } catch {
+      // If the check fails, fall through and let the delete attempt speak for itself.
+    }
     if (!confirm("Are you sure you want to remove this vehicle?")) return;
     try {
       const { error: deleteError } = await supabase
@@ -493,92 +467,60 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                           exit={{ opacity: 0, height: 0 }}
                           className="bg-white p-5 border border-slate-300 mb-6 space-y-4 overflow-hidden rounded-xl"
                         >
-                          {/* Brand/Make with Autocomplete */}
-                          <div className="relative">
-                            <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
-                              BRAND
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Type brand name..."
-                              value={newVehicle.make}
-                              onChange={(e) => handleMakeChange(e.target.value)}
-                              onFocus={() =>
-                                newVehicle.make && setShowMakeSuggestions(true)
-                              }
-                              className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl"
-                            />
-                            <AnimatePresence>
-                              {showMakeSuggestions &&
-                                makeSuggestions.length > 0 && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 max-h-48 overflow-y-auto z-10 rounded-xl"
-                                  >
-                                    {makeSuggestions.map((make) => (
-                                      <button
-                                        key={make}
-                                        onClick={() => handleSelectMake(make)}
-                                        className="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-900 text-xs font-medium tracking-widest uppercase transition border-b border-slate-200 last:border-b-0"
-                                      >
-                                        {make}
-                                      </button>
-                                    ))}
-                                  </motion.div>
-                                )}
-                            </AnimatePresence>
-                          </div>
-
-                          {/* Model with Autocomplete */}
-                          <div className="relative">
-                            <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
-                              MODEL
-                            </label>
-                            <input
-                              type="text"
-                              placeholder={
-                                newVehicle.make
-                                  ? "Type model name..."
-                                  : "Select brand first"
-                              }
-                              value={newVehicle.model}
-                              onChange={(e) =>
-                                handleModelChange(e.target.value)
-                              }
-                              onFocus={() =>
-                                newVehicle.model &&
-                                newVehicle.make &&
-                                setShowModelSuggestions(true)
-                              }
-                              disabled={!newVehicle.make}
-                              className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                            />
-                            <AnimatePresence>
-                              {showModelSuggestions &&
-                                modelSuggestions.length > 0 && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-300 max-h-48 overflow-y-auto z-10 rounded-xl"
-                                  >
-                                    {modelSuggestions.map((model) => (
-                                      <button
-                                        key={model}
-                                        onClick={() => handleSelectModel(model)}
-                                        className="w-full text-left px-4 py-2 hover:bg-slate-100 text-slate-900 text-xs font-medium tracking-widest uppercase transition border-b border-slate-200 last:border-b-0"
-                                      >
-                                        {model}
-                                      </button>
-                                    ))}
-                                  </motion.div>
-                                )}
-                            </AnimatePresence>
-                          </div>
-
-
+                          <VehicleMakeModelFields
+                            make={newVehicle.make}
+                            model={newVehicle.model}
+                            onMakeChange={(make) =>
+                              setNewVehicle((prev) => ({ ...prev, make, model: "" }))
+                            }
+                            onModelChange={(model) =>
+                              setNewVehicle((prev) => ({ ...prev, model }))
+                            }
+                            makeLabel="BRAND"
+                            modelLabel="MODEL"
+                            makePlaceholder="Type brand name..."
+                            modelPlaceholder="Type model name..."
+                            inputClassName="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                            labelClassName="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block"
+                            idPrefix="settings-vehicle"
+                            uppercaseOptions
+                          >
+                            <div>
+                              <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
+                                YEAR
+                              </label>
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                placeholder="e.g. 2023"
+                                value={newVehicle.year}
+                                onChange={(e) =>
+                                  setNewVehicle((prev) => ({
+                                    ...prev,
+                                    year: e.target.value,
+                                  }))
+                                }
+                                className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold placeholder-slate-400 rounded-xl"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
+                                ENGINE NUMBER (OPTIONAL)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="e.g. RS12512345678"
+                                value={newVehicle.engineNumber}
+                                onChange={(e) =>
+                                  setNewVehicle((prev) => ({
+                                    ...prev,
+                                    engineNumber: e.target.value,
+                                  }))
+                                }
+                                className="w-full bg-white text-slate-900 px-4 py-3 border border-slate-300 focus:border-slate-500 focus:outline-none text-xs tracking-widest font-bold uppercase placeholder-slate-400 rounded-xl"
+                              />
+                            </div>
+                          </VehicleMakeModelFields>
                           <div className="flex gap-3 pt-2">
                             <button
                               onClick={handleAddVehicle}
@@ -598,6 +540,8 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                 setNewVehicle({
                                   make: "",
                                   model: "",
+                                  year: "",
+                                  engineNumber: "",
                                 });
                               }}
                               className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 border border-slate-300 text-[10px] font-bold tracking-widest uppercase transition rounded-xl"
