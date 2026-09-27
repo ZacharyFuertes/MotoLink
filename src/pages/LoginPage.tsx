@@ -14,6 +14,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import InlineError from "../components/InlineError";
 import TermsModal from "../components/TermsModal";
+import TermsCheckbox from "../components/TermsCheckbox";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import heroImage from "../pictures/hero-slide-images/hero-slide-image-2.png";
 
@@ -36,6 +37,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [formData, setFormData] = useState(() => {
     // Restore the customer form after a reload (password is never saved).
     try {
@@ -100,6 +102,15 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Creating an account requires agreeing to the Terms and Conditions.
+    if (isSignup && !acceptedTerms) {
+      setError(
+        "Please agree to the Terms and Conditions to create your account.",
+      );
+      return;
+    }
+
     setLoading(true);
     setLoginAttempted(false);
 
@@ -450,6 +461,16 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 </div>
               )}
 
+              {/* Terms and Conditions agreement (signup only) */}
+              {isSignup && (
+                <TermsCheckbox
+                  checked={acceptedTerms}
+                  onChange={setAcceptedTerms}
+                  onOpenTerms={() => setTermsOpen(true)}
+                  className="pt-1"
+                />
+              )}
+
               {/* Primary button */}
               <motion.button
                 type="submit"
@@ -462,17 +483,19 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 {isSignup ? "Create Account" : "Login"}
               </motion.button>
 
-              {/* Terms and Conditions link */}
-              <p className="text-center text-xs text-slate-500">
-                By continuing, you agree to MotoLink's{" "}
-                <button
-                  type="button"
-                  onClick={() => setTermsOpen(true)}
-                  className="font-semibold text-moto-accent hover:underline"
-                >
-                  Terms &amp; Conditions
-                </button>
-              </p>
+              {/* Terms and Conditions link (login only — signup uses the tickbox) */}
+              {!isSignup && (
+                <p className="text-center text-xs text-slate-500">
+                  By continuing, you agree to MotoLink's{" "}
+                  <button
+                    type="button"
+                    onClick={() => setTermsOpen(true)}
+                    className="font-semibold text-moto-accent hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </button>
+                </p>
+              )}
             </form>
 
             {/* Divider */}
@@ -494,6 +517,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     setIsSignup(!isSignup);
                     setError("");
                     setShowPassword(false);
+                    setAcceptedTerms(false);
                     setFormData({
                       email: "",
                       password: "",

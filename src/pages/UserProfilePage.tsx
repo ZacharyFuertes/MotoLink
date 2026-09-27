@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import BookAppointmentModal from "../components/BookAppointmentModal";
 import ServiceHistoryModal from "../components/ServiceHistoryModal";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import { getAppointmentStatus } from "../utils/appointmentStatus";
@@ -47,11 +48,14 @@ import {
 
 interface HistoryRecord {
   id: string;
+  shop_id: string | null;
+  vehicle_id: string | null;
   service_type: string;
   scheduled_date: string;
   total_amount?: number | null;
   status: string;
   shop_name?: string;
+  vehicle_name?: string;
 }
 
 interface UserProfilePageProps {
@@ -59,14 +63,20 @@ interface UserProfilePageProps {
   onLogout: () => void;
 }
 
-type TabKey = "profile" | "bookings" | "history" | "saved" | "settings";
+type TabKey = "profile" | "history" | "saved" | "settings";
+type HistoryFilter = "all" | "upcoming" | "past";
 
 const NAV_TABS: { key: TabKey; label: string; icon: typeof User }[] = [
   { key: "profile", label: "Profile & Garage", icon: User },
-  { key: "bookings", label: "My Bookings", icon: Calendar },
-  { key: "history", label: "Service History", icon: History },
+  { key: "history", label: "Bookings & History", icon: History },
   { key: "saved", label: "Saved Shops", icon: Store },
   { key: "settings", label: "Account Settings", icon: Settings },
+];
+
+const HISTORY_FILTERS: { key: HistoryFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "past", label: "Past" },
 ];
 
 const formatDate = (dateStr: string) => {
@@ -110,8 +120,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
   const [stats, setStats] = useState<Record<string, VehicleStats>>({});
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [rebooking, setRebooking] = useState<HistoryRecord | null>(null);
 
   // Add motorcycle
   const [showBikeModal, setShowBikeModal] = useState(false);
@@ -144,7 +156,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         supabase
           .from("appointments")
           .select(
-            "id, shop_id, service_type, scheduled_date, total_amount, status",
+            "id, shop_id, vehicle_id, service_type, scheduled_date, total_amount, status",
           )
           .eq("customer_id", user.id)
           .order("scheduled_date", { ascending: false }),
@@ -159,11 +171,21 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           : {},
       );
 
+      // Vehicle labels for the merged bookings/history table. Built from the
+      // garage rows already loaded above, so the table costs no extra query.
+      const vehicleNames: Record<string, string> = {};
+      rows.forEach((v) => {
+        vehicleNames[v.id] = v.year
+          ? `${vehicleLabel(v)} (${v.year})`
+          : vehicleLabel(v);
+      });
+
       let records: HistoryRecord[] = [];
       if (appointmentsResult.status === "fulfilled" && appointmentsResult.value.data) {
         records = appointmentsResult.value.data.map((a: any) => ({
           id: a.id,
-          shop_id: a.shop_id,
+          shop_id: a.shop_id ?? null,
+          vehicle_id: a.vehicle_id ?? null,
           service_type: a.service_type,
           scheduled_date: a.scheduled_date,
           total_amount: a.total_amount ?? a.estimated_price ?? null,
@@ -173,7 +195,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
       // Resolve shop names for the history table
       const shopIds = [
-        ...new Set(records.map((r) => (r as any).shop_id).filter(Boolean)),
+        ...new Set(records.map((r) => r.shop_id).filter(Boolean)),
       ] as string[];
       let shopMap: Record<string, string> = {};
       if (shopIds.length > 0) {
@@ -188,7 +210,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       setHistory(
         records.map((r) => ({
           ...r,
-          shop_name: (r as any).shop_id ? shopMap[(r as any).shop_id] : undefined,
+          shop_name: r.shop_id ? shopMap[r.shop_id] : undefined,
+          vehicle_name: r.vehicle_id
+            ? vehicleNames[r.vehicle_id]
+            : undefined,
         })),
       );
     } catch (err) {
@@ -343,6 +368,27 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const canCancelBooking = (entry: HistoryRecord) =>
     (entry.status === "pending" || entry.status === "confirmed") &&
     entry.scheduled_date >= today;
+
+  const isUpcomingBooking = (entry: HistoryRecord) =>
+    entry.scheduled_date >= today &&
+    entry.status !== "completed" &&
+    entry.status !== "cancelled";
+
+  const filterCount = (filter: HistoryFilter) =>
+    filter === "all"
+      ? history.length
+      : history.filter((h) =>
+          filter === "upcoming" ? isUpcomingBooking(h) : !isUpcomingBooking(h),
+        ).length;
+
+  const visibleHistory =
+    historyFilter === "all"
+      ? history
+      : history.filter((h) =>
+          historyFilter === "upcoming"
+            ? isUpcomingBooking(h)
+            : !isUpcomingBooking(h),
+        );
 
   const handleCancelBooking = async (appointmentId: string) => {
     if (!user?.id) return;
@@ -757,22 +803,55 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
           {activeTab === "history" && (
             <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
-              <div className="mb-5 flex items-center gap-2">
-                <History size={16} className="text-moto-accent" />
-                <h2 className="text-lg font-bold text-slate-100">
-                  Service History
-                </h2>
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <History size={16} className="text-moto-accent" />
+                  <h2 className="text-lg font-bold text-slate-100">
+                    Bookings &amp; Service History
+                  </h2>
+                </div>
+                <div className="flex items-center gap-1 rounded-xl border border-moto-gray/80 bg-moto-darker/60 p-1">
+                  {HISTORY_FILTERS.map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setHistoryFilter(f.key)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                        historyFilter === f.key
+                          ? "bg-moto-gray text-moto-accent"
+                          : "text-slate-400 hover:text-slate-100"
+                      }`}
+                    >
+                      {f.label}
+                      <span className="ml-1.5 tabular-nums opacity-70">
+                        {filterCount(f.key)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {history.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
                   <Clock size={26} className="mx-auto mb-3 text-slate-400" />
                   <p className="font-semibold text-slate-300">
-                    No service history yet
+                    No bookings or service history yet
                   </p>
                   <p className="mt-1 text-sm text-slate-400">
                     Booked appointments will appear here.
                   </p>
+                </div>
+              ) : visibleHistory.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
+                  <Clock size={26} className="mx-auto mb-3 text-slate-400" />
+                  <p className="font-semibold text-slate-300">
+                    Nothing in this filter
+                  </p>
+                  <button
+                    onClick={() => setHistoryFilter("all")}
+                    className="mt-2 text-sm font-semibold text-moto-accent hover:underline"
+                  >
+                    Show all records
+                  </button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -780,6 +859,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     <thead>
                       <tr className="border-b border-moto-gray text-xs text-slate-300">
                         <th className="px-3 py-2 font-medium">Service</th>
+                        <th className="px-3 py-2 font-medium">Vehicle</th>
                         <th className="px-3 py-2 font-medium">Shop</th>
                         <th className="px-3 py-2 font-medium">Date</th>
                         <th className="px-3 py-2 font-medium">Cost</th>
@@ -788,139 +868,103 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {history.map((h) => (
+                      {visibleHistory.map((h) => (
                         <tr
                           key={h.id}
-                          className="border-b border-moto-gray/60 last:border-0"
+                          className="border-b border-moto-gray/60 align-top last:border-0"
                         >
                           <td className="px-3 py-3 font-medium text-slate-100">
                             {h.service_type}
                           </td>
                           <td className="px-3 py-3 text-slate-300">
+                            {h.vehicle_name ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                <Car
+                                  size={13}
+                                  className="shrink-0 text-moto-accent"
+                                />
+                                {h.vehicle_name}
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-slate-300">
                             {h.shop_name || "—"}
                           </td>
-                          <td className="px-3 py-3 text-slate-300">
+                          <td className="px-3 py-3 whitespace-nowrap text-slate-300">
                             {formatDate(h.scheduled_date)}
                           </td>
-                          <td className="px-3 py-3 text-slate-300">
+                          <td className="px-3 py-3 whitespace-nowrap text-slate-300">
                             {h.total_amount != null
                               ? `₱${Number(h.total_amount).toLocaleString()}`
                               : "—"}
                           </td>
                           <td className="px-3 py-3">
                             <span
-                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
                                 getAppointmentStatus(h.status).pill
                               }`}
                             >
-                              {h.status}
+                              {getAppointmentStatus(h.status).label}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-right">
-                            <button
-                              onClick={() => setActiveTab("bookings")}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
-                            >
-                              <RotateCcw size={12} /> Rebook
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+                          <td className="px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <button
+                                onClick={() => setRebooking(h)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
+                              >
+                                <RotateCcw size={12} /> Rebook
+                              </button>
 
-          {activeTab === "bookings" && (
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
-              <div className="mb-5 flex items-center gap-2">
-                <Calendar size={16} className="text-moto-accent" />
-                <h2 className="text-lg font-bold text-slate-100">
-                  My Bookings
-                </h2>
-              </div>
-
-              {history.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-moto-gray p-10 text-center">
-                  <Clock size={26} className="mx-auto mb-3 text-slate-400" />
-                  <p className="font-semibold text-slate-300">
-                    No bookings yet
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Your scheduled appointments will appear here.
-                  </p>
-                </div>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  {history.map((h) => (
-                    <div
-                      key={h.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-slate-100">
-                          {h.service_type}
-                        </p>
-                        <p className="text-sm text-slate-300">
-                          {h.shop_name || "An Autoshop"} · {formatDate(h.scheduled_date)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${
-                            getAppointmentStatus(h.status).pill
-                          }`}
-                        >
-                          {h.status}
-                        </span>
-                        {h.total_amount != null && (
-                          <span className="text-sm font-semibold text-slate-100">
-                            ₱{Number(h.total_amount).toLocaleString()}
-                          </span>
-                        )}
-                        {canCancelBooking(h) && (
-                          <div className="flex flex-col items-end gap-2">
-                            <button
-                              onClick={() =>
-                                setConfirmCancelId((current) =>
-                                  current === h.id ? null : h.id,
-                                )
-                              }
-                              disabled={cancellingId === h.id}
-                              className="inline-flex items-center justify-center rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {cancellingId === h.id ? "Cancelling..." : "Cancel"}
-                            </button>
+                              {canCancelBooking(h) && (
+                                <button
+                                  onClick={() =>
+                                    setConfirmCancelId((current) =>
+                                      current === h.id ? null : h.id,
+                                    )
+                                  }
+                                  disabled={cancellingId === h.id}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {cancellingId === h.id
+                                    ? "Cancelling..."
+                                    : "Cancel"}
+                                </button>
+                              )}
+                            </div>
 
                             {confirmCancelId === h.id && (
-                              <div className="mt-1 w-full max-w-xs rounded-2xl border border-moto-gray bg-[#0d1420] p-3 shadow-2xl shadow-black/40">
+                              <div className="mt-2 rounded-xl border border-moto-gray bg-moto-darker/70 p-3">
                                 <p className="mb-2 text-left text-[11px] leading-relaxed text-slate-200">
-                                  Are you sure you want to cancel this appointment?
+                                  Are you sure you want to cancel this
+                                  appointment?
                                 </p>
                                 <div className="flex items-center justify-end gap-2">
                                   <button
-                                    onClick={() => handleCancelBooking(h.id)}
+                                    onClick={() =>
+                                      handleCancelBooking(h.id)
+                                    }
                                     disabled={cancellingId === h.id}
-                                    className="rounded-full bg-moto-accent px-5 py-1.75 text-[11px] font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-full bg-moto-accent px-5 py-1.5 text-[11px] font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     OK
                                   </button>
                                   <button
                                     onClick={() => setConfirmCancelId(null)}
-                                    className="rounded-full border border-moto-gray bg-moto-gray/80 px-4 py-1.75 text-[11px] font-semibold text-slate-200 transition hover:bg-slate-700"
+                                    className="rounded-full border border-moto-gray bg-moto-gray/80 px-4 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-moto-gray-light"
                                   >
-                                    Cancel
+                                    Keep
                                   </button>
                                 </div>
                               </div>
                             )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1147,6 +1191,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </div>
         </div>
       )}
+
+      {/* ── Rebook a past visit (same shop, same motorcycle) ── */}
+      <BookAppointmentModal
+        isOpen={Boolean(rebooking)}
+        onClose={() => setRebooking(null)}
+        shopId={rebooking?.shop_id ?? undefined}
+        initialVehicleId={rebooking?.vehicle_id ?? null}
+        onAppointmentBooked={() => {
+          // Leave the modal open so the booking reference stays readable;
+          // the list behind it is already refreshed.
+          refreshData();
+        }}
+      />
 
       {/* ── Per-bike Service History ── */}
       <ServiceHistoryModal

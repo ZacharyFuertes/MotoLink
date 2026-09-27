@@ -501,6 +501,27 @@ This is the ONLY path that creates a shop (no admin approval)
 
 ---
 
+### TASK: Merged customer Bookings + Service History tab (with Vehicle column) + required T&C tickbox on both registration flows
+- User request: (1) the customer profile's "My Bookings" and "Service History" tabs show the same data — merge them, keeping the service-history rebook function; (2) the merged table gets a Vehicle column; (3) shop registration + customer signup need a required Terms & Conditions tickbox.
+- CONFIRMED both tabs already rendered the same `history` state array (`UserProfilePage.tsx` bookings tab mapped `history`, history tab mapped `history`) — pure duplication, no query difference.
+- **User decisions (asked before implementing):** one table with BOTH Rebook and Cancel actions; Rebook opens the booking modal prefilled with the same shop + same motorcycle; unlinked appointments show "—"; the T&C tickbox is a UI gate only (no DB column, no migration).
+- `src/pages/UserProfilePage.tsx`:
+  - `TabKey` dropped `"bookings"`; `NAV_TABS` now profile / **"Bookings & History"** / saved / settings. The two tab bodies collapsed into ONE table: `Service | Vehicle | Shop | Date | Cost | Status | Actions`.
+  - `HistoryRecord` gained real `shop_id` / `vehicle_id` / `vehicle_name` fields (shop_id was previously smuggled through `as any` casts) and the appointments `.select()` now names `vehicle_id`.
+  - Vehicle labels are built from the garage rows already returned by the same `Promise.allSettled` in `refreshData()` (map vehicle_id → `vehicleLabel(v)` + year), so the new column costs ZERO extra round trips. No vehicle_id → "—".
+  - Actions cell: Rebook (always) + Cancel (only when `canCancelBooking`) reusing the existing `handleCancelBooking`; the cancel confirmation is now an INLINE expanding block in the cell instead of an absolute popover — the old popover would have been clipped by the table's `overflow-x-auto` wrapper (per spec `overflow-x:auto` forces the block axis to clip too).
+  - Added `All | Upcoming | Past` filter chips with counts (Upcoming = date ≥ today and status not completed/cancelled), which preserves the filtering the two separate surfaces had.
+  - Status cell now renders the canonical `getAppointmentStatus(status).label` ("In Progress") instead of the raw lowercase DB value + `capitalize`.
+  - Per-vehicle drill-down (`ServiceHistoryModal` from a garage card) is UNCHANGED — only the top-level tabs merged.
+- `src/components/BookAppointmentModal.tsx`: new optional prop `initialVehicleId`. `fetchVehicles()` now calls `applyInitialVehicle()` after `setVehicles`, plus an effect keyed on `[isOpen, initialVehicleId, vehicles]` so rebooking a different bike without closing works. Service/date are deliberately NOT prefilled. Submit path untouched.
+- NEW `src/components/TermsCheckbox.tsx`: shared required tickbox ("I have read and agree to MotoLink's Terms and Conditions" + link that opens the caller's existing `TermsModal`), `role="checkbox"` + `aria-checked` on a `type="button"` so Space/Enter work. Client-side gate only — no `accepted_terms` column, no migration to run.
+  - `src/pages/LoginPage.tsx` (customer): tickbox rendered signup-only above the Create Account button; `handleSubmit` blocks with an error when unticked; `acceptedTerms` resets on login↔signup toggle; the passive "By continuing…" line is now login-only.
+  - `src/pages/ShopOwnerLoginPage.tsx` (3-step wizard): tickbox on the FINAL step (Hours) directly above "Register Shop"; `validateStep()` gained a `step === 2` case, and the wizard `onSubmit` now runs `validateStep(2)` before `handleSignup` so pressing Enter can't skip it. `acceptedTerms` is deliberately EXCLUDED from the `moto_owner_signup_draft` localStorage payload — agreement must be re-given at submit time, not restored from a draft. `handleSignup` itself untouched.
+- Verify: `npx tsc --noEmit` clean + `npm run build` passes (2821 modules, 7.12s). No DB/migration needed — `appointments.vehicle_id` already exists (schema.sql:159, nullable).
+- NOTE: `src/components/ViewAppointmentsModal.tsx` is confirmed DEAD CODE (no importer anywhere) — its richer card + Upcoming/Past/All filter patterns were the reference for the merged table. Left in place rather than deleted without being asked.
+
+---
+
 ## OPEN ITEMS / GAPS (still pending)
 
 - Backfill decision: existing services_pricing/mechanic_availability rows have shop_id = NULL — pick option A/B/C from migration file

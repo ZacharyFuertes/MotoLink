@@ -7,6 +7,7 @@ import { getRoleLabel } from "../utils/roleAccess";
 import InlineError from "../components/InlineError";
 import LocationPicker from "../components/LocationPicker";
 import TermsModal from "../components/TermsModal";
+import TermsCheckbox from "../components/TermsCheckbox";
 import heroImage from "../pictures/hero-slide-images/hero-slide-image-1.png";
 
 interface ShopOwnerLoginPageProps {
@@ -28,6 +29,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const [isSignup, setIsSignup] = useState(initialIsSignup);
   const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  // Deliberately NOT part of the wizard draft below: agreement must be given
+  // again on the final submit, never restored from a saved draft.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const roleCheckedRef = useRef(false);
 
   // Persist the owner registration wizard so a browser reload returns the owner
@@ -340,6 +344,11 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
         return "Please pin your shop location on the map.";
       }
     }
+    if (step === 2) {
+      if (!acceptedTerms) {
+        return "Please agree to the Terms and Conditions to register your shop.";
+      }
+    }
     return "";
   };
 
@@ -499,6 +508,13 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (currentStep === 2) {
+                    // Final step: same guard as handleNext, so the terms
+                    // agreement can't be skipped by pressing Enter/Register.
+                    const msg = validateStep(2);
+                    if (msg) {
+                      setError(msg);
+                      return;
+                    }
                     handleSignup(e);
                   } else {
                     handleNext();
@@ -765,6 +781,14 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
                 {/* Wizard navigation */}
                 <div className="flex flex-col gap-2 pt-3">
+                  {currentStep === 2 && (
+                    <TermsCheckbox
+                      checked={acceptedTerms}
+                      onChange={setAcceptedTerms}
+                      onOpenTerms={() => setTermsOpen(true)}
+                      className="mb-1"
+                    />
+                  )}
                   {currentStep < 2 ? (
                     <button
                       type="submit"
@@ -835,22 +859,24 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
             {/* Toggle between login / signup */}
             <div className="mt-6 text-center">
-              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); setShowPassword(false); }} className="text-slate-400 hover:text-moto-accent font-medium text-sm transition-colors">
+              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); setShowPassword(false); setAcceptedTerms(false); }} className="text-slate-400 hover:text-moto-accent font-medium text-sm transition-colors">
                 {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
               </button>
             </div>
 
-            {/* Terms and Conditions link */}
-            <p className="mt-3 text-center text-xs text-slate-500">
-              By continuing, you agree to MotoLink's{" "}
-              <button
-                type="button"
-                onClick={() => setTermsOpen(true)}
-                className="font-semibold text-moto-accent hover:underline"
-              >
-                Terms &amp; Conditions
-              </button>
-            </p>
+            {/* Terms and Conditions link (login only — registration uses the tickbox) */}
+            {!isSignup && (
+              <p className="mt-3 text-center text-xs text-slate-500">
+                By continuing, you agree to MotoLink's{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen(true)}
+                  className="font-semibold text-moto-accent hover:underline"
+                >
+                  Terms &amp; Conditions
+                </button>
+              </p>
+            )}
           </div>
         </div>
 

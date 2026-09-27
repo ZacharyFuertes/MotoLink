@@ -63,6 +63,8 @@ interface BookAppointmentModalProps {
   onAppointmentBooked?: (appointmentData: any) => void;
   shopId?: string;
   onAuthRequired?: (mode: "login" | "signup") => void;
+  /** Pre-selects one of the customer's motorcycles. Used by "Rebook". */
+  initialVehicleId?: string | null;
 }
 
 const SERVICE_TYPES = [
@@ -138,6 +140,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   onAppointmentBooked,
   shopId,
   onAuthRequired,
+  initialVehicleId,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -259,6 +262,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   }, [isOpen, shopId]);
 
+  // Keep the prefill correct when the caller rebooks a different bike without
+  // closing the modal first.
+  useEffect(() => {
+    if (isOpen && initialVehicleId) applyInitialVehicle(vehicles);
+  }, [isOpen, initialVehicleId, vehicles]);
+
   // Services & parts depend on `defaultShopId`, which is resolved asynchronously
   // inside fetchMechanics() (a React state setter). Calling fetchServices() in the
   // same tick as fetchMechanics() reads the stale empty value, so on the first open
@@ -349,10 +358,20 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .order("created_at", { ascending: false });
       if (error) throw error;
       setVehicles(data || []);
+      applyInitialVehicle(data || []);
     } catch {
       setVehicles([]);
     } finally {
       setLoadingVehicles(false);
+    }
+  };
+
+  // "Rebook" opens this modal with the bike the previous visit was for, so the
+  // customer doesn't re-pick it. Runs after the vehicle list resolves.
+  const applyInitialVehicle = (list: { id: string }[]) => {
+    if (!initialVehicleId) return;
+    if (list.some((v) => v.id === initialVehicleId)) {
+      setSelectedVehicleId(initialVehicleId);
     }
   };
 
