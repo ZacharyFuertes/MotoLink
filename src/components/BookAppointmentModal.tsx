@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -27,6 +27,9 @@ import { notifyOwnerOfNewAppointment, sendBookingConfirmationEmail, sendOwnerBoo
 import TermsCheckbox from "./TermsCheckbox";
 import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
+import DateStrip from "./DateStrip";
+import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
+import { normalizeTime } from "../utils/dateTime";
 
 interface Mechanic {
   id: string;
@@ -107,28 +110,6 @@ const SERVICE_TYPES = [
     desc: "Custom modifications and upgrades",
   },
 ];
-
-const TIME_SLOTS = [
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-];
-
-// Normalize DB TIME values ("09:00:00") and "9:00" forms to "HH:MM" so they can
-// be compared against TIME_SLOTS reliably.
-const normalizeTime = (t?: string | null): string => {
-  if (!t) return "";
-  const [h, m] = t.split(":");
-  if (!h) return "";
-  return `${h.padStart(2, "0")}:${(m || "00").slice(0, 2)}`;
-};
 
 const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
 
@@ -565,6 +546,17 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     return slot >= normalizeTime(schedule.start_time) && slot <= normalizeTime(schedule.end_time);
   };
 
+  // Slots the shared TimeSlotGrid should render as unavailable: already booked,
+  // or outside the selected mechanic's availability window for that day.
+  const unavailableSlots = useMemo(
+    () =>
+      BOOKING_TIME_SLOTS.filter(
+        (t) => bookedSlots.includes(t) || !isSlotAvailable(t),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bookedSlots, mechanicAvailability, selectedDate],
+  );
+
   const canGoNext = () => {
     switch (currentStep) {
       case 0:
@@ -720,25 +712,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const getAvailableDates = () => {
-    const dates = [];
-    for (let i = 1; i <= 14; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      if (d.getDay() !== 0) dates.push(d.toISOString().split("T")[0]);
-    }
-    return dates;
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + "T00:00:00");
-    return {
-      day: d.toLocaleDateString("en-US", { weekday: "short" }),
-      date: d.getDate(),
-      month: d.toLocaleDateString("en-US", { month: "short" }),
-    };
   };
 
   const formatTime = (time: string) => {
@@ -1053,105 +1026,38 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       exit={{ opacity: 0, x: -24 * stepDir.current }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
                     >
-                      <div className="mb-8">
+<div className="mb-8">
                         <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
                           Step 03 · Schedule
                         </p>
                         <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Pick Date & Time<span className="text-moto-accent">.</span>
+                          Pick Date &amp; Time<span className="text-moto-accent">.</span>
                         </h3>
                         <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
                           Choose when you'd like to bring your motorcycle in.
                         </p>
                       </div>
 
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-300 mb-5">
-                        Pick a date
-                      </p>
-                      <div className="flex gap-4 overflow-x-auto pb-4 mb-8 scrollbar-hide">
-                        {getAvailableDates().map((date) => {
-                          const f = formatDate(date);
-                          const isActive = selectedDate === date;
-                          return (
-                            <motion.button
-                              key={date}
-                              whileHover={{ y: -2 }}
-                              whileTap={{ scale: 0.97 }}
-                              transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                              onClick={() => {
-                                setSelectedDate(date);
-                                setSelectedTime("");
-                              }}
-                              className={`flex-shrink-0 w-24 py-5 border text-center rounded-2xl transition-colors duration-200 ${
-                                isActive
-                                  ? "bg-moto-accent/10 border-moto-accent ring-1 ring-moto-accent/40 shadow-lg shadow-moto-accent/10"
-                                  : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
-                              }`}
-                            >
-                              <p
-                                className={`text-[10px] uppercase font-bold tracking-widest mb-1 ${isActive ? "text-moto-accent" : "text-slate-400"}`}
-                              >
-                                {f.day}
-                              </p>
-                              <p
-                                className={`font-display text-4xl leading-none mb-1 ${isActive ? "text-moto-accent" : "text-slate-500"}`}
-                              >
-                                {f.date}
-                              </p>
-                              <p
-                                className={`text-[10px] uppercase font-bold tracking-widest ${isActive ? "text-moto-accent" : "text-slate-400"}`}
-                              >
-                                {f.month}
-                              </p>
-                            </motion.button>
-                          );
-                        })}
+                      <div className="mb-8">
+                        <DateStrip
+                          value={selectedDate}
+                          onChange={(next) => {
+                            setSelectedDate(next);
+                            // The slot may not be bookable on the new day.
+                            setSelectedTime("");
+                          }}
+                          includeToday={false}
+                          skipSundays
+                          label="Pick a date"
+                        />
                       </div>
 
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-300 mb-5">
-                        Pick a time
-                      </p>
-                      <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                        {TIME_SLOTS.map((time) => {
-                          const isActive = selectedTime === time;
-                          const isBooked =
-                            bookedSlots.includes(time) ||
-                            !isSlotAvailable(time);
-                          return (
-                            <motion.button
-                              key={time}
-                              whileHover={isBooked ? undefined : { y: -2 }}
-                              whileTap={isBooked ? undefined : { scale: 0.95 }}
-                              transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                              onClick={() => {
-                                if (!isBooked) setSelectedTime(time);
-                              }}
-                              disabled={isBooked}
-                              className={`py-4 border text-xs font-bold tracking-widest transition-colors duration-200 rounded-xl relative ${
-                                isBooked
-                                  ? "border-moto-gray bg-moto-dark text-slate-600 cursor-not-allowed"
-                                  : isActive
-                                    ? "bg-moto-accent border-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20"
-                                    : "bg-moto-darker border-moto-gray text-slate-300 hover:border-moto-accent hover:text-moto-accent"
-                              }`}
-                            >
-                              {formatTime(time)}
-                              {isBooked && (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="w-10 h-[1px] bg-slate-500 rotate-45" />
-                                </div>
-                              )}
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-                      {(bookedSlots.length > 0 ||
-                        mechanicAvailability.some((a) => a.is_available)) && (
-                        <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-moto-gray bg-moto-darker/60 px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-                          <span className="h-1.5 w-1.5 rounded-full bg-moto-accent/60" />
-                          Times with strikethrough are unavailable
-                        </p>
-                      )}
+<TimeSlotGrid
+                        value={selectedTime}
+                        onChange={setSelectedTime}
+                        takenSlots={unavailableSlots}
+                        label="Pick a time"
+                      />
                     </motion.div>
                   )}
 

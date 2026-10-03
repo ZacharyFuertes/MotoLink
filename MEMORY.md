@@ -7463,6 +7463,119 @@ discoverable path.
 
 ---
 
+## TASK: Walk-in booking follow-up — future-only slots, uniform picker, reference confirmation, shop-member linking, dashboard entry
+
+Five follow-up items on the walk-in flow, all frontend-only. **No new migration** was written: the
+previous `20261003_walk_in_appointments.sql` still has to be applied first.
+
+### 1. Past date/time can no longer be booked
+
+**Bug:** the owner walk-in form defaulted to today and its slot grid disabled only slots that were
+*already booked* — never slots whose time had passed. At 16:00 an owner could still book 09:00, and
+`handleBook` sent it straight to the DB.
+
+**Fix:** `isSlotPast(dateKey, slot, now)` in the new `src/utils/dateTime.ts`. A slot is unavailable
+once the day is in the past, or — on the current day — once `slot <= nowHHMM()`. `<=` not `<`: at
+09:00 sharp an 09:00 slot can no longer be serviced.
+
+**The underlying timezone defect:** every booking screen built its "YYYY-MM-DD" key with
+`new Date().toISOString().slice(0, 10)`. `toISOString()` is **UTC**, so for a PHT (UTC+8) user any
+time between 00:00 and 08:00 local resolved to *yesterday* — cosmetic on a date label, but wrong for
+logic deciding what is still bookable, and it made the "today" appointment counter in
+`AppointmentCalendarPage` wrong every morning. All booking paths now go through `localDateKey()` /
+`todayKey()`. Fixed the same UTC bug in `Dashboard.tsx`'s `TODAY()`.
+
+`useMinuteClock()` was added for a case the initial fix missed: `isSlotPast` is only recomputed when a
+dependency changes, so a modal left open across an hour boundary kept offering slots that had since
+elapsed. The walk-in modal now holds a `Date` that ticks every 60s and feeds both `pastSlots` and the
+"clear a selected slot that has just passed" effect.
+
+### 2. One uniform time/date picker, shared by owner and customer
+
+`BookAppointmentModal` and the owner walk-in form each had their own copy of the slot list and date
+strip, and they rendered differently — the customer grid put "8:00 AM" on one line, so the wide "12:00
+PM" labels wrapped and cells ended up **different heights**.
+
+Extracted two components:
+- **`src/components/TimeSlotGrid.tsx`** — owns `BOOKING_TIME_SLOTS` (`08:00`–`17:00`, the single source
+  of truth for both flows) and renders fixed `h-12` cells, splitting the label into hour + meridiem so
+  an "8 AM" cell and a "12 PM" cell are identical. `takenSlots` and `pastSlots` are separate props and
+  both render struck-through, so the legend is honest. Exports an `emptyMessage` shown when a date is
+  full.
+- **`src/components/DateStrip.tsx`** — `includeToday` / `skipSundays` props. Owner: today + Sundays.
+  Customer: tomorrow onward, no Sundays (preserves the previous behaviour of `getAvailableDates()`,
+  whose `for (let i = 1; …)` loop skipped today by construction).
+
+Both local `TIME_SLOTS` / `getAvailableDates()` / `formatDate()` copies are gone;
+`normalizeTime()` moved to `dateTime.ts` as the single DB-`TIME` normalizer.
+
+Mechanic availability is preserved: `BookAppointmentModal` derives `unavailableSlots` = booked ∪ outside
+the mechanic's window, and passes it as `takenSlots`.
+
+### 3. Reference is shown in a real confirmation screen
+
+The previous implementation put the generated reference in a transient banner in the calendar list.
+The walk-in modal now shows a confirmation step after insert: large monospace `MTL-…` reference with a
+Copy button, the service and customer name, and for an unlinked walk-in a reminder that this is the
+only way the customer can claim it into their account. A linked booking gets a "linked to their MotoLink
+account" confirmation instead of a reference.
+
+### 4. Optional link to an existing shop customer
+
+The modal has a Walk-in ⇄ Registered customer toggle. Registered mode searches **shop members only**:
+`.eq("role","customer").eq("shop_id", shopId)`, resolved through the same `getShopByOwnerId()` fallback
+used for the insert.
+
+**Deliberate limitation, no migration written:** the existing RLS policy `"Shop owners can view shop
+members"` only exposes users whose `shop_id` matches the owner's. A customer who registered *before*
+they had shop business has `shop_id = NULL` and therefore **will not appear** — that is exactly the
+audience the reference-claim flow exists for. Adding a cross-shop search RPC was considered and
+declined (it would need a security-definer function to bypass RLS, which is a wider blast radius than
+this fix warrants). Resolves to "shop members + reference".
+
+### 5. Dashboard quick access
+
+Owner dashboard (`Dashboard.tsx`) "Pending appointments" panel header now has a **Book Walk-in** button
+next to "View all", opening the same shared modal and calling `load()` on success so the new appointment
+shows up behind it. No new route; the owner flow stays on the dashboard.
+
+### Additional fixes found while wiring this up
+- `loadBookedSlots` now filters by the **resolved `shop_id`**. The query relied on RLS alone, which
+  would leak another shop's schedule into the grid for an owner belonging to more than one shop.
+- The taken-slot list is refreshed after every successful booking (optimistically, plus a refetch on
+  "Book Another"). Previously the slot was cleared but stayed selectable, so the same slot could be
+  double-booked from one modal session.
+- `AppointmentCalendarPage.onBooked` now **refetches** instead of appending the inserted row. The insert
+  has no `customer` join, so appending rendered a **blank name** for a linked customer booking until
+  realtime delivered the change.
+
+### Files touched
+- `src/utils/dateTime.ts` — **new**: `localDateKey`, `todayKey`, `nowHHMM`, `normalizeTime`,
+  `isSlotPast`, `splitSlotLabel`, `formatSlotTime`, `useMinuteClock`.
+- `src/components/TimeSlotGrid.tsx` — **new**: shared uniform slot picker + `BOOKING_TIME_SLOTS`.
+- `src/components/DateStrip.tsx` — **new**: shared date strip.
+- `src/components/WalkInBookingModal.tsx` — **new**: extracted from `AppointmentCalendarPage`, plus
+  identity toggle, shop-customer search, confirmation screen, future-slot enforcement.
+- `src/pages/AppointmentCalendarPage.tsx` — mounts the modal; ~300 lines of inline form/state removed
+  (form state, slot fetch, mechanic fetch, reference banner); `todayKey()` used for the today count.
+- `src/components/BookAppointmentModal.tsx` — step 3 grid + date strip swapped for the shared
+  components; `unavailableSlots` memo added.
+- `src/pages/Dashboard.tsx` — walk-in button + modal, `load()` on success, `TODAY()` UTC fix.
+- `MEMORY.md` — this entry.
+
+### Verified
+- `npx tsc --noEmit` clean. `npm run build` passes (2829 modules, 11.6s; only the pre-existing chunk-size
+  warning).
+- `npm run lint` still **not runnable** — ESLint is not installed and there is no eslint config. `tsc` +
+  `build` are the gate.
+- **Not verified:** no live Supabase run and no browser click-through.
+- **Blocker for runtime testing:** `20261003_walk_in_appointments.sql` is still **not applied**. The
+  reference column and nullable `customer_id` are needed for the confirmation screen to show a real
+  code and for the registered-customer insert to succeed.
+- Untouched by choice: `COMPLETE_DATABASE_SCHEMA.sql`, `MOTOLINK_ERD_SCHEMA.sql`, and any new migration.
+
+---
+
 **Last Updated**: Oct 03, 2026
 **Compatibility Version**: 1.0
 

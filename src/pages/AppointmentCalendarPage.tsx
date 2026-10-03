@@ -18,19 +18,18 @@ import {
   Ban,
   ArrowUpDown,
   Banknote,
-  Copy,
-  Check,
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getShopByOwnerId } from "../services/shopService";
+import WalkInBookingModal from "../components/WalkInBookingModal";
 import { Appointment, AppointmentStatus } from "../types";
+import { todayKey } from "../utils/dateTime";
 import {
   sendServiceCompletionEmail,
   sendBookingUpdatedEmail,
   sendBookingCancelledEmail,
-  sendBookingConfirmationEmail,
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
@@ -51,43 +50,6 @@ const itemVariants = {
     scale: 1,
     transition: { duration: 0.5, ease: REVEAL_EASE, willChange: "transform, opacity" },
   },
-};
-
-interface Mechanic {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// Bookable hours in DB TIME format (HH:MM). Mirrors the grid offered in
-// BookAppointmentModal so an owner-created booking and a customer-created one
-// land on the same schedule.
-const TIME_SLOTS = [
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-];
-
-const formatSlotTime = (slot: string) => {
-  const hour = parseInt(slot.split(":")[0], 10);
-  if (Number.isNaN(hour)) return slot;
-  return `${hour >= 12 ? (hour === 12 ? 12 : hour - 12) : hour}:00 ${
-    hour >= 12 ? "PM" : "AM"
-  }`;
-};
-
-const normalizeTime = (t?: string | null): string => {
-  if (!t) return "";
-  const [h, m] = t.split(":");
-  if (!h) return "";
-  return `${h.padStart(2, "0")}:${(m || "00").slice(0, 2)}`;
 };
 
 const statusConfig: Record<
@@ -127,21 +89,8 @@ interface AppointmentCalendarPageProps {
 
 const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
-  const [selectedSlot, setSelectedSlot] = useState("");
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-
+const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  // Reference of the booking just created, shown so the owner can read it to a
-  // walk-in customer. The customer later enters it in their profile to link the
-  // service to their account.
-  const [newBookingRef, setNewBookingRef] = useState("");
-  const [refCopied, setRefCopied] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
 
   const [toast, setToast] = useState<{
@@ -154,29 +103,8 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       setToast({ message, type });
       setTimeout(() => setToast(null), 4500);
     },
-    []
+    [],
   );
-
-  const [formData, setFormData] = useState({
-    customer_name: "",
-    customer_phone: "",
-    vehicle_make: "",
-    service_type: "Oil Change",
-    mechanic_id: "",
-  });
-
-  // Some owner accounts (registered before the atomic signup path) have a NULL
-  // users.shop_id but still own a shop row. Falling back to an owner_id lookup
-  // matters for writes too: the owner RLS policy tests
-  // `shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid())`, and a NULL
-  // shop_id makes that evaluate to NULL, which RLS treats as "denied".
-  const resolveShopId = useCallback(async (): Promise<string | null> => {
-    if (user?.role === "admin") return user?.shop_id || null;
-    if (user?.shop_id) return user.shop_id;
-    if (!user?.id) return null;
-    const shop = await getShopByOwnerId(user.id);
-    return shop?.id ?? null;
-  }, [user?.id, user?.role, user?.shop_id]);
 
   const [resolvedShopId, setResolvedShopId] = useState<string | null>(
     user?.shop_id || null,
@@ -184,50 +112,20 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   useEffect(() => {
     let cancelled = false;
-    resolveShopId().then((id) => {
+    const resolve = async () => {
+      if (user?.role === "admin") return user?.shop_id || null;
+      if (user?.shop_id) return user.shop_id;
+      if (!user?.id) return null;
+      const shop = await getShopByOwnerId(user.id);
+      return shop?.id ?? null;
+    };
+    resolve().then((id) => {
       if (!cancelled) setResolvedShopId(id);
     });
     return () => {
       cancelled = true;
     };
-  }, [resolveShopId]);
-
-  // Slots already taken on the chosen date so the owner's walk-in booking does
-  // not double-book a slot.
-  const fetchBookedSlots = useCallback(async () => {
-    if (!selectedDate) {
-      setBookedSlots([]);
-      return;
-    }
-    try {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("scheduled_time")
-        .eq("scheduled_date", selectedDate)
-        .in("status", ["pending", "confirmed", "in_progress"]);
-      if (error) throw error;
-      setBookedSlots(
-        (data || []).map((a: any) => normalizeTime(a.scheduled_time)),
-      );
-    } catch {
-      setBookedSlots([]);
-    }
-  }, [selectedDate]);
-
-  useEffect(() => {
-    if (showBookingForm) fetchBookedSlots();
-  }, [showBookingForm, fetchBookedSlots]);
-
-  const copyBookingRef = async () => {
-    if (!newBookingRef) return;
-    try {
-      await navigator.clipboard.writeText(newBookingRef);
-      setRefCopied(true);
-      setTimeout(() => setRefCopied(false), 2000);
-    } catch {
-      // Clipboard unavailable — the owner can still read the code on screen.
-    }
-  };
+  }, [user?.id, user?.role, user?.shop_id]);
 
   const fetchAppointments = async () => {
     if (fetchAbortRef.current) fetchAbortRef.current.abort();
@@ -275,30 +173,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     // resolvedShopId is a dep so the initial fetch uses the resolved shop (an
     // owner with a NULL users.shop_id would otherwise load unfiltered).
   }, [resolvedShopId]);
-
-  useEffect(() => {
-    if (showBookingForm && mechanics.length === 0) fetchMechanics();
-  }, [showBookingForm]);
-
-  const fetchMechanics = async () => {
-    try {
-      let query = supabase
-        .from("users")
-        .select("id, name, email")
-        .eq("role", "mechanic");
-
-      if (user?.role === "owner" && resolvedShopId) {
-        query = query.eq("shop_id", resolvedShopId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setMechanics(data || []);
-    } catch (err) {
-      console.error("Error fetching mechanics:", err);
-      setMechanics([]);
-    }
-  };
 
   const getFilteredAppointments = (): Appointment[] => {
     if (user?.role === "owner" || user?.role === "admin") return appointments;
@@ -457,95 +331,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     }
   };
 
-  const handleBookAppointment = async () => {
-    if (
-      !formData.customer_name.trim() ||
-      !formData.customer_phone.trim() ||
-      !formData.vehicle_make.trim()
-    ) {
-      showToast("Please fill in all required fields.", "error");
-      return;
-    }
-
-    if (!selectedDate || !selectedSlot) {
-      showToast("Please pick a date and a time slot.", "error");
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      // A customer books for themselves. A shop owner (or admin) may be
-      // recording a walk-in, in which case there is no account to link yet —
-      // customer_id stays NULL and the walk-in's identity is stored in the
-      // dedicated columns so the customer can claim it later by reference.
-      const isWalkIn = user?.role !== "customer";
-
-      const shopIdToUse = isWalkIn ? await resolveShopId() : null;
-      if (isWalkIn && !shopIdToUse) {
-        showToast(
-          "No shop is linked to your account yet, so this booking cannot be saved.",
-          "error",
-        );
-        return;
-      }
-
-      const appointmentData = {
-        customer_id: isWalkIn ? null : user!.id,
-        vehicle_id: null,
-        shop_id: shopIdToUse,
-        scheduled_date: selectedDate,
-        scheduled_time: selectedSlot,
-        service_type: formData.service_type,
-        description: `${formData.vehicle_make.trim()} - ${formData.service_type}`,
-        status: "pending",
-        mechanic_id: formData.mechanic_id || null,
-        walk_in_name: isWalkIn ? formData.customer_name.trim() : null,
-        walk_in_phone: isWalkIn ? formData.customer_phone.trim() : null,
-      };
-
-      const { data, error } = await supabase
-        .from("appointments")
-        .insert([appointmentData])
-        .select()
-        .single();
-      if (error) throw error;
-
-      setAppointments([...appointments, data]);
-
-      // Only a real customer has an inbox to confirm.
-      if (data?.customer_id) {
-        sendBookingConfirmationEmail(data.id);
-      }
-
-      // Surface the reference so the owner can read it to a walk-in — they enter
-      // it in their MotoLink profile to attach this service to their account.
-      setNewBookingRef(data?.booking_id || "");
-      setShowBookingForm(false);
-      setSelectedSlot("");
-      setFormData({
-        customer_name: "",
-        customer_phone: "",
-        vehicle_make: "",
-        service_type: "Oil Change",
-        mechanic_id: "",
-      });
-      showToast(
-        isWalkIn
-          ? "Walk-in booked. Share the reference so the customer can link it."
-          : "Appointment booked successfully!",
-      );
-    } catch (error: any) {
-      console.error("Error booking appointment:", error);
-      showToast(
-        error?.message || "Failed to book appointment. Please try again.",
-        "error",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const isOwner = user?.role === "owner" || user?.role === "admin";
   const isCustomer = user?.role === "customer";
   const canBookAppointments = isCustomer || isOwner;
@@ -570,12 +355,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   ];
   const [sortBy, setSortBy] = useState<SortKey>("date-asc");
 
-  const todayKey = new Date().toISOString().split("T")[0];
+  // Local calendar day, not UTC: between 00:00 and 08:00 in UTC+8 a
+  // toISOString() key resolves to yesterday and the "today" count goes wrong.
+  const today = todayKey();
 
   const statCards = [
     {
       label: "Today's Appointments",
-      value: filteredAppointments.filter((a) => a.scheduled_date === todayKey)
+      value: filteredAppointments.filter((a) => a.scheduled_date === today)
         .length,
       icon: Calendar,
       tile: "bg-moto-accent/15 text-moto-accent",
@@ -672,9 +459,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       });
   }, [filteredAppointments, filterStatus, searchTerm, sortBy]);
 
-  const inputClass =
-    "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
-
   return (
     <div className="space-y-6">
       {/* Toast */}
@@ -696,47 +480,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             {toast.type === "error" && <XCircle className="w-4 h-4 text-red-400" />}
             {toast.type === "info" && <Mail className="w-4 h-4 text-slate-400" />}
             <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Walk-in reference — the owner reads this out so the customer can link
-          the service to their own account from their MotoLink profile. */}
-      <AnimatePresence>
-        {newBookingRef && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl bg-moto-accent/10 border border-moto-accent/30"
-          >
-            <Tag className="w-5 h-5 text-moto-accent shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold text-slate-100">
-                Booking reference
-              </p>
-              <p className="text-xs text-slate-300">
-                Have the customer enter this in their MotoLink profile to attach
-                the service to their account.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <code className="px-3 py-2 rounded-lg bg-moto-darker border border-moto-gray text-moto-accent font-mono text-sm font-bold tracking-wider">
-                {newBookingRef}
-              </code>
-              <button
-                onClick={copyBookingRef}
-                aria-label="Copy booking reference"
-                title="Copy reference"
-                className="p-2 rounded-lg bg-moto-darker border border-moto-gray text-slate-300 hover:border-moto-accent/50 hover:text-moto-accent transition"
-              >
-                {refCopied ? (
-                  <Check className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </button>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1148,176 +891,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         )}
       </AnimatePresence>
 
-      {/* Booking Modal */}
+      {/* Booking modal — shared with the owner dashboard's quick entry point. */}
       <AnimatePresence>
         {showBookingForm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowBookingForm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-moto-gray pb-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-moto-accent/15 text-moto-accent">
-                    <Calendar size={18} />
-                  </span>
-                  <h3 className="font-display text-xl uppercase tracking-wide text-slate-100">
-                    {isOwner ? "Book Walk-in" : "Book Appointment"}
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowBookingForm(false)}
-                  className="p-1 rounded-lg hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {isOwner && (
-                <p className="text-[13px] text-slate-300 leading-relaxed">
-                  For a customer without a MotoLink account. The booking is saved
-                  with a reference — share it and the customer can link the
-                  service to their account later.
-                </p>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Date</label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Time Slot</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                    {TIME_SLOTS.map((slot) => {
-                      const isTaken = bookedSlots.includes(slot);
-                      const isActive = selectedSlot === slot;
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          disabled={isTaken}
-                          onClick={() => setSelectedSlot(slot)}
-                          className={`px-2 py-2 rounded-lg text-[12px] font-bold tabular-nums transition ${
-                            isTaken
-                              ? "bg-moto-dark border border-moto-gray text-slate-600 cursor-not-allowed line-through"
-                              : isActive
-                                ? "bg-moto-accent border border-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
-                                : "bg-moto-darker border border-moto-gray text-slate-300 hover:border-moto-accent/60 hover:text-moto-accent"
-                          }`}
-                        >
-                          {formatSlotTime(slot)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Customer Name</label>
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={formData.customer_name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customer_name: e.target.value })
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Phone Number</label>
-                  <input
-                    type="tel"
-                    placeholder="0917..."
-                    value={formData.customer_phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customer_phone: e.target.value })
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Vehicle (Make / Model)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Honda Click 150i"
-                    value={formData.vehicle_make}
-                    onChange={(e) =>
-                      setFormData({ ...formData, vehicle_make: e.target.value })
-                    }
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-200 mb-1">Service Type</label>
-                  <select
-                    value={formData.service_type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, service_type: e.target.value })
-                    }
-                    className={inputClass}
-                  >
-                    <option>Oil Change</option>
-                    <option>Brake Service</option>
-                    <option>Tire Replacement</option>
-                    <option>Engine Diagnostic</option>
-                    <option>General Maintenance</option>
-                    <option>Custom Work</option>
-                  </select>
-                </div>
-                {mechanics.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-200 mb-1">Assign Mechanic (Optional)</label>
-                    <select
-                      value={formData.mechanic_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, mechanic_id: e.target.value })
-                      }
-                      className={inputClass}
-                    >
-                      <option value="">Unassigned</option>
-                      {mechanics.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowBookingForm(false)}
-                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleBookAppointment}
-                  disabled={saving}
-                  className="flex-1 px-4 py-2.5 bg-moto-accent hover:bg-moto-accent-dark text-slate-950 text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-moto-accent/25"
-                >
-                  {saving ? "Booking..." : "Confirm Booking"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <WalkInBookingModal
+            isOpen
+            onClose={() => setShowBookingForm(false)}
+            // Refetch instead of appending the inserted row: the insert does not
+            // include the `customer` join, so a linked booking would render a
+            // blank name until realtime delivers the change.
+            onBooked={() => void fetchAppointments()}
+          />
         )}
       </AnimatePresence>
     </div>
