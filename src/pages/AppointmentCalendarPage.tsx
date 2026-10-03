@@ -231,10 +231,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             alert("Only administrators can finalize appointments.");
             return;
           }
-          if (appointment.status !== "in_progress") {
-            alert("The mechanic must mark the work as completed before finalizing.");
-            return;
-          }
         }
 
         if (newStatus === "completed") {
@@ -734,16 +730,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                           </span>
                         ) : (
                           <>
-                            {apt.status === "in_progress" && isOwner && (
-                              <button
-                                onClick={() => setCompleteConfirmId(apt.id)}
-                                disabled={statusUpdatingId === apt.id}
-                                className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20 disabled:opacity-50"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                                Finalize
-                              </button>
-                            )}
+                            {["pending", "confirmed", "in_progress"].includes(apt.status) &&
+                              isOwner && (
+                                <button
+                                  onClick={() => setCompleteConfirmId(apt.id)}
+                                  disabled={statusUpdatingId === apt.id}
+                                  className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  Finalize
+                                </button>
+                              )}
                             <select
                               value={apt.status}
                               disabled={statusUpdatingId === apt.id}
