@@ -6,6 +6,7 @@ import { supabase } from "../services/supabaseClient";
 import adminIcon from "../pictures/icons/admin.png";
 import InlineError from "../components/InlineError";
 import TermsModal from "../components/TermsModal";
+import TermsCheckbox from "../components/TermsCheckbox";
 
 interface AdminLoginPageProps {
   onLoginSuccess: () => void;
@@ -22,8 +23,9 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [formData, setFormData] = useState(() => ({
     // Restore the email after a reload (password is never saved).
     email: localStorage.getItem("moto_admin_login_email") || "",
@@ -47,6 +49,12 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
+
     setLoading(true);
     setLoginAttempted(false);
 
@@ -203,22 +211,11 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
                   </button>
                 </div>
               </motion.div>
-              <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} onOpenTerms={() => setTermsOpen(true)} />
+              <motion.button type="submit" disabled={loading || !acceptedTerms} whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }} whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-base bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                 {loading && <Loader size={18} className="animate-spin" />}
                 Sign In
               </motion.button>
-
-              {/* Terms and Conditions link */}
-              <p className="mt-5 text-center text-xs text-slate-500">
-                By continuing, you agree to MotoLink's{" "}
-                <button
-                  type="button"
-                  onClick={() => setTermsOpen(true)}
-                  className="font-semibold text-moto-accent hover:underline"
-                >
-                  Terms &amp; Conditions
-                </button>
-              </p>
             </form>
           </div>
         </div>

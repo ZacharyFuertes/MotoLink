@@ -18,7 +18,12 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { Appointment, AppointmentStatus } from "../types";
-import { sendServiceCompletionEmail } from "../services/notificationService";
+import {
+  sendServiceCompletionEmail,
+  sendBookingUpdatedEmail,
+  sendBookingCancelledEmail,
+  sendBookingConfirmationEmail,
+} from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
 
@@ -224,7 +229,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
         if (newStatus === "completed" && appointment.status !== "completed") {
           const parts = appointment.parts || [];
-          const resolvedParts: { name: string; quantity: number; unit_price: number }[] = [];
 
           for (const part of parts) {
             const { data: partData } = await supabase
@@ -245,69 +249,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", part.part_id);
-
-              resolvedParts.push({
-                name: partData.name,
-                quantity: part.quantity,
-                unit_price: partData.unit_price,
-              });
             }
           }
-
-          let customerEmail = "";
-          let vehicleMake = "";
-          let vehicleModel = "";
-          let vehicleYear: string | number | undefined;
 
           if (appointment.customer_id) {
-            const { data: customerRow } = await supabase
-              .from("users")
-              .select("name, email")
-              .eq("id", appointment.customer_id)
-              .maybeSingle();
-
-            if (customerRow?.email) {
-              customerEmail = customerRow.email;
-            }
-          }
-
-          if (appointment.vehicle_id) {
-            const { data: vehicleRow } = await supabase
-              .from("vehicles")
-              .select("make, model, year")
-              .eq("id", appointment.vehicle_id)
-              .maybeSingle();
-
-            if (vehicleRow) {
-              vehicleMake = vehicleRow.make || "";
-              vehicleModel = vehicleRow.model || "";
-              vehicleYear = vehicleRow.year;
-            }
-          }
-
-          if (!vehicleMake && appointment.description) {
-            vehicleMake = appointment.description.split(" - ")[0] || "";
-          }
-
-          if (customerEmail) {
-            sendServiceCompletionEmail({
-              appointmentId: appointment.id,
-              customerName: (appointment as any).customer?.name || customerEmail,
-              customerEmail,
-              vehicleMake,
-              vehicleModel,
-              vehicleYear,
-              serviceType: appointment.service_type,
-              scheduledDate: appointment.scheduled_date,
-              partsUsed: resolvedParts,
-              totalAmount: appointment.total_amount,
-              completionNotes: appointment.notes,
-            })
+            sendServiceCompletionEmail(appointment.id)
               .then((result) => {
                 if (result.skipped) {
                   showToast("Email skipped – customer opted out.", "info");
                 } else if (result.success) {
-                  showToast(`Completion email sent to ${customerEmail}`);
+                  showToast("Completion email sent to customer");
                 } else {
                   showToast(`Email delivery failed: ${result.error}`, "error");
                 }
@@ -348,6 +299,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           .update({ status: newStatus, updated_at: new Date().toISOString() })
           .eq("id", appointmentId);
         if (error) throw error;
+
+        if (appointment.customer_id) {
+          if (newStatus === "confirmed") {
+            sendBookingUpdatedEmail(appointment.id);
+          } else if (newStatus === "cancelled") {
+            sendBookingCancelledEmail(appointment.id);
+          }
+        }
 
         setAppointments(
           appointments.map((apt) =>
@@ -402,6 +361,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       if (error) throw error;
 
       setAppointments([...appointments, data]);
+      if (data?.customer_id) {
+        sendBookingConfirmationEmail(data.id);
+      }
       setShowBookingForm(false);
       setFormData({
         customer_name: "",

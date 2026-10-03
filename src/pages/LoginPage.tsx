@@ -35,7 +35,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [formData, setFormData] = useState(() => {
@@ -103,11 +103,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     e.preventDefault();
     setError("");
 
-    // Creating an account requires agreeing to the Terms and Conditions.
-    if (isSignup && !acceptedTerms) {
-      setError(
-        "Please agree to the Terms and Conditions to create your account.",
-      );
+// Opening an account (signup) or signing in requires agreeing to the Terms.
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms and Conditions to continue.");
       return;
     }
 
@@ -461,41 +459,25 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 </div>
               )}
 
-              {/* Terms and Conditions agreement (signup only) */}
-              {isSignup && (
-                <TermsCheckbox
-                  checked={acceptedTerms}
-                  onChange={setAcceptedTerms}
-                  onOpenTerms={() => setTermsOpen(true)}
-                  className="pt-1"
-                />
-              )}
+{/* Terms and Conditions agreement (signup and login) */}
+              <TermsCheckbox
+                checked={acceptedTerms}
+                onChange={setAcceptedTerms}
+                onOpenTerms={() => setTermsOpen(true)}
+                className="pt-1"
+              />
 
               {/* Primary button */}
               <motion.button
                 type="submit"
-                disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.02 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
+                disabled={loading || !acceptedTerms}
+                whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }}
+                whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }}
                 className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
                 {isSignup ? "Create Account" : "Login"}
               </motion.button>
-
-              {/* Terms and Conditions link (login only — signup uses the tickbox) */}
-              {!isSignup && (
-                <p className="text-center text-xs text-slate-500">
-                  By continuing, you agree to MotoLink's{" "}
-                  <button
-                    type="button"
-                    onClick={() => setTermsOpen(true)}
-                    className="font-semibold text-moto-accent hover:underline"
-                  >
-                    Terms &amp; Conditions
-                  </button>
-                </p>
-              )}
             </form>
 
             {/* Divider */}

@@ -1,98 +1,73 @@
 /**
- * SendGrid API Client Wrapper
- * Handles all email delivery via SendGrid's v3 API.
- * Uses fetch() directly to avoid needing a Node.js-only SDK in the browser.
+ * Email delivery client.
+ *
+ * The browser holds NO SendGrid credentials. It asks the Vercel Function
+ * /api/send-email to render + deliver a whitelisted template for a given
+ * appointment, and the function resolves all recipient/content server-side.
  */
 
-// @ts-ignore - Vite environment variables
-const SENDGRID_API_KEY = import.meta.env.VITE_SENDGRID_API_KEY as string;
-// @ts-ignore - Vite environment variables
-const FROM_EMAIL = import.meta.env.VITE_SENDGRID_FROM_EMAIL as string;
-const FROM_NAME = "MotoLink";
+import { supabase } from "./supabaseClient";
 
-export interface EmailPayload {
-  to: string;
-  toName?: string;
-  subject: string;
-  htmlContent: string;
-  textContent?: string;
-}
+export type EmailTemplate =
+  | "booking-confirmation"
+  | "service-completion"
+  | "booking-cancelled"
+  | "booking-updated"
+  | "owner-booking";
 
-export interface SendGridResponse {
+export interface EmailRequestResult {
   success: boolean;
-  statusCode?: number;
+  skipped?: boolean;
   error?: string;
 }
 
 /**
- * Send a transactional email via SendGrid v3 REST API.
- * Returns { success, statusCode, error }.
+ * Request a transactional email for an appointment. Fire-and-forget friendly:
+ * never throws — failures are returned as { success: false, error } and the
+ * caller decides whether to surface a toast.
  */
-export const sendEmail = async (
-  payload: EmailPayload
-): Promise<SendGridResponse> => {
-  if (!SENDGRID_API_KEY) {
-    console.warn("⚠️  VITE_SENDGRID_API_KEY not set – email NOT sent.");
-    return { success: false, error: "SENDGRID_API_KEY is not configured." };
-  }
+export const requestEmail = async (
+  template: EmailTemplate,
+  appointmentId: string,
+): Promise<EmailRequestResult> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!FROM_EMAIL) {
-    console.warn("⚠️  VITE_SENDGRID_FROM_EMAIL not set – email NOT sent.");
-    return { success: false, error: "SENDGRID_FROM_EMAIL is not configured." };
+  if (!session?.access_token) {
+    return { success: false, error: "Not signed in." };
   }
-
-  const body = {
-    personalizations: [
-      {
-        to: [{ email: payload.to, name: payload.toName || payload.to }],
-        subject: payload.subject,
-      },
-    ],
-    from: { email: FROM_EMAIL, name: FROM_NAME },
-    content: [
-      ...(payload.textContent
-        ? [{ type: "text/plain", value: payload.textContent }]
-        : []),
-      {
-        type: "text/html",
-        value: payload.htmlContent,
-      },
-    ],
-  };
 
   try {
-    const response = await fetch("/api/sendgrid/v3/mail/send", {
+    const response = await fetch("/api/send-email", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${SENDGRID_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        template,
+        appointmentId,
+        accessToken: session.access_token,
+      }),
     });
 
-    if (response.status === 202) {
-      console.log(`✅ Email sent to ${payload.to} (${payload.subject})`);
-      return { success: true, statusCode: 202 };
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: body?.error || `Email request failed (${response.status}).`,
+      };
     }
 
-    // SendGrid error body is JSON on non-202
-    let errorBody: any = {};
-    try {
-      errorBody = await response.json();
-    } catch (_) {
-      /* ignore parse failure */
+    if (body && typeof body.success === "boolean") {
+      return body as EmailRequestResult;
     }
 
-    const errorMsg =
-      errorBody?.errors?.[0]?.message ||
-      `SendGrid returned ${response.status}`;
-    console.error("❌ SendGrid error:", errorMsg, errorBody);
-    return { success: false, statusCode: response.status, error: errorMsg };
+    return { success: true };
   } catch (err: any) {
-    console.error("❌ Network error sending email:", err);
+    console.error("Network error requesting email:", err);
     return {
       success: false,
-      error: err?.message || "Network error while sending email",
+      error: "Network error sending email.",
     };
   }
 };

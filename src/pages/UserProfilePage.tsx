@@ -45,6 +45,7 @@ import {
   updateVehicle,
   vehicleLabel,
 } from "../services/vehicleService";
+import { sendBookingCancelledEmail } from "../services/notificationService";
 
 interface HistoryRecord {
   id: string;
@@ -405,6 +406,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         .eq("customer_id", user.id);
 
       if (error) throw error;
+
+      sendBookingCancelledEmail(appointmentId);
 
       setHistory((prev) =>
         prev.map((item) =>

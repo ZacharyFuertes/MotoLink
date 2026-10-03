@@ -139,6 +139,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms and Conditions to continue.");
+      return;
+    }
+
     setLoading(true);
     setLoginAttempted(false);
 
@@ -169,6 +175,12 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!acceptedTerms) {
+      setError("Please agree to the Terms and Conditions before registering.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -799,9 +811,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                   ) : (
                     <motion.button
                       type="submit"
-                      disabled={loading}
-                      whileHover={{ scale: loading ? 1 : 1.02 }}
-                      whileTap={{ scale: loading ? 1 : 0.98 }}
+                      disabled={loading || !acceptedTerms}
+                      whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }}
+                      whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }}
                       className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading && <Loader size={18} className="animate-spin" />}
@@ -850,7 +862,8 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     </button>
                   </div>
                 </motion.div>
-                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
+<TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} onOpenTerms={() => setTermsOpen(true)} />
+                <motion.button type="submit" disabled={loading || !acceptedTerms} whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }} whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>
@@ -863,24 +876,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
               </button>
             </div>
-
-            {/* Terms and Conditions link (login only — registration uses the tickbox) */}
-            {!isSignup && (
-              <p className="mt-3 text-center text-xs text-slate-500">
-                By continuing, you agree to MotoLink's{" "}
-                <button
-                  type="button"
-                  onClick={() => setTermsOpen(true)}
-                  className="font-semibold text-moto-accent hover:underline"
-                >
-                  Terms &amp; Conditions
-                </button>
-              </p>
-            )}
           </div>
         </div>
 
-      </motion.div>
+        </motion.div>
 
       {/* Terms and Conditions popup */}
       <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />

@@ -6680,7 +6680,6 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 
 ---
 
-
 ---
 
 ## TASK LOG — Shared motorcycle make/model autocomplete + interactive Profile & Garage cards
@@ -6919,6 +6918,104 @@ serviced bike would orphan the service history shops and invoices reference. `up
 - Neither restyled modal locks `document.body` scroll or closes on Escape, unlike `TermsModal`.
 
 ---
-**Last Updated**: Sep 26, 2026
+
+## TASK LOG — Transactional email notifications (secure serverless SendGrid)
+
+Date: Sep 26, 2026
+
+### Decision
+Implemented the email-notifications plan: **booking confirmation**, **service completion**,
+**owner new-booking**, and **cancel/update** emails to customers + owners — with all SendGrid
+sending moved server-side. Previously the browser held `VITE_SENDGRID_API_KEY` and POSTed
+straight to `https://api.sendgrid.com` via a Vercel rewrite (key exposed in the public bundle).
+That whole insecure path is now gone.
+
+### Architecture
+- New **Vercel Function `api/send-email.ts`** (server env ONLY: `SENDGRID_API_KEY`,
+  `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `SUPABASE_ANON_KEY`). Client only ever sends `{ template, appointmentId, accessToken }`.
+  Function: verifies the Supabase session JWT → resolves the appointment/customer/shop/vehicle/
+  parts server-side with the service-role client → whitelisted templates (booking-confirmation,
+  service-completion, booking-cancelled, booking-updated, owner-booking) rendered with the MotoLink
+  brand → sends via `@sendgrid/mail` → writes the audit row to `notifications` (type=email,
+  status sent/failed/skipped). Authorization gate: caller must be the booking customer OR the
+  shop owner/admin of that shop.
+- Opt-out enforced **server-side** (`customer_notification_settings.email_notifications_enabled`,
+  default true); owner emails always send. Audit opt-out skips as `skipped`.
+- `vercel.json`: `/api/sendgrid/:path*` rewrite **removed** (closes the key-leak proxy); the
+  `/(.*)` SPA fallback remains (Vercel resolves `/api/send-email` before rewrites).
+- Migration `supabase/migrations/20260926_notifications_status_skipped.sql` (USER MUST RUN):
+  adds `'skipped'` to the `notifications.status` CHECK — before this, opt-out audit rows failed the
+  CHECK silently and were dropped.
+- `.env.example`: SendGrid vars moved to a server-side section; `VITE_SENDGRID_*` removed.
+
+### Client changes
+- `src/services/sendgridClient.ts` → thin `requestEmail(template, appointmentId)` (no credentials,
+  uses the Supabase access token; returns `{ success, skipped, error }`, never throws). Its
+  `sendEmail`/`EmailPayload` API is gone.
+- `src/services/notificationService.ts` → dropped client email templates + `sendServiceCompletionEmail`
+  payload plumbing; added wrappers `sendServiceCompletionEmail(appointmentId)`,
+  `sendBookingConfirmationEmail`, `sendBookingUpdatedEmail`, `sendBookingCancelledEmail`,
+  `sendOwnerBookingEmail` (all call `requestEmail`). In-app bell helpers unchanged.
+- Hooks:
+  - `BookAppointmentModal` — booking-confirmation + owner-booking email after insert (beside the
+    existing in-app `notifyOwnerOfNewAppointment`).
+  - `AppointmentCalendarPage` — completion email now `sendServiceCompletionEmail(appointment.id)`
+    (server re-resolves parts/vehicle, so the old client payload table was removed); status→confirmed
+    fires booking-updated, status→cancelled fires booking-cancelled; quick-add fires
+    booking-confirmation when a customer_id exists.
+  - `ViewAppointmentsModal` + `UserProfilePage` — customer cancel fires booking-cancelled.
+
+### Setup (deployment)
+- Set server env vars in the Vercel dashboard (NOT .env.local): SENDGRID_API_KEY,
+  SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME, SUPABASE_SERVICE_ROLE_KEY. Remove the old
+  VITE_SENDGRID_API_KEY/VITE_SENDGRID_FROM_EMAIL vars.
+- Run the `20260926_notifications_status_skipped.sql` migration in the Supabase SQL Editor.
+- Test locally with `vercel dev` (Vite dev won't serve `api/`).
+
+### Verified
+- `npm run build` passes (tsc + vite; only pre-existing chunk-size warning). Lint script exists
+  but eslint isn't installed as a dependency — build is the gate.
+- Not yet committed/pushed (waiting on user).
+
+---
+
+## TASK LOG — Required Terms & Conditions agreement (booking / register / login)
+
+Date: Oct 03, 2026
+
+### Decision
+Add a **required Terms agreement checkbox** on every "proceed to next section / submit"
+surface: booking (BookAppointmentModal final confirm step), registering (customer signup +
+owner signup wizard) and logging in (customer, shop owner, admin). The checkbox must be
+ticked before the user can continue or submit.
+
+### Implementation
+- New reusable `src/components/TermsCheckbox.tsx` — checkbox + "I agree to the Terms &
+  Conditions of MotoLink." label; the Terms & Conditions link is a placeholder (`href="#"`
+  with `preventDefault`) since no T&C page exists yet.
+- `BookAppointmentModal.tsx` — `termsAccepted` state; checkbox rendered on Step 4 (Confirm),
+  after the Notes section; `canGoNext()` case 3 now requires `termsAccepted` (gates the
+  authenticated Confirm button + NEXT disabled styling); `handleSubmit` guard
+  ("Please agree to the Terms & Conditions to continue."); the guest **Sign Up / Log In**
+  footer buttons are disabled until checked (conditional styling); state resets in the
+  existing on-close reset effect (line ~290).
+- `LoginPage.tsx` — `termsAccepted` state; checkbox above the primary button (visible in both
+  login and signup modes); `handleSubmit` guard; submit button disabled until checked;
+  reset on mode toggle.
+- `ShopOwnerLoginPage.tsx` — `termsAccepted` state; checkbox in the login form (gates Sign In)
+  and on wizard Step 3 / final step (gates the "Register Shop" submit); `handleSubmit` +
+  `handleSignup` guards; Register Shop + Sign In buttons disabled until checked; reset on
+  mode toggle.
+- `AdminLoginPage.tsx` — `termsAccepted` state; checkbox above Sign In; `handleSubmit` guard;
+  submit disabled until checked.
+
+### Verified
+- `npm run build` passes (tsc + vite; only pre-existing chunk-size warning).
+- Committed + pushed on user request (email-notifications work + this batch).
+
+---
+
+**Last Updated**: Oct 03, 2026
 **Compatibility Version**: 1.0
 

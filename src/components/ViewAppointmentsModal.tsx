@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { sendBookingCancelledEmail } from "../services/notificationService";
 import BookAppointmentModal from "./BookAppointmentModal";
 
 interface AppointmentItem {
@@ -168,6 +169,8 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
         .eq("id", appointmentId)
         .eq("customer_id", user?.id); // Safety: only cancel own appointments
       if (error) throw error;
+
+      sendBookingCancelledEmail(appointmentId);
 
       // Update locally
       setAppointments((prev) =>

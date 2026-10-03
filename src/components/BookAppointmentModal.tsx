@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import { notifyOwnerOfNewAppointment } from "../services/notificationService";
+import { notifyOwnerOfNewAppointment, sendBookingConfirmationEmail, sendOwnerBookingEmail } from "../services/notificationService";
+import TermsCheckbox from "./TermsCheckbox";
+import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 
 interface Mechanic {
@@ -152,6 +154,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [vehicleInfo, setVehicleInfo] = useState("");
   const [notes, setNotes] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [dynamicServices, setDynamicServices] = useState<any[]>(SERVICE_TYPES);
@@ -292,6 +296,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSelectedVehicleId("");
         setVehicleInfo("");
         setNotes("");
+        setTermsAccepted(false);
         setSuccess(false);
         setErrorMsg("");
         setBookedSlots([]);
@@ -569,7 +574,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       case 2:
         return !!selectedDate && !!selectedTime;
       case 3:
-        return !!(selectedVehicleId || vehicleInfo.trim());
+        return !!(selectedVehicleId || vehicleInfo.trim()) && termsAccepted;
       default:
         return false;
     }
@@ -577,6 +582,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
   const handleSubmit = async () => {
     if (!user?.id) return;
+
+    if (!termsAccepted) {
+      setErrorMsg("Please agree to the Terms & Conditions to continue.");
+      return;
+    }
 
     if (hasActiveAppointment) {
       setErrorMsg(
@@ -693,6 +703,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           scheduledTime: selectedTime,
         });
 
+        // Transactional emails (fire-and-forget): customer confirmation + owner email.
+        sendBookingConfirmationEmail(appointment.id);
+        sendOwnerBookingEmail(appointment.id);
+
         // Call the callback to notify parent and display receipt
         if (onAppointmentBooked) {
           onAppointmentBooked(appointmentData);
@@ -735,6 +749,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   };
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -1774,6 +1789,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs resize-none"
                           />
                         </div>
+                        <div className="pt-2 border-t border-moto-gray">
+                          <TermsCheckbox checked={termsAccepted} onChange={setTermsAccepted} onOpenTerms={() => setTermsOpen(true)} />
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -1826,20 +1844,30 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 ) : !isAuthenticated ? (
                   <div className="flex items-center gap-2">
                     <motion.button
-                      whileHover={{ y: -2, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={termsAccepted ? { y: -2, scale: 1.02 } : undefined}
+                      whileTap={termsAccepted ? { scale: 0.98 } : undefined}
                       transition={{ duration: 0.15, ease: "easeOut" }}
                       onClick={() => requireAuth("signup")}
-                      className="flex items-center gap-3 px-8 py-3.5 bg-moto-accent text-slate-950 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
+                      disabled={!termsAccepted}
+                      className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                        termsAccepted
+                          ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
+                          : "bg-moto-gray/40 border border-moto-gray text-slate-500 cursor-not-allowed"
+                      }`}
                     >
                       Sign Up <ChevronRight size={14} />
                     </motion.button>
                     <motion.button
-                      whileHover={{ y: -2 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={termsAccepted ? { y: -2 } : undefined}
+                      whileTap={termsAccepted ? { scale: 0.98 } : undefined}
                       transition={{ duration: 0.15, ease: "easeOut" }}
                       onClick={() => requireAuth("login")}
-                      className="flex items-center gap-3 px-8 py-3.5 border border-moto-gray bg-moto-darker text-slate-100 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:bg-moto-gray/30 hover:-translate-y-0.5"
+                      disabled={!termsAccepted}
+                      className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                        termsAccepted
+                          ? "border border-moto-gray bg-moto-darker text-slate-100 hover:bg-moto-gray/30 hover:-translate-y-0.5"
+                          : "border border-moto-gray bg-moto-darker/50 text-slate-600 cursor-not-allowed"
+                      }`}
                     >
                       Log In
                     </motion.button>
@@ -1954,6 +1982,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
+    <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
+    </>
   );
 };
 
