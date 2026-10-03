@@ -68,12 +68,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setLoading(true);
     const today = TODAY();
     try {
-      const [sales, apptsDone, pending, customers, low, products, upcoming] =
+      const [sales, jobsDone, apptsDone, pending, customers, low, products, upcoming] =
         await Promise.all([
           supabase
             .from("part_sales")
             .select("id, sale_price, created_at")
             .eq("shop_id", user.shop_id),
+          supabase
+            .from("job_orders")
+            .select("id, status, parts_used, completed_at, created_at")
+            .eq("shop_id", user.shop_id)
+            .eq("status", "completed"),
           supabase
             .from("appointments")
             .select(
@@ -109,21 +114,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       const salesRows = (sales.data || []) as any[];
       const apptRows = (apptsDone.data || []) as any[];
+      const jobRows = (jobsDone.data || []) as any[];
       const stock = Array.isArray(low) ? low : [];
 
       const sum = (rows: any[], pick: (r: any) => number) =>
         rows.reduce((t, r) => t + (Number(pick(r)) || 0), 0);
 
       const apptValue = (a: any) => a.total_amount || a.estimated_price;
+      // Parts sold inside a booking live in job_orders.parts_used.
+      const partsFromJob = (j: any) =>
+        (j.parts_used || []).reduce(
+          (t: number, p: any) =>
+            t + (Number(p.quantity_used) || 0) * (Number(p.unit_price) || 0),
+          0,
+        );
 
       const apptToday = sum(apptRows.filter((a) => (a.updated_at || "").startsWith(today)), apptValue);
-      const posToday = sum(
+      const posCounterToday = sum(
         salesRows.filter((s) => (s.created_at || "").startsWith(today)),
         (s) => s.sale_price,
       );
+      const bookingPartsToday = sum(
+        jobRows.filter((j) =>
+          (j.completed_at || j.created_at || "").startsWith(today),
+        ),
+        partsFromJob,
+      );
+      const posToday = posCounterToday + bookingPartsToday;
 
       const apptAll = sum(apptRows, apptValue);
-      const posAll = sum(salesRows, (s) => s.sale_price);
+      const posAll =
+        sum(salesRows, (s) => s.sale_price) + sum(jobRows, partsFromJob);
 
       // Revenue trend (last 14 days) — same convention as the platform dashboard.
       const dayKeys: string[] = [];
@@ -142,6 +163,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       salesRows.forEach((s) => {
         const k = (s.created_at || "").slice(0, 10);
         if (k in revenueMap) revenueMap[k] += Number(s.sale_price) || 0;
+      });
+      jobRows.forEach((j) => {
+        const k = (j.completed_at || j.created_at || "").slice(0, 10);
+        if (k in revenueMap) revenueMap[k] += partsFromJob(j);
       });
 
       setRevenueTrend(
@@ -234,7 +259,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     {
       label: "Parts & accessories",
       value: metrics.posToday,
-      info: "counter sales today",
+      info: "counter sales & parts used in bookings today",
       icon: ShoppingCart,
       accent: "#10b981",
     },
