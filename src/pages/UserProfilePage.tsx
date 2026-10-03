@@ -53,6 +53,10 @@ interface HistoryRecord {
   vehicle_id: string | null;
   service_type: string;
   scheduled_date: string;
+  scheduled_time?: string;
+  description?: string;
+  notes?: string;
+  created_at?: string;
   total_amount?: number | null;
   status: string;
   shop_name?: string;
@@ -125,6 +129,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [rebooking, setRebooking] = useState<HistoryRecord | null>(null);
+  const [viewingBooking, setViewingBooking] = useState<HistoryRecord | null>(
+    null,
+  );
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [bookingDetail, setBookingDetail] = useState<{
+    mechanicName?: string;
+    laborHours?: number;
+    laborRate?: number;
+    partsUsed?: { name?: string; quantity_used: number; unit_price: number }[];
+    totalCost?: number;
+  } | null>(null);
 
   // Add motorcycle
   const [showBikeModal, setShowBikeModal] = useState(false);
@@ -157,7 +172,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         supabase
           .from("appointments")
           .select(
-            "id, shop_id, vehicle_id, service_type, scheduled_date, total_amount, status",
+            "id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, total_amount, status, created_at",
           )
           .eq("customer_id", user.id)
           .order("scheduled_date", { ascending: false }),
@@ -189,6 +204,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           vehicle_id: a.vehicle_id ?? null,
           service_type: a.service_type,
           scheduled_date: a.scheduled_date,
+          scheduled_time: a.scheduled_time ?? undefined,
+          description: a.description ?? undefined,
+          notes: a.notes ?? undefined,
+          created_at: a.created_at ?? undefined,
           total_amount: a.total_amount ?? a.estimated_price ?? null,
           status: a.status,
         }));
@@ -390,6 +409,62 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             ? isUpcomingBooking(h)
             : !isUpcomingBooking(h),
         );
+
+  const openBooking = async (h: HistoryRecord) => {
+    setViewingBooking(h);
+    setBookingDetail(null);
+    setDetailLoading(true);
+    try {
+      const { data: jo } = await supabase
+        .from("job_orders")
+        .select("mechanic_id, labor_hours, labor_rate, parts_used, total_cost")
+        .eq("appointment_id", h.id)
+        .maybeSingle();
+
+      if (jo) {
+        let mechanicName: string | undefined;
+        if (jo.mechanic_id) {
+          const { data: mech } = await supabase
+            .from("users")
+            .select("name")
+            .eq("id", jo.mechanic_id)
+            .maybeSingle();
+          mechanicName = mech?.name;
+        }
+
+        let partsUsed: { name?: string; quantity_used: number; unit_price: number }[] = [];
+        const rawParts: { part_id?: string; quantity_used: number; unit_price: number }[] =
+          jo.parts_used || [];
+        if (rawParts.length > 0) {
+          const partIds = rawParts
+            .map((p) => p.part_id)
+            .filter(Boolean) as string[];
+          const { data: partRows } = partIds.length
+            ? await supabase.from("parts").select("id, name").in("id", partIds)
+            : { data: [] };
+          const nameMap: Record<string, string> = {};
+          (partRows || []).forEach((p: any) => (nameMap[p.id] = p.name));
+          partsUsed = rawParts.map((p) => ({
+            name: p.part_id ? nameMap[p.part_id] : undefined,
+            quantity_used: Number(p.quantity_used) || 1,
+            unit_price: Number(p.unit_price) || 0,
+          }));
+        }
+
+        setBookingDetail({
+          mechanicName,
+          laborHours: Number(jo.labor_hours) || 0,
+          laborRate: Number(jo.labor_rate) || 0,
+          partsUsed,
+          totalCost: Number(jo.total_cost) || 0,
+        });
+      }
+    } catch {
+      setBookingDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const handleCancelBooking = async (appointmentId: string) => {
     if (!user?.id) return;
@@ -826,10 +901,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     return (
                       <div
                         key={h.id}
-                        className={`rounded-xl border bg-moto-darker/40 transition ${
+                        onClick={() => openBooking(h)}
+                        title="View booking details"
+                        className={`cursor-pointer rounded-xl border bg-moto-darker/40 transition ${
                           confirmOpen
                             ? "border-rose-500/40"
-                            : "border-moto-gray/80"
+                            : "border-moto-gray/80 hover:border-moto-accent/50 hover:bg-moto-darker"
                         }`}
                       >
                         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
@@ -880,7 +957,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           {/* Actions */}
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setRebooking(h)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRebooking(h);
+                              }}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
                             >
                               <RotateCcw size={12} /> Rebook
@@ -888,23 +968,31 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
                             {canCancelBooking(h) && (
                               <button
-                                onClick={() =>
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setConfirmCancelId((current) =>
                                     current === h.id ? null : h.id,
-                                  )
-                                }
+                                  );
+                                }}
                                 disabled={cancellingId === h.id}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {cancellingId === h.id ? "Cancelling..." : "Cancel"}
                               </button>
                             )}
+
+                            <span className="ml-1 text-slate-500 transition group-hover:text-moto-accent">
+                              <ChevronRight size={16} />
+                            </span>
                           </div>
                         </div>
 
                         {/* Cancel confirm */}
                         {confirmOpen && (
-                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-moto-gray/80 px-4 py-3">
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex flex-wrap items-center justify-between gap-3 border-t border-moto-gray/80 px-4 py-3"
+                          >
                             <p className="text-[11px] text-slate-200">
                               Are you sure you want to cancel this appointment?
                             </p>
@@ -990,6 +1078,220 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
         </section>
       </main>
+
+      {/* ── Booking Details Modal ── */}
+      {viewingBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setViewingBooking(null);
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
+                  <Wrench size={22} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-100">
+                    {viewingBooking.service_type}
+                  </h3>
+                  <p className="truncate text-xs text-slate-400">
+                    {viewingBooking.shop_name || "Motor repair shop"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingBooking(null)}
+                className="rounded-lg p-1 text-slate-400 transition hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div
+              className={`mb-4 inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getAppointmentStatus(viewingBooking.status).pill}`}
+            >
+              {getAppointmentStatus(viewingBooking.status).label}
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2.5">
+                <Calendar
+                  size={15}
+                  className="mt-0.5 shrink-0 text-moto-accent"
+                />
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Scheduled
+                  </p>
+                  <p className="font-medium text-slate-100">
+                    {formatDate(viewingBooking.scheduled_date)}
+                    {viewingBooking.scheduled_time
+                      ? ` · ${viewingBooking.scheduled_time}`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Car size={15} className="mt-0.5 shrink-0 text-moto-accent" />
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Vehicle
+                  </p>
+                  <p className="font-medium text-slate-100">
+                    {viewingBooking.vehicle_name || "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Store size={15} className="mt-0.5 shrink-0 text-moto-accent" />
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Shop
+                  </p>
+                  <p className="font-medium text-slate-100">
+                    {viewingBooking.shop_name || "—"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <DollarSign
+                  size={15}
+                  className="mt-0.5 shrink-0 text-moto-accent"
+                />
+                <div className="min-w-0">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Total cost
+                  </p>
+                  <p className="font-semibold text-emerald-300 tabular-nums">
+                    {viewingBooking.total_amount != null
+                      ? `₱${Number(viewingBooking.total_amount).toLocaleString()}`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+              {viewingBooking.created_at && (
+                <div className="flex items-start gap-2.5">
+                  <Clock size={15} className="mt-0.5 shrink-0 text-moto-accent" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                      Booked on
+                    </p>
+                    <p className="font-medium text-slate-100">
+                      {formatDate(viewingBooking.created_at.slice(0, 10))}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {viewingBooking.description && (
+              <div className="mt-4 rounded-xl border border-moto-gray bg-moto-darker/60 p-3.5">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Description
+                </p>
+                <p className="text-sm leading-relaxed text-slate-300">
+                  {viewingBooking.description}
+                </p>
+              </div>
+            )}
+
+            {detailLoading && (
+              <p className="mt-4 text-xs text-slate-400">
+                Loading service details…
+              </p>
+            )}
+
+            {bookingDetail && (
+              <div className="mt-4 rounded-xl border border-moto-gray bg-moto-darker/60 p-3.5">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    Service details
+                  </p>
+                  <span className="text-sm font-bold text-emerald-300 tabular-nums">
+                    ₱
+                    {Number(bookingDetail.totalCost ?? 0).toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+                {bookingDetail.mechanicName && (
+                  <div className="mb-2.5 flex items-center gap-2 text-sm text-slate-300">
+                    <User size={14} className="shrink-0 text-moto-accent" />
+                    <span>
+                      Assigned to{" "}
+                      <span className="font-semibold text-slate-100">
+                        {bookingDetail.mechanicName}
+                      </span>
+                      {bookingDetail.laborHours && bookingDetail.laborHours > 0
+                        ? ` · ${bookingDetail.laborHours}h × ₱${Number(
+                            bookingDetail.laborRate || 0,
+                          ).toLocaleString()} rate`
+                        : ""}
+                    </span>
+                  </div>
+                )}
+                {bookingDetail.partsUsed && bookingDetail.partsUsed.length > 0 && (
+                  <div className="space-y-1.5">
+                    {bookingDetail.partsUsed.map((p, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-2 text-xs text-slate-300"
+                      >
+                        <span className="min-w-0 truncate">
+                          {p.name || "Part"}
+                        </span>
+                        <span className="shrink-0 tabular-nums">
+                          {p.quantity_used} × ₱
+                          {Number(p.unit_price).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!bookingDetail.mechanicName &&
+                  (!bookingDetail.partsUsed ||
+                    bookingDetail.partsUsed.length === 0) && (
+                    <p className="text-xs text-slate-400">
+                      No work logged for this booking yet.
+                    </p>
+                  )}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setRebooking(viewingBooking);
+                  setViewingBooking(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
+              >
+                <RotateCcw size={14} /> Rebook
+              </button>
+              {canCancelBooking(viewingBooking) && (
+                <button
+                  onClick={() => {
+                    setConfirmCancelId(viewingBooking.id);
+                    setViewingBooking(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 active:scale-95"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={() => setViewingBooking(null)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-moto-gray px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-moto-gray/40 active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Add Motorcycle Modal ── */}
       {showBikeModal && (
