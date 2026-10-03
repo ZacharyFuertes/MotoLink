@@ -178,6 +178,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [hasCompletedBooking, setHasCompletedBooking] = useState<boolean | null>(null);
+  const [myReview, setMyReview] = useState<ShopReview | null>(null);
 
   // Only show genuine owner-uploaded shop photos. Exclude any gallery entry
   // that is actually the shop's logo so the logo never shows inside the viewer.
@@ -242,6 +244,69 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     if (!shopId) return;
     fetchShopDetail();
   }, [shopId]);
+
+  // A customer can only review a shop after completing a booking there, and
+  // each customer gets exactly one editable review per shop.
+  const checkReviewEligibility = async () => {
+    if (!user?.id || !shopId) {
+      setHasCompletedBooking(false);
+      setMyReview(null);
+      return;
+    }
+    try {
+      const [apptResult, mineResult] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select("id")
+          .eq("customer_id", user.id)
+          .eq("shop_id", shopId)
+          .eq("status", "completed")
+          .limit(1),
+        supabase
+          .from("shop_reviews")
+          .select("id, customer_id, rating, title, comment, created_at")
+          .eq("shop_id", shopId)
+          .eq("customer_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      setHasCompletedBooking(
+        !!(apptResult.data && apptResult.data.length > 0),
+      );
+
+      if (mineResult.data) {
+        const mine: any = mineResult.data;
+        setMyReview({
+          id: mine.id,
+          customer_id: mine.customer_id,
+          rating: Number(mine.rating),
+          title: mine.title,
+          comment: mine.comment,
+          created_at: mine.created_at,
+        });
+      } else {
+        setMyReview(null);
+      }
+    } catch (err) {
+      console.error("Error checking review eligibility:", err);
+      setHasCompletedBooking(false);
+      setMyReview(null);
+    }
+  };
+
+  useEffect(() => {
+    checkReviewEligibility();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, shopId]);
+
+  // Prefill the review form with the customer's existing review when editing.
+  useEffect(() => {
+    if (myReview) {
+      setReviewRating(myReview.rating);
+      setReviewTitle(myReview.title || "");
+      setReviewText(myReview.comment || "");
+    }
+  }, [myReview]);
 
   const fetchReviews = async (shopIdValue: string) => {
     try {
@@ -365,21 +430,48 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
       return;
     }
 
+    if (!hasCompletedBooking) {
+      setReviewError("You can only review this shop after completing a booking here.");
+      return;
+    }
+
     try {
       setReviewSubmitting(true);
       setReviewError("");
 
-      const { error } = await supabase.from("shop_reviews").insert({
-        shop_id: shop.id,
-        customer_id: user.id,
+      const payload = {
         rating: reviewRating,
         title: reviewTitle.trim() || null,
         comment: reviewText.trim(),
         is_verified: true,
         is_visible: true,
-      });
+      };
 
-      if (error) throw error;
+      if (myReview) {
+        const { error } = await supabase
+          .from("shop_reviews")
+          .update(payload)
+          .eq("id", myReview.id);
+        if (error) throw error;
+        setMyReview((prev) => (prev ? { ...prev, ...payload, rating: reviewRating } : prev));
+      } else {
+        const { data, error } = await supabase
+          .from("shop_reviews")
+          .insert({ shop_id: shop.id, customer_id: user.id, ...payload })
+          .select()
+          .single();
+        if (error) throw error;
+        if (data) {
+          setMyReview({
+            id: data.id,
+            customer_id: data.customer_id,
+            rating: Number(data.rating),
+            title: data.title,
+            comment: data.comment,
+            created_at: data.created_at,
+          });
+        }
+      }
 
       setReviewTitle("");
       setReviewText("");
@@ -387,7 +479,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
       await fetchReviews(shop.id);
     } catch (err) {
       console.error("Error submitting review:", err);
-      setReviewError("Unable to submit your review right now. Please try again.");
+      setReviewError("Unable to save your review right now. Please try again.");
     } finally {
       setReviewSubmitting(false);
     }
@@ -1038,10 +1130,26 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     Login
                   </button>
                 </div>
+              ) : hasCompletedBooking === null ? (
+                <p className="text-sm text-slate-400">Checking your booking history…</p>
+              ) : !hasCompletedBooking ? (
+                <div className="flex items-start gap-3">
+                  <ShieldCheck size={18} className="mt-0.5 shrink-0 text-slate-500" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-200">
+                      Reviews are for verified customers
+                    </p>
+                    <p className="mt-0.5 text-sm text-slate-400">
+                      You can only review this shop after you've completed a booking here.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-100">Leave a review</p>
+                    <p className="text-sm font-semibold text-slate-100">
+                      {myReview ? "Edit your review" : "Leave a review"}
+                    </p>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -1086,7 +1194,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                       disabled={reviewSubmitting || !reviewText.trim() || reviewRating === 0}
                       className="inline-flex items-center justify-center rounded-full bg-moto-accent px-5 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {reviewSubmitting ? "Posting..." : "Post Review"}
+                      {reviewSubmitting
+                        ? myReview
+                          ? "Saving..."
+                          : "Posting..."
+                        : myReview
+                          ? "Update Review"
+                          : "Post Review"}
                     </button>
                   </div>
                 </div>
