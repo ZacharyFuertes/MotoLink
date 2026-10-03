@@ -14,14 +14,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   useEffect(() => { if (user?.shop_id) void load(); }, [user?.shop_id]);
   const load = async () => {
     if (!user?.shop_id) return; setLoading(true); const today = new Date().toISOString().slice(0, 10);
-    try { const [sales, pending, customers, low, products, upcoming] = await Promise.all([
+    try { const [sales, pending, customers, low, products, upcoming, apptRevRows, jobRevRows] = await Promise.all([
       supabase.from("part_sales").select("sale_price").eq("shop_id", user.shop_id).gte("created_at", `${today}T00:00:00`).lte("created_at", `${today}T23:59:59`),
       supabase.from("appointments").select("id", { count: "exact", head: true }).eq("shop_id", user.shop_id).eq("status", "pending"),
       supabase.from("users").select("id", { count: "exact", head: true }).eq("shop_id", user.shop_id).eq("role", "customer"), inventoryService.getLowStockParts(user.shop_id),
       supabase.from("products").select("id", { count: "exact", head: true }).eq("shop_id", user.shop_id),
       supabase.from("appointments").select("id, scheduled_date, scheduled_time, service_type, status, customer:users!customer_id (name)").eq("shop_id", user.shop_id).in("status", ["pending", "confirmed"]).order("scheduled_date").limit(5),
+      supabase.from("appointments").select("total_amount, estimated_price").eq("shop_id", user.shop_id).eq("status", "completed").gte("updated_at", `${today}T00:00:00`).lte("updated_at", `${today}T23:59:59`),
+      supabase.from("job_orders").select("total_cost").eq("shop_id", user.shop_id).eq("status", "completed").gte("completed_at", `${today}T00:00:00`).lte("completed_at", `${today}T23:59:59`),
     ]); const stock = Array.isArray(low) ? low : [];
-      setMetrics({ revenue: (sales.data || []).reduce((t, s: any) => t + Number(s.sale_price || 0), 0), appointments: pending.count || 0, customers: customers.count || 0, lowStock: stock.length, products: products.count || 0 }); setAppointments(upcoming.data || []); setLowStock(stock);
+      const posRevenue = (sales.data || []).reduce((t, s: any) => t + Number(s.sale_price || 0), 0);
+      const appointmentRevenue = (apptRevRows.data || []).reduce((t, a: any) => t + (Number(a.total_amount || a.estimated_price) || 0), 0);
+      const jobRevenue = (jobRevRows.data || []).reduce((t, j: any) => t + (Number(j.total_cost) || 0), 0);
+      setMetrics({ revenue: posRevenue + appointmentRevenue + jobRevenue, appointments: pending.count || 0, customers: customers.count || 0, lowStock: stock.length, products: products.count || 0 }); setAppointments(upcoming.data || []); setLowStock(stock);
     } finally { setLoading(false); }
   };
   const stats = [["Today's revenue", `₱${metrics.revenue.toLocaleString()}`, Banknote, "#35D0C0"], ["Pending appointments", metrics.appointments, CalendarDays, "#FF7A3D"], ["Total customers", metrics.customers, Users, "#948FA3"], ["Low stock items", metrics.lowStock, AlertTriangle, "#FF5C7A"], ["Products", metrics.products, Package, "#948FA3"]] as const;

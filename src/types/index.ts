@@ -69,6 +69,7 @@ export interface Appointment {
   notes?: string;
   parts?: any[];
   total_amount?: number;
+  estimated_price?: number;
   created_at: string;
   updated_at: string;
 }
