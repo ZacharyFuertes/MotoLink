@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileText,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
@@ -363,6 +364,24 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     setImagePreview("");
   };
 
+  // Generate a random SKU guaranteed unique in this shop's inventory
+  const generateSku = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const randomPart = () =>
+      Array.from(
+        { length: 6 },
+        () => chars[Math.floor(Math.random() * chars.length)],
+      ).join("");
+    const existing = new Set(
+      parts.map((p) => p.sku.trim().toLowerCase()).filter(Boolean),
+    );
+    let sku = "";
+    do {
+      sku = `MOTO-${randomPart()}`;
+    } while (existing.has(sku.toLowerCase()));
+    setFormData({ ...formData, sku });
+  };
+
   const filteredParts = useMemo(() => {
     const filtered = parts.filter((part) => {
       const matchesSearch =
@@ -615,15 +634,29 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
         </div>
         <div>
           <label className={labelClass}>SKU *</label>
-          <input
-            type="text"
-            value={formData.sku}
-            onChange={(e) =>
-              setFormData({ ...formData, sku: e.target.value })
-            }
-            className={inputClass}
-            required
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={formData.sku}
+              onChange={(e) =>
+                setFormData({ ...formData, sku: e.target.value })
+              }
+              className={`${inputClass} flex-1`}
+              placeholder="Auto-generated or type your own"
+              required
+            />
+            {showAddForm && !showEditForm && (
+              <button
+                type="button"
+                onClick={generateSku}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition shrink-0"
+                title="Generate a random SKU that's unique in your inventory"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Generate
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
