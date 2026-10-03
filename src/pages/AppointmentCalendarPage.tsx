@@ -16,6 +16,8 @@ import {
   Tag,
   Lock,
   Loader2,
+  Ban,
+  ArrowUpDown,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -78,8 +80,8 @@ const statusConfig: Record<
     label: "Completed",
   },
   cancelled: {
-    color: "bg-moto-gray/40 text-slate-400 border border-moto-gray/60",
-    dot: "bg-slate-400",
+    color: "bg-rose-500/15 text-rose-400 border border-rose-500/30",
+    dot: "bg-rose-500",
     label: "Cancelled",
   },
 };
@@ -212,9 +214,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         if (statusUpdatingId === appointmentId) return;
         setStatusUpdatingId(appointmentId);
 
-        if (appointment.status === "completed") {
+        if (
+          appointment.status === "completed" ||
+          appointment.status === "cancelled"
+        ) {
           setCompleteConfirmId(null);
-          alert("This appointment is already completed and can no longer be edited.");
+          alert(
+            appointment.status === "cancelled"
+              ? "This appointment is cancelled and can no longer be edited."
+              : "This appointment is already completed and can no longer be edited.",
+          );
           return;
         }
 
@@ -261,6 +270,12 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           if (appointment.customer_id) {
             sendServiceCompletionEmail(appointment.id)
               .then((result) => {
+                if (result.notConfigured) {
+                  console.info(
+                    "Completion email not sent – email service is not configured yet.",
+                  );
+                  return;
+                }
                 if (result.skipped) {
                   showToast("Email skipped – customer opted out.", "info");
                 } else if (result.success) {
@@ -404,6 +419,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   );
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
+  type SortKey = "date-asc" | "date-desc" | "status" | "customer" | "service";
+  const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+    { key: "date-asc", label: "Date · Earliest first" },
+    { key: "date-desc", label: "Date · Latest first" },
+    { key: "status", label: "Status" },
+    { key: "customer", label: "Customer" },
+    { key: "service", label: "Service" },
+  ];
+  const [sortBy, setSortBy] = useState<SortKey>("date-asc");
+
   const todayKey = new Date().toISOString().split("T")[0];
 
   const statCards = [
@@ -461,12 +486,41 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           service.includes(q)
         );
       })
-      .sort(
-        (a, b) =>
+      .sort((a, b) => {
+        const byDate = () =>
           a.scheduled_date.localeCompare(b.scheduled_date) ||
-          (a.scheduled_time || "").localeCompare(b.scheduled_time || ""),
-      );
-  }, [filteredAppointments, filterStatus, searchTerm]);
+          (a.scheduled_time || "").localeCompare(b.scheduled_time || "");
+        switch (sortBy) {
+          case "date-desc":
+            return (
+              b.scheduled_date.localeCompare(a.scheduled_date) ||
+              (b.scheduled_time || "").localeCompare(a.scheduled_time || "")
+            );
+          case "status":
+            return (
+              a.status.localeCompare(b.status) ||
+              byDate()
+            );
+          case "customer":
+            return (
+              ((a as any).customer?.name || "")
+                .toLowerCase()
+                .localeCompare(((b as any).customer?.name || "").toLowerCase()) ||
+              byDate()
+            );
+          case "service":
+            return (
+              (a.service_type || "")
+                .toLowerCase()
+                .localeCompare((b.service_type || "").toLowerCase()) ||
+              byDate()
+            );
+          case "date-asc":
+          default:
+            return byDate();
+        }
+      });
+  }, [filteredAppointments, filterStatus, searchTerm, sortBy]);
 
   const inputClass =
     "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
@@ -576,30 +630,51 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             className="w-full pl-10 pr-4 py-2.5 bg-moto-dark border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {filterTabs.map((tab) => {
-            const active = filterStatus === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setFilterStatus(tab.key)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all ${
-                  active
-                    ? "bg-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
-                    : "bg-moto-dark text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
-                }`}
-              >
-                {tab.label}
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
-                    active ? "bg-white/20 text-white" : "bg-moto-gray/40 text-slate-300"
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {filterTabs.map((tab) => {
+              const active = filterStatus === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilterStatus(tab.key)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all ${
+                    active
+                      ? "bg-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
+                      : "bg-moto-dark text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
                   }`}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+                  {tab.label}
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
+                      active ? "bg-white/20 text-white" : "bg-moto-gray/40 text-slate-300"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Sort
+            </span>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortKey)}
+                className="appearance-none pl-3 pr-8 py-2 bg-moto-dark border border-moto-gray rounded-lg text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.key} value={opt.key}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ArrowUpDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            </div>
+          </div>
         </div>
       </motion.div>
 
@@ -720,14 +795,24 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     {/* Right: actions */}
                     {canUpdateStatus && (
                       <div className="flex items-center gap-2 shrink-0">
-                        {apt.status === "completed" ? (
-                          <span
-                            title="This appointment is completed and can no longer be edited."
-                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[13px] font-bold text-emerald-300"
-                          >
-                            <Lock className="w-4 h-4" />
-                            Locked
-                          </span>
+                        {apt.status === "completed" || apt.status === "cancelled" ? (
+                          apt.status === "cancelled" ? (
+                            <span
+                              title="This appointment was cancelled and can no longer be edited."
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[13px] font-bold text-rose-300"
+                            >
+                              <Ban className="w-4 h-4" />
+                              Cancelled
+                            </span>
+                          ) : (
+                            <span
+                              title="This appointment is completed and can no longer be edited."
+                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[13px] font-bold text-emerald-300"
+                            >
+                              <Lock className="w-4 h-4" />
+                              Completed
+                            </span>
+                          )
                         ) : (
                           <>
                             {["pending", "confirmed", "in_progress"].includes(apt.status) &&

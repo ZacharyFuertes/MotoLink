@@ -13,8 +13,10 @@
 import { createClient } from "@supabase/supabase-js";
 import sgMail from "@sendgrid/mail";
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
@@ -312,10 +314,18 @@ export default async function handler(req: any, res: any) {
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return res.status(500).json({ success: false, error: "Supabase is not configured." });
+    return res.status(500).json({
+      success: false,
+      error:
+        "Email service not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing on the server.",
+    });
   }
   if (!SENDGRID_API_KEY || !FROM_EMAIL) {
-    return res.status(500).json({ success: false, error: "SendGrid is not configured." });
+    return res.status(500).json({
+      success: false,
+      error:
+        "Email service not configured: SENDGRID_API_KEY or SENDGRID_FROM_EMAIL is missing on the server.",
+    });
   }
 
   const { template, appointmentId, accessToken } = req.body || {};

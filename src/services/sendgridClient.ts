@@ -19,6 +19,8 @@ export interface EmailRequestResult {
   success: boolean;
   skipped?: boolean;
   error?: string;
+  /** True when the email service env keys aren't set yet — callers should stay quiet. */
+  notConfigured?: boolean;
 }
 
 /**
@@ -52,9 +54,12 @@ export const requestEmail = async (
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {
+      const notConfigured =
+        typeof body?.error === "string" && /not configured/i.test(body.error);
       return {
         success: false,
         error: body?.error || `Email request failed (${response.status}).`,
+        ...(notConfigured ? { notConfigured: true } : {}),
       };
     }
 
