@@ -1620,7 +1620,6 @@ erDiagram
 - `city` (VARCHAR)
 - `latitude` (FLOAT8)
 - `longitude` (FLOAT8)
-- `specialties` (TEXT[])
 - `operating_hours` (VARCHAR)
 - `is_active` (BOOLEAN)
 
@@ -1797,16 +1796,19 @@ distanceKm = earthRadiusKm * 2 * atan2(
 2. Measure distance from current user coordinates
 3. Attach distanceKm to each shop
 4. Sort ascending by distance
-5. Filter by specialty, city, or availability flags if requested
+5. Filter by city or availability flags if requested
 6. Render shops nearest-first
 ```
 
 This produces a local discovery sequence such as:
 
 - nearest shop first
-- specialty match second
-- availability filter third
+- availability filter second
 - city search last
+
+> As of Oct 03, 2026 the former "specialty match" step is **removed** — `shops.specialties` was
+> dropped from the database and the whole system. Nearest → availability → city is now the
+> complete discovery order.
 
 ---
 
@@ -2336,7 +2338,7 @@ Mapping to actual Supabase tables:
 | F36 | 3.0 Inventory | D12 part_sales | `{part_id, shop_id, quantity_sold, unit_price, sale_price, sold_by}` | INSERT on checkout / SELECT (**scoped by user.shop_id for today's sales**) |
 | F37 | 3.0 Inventory | D13 reservations | `{customer_id, part_id, status, quantity}` | SELECT (**scoped by parts.shop_id** for admin context) |
 | F38 | 4.0 Shop Catalog | D1 users | `{id, name, email, role}` | SELECT mechanics (**scoped by user.shop_id**) |
-| F39 | 4.0 Shop Catalog | D2 shops | `{id, name, slug, logo_url, description, address, city, lat, lng, phone, email, specialties, operating_hours}` | SELECT public shops |
+| F39 | 4.0 Shop Catalog | D2 shops | `{id, name, slug, logo_url, description, address, city, lat, lng, phone, email, operating_hours}` | SELECT public shops |
 | F40 | 4.0 Shop Catalog | D4 services_pricing | `{label, description, icon, price, is_active **, shop_id**}` | SELECT / UPSERT / DELETE |
 | F41 | 4.0 Shop Catalog | D6 products | `{shop_id, name, description, unit_price, category, image_url}` | INSERT / SELECT (**scoped by shop_id**) / UPDATE / DELETE |
 | F42 | 4.0 Shop Catalog | D7 featured_products | `{shop_id, product_id, display_order, is_active}` | INSERT / SELECT / DELETE / UPDATE (toggle, reorder) |
@@ -7013,6 +7015,341 @@ ticked before the user can continue or submit.
 ### Verified
 - `npm run build` passes (tsc + vite; only pre-existing chunk-size warning).
 - Committed + pushed on user request (email-notifications work + this batch).
+
+---
+
+## TASK LOG — Remove the shop-level "Speciality" field (shops.specialties)
+
+Date: Oct 03, 2026
+
+### Decision
+Completely remove the shop-level speciality field (`shops.specialties`, TEXT[]) from the whole
+system: database, owner registration, owner shop settings, the owner dashboard "Live Shop Info"
+card, shop discovery filters/sorting, and the Customer POV (landing cards + ShopDetailPage).
+The field duplicated the shop description and was only ever used for a discovery filter and
+cosmetic tag chips.
+
+**`shop_mechanics.specialty` was INTENTIONALLY LEFT UNTOUCHED.** That is a *mechanic's own*
+speciality — a different table, a different column, unrelated behaviour, and out of scope. No
+mechanic UI, service or data path was modified.
+
+### Database
+- NEW `supabase/migrations/20261003_drop_shop_specialties.sql` — `ALTER TABLE public.shops DROP
+  COLUMN IF EXISTS specialties;`. Verified beforehand that **no view, function, index or FK**
+  references the column (only two historical seed INSERTs do), so nothing cascade-breaks.
+  `register_shop_owner()` never listed the column in its INSERT (it relied on `DEFAULT '{}'`), so
+  the signup RPC is unaffected.
+- `MOTOLINK_ERD_SCHEMA.sql` + `supabase/schema.sql` — `specialties TEXT[] NOT NULL DEFAULT '{}'`
+  removed from the `shops` CREATE TABLE baseline. `COMPLETE_DATABASE_SCHEMA.sql:223`
+  (`shop_mechanics.specialty TEXT`) deliberately kept.
+- Historical migrations `20260725_create_public_shops.sql`, `20260819_demo_shop_seed.sql`,
+  `20260831_nathan_drake_test_shop.sql` left as-is (applied history); the new migration's header
+  notes that replaying the seeds afterwards requires dropping the value from their column lists.
+
+### The `shops.description` NOT NULL history (important — do not "fix" this)
+- The old signup bug (see the 23502 entry above) was caused by `description: shop_description ||
+  null`. It was already fixed twice: the client now sends `|| ""`, and
+  `20260813_fix_owner_signup.sql` **deliberately dropped NOT NULL** on `shops.description` (with
+  `DEFAULT ''`) so a signup can never 23502. The RPC also wraps it in
+  `COALESCE(NULLIF(p_description,''),'')`.
+- So `description` is nullable-with-default in the live DB. The new migration deliberately does
+  **NOT** re-add `NOT NULL` — doing so would resurrect the original failure. `description` is
+  otherwise unchanged and still independently required in the ERD baseline.
+- The registration wizard's speciality chips used to be the *only* writer of
+  `signupData.shop_description` (`setSignupData(prev => ({...prev, shop_description: newText}))`).
+  With the chips gone, Step 0 now has an explicit **Shop Description textarea**, so
+  `description` is set independently of any speciality selection and the coupling that caused the
+  original bug can no longer occur.
+
+### Code changes
+- `src/services/shopService.ts` — `specialties` removed from `SHOP_SELECT` and
+  `SHOP_SELECT_NO_IS_OPEN` (the shared field list behind `getPublicShops` / `getShopById` /
+  `getShopByOwnerId`, i.e. the F39 catalog select) and from `updateShop`'s `Pick<Shop, ...>` write
+  payload. `normalizeSpecialties` was **renamed to `normalizeShop` rather than deleted** — it also
+  carries the `is_open` inference fallback from `operating_hours` used by the pre-migration
+  `is_open` resilience path, which is still needed.
+- `src/types/shop.ts` — `specialties: string[]` removed from the `Shop` interface.
+- `src/pages/ShopOwnerLoginPage.tsx` — removed the `specialtiesText` state + its draft-persistence
+  key and effect dependency, the `SPECIALTY_OPTIONS` constant, and the whole "Specialty Services"
+  chip block in Step 0; replaced with the independent Shop Description textarea.
+  `validateStep()` never referenced specialty (verified), so it is unchanged.
+- `src/pages/ShopSettingsPage.tsx` — removed the comma-list Specialties input, `specialtiesText`
+  state, the load/save re-population, the `specialtyList` parse and the `specialties` key in the
+  `updateShop` payload.
+- `src/pages/OwnerPlatformDashboard.tsx` — removed the specialty tag row from the Live Shop Info card.
+- `src/components/ShopCard.tsx` — card body is now description, else the "Full-service motorcycle
+  shop" fallback (the specialty-tag branch was only a fallback when description was empty).
+- `src/pages/ShopDetailPage.tsx` — removed the specialty pill row under the contact details.
+- `src/components/ShopFilters.tsx` — the "All specialties" select is gone; the component is now
+  availability-only (`availabilityOnly` / `onAvailabilityChange` props only).
+- `src/pages/MotolinkLanding.tsx` — removed the `specialty` state, the
+  `shop.specialties.includes(specialty)` filter clause, the `DEFAULT_SPECIALTIES` list, the derived
+  `specialties` memo and the `<ShopFilters>` specialty props. Discovery order is unchanged and still
+  **nearest-shop-first (sortByDistance) → availability filter → city search**.
+- `src/components/AdminShopReviewModal.tsx` — found by grep, not in the original brief: it selected
+  `specialties` in its shop-detail query (which would 400 after the drop) and rendered a Specialties
+  block. Both removed.
+- `src/components/AIChatModal.tsx` — found by grep: shop-recommendation query select, the
+  "Specialties:" line in the rendered `<shop_recommendations>` block, and the prompt wording
+  ("match against each shop's description, city/proximity, and services") updated.
+- `index.html` — the global Chosen (jQuery) plugin CSS, the `chosen.min.css` link and the
+  jQuery + `chosen.jquery.min.js` scripts were loaded *solely* for the specialty selector (see the
+  comment on the old line 49). Verified nothing in `src/` uses jQuery or `.chosen-*`, then removed
+  the dead assets (~90 lines).
+
+### Verified
+- `npx tsc --noEmit` clean; `npm run build` passes (tsc + vite; only the pre-existing chunk-size
+  warning).
+- Repo-wide grep for `specialt` now returns only: the preserved `shop_mechanics.specialty` in
+  `COMPLETE_DATABASE_SCHEMA.sql`, the three untouched historical migrations, and this migration's
+  own comments. No app code references remain.
+- NOT YET RUN against a live database — run `20261003_drop_shop_specialties.sql` in the Supabase
+  SQL Editor. Note the app reads `specialties`-free selects now, so the column must be dropped
+  before/with deploy (the selects only fail once the column is gone, never before).
+- Not yet committed/pushed (waiting on user).
+
+---
+
+## TASK LOG — Remove the description line from customer-facing shop cards (display only)
+
+Date: Oct 03, 2026
+
+### Decision
+Hide the shop description / "Full-service motorcycle shop" line from **customer-facing shop cards**
+only. This is a pure UI display removal. `shops.description` is **completely untouched in the data
+layer** — still the column, still selected, still required, still editable.
+
+The line in the screenshot was the `<ShopCard>` block that rendered `shop.description`, falling back
+to the italic *"Full-service motorcycle shop"* placeholder whenever the description was empty
+(shop cards with no description yet therefore showed the italic line).
+
+### Files where the line was removed
+- `src/components/ShopCard.tsx` — **the only live card change.** Deleted the whole
+  `<div className="min-h-[2.5rem] flex flex-col justify-center">` block (description → italic
+  fallback). Card flow is now address → rating/distance badges → SCHEDULE grid.
+- `src/components/HeaderCard.tsx` — a second shop card that rendered `<p>{shop.description}</p>`.
+  NOTE: this component is **dead code — it is not imported anywhere in the app**; it was changed
+  only for consistency with "no shop card shows description". Its now-unused
+  `description?: string` prop was removed from `HeaderCardProps` too.
+
+### Spacing (no leftover gap)
+The card body is a `flex flex-col gap-3` column, so removing the block leaves a uniform 0.75rem gap
+between every remaining row. The SCHEDULE container also carried a `my-1` that would have made the
+badges→schedule gap 1rem vs 0.75rem elsewhere; `my-1` was dropped so all gaps are identical. The
+address (`min-h-[2.25rem]`) and badges (`min-h-[1.5rem]`) rows keep their min-heights, so cards in
+the carousel stay vertically aligned.
+
+### Verified as ALREADY not rendering description (no change needed)
+- `ShopDetailPage.tsx` — the "Shop Profile Card" sidebar never rendered `shop.description`
+  (confirmed by grep); the only `.description` hits there are **service/part** descriptions.
+- `ShopMap.tsx` — the shop list card shows name / rating / distance+address only, no description.
+- Card render path is `MotolinkLanding` → `ShopGallery` (carousel) → `ShopCard`; `ShopGallery` is
+  only used by the landing page, so this one edit covers every customer-facing shop card.
+
+### Deliberately KEPT (description still meaningful here)
+- `src/services/shopService.ts` — `description` stays in `SHOP_SELECT` / `SHOP_SELECT_NO_IS_OPEN`.
+- `src/types/shop.ts` — `description: string` stays on the `Shop` interface.
+- `src/pages/ShopOwnerLoginPage.tsx` — registration still collects `shop_description` and submits
+  it (`p_description` to `register_shop_owner`, plus the fallback insert).
+- `src/pages/ShopSettingsPage.tsx` — owner still edits the description and saves it via `updateShop`.
+- `src/components/AdminShopReviewModal.tsx:147` — admin shop review still shows it.
+- `src/pages/OwnerPlatformDashboard.tsx:777` — owner "Live Shop Info" card still shows it.
+- `src/components/AIChatModal.tsx:203` — the description is still fed into the assistant's
+  `<shop_recommendations>` context so it can match shops to a customer's need.
+
+### Verified
+- `npx tsc --noEmit` clean; `npm run build` passes (tsc + vite; only the pre-existing chunk-size
+  warning).
+- A grep for `shop.description` / `details.description` now returns only the intentional keeps above.
+- Visual check in the browser still pending (not run here).
+- Not yet committed/pushed (waiting on user).
+
+---
+
+## TASK LOG — Per-day Operating Hours editor in owner Shop Settings
+
+Date: Oct 03, 2026
+
+### Decision
+Replace the raw free-text "Operating Hours" input on the owner's Shop Settings page with a 7-day
+Open/Closed + time-range editor, reusing the **existing** `operating_schedule[7]{open, openTime,
+closeTime}` model from the registration wizard (Step 2 "Hours") instead of inventing a new shape.
+The stored `shops.operating_hours` VARCHAR format is **unchanged**.
+
+### Files touched
+- `src/pages/ShopSettingsPage.tsx` — the only file changed.
+
+### Implementation
+- **Model**: module-level `type DaySchedule = { open, openTime, closeTime }` + `WEEK_DAYS`
+  (index 0 = Sunday), mirroring the wizard. `scheduleToOperatingHours()` is a byte-for-byte copy of
+  the wizard's `generateOperatingHoursString` — it emits `"Sun: closed; Mon: 08:00-19:30; ..."`.
+- **Load**: `parseOperatingHoursString()` (already exported from `shopService.ts`) hydrates the
+  7-day state on load, so the owner sees current hours pre-filled. `"Hours unavailable"` /
+  `""` / unparseable text degrade to all-closed.
+- **Save**: writes `scheduleToOperatingHours(schedule)` through the existing `updateShop` call.
+  After a successful save the state is re-derived from the value the server returned, so the form
+  always mirrors the canonical string.
+- **UI**: new full-width `dashboard-card` "Operating Hours" section (the old field was a
+  `md:col-span-2` input at the end of Location & Contact; that section's subtitle was updated too).
+  Each day row = toggle button (teal `Check` when open / grey `X` when closed — matching
+  ShopDetailPage's open-dot vs closed-dot language), day name with a "Today" marker, and two
+  `type="time"` inputs that only render when the day is open. Closed days show a "Closed" label.
+  Added a `timeInputClass` with `[color-scheme:dark]` so the native clock glyphs are legible.
+- **Convenience**: "Apply to all open days" copies the first open day's times onto every other open
+  day (same semantics as the wizard's button); closed days stay closed.
+- **Theme note**: the brief described ShopSettingsPage as "light theme, white cards, violet
+  accents". It is actually **dark** (`bg-moto-darker`, `moto-accent`, `dashboard-card`) — the new
+  section matches the real page theme rather than the description in the brief.
+
+### Validation
+- `getScheduleIssues()` flags only: missing open/close time, and `openTime === closeTime`.
+- **Overnight shifts are deliberately allowed.** `closeTime < openTime` is annotated
+  ("Overnight shift — closes the next day") instead of blocked, because
+  `isOpenNowFromOperatingHours()` in `shopService.ts` explicitly supports it
+  (`closeMin <= openMin` → "now >= open OR now < close"). Blocking close<open would have made
+  overnight shops unsavable and broken the shared parser's contract.
+- Errors render inline per day (red border + red message) plus a summary banner, and save is
+  blocked with an explicit message rather than failing silently.
+
+### Legacy-data safety (found while verifying)
+A shop may already hold hours this model can't represent — the old field accepted arbitrary text
+(e.g. `"Mon–Sat 8:00 AM – 6:00 PM"`), which parses to **zero open days**. Without a guard, opening
+settings and hitting Save would silently overwrite those hours with an all-closed string.
+Added: `legacyHoursUnmapped` memo (stored string is non-empty but yields no open day) → shows an
+amber notice quoting the old value, and on save the **original string is preserved verbatim unless
+the owner actually edited the schedule** (`scheduleTouched` flag, reset after each successful save).
+
+### Verified
+- Round-trip tested against the real `parseOperatingHoursString` logic with Node: emitted string is
+  identical in format to the wizard's, open/closed flags and times survive the round trip, overnight
+  (`22:00-02:00`) survives, and legacy/empty inputs parse to all-closed.
+- `npx tsc --noEmit` clean; `npm run build` passes (only the pre-existing chunk-size warning).
+- Owner Dashboard "Live Shop Info" realtime still fires: its channel subscribes
+  `event: "*"` on `shops` filtered by `id=eq.${shop.id}` → `fetchShop()`, so any `operating_hours`
+  UPDATE refetches the card. (The card itself doesn't display hours — it shows logo/name/address/
+  active pill/description.) Customer-facing `ShopDetailPage` SCHEDULE card and the landing "Open
+  now" pill read the same unchanged string via the same parser.
+- Registration wizard Step 2 was **not** modified (referenced only).
+- Visual check in a browser still pending (not run here).
+- Not yet committed/pushed (waiting on user).
+
+---
+
+## TASK LOG — Admin "Import CSV" bulk creation of shop owners
+
+Date: Oct 03, 2026
+
+### Decision
+Let an admin bulk-create shop owner accounts from a CSV on the Admin Shops page
+(`AdminShopsPage.tsx`) instead of registering them one by one. New dependency: **`papaparse@^5.7.0`**
+(+ `@types/papaparse@^5.5.2`) — the project's first CSV library. No `specialties` column (that field
+is being removed in a separate task).
+
+### The registration path — and why it's server-side
+The brief said to reuse the `register_shop_owner` RPC per row. **That is not possible**, for three
+reasons found in the existing code:
+
+1. `register_shop_owner` (`supabase/migrations/20260813_fix_owner_signup.sql`) begins with
+   `IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN RAISE EXCEPTION 'Not allowed'` — it only
+   lets a user register **themselves**, so an admin cannot call it for other owners.
+2. `supabase/admin_rls.sql` grants admins only **SELECT / UPDATE / DELETE** on `shops`. There is no
+   admin INSERT policy, so a browser-only import would be rejected by RLS on the shop insert.
+3. Creating the auth user at all requires the service-role Admin API, which must never ship to the
+   browser.
+
+So `api/import-shop-owners.ts` was added (Vercel serverless, same pattern/auth-verification approach
+as the existing `api/send-email.ts`), and it reproduces the manual signup flow step for step:
+
+```
+auth.admin.createUser({ email, password, email_confirm: true })   // no confirmation loop
+  -> users upsert role='owner'      (same as RPC step 1; handle_new_user may have made them 'customer')
+  -> shops insert, is_active=false   (same as RPC step 2 — PENDING, so admin still Approves)
+  -> users.shop_id = shops.id        (same as RPC step 3)
+```
+
+The RPC itself and the signup logic in `ShopOwnerLoginPage.tsx` were **not modified**. Imported
+shops go through the identical validation/RLS-equivalent flow, they just get service-role
+privileges to do it on someone else's behalf.
+
+Auth on the route: requires `Authorization: Bearer <supabase JWT>`, verifies it with
+`auth.getUser(token)`, then checks `users.role === 'admin'` explicitly (the service role bypasses
+RLS, so the check has to be manual).
+
+### CSV template format
+Required: `email, name, shop_name, shop_description, shop_address, shop_city, shop_phone`
+Optional: `password, latitude, longitude`
+
+- **`password` blank → a secure temp password is generated** per owner (14 chars,
+  `crypto.randomInt` over an unambiguous alphabet, no `0/O/1/l/I`), returned in the results and
+  included in the downloadable results CSV. A `password` column, when supplied, is used as-is.
+  There is **no invite/reset-on-first-login flow in the app today** (checked AuthContext and
+  `api/send-email.ts`, which only has booking templates), so temp-password + CSV hand-off is the
+  delivery mechanism.
+- **`latitude`/`longitude`** are optional because `shops.latitude`/`longitude` are `NOT NULL` with
+  no default and a CSV has no map pin. Omitted → `0,0` (same fallback Shop Settings uses); the
+  owner can drop a real pin later in Shop Settings, which does have a map. Provided values are
+  range-checked (−90..90 / −180..180).
+- `operating_hours` is **not** in the CSV; imported shops get the column default
+  `'Hours unavailable'` and the owner sets a real schedule in the new per-day hours editor.
+- Slugs are generated with the same rules as the signup form (lowercase, non-alnum → `-`, trimmed,
+  40-char cap) plus a random hex suffix, retried up to 3× on the `shops_slug_key` collision.
+
+### Client-side validation (PapaParse, `src/utils/shopImportCsv.ts`)
+Header keys are normalised (`"Shop Name"` → `shop_name`, BOM/case/space tolerant), then every row
+is validated and **all** problems are collected — nothing is silently skipped:
+missing required field (per field), invalid email, duplicate email inside the file (case-insensitive,
+reported against the first occurrence), password under 8 chars, non-numeric/out-of-range
+coordinates, and rows with **more values than the header**.
+
+That last check was added after a real bug was caught during testing: the first version of the
+downloadable template contained `123 Katipunan Ave, Quezon City` **unquoted**, so PapaParse split it
+across two columns and silently shifted every following field left by one (shop_phone became the
+city, password became the phone, latitude became empty, longitude spilled into `__parsed_extra`).
+The template now builds through `csvCell()`, and `__parsed_extra` is reported as a per-row error
+("check for an unquoted comma") so a user's file with the same mistake can't corrupt an import.
+
+Rows are also labelled by **row ordinal** (1-based among data rows), not physical file line, because
+`skipEmptyLines: "greedy"` means physical line numbers would be wrong whenever the file has blank
+lines.
+
+Row limit: **100 per import**, enforced client-side (clear "split it into smaller files" message) and
+again server-side. Rows are processed **sequentially** server-side to avoid hammering auth signup.
+
+### Admin UX (3 steps, all in the existing dark Admin theme — no new design system)
+1. **Upload** — "Download template" button + `.csv` file picker.
+2. **Preview** — per-row table with Ready/Error state and the specific error text under each bad
+   row. Import is blocked while errors remain unless the admin explicitly ticks
+   "import valid rows and skip N" (so skipping is always a conscious choice, never silent).
+3. **Results** — imported/failed/generated-password counters, per-row outcome with the real error
+   (e.g. "Email already registered"), the generated passwords inline, and a **Download results CSV**
+   (email, name, shop_name, status, shop_id, temp_password, error).
+
+The page's shop list refreshes automatically after a successful import (`onImported={fetchShops}`).
+The "Import CSV" entry point is a new card above the shops table; the existing tabs, search,
+Approve/Deactivate/Delete actions and all table columns are untouched (37 insertions, 0 deletions).
+
+### Files touched
+- `api/import-shop-owners.ts` — **new** serverless import route (service role + admin check).
+- `src/utils/shopImportCsv.ts` — **new** pure CSV constants/parse-validation/export helpers
+  (React-free so they're unit-testable).
+- `src/components/AdminShopImportModal.tsx` — **new** the 3-step import modal.
+- `src/pages/AdminShopsPage.tsx` — +37 lines: button card, modal mount, `importingShops` state.
+- `package.json` / `package-lock.json` — `papaparse`, `@types/papaparse`.
+- `MEMORY.md` — this entry.
+
+### Verified
+- `npx tsc --noEmit` clean; `npm run build` passes (only the pre-existing chunk-size warning).
+- `api/` is **not** in `tsconfig.json` (`include: ["src"]`), so `npm run build` does not typecheck
+  it — same pre-existing gap as `api/send-email.ts`. Typechecked it separately with
+  `tsc --strict` → clean.
+- 63 assertions over the real parsing/validation module (bundled with esbuild, run in Node) all
+  pass: template round-trip, header normalisation, missing columns/fields, valid+invalid emails,
+  duplicate detection, coordinate ranges, password length, quoted-comma/escaped-quote round-trip,
+  unquoted-comma detection, blank-line handling, csvCell escaping, and the row-limit constant.
+- **Not verified:** no live Supabase run and no browser click-through. The route needs
+  `SUPABASE_SERVICE_ROLE_KEY` in the server env and must be exercised with `vercel dev` — plain
+  `vite dev` does not serve `api/`, so the import button will fail to connect locally under Vite.
+- Not committed/pushed (waiting on user).
 
 ---
 

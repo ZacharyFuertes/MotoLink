@@ -14,11 +14,13 @@ import {
   Clock,
   AlertTriangle,
   Eye,
+  Upload,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import AdminShopReviewModal, {
   ReviewShop,
 } from "../components/AdminShopReviewModal";
+import AdminShopImportModal from "../components/AdminShopImportModal";
 
 interface AdminShopRow {
   id: string;
@@ -60,6 +62,7 @@ const AdminShopsPage: React.FC = () => {
   const [shopCustomers, setShopCustomers] = useState<ShopCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [reviewingShop, setReviewingShop] = useState<AdminShopRow | null>(null);
+  const [importingShops, setImportingShops] = useState(false);
 
   const fetchShops = useCallback(async () => {
     setLoading(true);
@@ -364,6 +367,33 @@ const AdminShopsPage: React.FC = () => {
             className="w-full sm:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
+      </motion.div>
+
+      {/* Bulk import entry point */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-moto-gray bg-moto-dark px-4 py-3.5 shadow-sm"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center shrink-0">
+            <Upload className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[13px] font-bold text-slate-100">Bulk import shop owners</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Upload a CSV to create owner accounts and shops in one go instead of registering them
+              one by one. Up to 100 rows at a time.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setImportingShops(true)}
+          className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent text-[13px] font-bold rounded-xl transition"
+        >
+          <Upload className="w-4 h-4" /> Import CSV
+        </button>
       </motion.div>
 
       {/* Shops Table */}
@@ -770,6 +800,13 @@ const AdminShopsPage: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bulk import from CSV */}
+      <AdminShopImportModal
+        open={importingShops}
+        onClose={() => setImportingShops(false)}
+        onImported={fetchShops}
+      />
     </div>
   );
 };
