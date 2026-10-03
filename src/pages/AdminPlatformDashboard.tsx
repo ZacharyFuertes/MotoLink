@@ -748,7 +748,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed left-0 top-0 bottom-0 w-[260px] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
             >
               <SidebarContent isMobile />
             </motion.aside>
@@ -759,16 +759,16 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 dashboard-header h-16 flex items-center justify-between px-4 lg:px-8">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 dashboard-header min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
               className="lg:hidden p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg sm:text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 {sidebarItems.find((i) => i.id === currentPage)?.label || "Dashboard"}
               </h1>
               <p className="text-sm text-slate-400 font-medium hidden sm:block">
@@ -777,7 +777,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
               className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
@@ -817,7 +817,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.97 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
+                      className="absolute right-0 top-full mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
                     >
                       <div className="flex items-center justify-between px-4 py-3 border-b border-moto-gray bg-moto-dark">
                         <div>
@@ -917,7 +917,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-auto">
+        <main className="min-w-0 w-full flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
           {currentPage === "admin-dashboard" ? (
             <>
               {/* Pending Shop Approvals */}

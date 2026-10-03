@@ -367,7 +367,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed left-0 top-0 bottom-0 w-[260px] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
             >
               <SidebarContent isMobile />
             </motion.aside>
@@ -378,16 +378,16 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 dashboard-header h-16 flex items-center justify-between px-4 lg:px-8">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 dashboard-header min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
               className="lg:hidden p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg sm:text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                 {currentLabel}
               </h1>
               {isLocked && (
@@ -404,7 +404,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <button
               onClick={() => setLanguage(language === "en" ? "tl" : "en")}
               className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
@@ -444,7 +444,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
                   >
                     <div className="flex items-center justify-between px-4 py-3 border-b border-moto-gray bg-moto-dark">
                       <div>
@@ -546,12 +546,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-auto">
+        <main className="min-w-0 w-full flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
           {shopLoading ? null : isPendingApproval || shopNotFound ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="dashboard-card p-12 mb-6 flex flex-col items-center text-center"
+              className="dashboard-card p-5 sm:p-8 lg:p-12 mb-6 flex flex-col items-center text-center"
             >
               <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-amber-500/15 to-amber-500/25 border border-amber-200/50 flex items-center justify-center mb-8 shadow-sm">
                 <Clock className="w-12 h-12 text-amber-400" />
@@ -703,7 +703,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="dashboard-card p-6 mb-8"
+                className="dashboard-card p-4 sm:p-6 mb-8"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                   <div className="flex items-center gap-3">
@@ -732,8 +732,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     <Loader className="w-6 h-6 text-violet-500 animate-spin" />
                   </div>
                 ) : shop ? (
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex min-w-0 flex-col gap-4">
+                    <div className="flex min-w-0 items-start gap-4">
                       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-moto-gray to-moto-gray-light border border-violet-100 flex items-center justify-center overflow-hidden shadow-sm">
                         {shop.logo_url ? (
                           <img
@@ -745,13 +745,13 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                           <Store className="w-12 h-12 text-violet-400" />
                         )}
                       </div>
-                      <div>
-                        <p className="text-xl font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-xl font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                           {shop.name || "Unnamed shop"}
                         </p>
-                        <div className="flex items-center gap-2 text-[13px] text-slate-300 mt-1">
-                          <MapPin className="w-4 h-4 text-slate-300" />
-                          <span>
+                        <div className="flex min-w-0 items-start gap-2 text-[13px] text-slate-300 mt-1">
+                          <MapPin className="w-4 h-4 shrink-0 text-slate-300 mt-0.5" />
+                          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                             {[shop.address, shop.city].filter(Boolean).join(", ") ||
                               "No address set"}
                           </span>
@@ -772,13 +772,15 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                         </span>
                       </div>
                     </div>
-                    <div className="md:border-l md:border-moto-gray md:pl-6 flex-1 min-w-0">
+                    <div className="min-w-0 border-t border-moto-gray pt-4">
                       <p className="text-[15px] text-slate-200 line-clamp-3 leading-relaxed">
                         {shop.description || "No description yet."}
                       </p>
-                      <p className="text-[13px] text-slate-300 mt-4 flex items-center gap-1.5">
-                        <ExternalLink className="w-4 h-4" />
-                        Changes appear on the MotoLink landing page immediately.
+                      <p className="mt-3 flex min-w-0 items-start gap-1.5 text-[13px] text-slate-300">
+                        <ExternalLink className="w-4 h-4 shrink-0" />
+                        <span className="min-w-0 break-words">
+                          Changes appear on the MotoLink landing page immediately.
+                        </span>
                       </p>
                     </div>
                   </div>
