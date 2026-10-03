@@ -776,18 +776,6 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       <p className="text-[15px] text-slate-200 line-clamp-3 leading-relaxed">
                         {shop.description || "No description yet."}
                       </p>
-                      {(shop.specialties || []).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-4">
-                          {shop.specialties.slice(0, 6).map((s) => (
-                            <span
-                              key={s}
-                              className="px-3 py-1 rounded-lg bg-violet-500/15 text-violet-400 text-[13px] font-semibold"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                       <p className="text-[13px] text-slate-300 mt-4 flex items-center gap-1.5">
                         <ExternalLink className="w-4 h-4" />
                         Changes appear on the MotoLink landing page immediately.

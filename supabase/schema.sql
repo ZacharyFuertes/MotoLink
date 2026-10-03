@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS public.shops (
   longitude       DOUBLE PRECISION CHECK (longitude BETWEEN -180 AND 180),
   phone           TEXT,
   email           TEXT,
-  specialties     TEXT[] NOT NULL DEFAULT '{}',
   operating_hours TEXT NOT NULL DEFAULT 'Hours unavailable',
   is_active       BOOLEAN NOT NULL DEFAULT true,
   is_open         BOOLEAN NOT NULL DEFAULT true,

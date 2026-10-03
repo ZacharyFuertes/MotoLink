@@ -10,97 +10,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
      crossorigin=""/>
-   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
      crossorigin=""/>
-
-   <!-- Chosen (jQuery) for enhanced multi-select (barebones as provided) -->
-   <link href="https://cdn.rawgit.com/harvesthq/chosen/gh-pages/chosen.min.css" rel="stylesheet"/>
-
-   <style>
-     /* Chosen scrollbar customizations */
-     .chosen-container .chosen-results::-webkit-scrollbar { width: 10px; }
-     .chosen-container .chosen-results::-webkit-scrollbar-track { background: #fbf9f5; }
-     .chosen-container .chosen-results::-webkit-scrollbar-thumb { background: #0ea5ff; border-radius: 9999px; }
-     .chosen-container .chosen-results::-webkit-scrollbar-button { background: #0ea5ff; }
-
-     /* Firefox scrollbar styling */
-     .chosen-container .chosen-results { scrollbar-width: thin; scrollbar-color: #0ea5ff #fbf9f5; }
-
-     /* Chosen dropdown arrow / caret styling */
-     .chosen-container .chosen-single b,
-     .chosen-container .chosen-single div b {
-       background: #0ea5ff !important;
-       border-radius: 4px;
-       width: 18px !important;
-       height: 18px !important;
-       margin-right: 6px;
-       display: inline-block;
-     }
-     .chosen-container .chosen-single b:after {
-       border-top-color: white !important;
-     }
-
-     /* Chosen multi-select remove default focus outline tweaks */
-     .chosen-container-multi .chosen-choices li.search-choice { background: #e6f6ff; border-color: #0ea5ff; }
-
-     /* Ensure chosen results track padding and cream background when empty */
-     .chosen-container .chosen-results { background: #fff; }
-
-     /* Match the rest of the form inputs for the specialty selector */
-     .chosen-container {
-       width: 100% !important;
-       border: 1px solid #cbd5e1;
-       border-radius: 0.75rem;
-       background: #ffffff;
-       box-shadow: none;
-       transition: border-color 0.3s ease, box-shadow 0.3s ease;
-     }
-     .chosen-container.chosen-container-active,
-     .chosen-container.chosen-with-drop {
-       border-color: #64748b !important;
-       box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
-     }
-     .chosen-container-multi .chosen-choices {
-       min-height: 3.5rem;
-       padding: 0.875rem 1rem;
-       margin: 0;
-       border: none !important;
-       background: transparent;
-       align-items: center;
-     }
-     .chosen-container-multi .chosen-choices li.search-field input[type="text"] {
-       padding: 0;
-       margin: 0;
-       width: 100%;
-       border: none;
-       background: transparent;
-       outline: none;
-       box-shadow: none;
-       color: #0f172a;
-       font-size: 0.875rem;
-     }
-     .chosen-container-multi .chosen-choices li.search-choice {
-       background: #e6f6ff;
-       border-color: #0ea5ff;
-       color: #0f172a;
-     }
-     .chosen-container .chosen-results li.active-result.highlighted,
-     .chosen-container .chosen-results li.active-result.result-selected {
-       background: #e5e7eb !important;
-       color: #0f172a !important;
-     }
-     .chosen-container-multi .chosen-choices li.search-choice {
-       background: #e5e7eb;
-       border-color: #cbd5e1;
-       color: #0f172a;
-     }
-   </style>
- </head>
- <body>
+  </head>
+  <body>
    <div id="root"></div>
-   <!-- jQuery and Chosen (loaded before the app so components can initialize) -->
-   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-   <script src="https://cdn.rawgit.com/harvesthq/chosen/gh-pages/chosen.jquery.min.js"></script>
    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""></script>

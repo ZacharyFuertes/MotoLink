@@ -123,27 +123,8 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
             ) : null}
           </div>
 
-          <div className="min-h-[2.5rem] flex flex-col justify-center">
-            {shop.description ? (
-              <p className="text-xs leading-relaxed text-slate-300 line-clamp-2">{shop.description}</p>
-            ) : shop.specialties && shop.specialties.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {shop.specialties.slice(0, 3).map((spec) => (
-                  <span key={spec} className="rounded-md bg-moto-gray/80 px-2 py-0.5 text-[11px] font-medium text-slate-300 border border-moto-gray/60">
-                    {spec}
-                  </span>
-                ))}
-                {shop.specialties.length > 3 ? (
-                  <span className="text-[10px] text-slate-400 self-center">+{shop.specialties.length - 3} more</span>
-                ) : null}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic">Full-service motorcycle shop</p>
-            )}
-          </div>
-
           {/* Schedule Grid UI */}
-          <div className="my-1 rounded-xl border border-moto-gray/80 bg-moto-darker p-2.5 shadow-inner">
+          <div className="rounded-xl border border-moto-gray/80 bg-moto-darker p-2.5 shadow-inner">
             <div className="mb-2 flex items-center justify-between px-0.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
                 <Clock size={13} className="text-moto-accent" /> Schedule

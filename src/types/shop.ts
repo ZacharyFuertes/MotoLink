@@ -10,7 +10,6 @@ export interface Shop {
   longitude: number;
   phone?: string | null;
   email?: string | null;
-  specialties: string[];
   operating_hours: string;
   is_active: boolean;
   is_open?: boolean;

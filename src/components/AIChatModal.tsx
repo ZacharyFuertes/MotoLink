@@ -80,7 +80,7 @@ async function fetchShopContext(shopId?: string): Promise<ShopContext> {
       return supabase
         .from("shops")
         .select(
-          "id, name, slug, description, address, city, specialties, operating_hours, phone",
+          "id, name, slug, description, address, city, operating_hours, phone",
         )
         .eq("is_active", true)
         .order("name");
@@ -200,7 +200,7 @@ function buildSystemPrompt(
       ? ctx.shops
           .map(
             (s) =>
-              `- **${s.name}** — ${s.city ?? "N/A"}${s.specialties ? ` | Specialties: ${s.specialties}` : ""}${s.operating_hours ? ` | Hours: ${s.operating_hours}` : ""}${s.description ? ` | ${s.description}` : ""}`,
+              `- **${s.name}** — ${s.city ?? "N/A"}${s.operating_hours ? ` | Hours: ${s.operating_hours}` : ""}${s.description ? ` | ${s.description}` : ""}`,
           )
           .join("\n")
       : "No shops listed on the MotoLink directory.";
@@ -280,7 +280,7 @@ When a customer expresses interest in a service or part:
 
 === SHOP RECOMMENDATION GUIDANCE ===
 When a customer describes a motorcycle problem, a service need, or asks which shop is best:
-- Match their need against each shop's specialties, city/proximity, and services in <shop_recommendations>.
+- Match their need against each shop's description, city/proximity, and services in <shop_recommendations>.
 - Show ALL matching shops clearly (name + city) with one line each so the customer can compare, then recommend the best 1-2 with reasons.
 - If the customer mentions their area, prioritize shops in that city.
 - If no shop clearly matches, suggest the closest shop and invite them to call for details.

@@ -16,8 +16,8 @@ export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
-const SHOP_SELECT = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active, is_open";
-const SHOP_SELECT_NO_IS_OPEN = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active";
+const SHOP_SELECT = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open";
+const SHOP_SELECT_NO_IS_OPEN = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active";
 
 const isMissingIsOpenColumn = (error: unknown): boolean => {
   const err = error as Record<string, unknown>;
@@ -110,9 +110,8 @@ export const isOpenNowFromOperatingHours = (oh?: string) => {
   }
 };
 
-const normalizeSpecialties = (shop: Record<string, unknown>): Shop => {
-  const specialties = shop.specialties && Array.isArray(shop.specialties) ? shop.specialties : [];
-  const base = { ...(shop as unknown as Shop), specialties };
+const normalizeShop = (shop: Record<string, unknown>): Shop => {
+  const base = { ...(shop as unknown as Shop) };
   // If the DB didn't provide is_open, try to infer it from operating_hours
   if (typeof (base as any).is_open === "undefined") {
     const inferred = isOpenNowFromOperatingHours((base as any).operating_hours as string | undefined);
@@ -138,7 +137,7 @@ export const getPublicShops = async (): Promise<Shop[]> => {
 
   return data
     .filter((shop): shop is Record<string, unknown> => typeof shop === "object" && shop !== null)
-    .map((shop) => normalizeSpecialties(shop));
+    .map((shop) => normalizeShop(shop));
 };
 
 export const getShopById = async (shopId: string): Promise<Shop | null> => {
@@ -154,7 +153,7 @@ export const getShopById = async (shopId: string): Promise<Shop | null> => {
   if (error || !data) return null;
   if (Array.isArray(data)) return null;
 
-  return normalizeSpecialties(data as Record<string, unknown>);
+  return normalizeShop(data as Record<string, unknown>);
 };
 
 export const getShopByOwnerId = async (ownerId: string): Promise<Shop | null> => {
@@ -172,7 +171,7 @@ export const getShopByOwnerId = async (ownerId: string): Promise<Shop | null> =>
   if (error || !data) return null;
   if (Array.isArray(data)) return null;
 
-  return normalizeSpecialties(data as Record<string, unknown>);
+  return normalizeShop(data as Record<string, unknown>);
 };
 
 export const updateShop = async (
@@ -190,7 +189,6 @@ export const updateShop = async (
       | "longitude"
       | "phone"
       | "email"
-      | "specialties"
       | "operating_hours"
       | "is_active"
       | "is_open"
@@ -220,7 +218,7 @@ export const updateShop = async (
 
   const first = await attempt(SHOP_SELECT, true);
   if (!first.error && first.data) {
-    return normalizeSpecialties(first.data as Record<string, unknown>);
+    return normalizeShop(first.data as Record<string, unknown>);
   }
 
   if (isMissingIsOpenColumn(first.error) && isOpenUpdate) {
@@ -228,7 +226,7 @@ export const updateShop = async (
     if (error || !data) return null;
     // Column not live yet — keep the requested value in memory so the UI
     // reflects the intended state; it will persist after the migration runs.
-    return normalizeSpecialties({
+    return normalizeShop({
       ...(data as Record<string, unknown>),
       is_open: updates.is_open,
     });
@@ -237,7 +235,7 @@ export const updateShop = async (
   if (isMissingIsOpenColumn(first.error) && !isOpenUpdate) {
     const { data, error } = await attempt(SHOP_SELECT_NO_IS_OPEN, false);
     if (error || !data) return null;
-    return normalizeSpecialties(data as Record<string, unknown>);
+    return normalizeShop(data as Record<string, unknown>);
   }
 
   return null;

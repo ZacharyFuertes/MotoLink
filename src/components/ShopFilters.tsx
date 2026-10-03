@@ -1,18 +1,15 @@
-import { MapPin, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ShopFiltersProps {
-  specialties: string[];
-  specialty: string;
   availabilityOnly: boolean;
-  onSpecialtyChange: (value: string) => void;
   onAvailabilityChange: (value: boolean) => void;
 }
 
-const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChange, onAvailabilityChange }: ShopFiltersProps) => {
+const ShopFilters = ({ availabilityOnly, onAvailabilityChange }: ShopFiltersProps) => {
   const [expanded, setExpanded] = useState(false);
-  const hasActiveFilters = Boolean(specialty || availabilityOnly);
+  const hasActiveFilters = Boolean(availabilityOnly);
 
   return (
     <div className="relative inline-block text-left">
@@ -27,7 +24,7 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
         <span>Filters</span>
         {hasActiveFilters && (
           <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-moto-accent px-1 text-[10px] font-black text-slate-950">
-            {(specialty ? 1 : 0) + (availabilityOnly ? 1 : 0)}
+            {(availabilityOnly ? 1 : 0)}
           </span>
         )}
         <ChevronDown size={13} className={`text-slate-400 transition-transform duration-200 ${expanded ? "rotate-180 text-moto-accent" : ""}`} />
@@ -51,25 +48,6 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
                 </button>
               </div>
 
-              <label className="relative block">
-                <span className="sr-only">Select specialty</span>
-                <MapPin size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-moto-accent" />
-                <select
-                  value={specialty}
-                  onChange={(event) => onSpecialtyChange(event.target.value)}
-                  aria-label="Select specialty"
-                  className="w-full appearance-none rounded-xl border border-moto-gray bg-moto-gray py-2.5 pl-9 pr-8 text-xs font-semibold text-slate-100 outline-none transition focus:border-moto-accent"
-                >
-                  <option value="" className="bg-moto-darker text-slate-100">All specialties</option>
-                  {specialties.map((item) => (
-                    <option key={item} value={item} className="bg-moto-darker text-slate-100">
-                      {item}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={13} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              </label>
-
               <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-moto-gray bg-moto-gray px-3 py-2.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-white">
                 <input
                   type="checkbox"
@@ -84,7 +62,6 @@ const ShopFilters = ({ specialties, specialty, availabilityOnly, onSpecialtyChan
                 <button
                   type="button"
                   onClick={() => {
-                    onSpecialtyChange("");
                     onAvailabilityChange(false);
                   }}
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-moto-gray bg-moto-gray px-3 py-1.5 text-xs font-bold text-slate-400 transition hover:border-red-500/50 hover:text-red-400"

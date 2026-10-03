@@ -1,0 +1,41 @@
+-- ============================================================================
+-- MIGRATION: Drop shops.specialties (shop-level speciality)
+-- ============================================================================
+-- Run this in the Supabase SQL Editor.
+--
+-- Removes the shop-level "Specialty Services" field from the system. A shop's
+-- specialities were duplicated from the shop description and were never used
+-- for anything except a discovery filter and cosmetic tag rendering.
+--
+-- SCOPE — READ BEFORE RUNNING
+--   This drops ONLY public.shops.specialties (TEXT[]).
+--   public.shop_mechanics.specialty (TEXT) is a mechanic's OWN speciality and is
+--   a completely separate, unrelated field. It is NOT touched here and must
+--   continue to exist.
+--
+--   public.shops.description is also NOT touched. Note that
+--   20260813_fix_owner_signup.sql deliberately DROPPED NOT NULL on description
+--   (and set DEFAULT '') so a signup could never 23502 — that fix stays in
+--   place. This migration does not re-add the constraint, because doing so
+--   would resurrect the original "empty value in column description" failure.
+--
+-- SAFETY
+--   - No view, function, index or FK references this column (verified across
+--     supabase/migrations/ + supabase/schema.sql), so nothing cascades-break.
+--   - shops.description remains populated for existing shops; only the tag
+--     array is discarded.
+--   - Dropping the column also drops its NOT NULL constraint, which removes
+--     any risk of a 23502 on future shop INSERTs.
+--   - register_shop_owner() never listed this column in its INSERT (it relied
+--     on the DEFAULT '{}'), so the registration RPC is unaffected.
+--
+-- NOTE ON OLD SEED MIGRATIONS
+--   20260819_demo_shop_seed.sql and 20260831_nathan_drake_test_shop.sql INSERT
+--   into this column and were left untouched (they are applied history). If you
+--   ever replay them on a database that has run this migration, drop the
+--   `specialties` value from their column lists first.
+-- ============================================================================
+
+-- 1) Drop the shop-level speciality array.
+ALTER TABLE public.shops
+  DROP COLUMN IF EXISTS specialties;

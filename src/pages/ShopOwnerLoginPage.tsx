@@ -72,23 +72,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     };
     return draft?.signupData ? { ...defaults, ...draft.signupData } : defaults;
   });
-  const [specialtiesText, setSpecialtiesText] = useState(() => {
-    const draft = loadSignupDraft();
-    return draft?.specialtiesText || "";
-  });
-
-  const SPECIALTY_OPTIONS = [
-    "Engine Repair",
-    "Brake Service",
-    "Tire Service",
-    "Oil Change",
-    "Electrical",
-    "Diagnostics",
-    "Suspension",
-    "Battery Replacement",
-    "Custom Fabrication",
-    "Towing",
-  ];
 
   // 3-step registration wizard: 0 = Details, 1 = Location, 2 = Hours
   const STEPS = ["Details", "Location", "Hours"];
@@ -106,11 +89,10 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       JSON.stringify({
         currentStep,
         signupData,
-        specialtiesText,
         email: formData.email,
       }),
     );
-  }, [isSignup, currentStep, signupData, specialtiesText, formData.email]);
+  }, [isSignup, currentStep, signupData, formData.email]);
 
   const clearSignupDraft = () => localStorage.removeItem(SIGNUP_DRAFT_KEY);
 
@@ -631,35 +613,16 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       </div>
                     </div>
                     <div className="md:col-span-2">
-                      <label className={labelClass}>Specialty Services</label>
-                      <div className="flex flex-wrap gap-2">
-                        {SPECIALTY_OPTIONS.map((option) => {
-                          const isSelected = specialtiesText.split(",").map(s => s.trim()).includes(option);
-                          return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() => {
-                                const specialties = specialtiesText.split(",").map(s => s.trim()).filter(Boolean);
-                                let updated: string[];
-                                if (isSelected) {
-                                  updated = specialties.filter(s => s !== option);
-                                } else {
-                                  updated = [...specialties, option];
-                                }
-                                const newText = updated.join(", ");
-                                setSpecialtiesText(newText);
-                                setSignupData((prev) => ({ ...prev, shop_description: newText }));
-                              }}
-                              className={isSelected ? "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-accent/10 text-moto-accent border border-moto-accent/50 shadow-[0_0_12px_rgba(53,208,192,0.15)]" : "px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-300 bg-moto-darker/50 border border-moto-gray text-slate-400 hover:border-moto-gray-light hover:text-slate-200"}
-                            >
-                              {option}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <label className={labelClass}>Shop Description</label>
+                      <textarea
+                        value={signupData.shop_description}
+                        onChange={(e) => setSignupData({ ...signupData, shop_description: e.target.value })}
+                        rows={3}
+                        placeholder="Tell customers what your shop does, e.g. Full-service motorcycle repair, engine overhauls, brake and tyre work."
+                        className={`${inputClass} resize-y`}
+                      />
                       <p className="text-[10px] text-slate-400 mt-2">
-                        Select one or more specialties your shop offers.
+                        Shown on your public shop page and used by the assistant to recommend you.
                       </p>
                     </div>
                   </div>

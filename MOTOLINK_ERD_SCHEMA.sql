@@ -35,7 +35,6 @@ CREATE TABLE shops (
   longitude       DOUBLE PRECISION NOT NULL CHECK (longitude BETWEEN -180 AND 180),
   phone           TEXT,
   email           TEXT,
-  specialties     TEXT[] NOT NULL DEFAULT '{}',
   operating_hours TEXT NOT NULL DEFAULT 'Hours unavailable',
   is_active       BOOLEAN NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),

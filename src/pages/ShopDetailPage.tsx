@@ -595,19 +595,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 <Phone size={14} className="text-moto-accent" /> {shop.phone}
               </a>
             )}
-
-            {shop.specialties.length > 0 && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {shop.specialties.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full bg-moto-dark border border-moto-gray px-3 py-1 text-[11px] text-slate-300"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
           </motion.section>
 
           {/* ── Catalog Tabs & Lists ── */}

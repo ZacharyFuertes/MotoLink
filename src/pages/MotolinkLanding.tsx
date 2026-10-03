@@ -83,7 +83,6 @@ const getCachedLocation = (): GeolocationCoordinates | undefined => {
 const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onLogout, onViewShop, onShopOwnerLogin, onOpenProfile }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates | undefined>(getCachedLocation);
-  const [specialty, setSpecialty] = useState("");
   const [city, setCity] = useState("");
   const [availabilityOnly, setAvailabilityOnly] = useState(false);
   const [selectedShop, setSelectedShop] = useState<ShopSearchResult>();
@@ -147,29 +146,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
     () =>
       sortByDistance(shops, location).filter(
         (shop) =>
-          (!specialty || shop.specialties.includes(specialty)) &&
           (!availabilityOnly || isOpenNowFromOperatingHours(shop.operating_hours) !== false) &&
           (!city || `${shop.name} ${shop.city} ${shop.address}`.toLowerCase().includes(city.toLowerCase()))
       ),
-    [shops, location, specialty, availabilityOnly, city]
-  );
-
-
-  const DEFAULT_SPECIALTIES = [
-    "Engine Repair",
-    "Brake Service",
-    "Tire Service",
-    "Oil Change",
-    "Electrical",
-    "Diagnostics",
-    "Suspension",
-    "Battery Replacement",
-    "Custom Fabrication",
-    "Towing",
-  ];
-  const specialties = useMemo(
-    () => [...new Set([...(shops.flatMap((shop) => shop.specialties) || []), ...DEFAULT_SPECIALTIES])].sort(),
-    [shops]
+    [shops, location, availabilityOnly, city]
   );
 
   const saveLocationCache = (coords: GeolocationCoordinates) => {
@@ -347,7 +327,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
 
             <motion.div variants={itemVariants} className="grid gap-6 md:grid-cols-3">
               {[
-                { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you filter by specialty and open now." },
+                { number: "01", icon: Store, title: "Find a Shop", description: "Search trusted partner shops near you and see who's open now." },
                 { number: "02", icon: CalendarCheck, title: "Book Instantly", description: "Connect with the shop and book your service or appointment right away." },
                 { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
               ].map((step) => (
@@ -453,10 +433,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 onNavigate={setNavigateShop}
                 filterSlot={
                   <ShopFilters
-                    specialties={specialties}
-                    specialty={specialty}
                     availabilityOnly={availabilityOnly}
-                    onSpecialtyChange={setSpecialty}
                     onAvailabilityChange={setAvailabilityOnly}
                   />
                 }

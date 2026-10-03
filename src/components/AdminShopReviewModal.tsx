@@ -56,7 +56,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
       const { data, error: err } = await supabase
         .from("shops")
         .select(
-          "id, name, slug, description, address, city, latitude, longitude, phone, email, specialties, operating_hours, is_active, is_open, created_at, logo_url",
+          "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open, created_at, logo_url",
         )
         .eq("id", shop.id)
         .maybeSingle();
@@ -184,20 +184,6 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                   </p>
                 </div>
               </div>
-
-              {/* Specialties */}
-              {details.specialties && details.specialties.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-1.5">Specialties</p>
-                  <div className="flex flex-wrap gap-2">
-                    {details.specialties.map((s: string) => (
-                      <span key={s} className="px-3 py-1.5 rounded-full bg-moto-accent/15 text-moto-accent text-[13px] font-semibold">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Operating hours */}
               <div>
