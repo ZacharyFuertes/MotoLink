@@ -58,6 +58,7 @@ interface HistoryRecord {
   notes?: string;
   created_at?: string;
   total_amount?: number | null;
+  estimated_price?: number | null;
   status: string;
   shop_name?: string;
   vehicle_name?: string;
@@ -172,7 +173,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         supabase
           .from("appointments")
           .select(
-            "id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, total_amount, status, created_at",
+            "id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, estimated_price, total_amount, status, created_at",
           )
           .eq("customer_id", user.id)
           .order("scheduled_date", { ascending: false }),
@@ -208,7 +209,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           description: a.description ?? undefined,
           notes: a.notes ?? undefined,
           created_at: a.created_at ?? undefined,
-          total_amount: a.total_amount ?? a.estimated_price ?? null,
+          total_amount: a.total_amount ?? null,
+          estimated_price: a.estimated_price ?? null,
           status: a.status,
         }));
       }
@@ -383,7 +385,25 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     setHistoryVehicle(vehicle);
   };
 
-  const completedCount = history.filter((h) => h.status === "completed").length;
+  const completedCount = history.filter(
+    (h) => h.status === "completed",
+  ).length;
+
+  const formatMoney = (n: number | null | undefined) =>
+    n != null ? `₱${Number(n).toLocaleString()}` : "—";
+
+  const bookingAmount = (h: {
+    total_amount?: number | null;
+    estimated_price?: number | null;
+  }) => {
+    if (h.total_amount != null && h.total_amount > 0) {
+      return { value: Number(h.total_amount), isEstimate: false };
+    }
+    if (h.estimated_price != null) {
+      return { value: Number(h.estimated_price) || 0, isEstimate: true };
+    }
+    return { value: null, isEstimate: false };
+  };
   const today = new Date().toISOString().split("T")[0];
   const canCancelBooking = (entry: HistoryRecord) =>
     (entry.status === "pending" || entry.status === "confirmed") &&
@@ -898,6 +918,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   {visibleHistory.map((h) => {
                     const st = getAppointmentStatus(h.status);
                     const confirmOpen = confirmCancelId === h.id;
+                    const amt = bookingAmount(h);
                     return (
                       <div
                         key={h.id}
@@ -943,8 +964,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-300">
                               <DollarSign size={12} className="text-emerald-400" />
-                              {h.total_amount != null
-                                ? `₱${Number(h.total_amount).toLocaleString()}`
+                              {amt.value != null
+                                ? `${amt.isEstimate ? "Est. " : ""}${formatMoney(amt.value)}`
                                 : "—"}
                             </span>
                             <span
@@ -1166,9 +1187,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     Total cost
                   </p>
                   <p className="font-semibold text-emerald-300 tabular-nums">
-                    {viewingBooking.total_amount != null
-                      ? `₱${Number(viewingBooking.total_amount).toLocaleString()}`
-                      : "—"}
+                    {(() => {
+                      const amt = bookingAmount(viewingBooking);
+                      return amt.value != null
+                        ? `${amt.isEstimate ? "Est. " : ""}${formatMoney(amt.value)}`
+                        : "—";
+                    })()}
                   </p>
                 </div>
               </div>

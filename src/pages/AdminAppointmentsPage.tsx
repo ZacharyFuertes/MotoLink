@@ -409,7 +409,7 @@ const AdminAppointmentsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="text-slate-200 font-semibold tabular-nums">
-                        {formatMoney(a.total_amount ?? a.estimated_price)}
+                        {formatMoney(a.total_amount || a.estimated_price)}
                       </td>
                     </tr>
                   );
