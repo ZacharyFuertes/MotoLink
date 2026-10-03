@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Store,
@@ -21,9 +21,11 @@ import {
   ArrowUp,
   ArrowDown,
   Camera,
+  Check,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { getShopById, updateShop } from "../services/shopService";
+import { getShopById, updateShop, parseOperatingHoursString } from "../services/shopService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
 import LocationPicker from "../components/LocationPicker";
@@ -42,6 +44,62 @@ interface ShopSettingsPageProps {
   onNavigate?: (page: string) => void;
 }
 
+// One day's opening hours. Same shape as `operating_schedule` in the
+// registration wizard (ShopOwnerLoginPage, Step 2 "Hours") — index 0 = Sunday.
+type DaySchedule = { open: boolean; openTime: string; closeTime: string };
+
+const WEEK_DAYS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const emptyDaySchedule = (): DaySchedule[] =>
+  WEEK_DAYS.map(() => ({ open: false, openTime: "09:00", closeTime: "17:00" }));
+
+// Serialise the weekly schedule back into the shops.operating_hours string.
+// Byte-for-byte the same format the registration wizard writes
+// ("Sun: closed; Mon: 09:00-17:30; ..."), so parseOperatingHoursString() and
+// isOpenNowFromOperatingHours() keep working unchanged everywhere else.
+const scheduleToOperatingHours = (schedule: DaySchedule[]): string =>
+  schedule
+    .map((d, i) => {
+      if (!d || !d.open) return `${WEEK_DAYS[i].slice(0, 3)}: closed`;
+      return `${WEEK_DAYS[i].slice(0, 3)}: ${d.openTime}-${d.closeTime}`;
+    })
+    .join("; ");
+
+const clockToMinutes = (t: string): number => {
+  const [h, m] = (t || "").split(":");
+  const hh = parseInt(h, 10);
+  const mm = parseInt(m, 10);
+  if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
+  return hh * 60 + mm;
+};
+
+// Only a blank or zero-length day is an error. close < open is a legitimate
+// OVERNIGHT shift — isOpenNowFromOperatingHours() explicitly handles it
+// (`closeMin <= openMin` → "now >= open OR now < close"), so it is allowed and
+// merely annotated instead of being blocked.
+const getScheduleIssues = (schedule: DaySchedule[]): Record<number, string> => {
+  const issues: Record<number, string> = {};
+  schedule.forEach((d, i) => {
+    if (!d.open) return;
+    if (!d.openTime || !d.closeTime) {
+      issues[i] = "Enter both an open and a close time.";
+      return;
+    }
+    if (clockToMinutes(d.openTime) === clockToMinutes(d.closeTime)) {
+      issues[i] = "Open and close time cannot be the same.";
+    }
+  });
+  return issues;
+};
+
 const emptyShop: Shop = {
   id: "",
   name: "",
@@ -51,16 +109,16 @@ const emptyShop: Shop = {
   city: "",
   latitude: 0,
   longitude: 0,
-  specialties: [],
   operating_hours: "Hours unavailable",
   is_active: true,
 };
 
 const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
-  const [shop, setShop] = useState<Shop>(emptyShop);
-  const [specialtiesText, setSpecialtiesText] = useState("");
-  const [loading, setLoading] = useState(true);
+const [shop, setShop] = useState<Shop>(emptyShop);
+const [schedule, setSchedule] = useState<DaySchedule[]>(emptyDaySchedule);
+const [scheduleTouched, setScheduleTouched] = useState(false);
+const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
   const [message, setMessage] = useState<{
@@ -99,7 +157,9 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
       if (!mounted) return;
       if (data) {
         setShop(data);
-        setSpecialtiesText((data.specialties || []).join(", "));
+        // Pre-fill the weekly schedule from the stored operating_hours string so
+        // the owner sees their current hours instead of a blank form.
+        setSchedule(parseOperatingHoursString(data.operating_hours));
       }
       setLoading(false);
     });
@@ -255,18 +315,59 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
     setShop((prev) => ({ ...prev, [field]: value }));
   };
 
+  const scheduleIssues = useMemo(() => getScheduleIssues(schedule), [schedule]);
+
+  // A shop may already hold hours this weekly model cannot represent — legacy free
+  // text like "Hours unavailable" or "Mon-Sat 8:00 AM - 6:00 PM" parses to zero
+  // open days. Surfaced as a notice, and preserved verbatim on save unless the
+  // owner actually edits the schedule, so nothing is silently wiped.
+  const legacyHoursUnmapped = useMemo(() => {
+    const raw = (shop.operating_hours || "").trim();
+    if (!raw) return false;
+    return !parseOperatingHoursString(raw).some((d) => d.open);
+  }, [shop.operating_hours]);
+
+  const updateScheduleDay = (idx: number, patch: Partial<DaySchedule>) => {
+    setScheduleTouched(true);
+    setSchedule((prev) => prev.map((d, i) => (i === idx ? { ...d, ...patch } : d)));
+  };
+
+  // Convenience for uniform hours: copy the first open day's times onto every
+  // other open day. Days that are closed stay closed.
+  const applyToAllOpenDays = () => {
+    const firstOpen = schedule.find((d) => d.open);
+    if (!firstOpen) return;
+    setScheduleTouched(true);
+    setSchedule((prev) =>
+      prev.map((d) =>
+        d.open ? { ...d, openTime: firstOpen.openTime, closeTime: firstOpen.closeTime } : d,
+      ),
+    );
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setMessage(null);
 
-    const specialtyList = specialtiesText
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // Surface the bad days inline (already rendered) AND as a summary banner,
+    // rather than failing silently inside updateShop.
+    if (Object.keys(scheduleIssues).length > 0) {
+      setSaving(false);
+      setMessage({
+        type: "error",
+        text: "Please fix the highlighted operating hours before saving.",
+      });
+      return;
+    }
 
     try {
       if (!user?.shop_id) throw new Error("No shop linked to this account.");
+      // Keep unmappable legacy hours unless the owner edited the schedule.
+      const operatingHours =
+        legacyHoursUnmapped && !scheduleTouched
+          ? shop.operating_hours || "Hours unavailable"
+          : scheduleToOperatingHours(schedule);
       const updated = await updateShop(user.shop_id, {
         name: shop.name,
         slug: shop.slug,
@@ -278,14 +379,16 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
         longitude: shop.longitude,
         phone: shop.phone || null,
         email: shop.email || null,
-        specialties: specialtyList,
-        operating_hours: shop.operating_hours || "Hours unavailable",
+        operating_hours: operatingHours,
         is_active: shop.is_active,
       });
 
       if (!updated) throw new Error("Save failed.");
       setShop(updated);
-      setSpecialtiesText((updated.specialties || []).join(", "));
+      // Re-derive from what the server stored so the form always mirrors the
+      // canonical operating_hours string.
+      setSchedule(parseOperatingHoursString(updated.operating_hours));
+      setScheduleTouched(false);
       setMessage({
         type: "success",
         text: "Shop details saved successfully! Changes are live on the MotoLink landing page.",
@@ -333,6 +436,11 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
 
   const labelClass =
     "flex items-center gap-1.5 text-xs font-bold text-slate-200 mb-1.5";
+
+  // Narrow variant of inputClass for the native time pickers. color-scheme:dark
+  // keeps the clock/calendar glyphs legible on the dark background.
+  const timeInputClass =
+    "rounded-xl border border-moto-gray bg-moto-darker px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition [color-scheme:dark]";
 
   return (
     <div className="space-y-6">
@@ -498,24 +606,9 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   value={shop.description || ""}
                   onChange={(e) => handleField("description", e.target.value)}
                   rows={3}
-                  placeholder="Describe your services and repair specialties for customers."
+                  placeholder="Describe your services so customers know what your shop specializes in."
                   className={`${inputClass} resize-y`}
                 />
-              </div>
-              <div className="md:col-span-2">
-                <label className={labelClass}>
-                  <Sparkles className="w-4 h-4 text-violet-500" /> Specialties
-                </label>
-                <input
-                  type="text"
-                  value={specialtiesText}
-                  onChange={(e) => setSpecialtiesText(e.target.value)}
-                  placeholder="e.g. Engine Overhaul, Oil Change, Brake Service, Electrical"
-                  className={inputClass}
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Separate tags with commas.
-                </p>
               </div>
             </div>
           </motion.div>
@@ -535,7 +628,7 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                 <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
                   Location &amp; Contact Details
                 </h2>
-                <p className="text-[13px] text-slate-400">Address, coordinates, phone and operating hours</p>
+                <p className="text-[13px] text-slate-400">Address, coordinates and contact details</p>
               </div>
             </div>
 
@@ -599,21 +692,157 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
                   className={inputClass}
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className={labelClass}>
-                  <Clock className="w-4 h-4 text-fuchsia-500" /> Operating Hours
-                </label>
-                <input
-                  type="text"
-                  value={shop.operating_hours || ""}
-                  onChange={(e) =>
-                    handleField("operating_hours", e.target.value)
-                  }
-                  placeholder="Mon–Sat 8:00 AM – 6:00 PM"
-                  className={inputClass}
-                />
+            </div>
+          </motion.div>
+
+          {/* Operating Hours Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-moto-accent/15 text-moto-accent rounded-xl flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Operating Hours
+                </h2>
+                <p className="text-[13px] text-slate-400">
+                  Set the days you are open and your hours for each one
+                </p>
               </div>
             </div>
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] text-slate-400">
+                Customers see this as your weekly schedule on your public shop page.
+              </p>
+              <button
+                type="button"
+                onClick={applyToAllOpenDays}
+                className="rounded-xl border border-moto-accent/50 bg-moto-accent/10 px-3.5 py-2 text-xs font-bold text-moto-accent transition hover:bg-moto-accent/20"
+              >
+                Apply to all open days
+              </button>
+            </div>
+
+            {legacyHoursUnmapped && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-3 text-xs text-amber-200">
+                <AlertTriangle size={15} className="mt-px shrink-0" />
+                <span>
+                  Your previous hours were saved as free text
+                  {shop.operating_hours ? (
+                    <> (<span className="font-semibold">{shop.operating_hours}</span>)</>
+                  ) : null}{" "}
+                  and could not be mapped to days automatically. Please re-enter your
+                  weekly hours below — they will be shown to customers as a schedule.
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {schedule.map((day, idx) => {
+                const issue = scheduleIssues[idx];
+                const isToday = WEEK_DAYS[idx] === WEEK_DAYS[new Date().getDay()];
+                const isOvernight =
+                  day.open &&
+                  !issue &&
+                  clockToMinutes(day.closeTime) < clockToMinutes(day.openTime);
+                return (
+                  <div
+                    key={idx}
+                    className={`rounded-xl border p-3 transition ${
+                      issue
+                        ? "border-red-500/60 bg-red-500/5"
+                        : "border-moto-gray bg-moto-darker/60"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => updateScheduleDay(idx, { open: !day.open })}
+                        aria-pressed={day.open}
+                        aria-label={`${WEEK_DAYS[idx]}: ${day.open ? "open" : "closed"}. Toggle.`}
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition ${
+                          day.open
+                            ? "border-moto-accent bg-moto-accent shadow-[0_0_10px_rgba(53,208,192,0.25)]"
+                            : "border-moto-gray bg-moto-darker hover:border-moto-accent/50"
+                        }`}
+                      >
+                        {day.open ? (
+                          <Check size={15} className="text-slate-950" strokeWidth={3} />
+                        ) : (
+                          <X size={12} className="text-slate-500" strokeWidth={3} />
+                        )}
+                      </button>
+
+                      <div className="w-28 shrink-0">
+                        <span
+                          className={`text-sm font-semibold ${
+                            isToday ? "text-moto-accent" : "text-slate-200"
+                          }`}
+                        >
+                          {WEEK_DAYS[idx]}
+                        </span>
+                        {isToday && (
+                          <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-moto-accent">
+                            Today
+                          </span>
+                        )}
+                      </div>
+
+                      {day.open ? (
+                        <div className="ml-auto flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={day.openTime}
+                            onChange={(e) => updateScheduleDay(idx, { openTime: e.target.value })}
+                            aria-label={`${WEEK_DAYS[idx]} opening time`}
+                            className={timeInputClass}
+                          />
+                          <span className="text-xs text-slate-500">to</span>
+                          <input
+                            type="time"
+                            value={day.closeTime}
+                            onChange={(e) => updateScheduleDay(idx, { closeTime: e.target.value })}
+                            aria-label={`${WEEK_DAYS[idx]} closing time`}
+                            className={timeInputClass}
+                          />
+                        </div>
+                      ) : (
+                        <div className="ml-auto text-sm font-medium text-slate-500">
+                          Closed
+                        </div>
+                      )}
+                    </div>
+
+                    {issue && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-red-400">
+                        <AlertTriangle size={12} />
+                        {issue}
+                      </p>
+                    )}
+                    {isOvernight && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        Overnight shift — closes the next day.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {Object.keys(scheduleIssues).length > 0 && (
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-3.5 py-3 text-xs font-semibold text-red-300">
+                <AlertTriangle size={15} className="mt-px shrink-0" />
+                <span>
+                  Fix the highlighted day(s) above — every open day needs a valid time range.
+                </span>
+              </div>
+            )}
           </motion.div>
 
           {/* Status Bar Card */}
