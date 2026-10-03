@@ -7539,6 +7539,22 @@ Owner dashboard (`Dashboard.tsx`) "Pending appointments" panel header now has a 
 next to "View all", opening the same shared modal and calling `load()` on success so the new appointment
 shows up behind it. No new route; the owner flow stays on the dashboard.
 
+> **Relocated to the Welcome Banner.** The panel-header button was the wrong home for it. The Welcome
+> Banner lives in the **parent** `OwnerPlatformDashboard.tsx`, while `Dashboard.tsx` is the child, so the
+> button could not reach the modal's `showWalkIn` state where it sat. The modal and its state were lifted
+> up to `OwnerPlatformDashboard`, which renders a solid `#35D0C0` **Book Walk-in appointment** CTA in its
+> own row between the description text and the city/Live/Open chips — a separate row because an accent
+> button sitting inside that `flex-wrap` row reads as just another chip. The chip row's `mt-5` became
+> `mt-3` to keep the block tight. The panel-header button was removed.
+>
+> **The refresh hand-off.** `Dashboard` owns `load()` internally and only received `onNavigate`, so the
+> parent had no way to tell it to refetch — a booking made from the banner would not have appeared in the
+> pending list or the stat cards. Fixed with one prop rather than lifting `load` itself:
+> `refreshSignal?: number` on `DashboardProps`, added to the existing load effect's deps
+> (`[user?.shop_id, refreshSignal]`). `onBooked` bumps `setDashboardRefresh((n) => n + 1)`. The modal is
+> mounted as a sibling of `<Dashboard>` inside the dashboard-only branch, so navigating to another page
+> tears it down.
+
 ### Additional fixes found while wiring this up
 - `loadBookedSlots` now filters by the **resolved `shop_id`**. The query relied on RLS alone, which
   would leak another shop's schedule into the grid for an owner belonging to more than one shop.
@@ -7561,6 +7577,8 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
 - `src/components/BookAppointmentModal.tsx` — step 3 grid + date strip swapped for the shared
   components; `unavailableSlots` memo added.
 - `src/pages/Dashboard.tsx` — walk-in button + modal, `load()` on success, `TODAY()` UTC fix.
+- `src/pages/OwnerPlatformDashboard.tsx` — hosts the walk-in modal and the banner CTA; `UserPlus` import;
+  `showWalkIn` + `dashboardRefresh` state; passes `refreshSignal` to `<Dashboard>`.
 - `MEMORY.md` — this entry.
 
 ### Verified
@@ -7573,6 +7591,17 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
   reference column and nullable `customer_id` are needed for the confirmation screen to show a real
   code and for the registered-customer insert to succeed.
 - Untouched by choice: `COMPLETE_DATABASE_SCHEMA.sql`, `MOTOLINK_ERD_SCHEMA.sql`, and any new migration.
+
+### Known limitations left in place (deliberate, not oversights)
+- **Walk-in is allowed while the shop is closed.** The banner CTA is always enabled even though the chip
+  beside it reads "Closed to bookings" (`shop.is_open === false`). Matches the behaviour of the panel-header
+  button it replaced; gating it was raised and deliberately deferred.
+- **`Dashboard.load()` early-returns on `!user?.shop_id`.** Owners with a NULL `shop_id` (registered before
+  the atomic signup fix) therefore see an empty dashboard — stats and pending list never load — even though
+  the walk-in modal *does* handle that case via the `getShopByOwnerId()` fallback. Same root cause fixed in
+  `AppointmentCalendarPage`; fixing the dashboard's load was flagged and deferred as out of scope.
+- `AppointmentCalendarPage.tsx` keeps its own "Book Walk-in" button. That is intentional — a different page,
+  and a legitimate second entry point next to the list it affects.
 
 ---
 

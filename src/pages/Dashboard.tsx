@@ -7,10 +7,9 @@ import {
   Package,
   ShoppingCart,
   TrendingUp,
-  UserPlus,
   Users,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Area,
   AreaChart,
@@ -23,11 +22,17 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { inventoryService } from "../services/inventoryService";
-import WalkInBookingModal from "../components/WalkInBookingModal";
 import { todayKey } from "../utils/dateTime";
 
 interface DashboardProps {
   onNavigate?: (page: string) => void;
+  /**
+   * Bump this from the parent to force a refetch. The walk-in booking modal is
+   * hosted by the parent (it is launched from the Welcome Banner), and it has no
+   * way to reach this component's internal `load()` — this counter is the
+   * hand-off, so a fresh booking shows up in the stats and pending list.
+   */
+  refreshSignal?: number;
 }
 
 // Local calendar date, not UTC — toISOString() would report the wrong day
@@ -46,7 +51,7 @@ const RevenueTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate, refreshSignal }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState({
@@ -62,14 +67,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [revenueTrend, setRevenueTrend] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [lowStock, setLowStock] = useState<any[]>([]);
-  // Quick walk-in booking, opened straight from the dashboard so an owner does
-  // not have to navigate to the appointments page first.
-  const [showWalkIn, setShowWalkIn] = useState(false);
 
   useEffect(() => {
     if (user?.shop_id) void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.shop_id]);
+  }, [user?.shop_id, refreshSignal]);
 
   const load = async () => {
     if (!user?.shop_id) return;
@@ -477,28 +479,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* Panels */}
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <motion.div {...fadeUp(0.42)} className="dashboard-card p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarDays size={16} className="text-[#35D0C0]" />
               <h2 className="text-[13px] font-medium text-[#F3F1F7]">
                 Pending appointments
               </h2>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowWalkIn(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#35D0C0]/40 px-2.5 py-1 text-[12px] font-semibold text-[#8DE8DC] transition hover:bg-[rgba(53,208,192,.12)]"
-              >
-                <UserPlus size={14} />
-                Book Walk-in
-              </button>
-              <button
-                onClick={() => onNavigate?.("appointments")}
-                className="inline-flex items-center gap-1 text-[12px] text-[#35D0C0]"
-              >
-                View all <ArrowUpRight size={14} />
-              </button>
-            </div>
+            <button
+              onClick={() => onNavigate?.("appointments")}
+              className="inline-flex items-center gap-1 text-[12px] text-[#35D0C0]"
+            >
+              View all <ArrowUpRight size={14} />
+            </button>
           </div>
           {appointmentsPanel}
         </motion.div>
@@ -521,18 +514,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {stockPanel}
         </motion.div>
       </section>
-
-      {/* Quick walk-in booking. Refetches the dashboard so the new pending
-          appointment shows up in the panel behind the modal. */}
-      <AnimatePresence>
-        {showWalkIn && (
-          <WalkInBookingModal
-            isOpen
-            onClose={() => setShowWalkIn(false)}
-            onBooked={() => void load()}
-          />
-        )}
-      </AnimatePresence>
     </>
   );
 };

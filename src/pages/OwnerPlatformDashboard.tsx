@@ -29,6 +29,7 @@ import {
   Sparkles,
   CheckCircle2,
   Bot,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -43,6 +44,7 @@ import {
 import { AppNotification } from "../services/notificationService";
 import { Shop } from "../types/shop";
 import Dashboard from "./Dashboard";
+import WalkInBookingModal from "../components/WalkInBookingModal";
 import { getRoleLabel } from "../utils/roleAccess";
 
 interface OwnerDashboardProps {
@@ -72,6 +74,11 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     type: "success" | "error";
     text: string;
   } | null>(null);
+  // Walk-in booking is launched from the Welcome Banner. The modal lives here
+  // rather than in <Dashboard> because the banner is the parent; on success we
+  // bump `dashboardRefresh` so the child refetches its stats and pending list.
+  const [showWalkIn, setShowWalkIn] = useState(false);
+  const [dashboardRefresh, setDashboardRefresh] = useState(0);
 
   const isPendingApproval = !!shop && !shop.is_active;
   // Owner with no resolvable shop (missing/linked-after signup) is treated as
@@ -610,7 +617,21 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                     </span>{" "}
                     today.
                   </p>
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
+
+                  {/* Primary action for the page — kept as its own row so it
+                      reads as a CTA rather than one more translucent status chip. */}
+                  <div className="mt-5">
+                    <button
+                      type="button"
+                      onClick={() => setShowWalkIn(true)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#35D0C0] px-4 py-2.5 text-[13px] font-semibold text-[#0B1512] shadow-sm shadow-[#35D0C0]/20 transition hover:bg-[#8DE8DC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#35D0C0] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1C1B24]"
+                    >
+                      <UserPlus size={15} />
+                      Book Walk-in appointment
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       {shop?.city || "—"}
@@ -790,7 +811,19 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 )}
               </motion.div>
 
-              <Dashboard onNavigate={onNavigate} />
+              <Dashboard onNavigate={onNavigate} refreshSignal={dashboardRefresh} />
+
+              {/* Launched from the banner above. Mounted here so navigating to
+                  another page tears the modal down with it. */}
+              <AnimatePresence>
+                {showWalkIn && (
+                  <WalkInBookingModal
+                    isOpen
+                    onClose={() => setShowWalkIn(false)}
+                    onBooked={() => setDashboardRefresh((n) => n + 1)}
+                  />
+                )}
+              </AnimatePresence>
             </>
           ) : (
             children
