@@ -279,7 +279,7 @@ const AdminShopsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Header Banner */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -290,14 +290,14 @@ const AdminShopsPage: React.FC = () => {
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-300">
             Admin · Platform
           </p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-100 uppercase tracking-wide font-display">
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-100 uppercase tracking-wide font-display">
             Shop Management
           </h1>
           <p className="text-[13px] text-slate-400 mt-1">
             Approve registered shops, manage listings, and view customer distribution.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[13px] font-semibold">
             <Clock className="w-4 h-4" />
             <span>{pendingCount} Pending</span>
@@ -331,12 +331,12 @@ const AdminShopsPage: React.FC = () => {
         className="rounded-2xl border border-moto-gray bg-moto-dark p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
       >
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 bg-moto-darker p-1 rounded-xl border border-moto-gray">
+        <div className="flex w-full flex-wrap items-center gap-1.5 bg-moto-darker p-1 rounded-xl border border-moto-gray sm:w-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] font-bold transition-all ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-[12px] sm:text-[13px] font-bold transition-all ${
                 filter === tab.id
                   ? "bg-moto-accent text-slate-950 shadow-sm"
                   : "text-slate-300 hover:text-slate-200"
@@ -357,14 +357,14 @@ const AdminShopsPage: React.FC = () => {
         </div>
 
         {/* Search Field */}
-        <div className="relative">
+        <div className="relative min-w-0 w-full sm:w-72">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
           <input
             type="text"
             placeholder="Search shop, owner, or city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full sm:w-72 pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
+            className="w-full pl-10 pr-4 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
           />
         </div>
       </motion.div>
@@ -412,7 +412,7 @@ const AdminShopsPage: React.FC = () => {
           </div>
         ) : visibleShops.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm dashboard-table dashboard-table-dark">
+            <table className="w-full min-w-[900px] text-sm dashboard-table dashboard-table-dark">
               <thead>
                 <tr>
                   <th className="text-left">Shop Name</th>
@@ -622,7 +622,7 @@ const AdminShopsPage: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl overflow-hidden shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+              className="w-full max-w-2xl max-h-[calc(100dvh-2rem)] overflow-hidden shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
             >
               <div className="flex items-center justify-between px-6 py-5 border-b border-moto-gray bg-moto-dark">
                 <div className="flex items-center gap-3">
@@ -646,13 +646,13 @@ const AdminShopsPage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[calc(100dvh-8rem)] overflow-auto">
                 {customersLoading ? (
                   <div className="flex items-center justify-center py-16">
                     <div className="w-8 h-8 border-4 border-moto-accent border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : shopCustomers.length > 0 ? (
-                  <table className="w-full text-sm dashboard-table dashboard-table-dark">
+                  <table className="w-full min-w-[640px] text-sm dashboard-table dashboard-table-dark">
                     <thead>
                       <tr>
                         <th className="text-left">Customer</th>
