@@ -18,9 +18,13 @@ import {
   Ban,
   ArrowUpDown,
   Banknote,
+  Copy,
+  Check,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { getShopByOwnerId } from "../services/shopService";
 import { Appointment, AppointmentStatus } from "../types";
 import {
   sendServiceCompletionEmail,
@@ -54,6 +58,37 @@ interface Mechanic {
   name: string;
   email: string;
 }
+
+// Bookable hours in DB TIME format (HH:MM). Mirrors the grid offered in
+// BookAppointmentModal so an owner-created booking and a customer-created one
+// land on the same schedule.
+const TIME_SLOTS = [
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+];
+
+const formatSlotTime = (slot: string) => {
+  const hour = parseInt(slot.split(":")[0], 10);
+  if (Number.isNaN(hour)) return slot;
+  return `${hour >= 12 ? (hour === 12 ? 12 : hour - 12) : hour}:00 ${
+    hour >= 12 ? "PM" : "AM"
+  }`;
+};
+
+const normalizeTime = (t?: string | null): string => {
+  if (!t) return "";
+  const [h, m] = t.split(":");
+  if (!h) return "";
+  return `${h.padStart(2, "0")}:${(m || "00").slice(0, 2)}`;
+};
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -97,10 +132,16 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
-  const selectedSlot = "09:00 AM";
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
 
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Reference of the booking just created, shown so the owner can read it to a
+  // walk-in customer. The customer later enters it in their profile to link the
+  // service to their account.
+  const [newBookingRef, setNewBookingRef] = useState("");
+  const [refCopied, setRefCopied] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
 
   const [toast, setToast] = useState<{
@@ -124,6 +165,70 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     mechanic_id: "",
   });
 
+  // Some owner accounts (registered before the atomic signup path) have a NULL
+  // users.shop_id but still own a shop row. Falling back to an owner_id lookup
+  // matters for writes too: the owner RLS policy tests
+  // `shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid())`, and a NULL
+  // shop_id makes that evaluate to NULL, which RLS treats as "denied".
+  const resolveShopId = useCallback(async (): Promise<string | null> => {
+    if (user?.role === "admin") return user?.shop_id || null;
+    if (user?.shop_id) return user.shop_id;
+    if (!user?.id) return null;
+    const shop = await getShopByOwnerId(user.id);
+    return shop?.id ?? null;
+  }, [user?.id, user?.role, user?.shop_id]);
+
+  const [resolvedShopId, setResolvedShopId] = useState<string | null>(
+    user?.shop_id || null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveShopId().then((id) => {
+      if (!cancelled) setResolvedShopId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolveShopId]);
+
+  // Slots already taken on the chosen date so the owner's walk-in booking does
+  // not double-book a slot.
+  const fetchBookedSlots = useCallback(async () => {
+    if (!selectedDate) {
+      setBookedSlots([]);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("scheduled_time")
+        .eq("scheduled_date", selectedDate)
+        .in("status", ["pending", "confirmed", "in_progress"]);
+      if (error) throw error;
+      setBookedSlots(
+        (data || []).map((a: any) => normalizeTime(a.scheduled_time)),
+      );
+    } catch {
+      setBookedSlots([]);
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (showBookingForm) fetchBookedSlots();
+  }, [showBookingForm, fetchBookedSlots]);
+
+  const copyBookingRef = async () => {
+    if (!newBookingRef) return;
+    try {
+      await navigator.clipboard.writeText(newBookingRef);
+      setRefCopied(true);
+      setTimeout(() => setRefCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — the owner can still read the code on screen.
+    }
+  };
+
   const fetchAppointments = async () => {
     if (fetchAbortRef.current) fetchAbortRef.current.abort();
     fetchAbortRef.current = new AbortController();
@@ -134,8 +239,8 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         .select(`*, customer:users!customer_id (name, phone)`)
         .order("scheduled_date", { ascending: true });
 
-      if (user?.shop_id && user.role === "owner") {
-        query = query.eq("shop_id", user.shop_id);
+      if (user?.role === "owner" && resolvedShopId) {
+        query = query.eq("shop_id", resolvedShopId);
       }
 
       const { data, error } = await query;
@@ -167,7 +272,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       fetchAbortRef.current?.abort();
       supabase.removeChannel(channel);
     };
-  }, []);
+    // resolvedShopId is a dep so the initial fetch uses the resolved shop (an
+    // owner with a NULL users.shop_id would otherwise load unfiltered).
+  }, [resolvedShopId]);
 
   useEffect(() => {
     if (showBookingForm && mechanics.length === 0) fetchMechanics();
@@ -180,8 +287,8 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         .select("id, name, email")
         .eq("role", "mechanic");
 
-      if (user?.shop_id) {
-        query = query.eq("shop_id", user.shop_id);
+      if (user?.role === "owner" && resolvedShopId) {
+        query = query.eq("shop_id", resolvedShopId);
       }
 
       const { data, error } = await query;
@@ -352,29 +459,49 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
 
   const handleBookAppointment = async () => {
     if (
-      !formData.customer_name ||
-      !formData.customer_phone ||
-      !formData.vehicle_make
+      !formData.customer_name.trim() ||
+      !formData.customer_phone.trim() ||
+      !formData.vehicle_make.trim()
     ) {
-      alert("Please fill in all required fields.");
+      showToast("Please fill in all required fields.", "error");
+      return;
+    }
+
+    if (!selectedDate || !selectedSlot) {
+      showToast("Please pick a date and a time slot.", "error");
       return;
     }
 
     try {
       setSaving(true);
-      const customerId = user?.role === "customer" ? user.id : undefined;
+
+      // A customer books for themselves. A shop owner (or admin) may be
+      // recording a walk-in, in which case there is no account to link yet —
+      // customer_id stays NULL and the walk-in's identity is stored in the
+      // dedicated columns so the customer can claim it later by reference.
+      const isWalkIn = user?.role !== "customer";
+
+      const shopIdToUse = isWalkIn ? await resolveShopId() : null;
+      if (isWalkIn && !shopIdToUse) {
+        showToast(
+          "No shop is linked to your account yet, so this booking cannot be saved.",
+          "error",
+        );
+        return;
+      }
 
       const appointmentData = {
-        customer_id: customerId,
-        vehicle_id: undefined,
+        customer_id: isWalkIn ? null : user!.id,
+        vehicle_id: null,
+        shop_id: shopIdToUse,
         scheduled_date: selectedDate,
         scheduled_time: selectedSlot,
         service_type: formData.service_type,
-        description: `${formData.vehicle_make} - ${formData.service_type}`,
+        description: `${formData.vehicle_make.trim()} - ${formData.service_type}`,
         status: "pending",
-        notes: `Customer: ${formData.customer_name}, Phone: ${formData.customer_phone}`,
         mechanic_id: formData.mechanic_id || null,
-        shop_id: user?.shop_id || null,
+        walk_in_name: isWalkIn ? formData.customer_name.trim() : null,
+        walk_in_phone: isWalkIn ? formData.customer_phone.trim() : null,
       };
 
       const { data, error } = await supabase
@@ -385,10 +512,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       if (error) throw error;
 
       setAppointments([...appointments, data]);
+
+      // Only a real customer has an inbox to confirm.
       if (data?.customer_id) {
         sendBookingConfirmationEmail(data.id);
       }
+
+      // Surface the reference so the owner can read it to a walk-in — they enter
+      // it in their MotoLink profile to attach this service to their account.
+      setNewBookingRef(data?.booking_id || "");
       setShowBookingForm(false);
+      setSelectedSlot("");
       setFormData({
         customer_name: "",
         customer_phone: "",
@@ -396,10 +530,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         service_type: "Oil Change",
         mechanic_id: "",
       });
-      showToast("Appointment booked successfully!");
-    } catch (error) {
+      showToast(
+        isWalkIn
+          ? "Walk-in booked. Share the reference so the customer can link it."
+          : "Appointment booked successfully!",
+      );
+    } catch (error: any) {
       console.error("Error booking appointment:", error);
-      alert("Failed to book appointment.");
+      showToast(
+        error?.message || "Failed to book appointment. Please try again.",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
@@ -475,21 +616,35 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       .filter((a) => filterStatus === "all" || a.status === filterStatus)
       .filter((a) => {
         if (!q) return true;
-        const customerName = ((a as any).customer?.name || "").toLowerCase();
-        const customerPhone = ((a as any).customer?.phone || "").toLowerCase();
+        // Walk-in rows have no `customer` join, so search their own columns too
+        // — otherwise every walk-in booking is invisible to the search box.
+        const customerName = (
+          (a as any).customer?.name ||
+          a.walk_in_name ||
+          ""
+        ).toLowerCase();
+        const customerPhone = (
+          (a as any).customer?.phone ||
+          a.walk_in_phone ||
+          ""
+        ).toLowerCase();
         const vehicle = (a.description?.split(" - ")[0] || "").toLowerCase();
         const service = (a.service_type || "").toLowerCase();
+        const reference = (a.booking_id || "").toLowerCase();
         return (
           customerName.includes(q) ||
           customerPhone.includes(q) ||
           vehicle.includes(q) ||
-          service.includes(q)
+          service.includes(q) ||
+          reference.includes(q)
         );
       })
       .sort((a, b) => {
         const byDate = () =>
           a.scheduled_date.localeCompare(b.scheduled_date) ||
           (a.scheduled_time || "").localeCompare(b.scheduled_time || "");
+        const nameOf = (x: Appointment) =>
+          ((x as any).customer?.name || x.walk_in_name || "").toLowerCase();
         switch (sortBy) {
           case "date-desc":
             return (
@@ -502,12 +657,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
               byDate()
             );
           case "customer":
-            return (
-              ((a as any).customer?.name || "")
-                .toLowerCase()
-                .localeCompare(((b as any).customer?.name || "").toLowerCase()) ||
-              byDate()
-            );
+            return nameOf(a).localeCompare(nameOf(b)) || byDate();
           case "service":
             return (
               (a.service_type || "")
@@ -550,6 +700,47 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         )}
       </AnimatePresence>
 
+      {/* Walk-in reference — the owner reads this out so the customer can link
+          the service to their own account from their MotoLink profile. */}
+      <AnimatePresence>
+        {newBookingRef && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-xl bg-moto-accent/10 border border-moto-accent/30"
+          >
+            <Tag className="w-5 h-5 text-moto-accent shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-slate-100">
+                Booking reference
+              </p>
+              <p className="text-xs text-slate-300">
+                Have the customer enter this in their MotoLink profile to attach
+                the service to their account.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <code className="px-3 py-2 rounded-lg bg-moto-darker border border-moto-gray text-moto-accent font-mono text-sm font-bold tracking-wider">
+                {newBookingRef}
+              </code>
+              <button
+                onClick={copyBookingRef}
+                aria-label="Copy booking reference"
+                title="Copy reference"
+                className="p-2 rounded-lg bg-moto-darker border border-moto-gray text-slate-300 hover:border-moto-accent/50 hover:text-moto-accent transition"
+              >
+                {refCopied ? (
+                  <Check className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         variants={containerStagger}
@@ -576,7 +767,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
             className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5"
           >
             <Plus className="w-4 h-4" />
-            New Appointment
+            {isOwner ? "Book Walk-in" : "New Appointment"}
           </motion.button>
         )}
       </motion.div>
@@ -729,6 +920,13 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 const conf = statusConfig[apt.status];
                 const amt = apt.total_amount || apt.estimated_price;
                 const isEst = !apt.total_amount;
+                // Walk-ins have no `customer` join — read their own columns so
+                // the card is not blank.
+                const displayName =
+                  (apt as any).customer?.name || apt.walk_in_name;
+                const displayPhone =
+                  (apt as any).customer?.phone || apt.walk_in_phone;
+                const isWalkIn = !apt.customer_id;
                 return (
                   <motion.div
                     key={apt.id}
@@ -789,16 +987,22 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                       </p>
 
                       <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-[13px] text-slate-400">
-                        {(apt as any).customer?.name && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4 text-slate-400" />
-                            {(apt as any).customer.name}
+                        {isWalkIn && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/30 text-violet-300 font-bold text-[11px] uppercase tracking-wider">
+                            <UserPlus className="w-3.5 h-3.5" />
+                            Walk-in
                           </span>
                         )}
-                        {(apt as any).customer?.phone && (
+                        {displayName && (
+                          <span className="flex items-center gap-1">
+                            <User className="w-4 h-4 text-slate-400" />
+                            {displayName}
+                          </span>
+                        )}
+                        {displayPhone && (
                           <span className="flex items-center gap-1">
                             <Phone className="w-4 h-4 text-slate-400" />
-                            {(apt as any).customer.phone}
+                            {displayPhone}
                           </span>
                         )}
                         <span className="flex items-center gap-1">
@@ -968,7 +1172,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     <Calendar size={18} />
                   </span>
                   <h3 className="font-display text-xl uppercase tracking-wide text-slate-100">
-                    Book Appointment
+                    {isOwner ? "Book Walk-in" : "Book Appointment"}
                   </h3>
                 </div>
                 <button
@@ -979,6 +1183,14 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                 </button>
               </div>
 
+              {isOwner && (
+                <p className="text-[13px] text-slate-300 leading-relaxed">
+                  For a customer without a MotoLink account. The booking is saved
+                  with a reference — share it and the customer can link the
+                  service to their account later.
+                </p>
+              )}
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-200 mb-1">Date</label>
@@ -988,6 +1200,32 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className={inputClass}
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-200 mb-1">Time Slot</label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {TIME_SLOTS.map((slot) => {
+                      const isTaken = bookedSlots.includes(slot);
+                      const isActive = selectedSlot === slot;
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={isTaken}
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`px-2 py-2 rounded-lg text-[12px] font-bold tabular-nums transition ${
+                            isTaken
+                              ? "bg-moto-dark border border-moto-gray text-slate-600 cursor-not-allowed line-through"
+                              : isActive
+                                ? "bg-moto-accent border border-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
+                                : "bg-moto-darker border border-moto-gray text-slate-300 hover:border-moto-accent/60 hover:text-moto-accent"
+                          }`}
+                        >
+                          {formatSlotTime(slot)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-200 mb-1">Customer Name</label>

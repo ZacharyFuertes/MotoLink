@@ -152,7 +152,9 @@ CREATE INDEX IF NOT EXISTS idx_featured_products_shop ON public.featured_product
 -- 9. APPOINTMENTS (bookings/scheduling)
 CREATE TABLE IF NOT EXISTS public.appointments (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id       UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  -- NULL for a walk-in customer who has no MotoLink account yet. Linkable later
+  -- via claim_walk_in_appointment(booking_id).
+  customer_id       UUID REFERENCES public.users(id) ON DELETE CASCADE,
   shop_id           UUID REFERENCES public.shops(id) ON DELETE SET NULL,
   mechanic_id       UUID REFERENCES public.users(id) ON DELETE SET NULL,
   vehicle_id        UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
@@ -163,12 +165,18 @@ CREATE TABLE IF NOT EXISTS public.appointments (
   status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
                       'pending', 'confirmed', 'in_progress', 'completed', 'cancelled'
                     )),
+  -- Walk-in identity, set only while customer_id IS NULL.
+  walk_in_name      TEXT,
+  walk_in_phone     TEXT,
   notes             TEXT,
   estimated_price   NUMERIC(10,2),
   total_amount      NUMERIC(10,2),
   parts             JSONB DEFAULT '[]',
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Human-readable receipt reference (MTL-YYYYMMDD-XXXXXX), generated
+  -- server-side by the trigger below.
+  booking_id        VARCHAR(40) NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_appointments_customer ON public.appointments(customer_id);
@@ -176,13 +184,16 @@ CREATE INDEX IF NOT EXISTS idx_appointments_mechanic ON public.appointments(mech
 CREATE INDEX IF NOT EXISTS idx_appointments_shop_date ON public.appointments(shop_id, scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON public.appointments(status);
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON public.appointments(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_walk_in_phone ON public.appointments(walk_in_phone);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_appointments_booking_id ON public.appointments(booking_id);
 
 -- 10. JOB_ORDERS (mechanic work orders)
 CREATE TABLE IF NOT EXISTS public.job_orders (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id         UUID NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
   appointment_id  UUID REFERENCES public.appointments(id) ON DELETE SET NULL,
-  customer_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  -- NULL when the source appointment was a walk-in.
+  customer_id     UUID REFERENCES public.users(id) ON DELETE CASCADE,
   mechanic_id     UUID REFERENCES public.users(id) ON DELETE SET NULL,
   status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
                     'pending', 'in_progress', 'completed', 'billed', 'cancelled'
@@ -221,7 +232,8 @@ CREATE INDEX IF NOT EXISTS idx_job_order_items_order ON public.job_order_items(j
 CREATE TABLE IF NOT EXISTS public.invoices (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_order_id      UUID REFERENCES public.job_orders(id) ON DELETE SET NULL,
-  customer_id       UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  -- NULL when the source job order came from a walk-in appointment.
+  customer_id       UUID REFERENCES public.users(id) ON DELETE CASCADE,
   total_amount      NUMERIC(10,2) NOT NULL DEFAULT 0,
   payment_status    TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN (
                       'unpaid', 'paid', 'overdue', 'cancelled'
@@ -643,8 +655,15 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT COALESCE(u.name, 'A customer') INTO v_customer
-  FROM public.users u WHERE u.id = NEW.customer_id;
+  IF NEW.customer_id IS NULL THEN
+    -- Walk-in: there is no users row to look up, so use the recorded name.
+    -- (Without this the SELECT below matches zero rows and the notification
+    -- message starts with a blank " booked ...".)
+    v_customer := COALESCE(NULLIF(NEW.walk_in_name, ''), 'A walk-in customer');
+  ELSE
+    SELECT COALESCE(u.name, 'A customer') INTO v_customer
+    FROM public.users u WHERE u.id = NEW.customer_id;
+  END IF;
 
   INSERT INTO public.notifications (
     recipient_id, appointment_id, type, subject, message, status
@@ -660,7 +679,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 CREATE TRIGGER notify_shop_owner_on_appointment
   AFTER INSERT ON public.appointments
@@ -761,6 +780,131 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.register_shop_owner TO authenticated;
+
+-- ============================================================================
+-- PHASE 10b: WALK-IN APPOINTMENTS
+-- A shop owner can book a service for a customer who has no MotoLink account.
+-- Such an appointment has customer_id = NULL plus walk_in_name / walk_in_phone.
+-- The customer later attaches it to their fresh account by entering the
+-- booking reference (booking_id) printed on their receipt.
+-- ============================================================================
+
+-- Generate the receipt reference server-side on every insert.
+CREATE OR REPLACE FUNCTION public.generate_appointment_booking_id()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_suffix TEXT;
+BEGIN
+  IF NEW.booking_id IS NOT NULL AND NEW.booking_id <> '' THEN
+    RETURN NEW;
+  END IF;
+
+  v_suffix := upper(substr(replace(NEW.id::text, '-', ''), 6, 6));
+  NEW.booking_id := 'MTL-'
+                    || to_char(date_trunc('day', NEW.scheduled_date)::date, 'YYYYMMDD')
+                    || '-'
+                    || v_suffix;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_appointment_generate_booking_id ON public.appointments;
+CREATE TRIGGER trg_appointment_generate_booking_id
+  BEFORE INSERT ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.generate_appointment_booking_id();
+
+COMMENT ON COLUMN public.appointments.booking_id IS
+  'Short human-readable booking reference (MTL-YYYYMMDD-XXXXXX). Server-generated on insert.';
+COMMENT ON COLUMN public.appointments.customer_id IS
+  'Registered customer. NULL for a walk-in — see walk_in_name / walk_in_phone. Linkable later via claim_walk_in_appointment(booking_id).';
+COMMENT ON COLUMN public.job_orders.customer_id IS
+  'Registered customer, or NULL when the source appointment is a walk-in.';
+COMMENT ON COLUMN public.invoices.customer_id IS
+  'Registered customer, or NULL when the source job order came from a walk-in.';
+COMMENT ON COLUMN public.appointments.walk_in_name IS
+  'Walk-in customer''s name. Set only while customer_id IS NULL.';
+COMMENT ON COLUMN public.appointments.walk_in_phone IS
+  'Walk-in customer''s phone. Set only while customer_id IS NULL.';
+
+-- Link a walk-in service to the caller's account using its booking reference.
+-- This is an RPC rather than a client UPDATE on purpose: a direct .update()
+-- would need an RLS policy loose enough for a signed-in user to attach an
+-- unlinked appointment to themselves, which would also let one customer
+-- hijack another customer's walk-in. Here the reference is validated
+-- server-side inside a single transaction instead.
+CREATE OR REPLACE FUNCTION public.claim_walk_in_appointment(p_booking_id TEXT)
+RETURNS TABLE (
+  id            UUID,
+  booking_id    TEXT,
+  shop_id       UUID,
+  service_type  TEXT,
+  scheduled_date DATE
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_apt public.appointments;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'You must be signed in to link a booking reference.';
+  END IF;
+
+  IF p_booking_id IS NULL OR btrim(p_booking_id) = '' THEN
+    RAISE EXCEPTION 'Enter a booking reference.';
+  END IF;
+
+  -- Reference lookup is case-insensitive and tolerates surrounding whitespace so
+  -- the customer can paste the reference straight off a receipt.
+  --
+  -- Every column is table-qualified: the RETURNS TABLE output parameters are
+  -- named id / booking_id / shop_id / service_type / scheduled_date, so an
+  -- unqualified reference would be ambiguous with plpgsql.variable_conflict =
+  -- error and the function would fail at runtime.
+  SELECT a.* INTO v_apt
+  FROM public.appointments a
+  WHERE upper(btrim(a.booking_id)) = upper(btrim(p_booking_id));
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'No booking found with reference "%". Check the reference and try again.', p_booking_id;
+  END IF;
+
+  IF v_apt.customer_id IS NOT NULL THEN
+    IF v_apt.customer_id = auth.uid() THEN
+      RAISE EXCEPTION 'This booking is already linked to your account.';
+    END IF;
+    RAISE EXCEPTION 'This booking reference has already been claimed.';
+  END IF;
+
+  -- The customer_id IS NULL re-check makes the claim safe against a concurrent
+  -- second claim: whichever transaction updates first wins, and the loser
+  -- updates zero rows instead of silently stealing the booking.
+  -- (updated_at is maintained by the set_updated_at BEFORE UPDATE trigger.)
+  UPDATE public.appointments a
+  SET customer_id   = auth.uid(),
+      walk_in_name  = NULL,
+      walk_in_phone = NULL
+  WHERE a.id = v_apt.id
+    AND a.customer_id IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'This booking reference has already been claimed.';
+  END IF;
+
+  RETURN QUERY
+  SELECT v_apt.id, v_apt.booking_id, v_apt.shop_id,
+         v_apt.service_type, v_apt.scheduled_date;
+END;
+$$;
+
+-- CREATE FUNCTION grants EXECUTE to PUBLIC by default, which would also expose
+-- this to anon. Narrow it to signed-in users only.
+REVOKE EXECUTE ON FUNCTION public.claim_walk_in_appointment(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.claim_walk_in_appointment(TEXT) TO authenticated;
+
+COMMENT ON FUNCTION public.claim_walk_in_appointment(TEXT) IS
+  'Links an unlinked walk-in appointment to the calling user''s account using its booking reference.';
 
 -- ============================================================================
 -- PHASE 11: SEED DATA (optional defaults)

@@ -9,6 +9,8 @@ import {
   DollarSign,
   Gauge,
   History,
+  Link2,
+  Loader2,
   Lock,
   LogOut,
   MapPin,
@@ -19,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   Store,
+  Tag,
   Trash2,
   User,
   Wrench,
@@ -29,6 +32,7 @@ import BookAppointmentModal from "../components/BookAppointmentModal";
 import ServiceHistoryModal from "../components/ServiceHistoryModal";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import { getAppointmentStatus } from "../utils/appointmentStatus";
+import { claimWalkInAppointment } from "../services/appointmentService";
 import {
   EMPTY_VEHICLE_STATS,
   VehicleRecord,
@@ -161,6 +165,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [historyVehicle, setHistoryVehicle] = useState<VehicleRecord | null>(null);
   const [historyAll, setHistoryAll] = useState(false);
 
+  // Walk-in claim: a shop may have serviced this customer before they created an
+  // account. They paste the booking reference from their receipt to attach that
+  // service to this profile.
+  const [claimRef, setClaimRef] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState("");
+  const [claimSuccess, setClaimSuccess] = useState("");
+
   const displayName = user?.name || "Motorist";
   const email = user?.email || "";
   const phone = user?.phone || "";
@@ -247,6 +259,37 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     refreshData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  const handleClaimWalkIn = async () => {
+    const reference = claimRef.trim();
+    if (!reference) {
+      setClaimError("Enter the booking reference from your receipt.");
+      setClaimSuccess("");
+      return;
+    }
+
+    setClaiming(true);
+    setClaimError("");
+    setClaimSuccess("");
+    try {
+      const claimed = await claimWalkInAppointment(reference);
+      setClaimSuccess(
+        `Linked ${claimed.service_type} on ${formatDate(claimed.scheduled_date)}.`,
+      );
+      setClaimRef("");
+      // The claim only changes appointments.customer_id, so the existing
+      // customer_id-scoped query picks it up on refresh.
+      await refreshData();
+    } catch (err) {
+      setClaimError(
+        err instanceof Error
+          ? err.message
+          : "Could not link that reference. Please try again.",
+      );
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const vehicleStats = (id: string) => stats[id] ?? EMPTY_VEHICLE_STATS;
 
@@ -887,6 +930,62 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       </span>
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Link a walk-in service booked before this customer had an account */}
+              <div className="mb-5 rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-moto-accent/10 text-moto-accent">
+                    <Link2 size={16} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-100">
+                      Served before you had an account?
+                    </p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                      Enter the booking reference from your receipt to attach that
+                      service to your profile and track it here.
+                    </p>
+
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={claimRef}
+                        onChange={(e) => setClaimRef(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleClaimWalkIn();
+                        }}
+                        placeholder="MTL-20261003-A1B2C3"
+                        aria-label="Booking reference"
+                        className={`${fieldClass} flex-1 font-mono uppercase placeholder:font-sans placeholder:normal-case`}
+                      />
+                      <button
+                        onClick={handleClaimWalkIn}
+                        disabled={claiming}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:opacity-60"
+                      >
+                        {claiming ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Link2 size={16} />
+                        )}
+                        Link Booking
+                      </button>
+                    </div>
+
+                    {claimError && (
+                      <p className="mt-2 text-xs font-semibold text-red-400">
+                        {claimError}
+                      </p>
+                    )}
+                    {claimSuccess && (
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                        <Tag size={13} />
+                        {claimSuccess}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 

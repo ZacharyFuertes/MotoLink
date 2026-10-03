@@ -7353,6 +7353,116 @@ Approve/Deactivate/Delete actions and all table columns are untouched (37 insert
 
 ---
 
+## TASK: Walk-in appointments — owner books a service for a customer with no account
+
+**Symptom:** a shop owner clicking "New Appointment" and filling the form always failed, with only
+the generic alert "Failed to book appointment."
+
+**Root cause:** `appointments.customer_id` was `UUID NOT NULL REFERENCES users(id)`, but
+`AppointmentCalendarPage.handleBookAppointment()` sent `customer_id: undefined` for any non-customer
+booker. The insert died on the not-null violation. The frontend had *already* been migrated for
+walk-ins (`Dashboard` renders a "Walk-in" badge, `AdminAppointmentsPage` renders "Guest"); only the
+DB constraint was left over from the previous schema, and the swallowed `.error` hid it.
+
+**Secondary defects found and fixed in the same pass**
+- `user.shop_id` is NULL for most owners, and the owner RLS policy keys off `shops.owner_id =
+  auth.uid()`. The page used `user.shop_id` directly for the insert's `shop_id` and for scoping its
+  queries, so booking silently failed RLS. Now falls back to `getShopByOwnerId()`.
+- `scheduled_time` was hardcoded to `"09:00 AM"` — there was no way to pick a slot. Replaced with a
+  real slot grid (`08:00`–`17:00`, hourly), disabling slots already taken that day.
+- Walk-ins weren't searchable — owner search now covers `walk_in_name`, `walk_in_phone`, `booking_id`.
+- `job_orders.customer_id` and `invoices.customer_id` were also `NOT NULL`. Because both are fed
+  straight from the parent appointment's `customer_id`, confirming a walk-in appointment would fail
+  to create its job order, and completing it would fail to create its invoice. Both dropped to
+  nullable.
+- `notify_shop_owner_on_appointment()` did `SELECT ... FROM users WHERE u.id = NEW.customer_id`; for
+  a walk-in that matches zero rows, leaving `v_customer` NULL so the notification read
+  `" booked Oil Change for 2026-10-03."` (leading blank). Now falls back to `walk_in_name`.
+
+**Design decisions (confirmed with the user)**
+- **No fake `users` row is created** for a walk-in. Real `users` rows mean real auth accounts, real
+  RLS surface, and junk in the customer list.
+- Identity lives in dedicated `walk_in_name` / `walk_in_phone` columns rather than being packed into
+  a `"Customer: X, Phone: Y"` string in `notes`, so it is searchable and reportable.
+- The customer links the service later by entering the booking reference **already generated
+  server-side** as `booking_id` (`MTL-YYYYMMDD-XXXXXX`, from `20260831_add_booking_id_to_appointments`).
+  No new reference column was needed.
+
+**Why the claim is an RPC and not a client `UPDATE`**
+A direct `.update()` would need an RLS policy loose enough for any signed-in user to attach an
+unlinked appointment to themselves — and any policy that loose also lets one customer hijack another
+customer's walk-in by guessing a reference. `claim_walk_in_appointment(booking_id)` instead validates
+the reference server-side inside one transaction as `SECURITY DEFINER`: not-found / already-claimed /
+already-yours are three distinct human-readable errors, and the walk-in fields are cleared on success.
+
+**Three bugs caught while writing the RPC** (all would have failed at runtime, not at creation)
+1. `RETURNS TABLE(id, booking_id, shop_id, ...)` makes those output-parameter names **variables** in
+   PL/pgSQL scope, so `WHERE upper(btrim(booking_id)) = ...` was ambiguous against the table column
+   and would raise under the default `plpgsql.variable_conflict = error`. Every column is now
+   table-qualified (`FROM public.appointments a WHERE ... a.booking_id`).
+2. `CREATE FUNCTION` grants EXECUTE to `PUBLIC` by default, which would expose the claim to `anon`.
+   Added `REVOKE EXECUTE ... FROM PUBLIC, anon` before the `GRANT ... TO authenticated`.
+3. The read-then-write claim had a TOCTOU race: two people entering the same reference could both
+   pass the `customer_id IS NULL` check and the second would silently overwrite the first. The
+   `UPDATE` now re-checks `AND a.customer_id IS NULL` and treats zero rows as "already claimed".
+
+Both `SECURITY DEFINER` functions use `SET search_path = public, pg_temp` (leaving `pg_temp` implicit
+would search it *first*, which is the hijack the clause exists to prevent).
+
+**Owner UI** (`AppointmentCalendarPage.tsx`) — "Book Walk-in" button, modal retitled to make clear
+the shop is booking on someone else's behalf, slot grid with taken slots disabled, dedicated name +
+phone fields, and a post-booking banner showing the generated reference with a Copy button (same
+`MTL-…` copy affordance the customer modal already had).
+
+**Customer UI** (`UserProfilePage.tsx`) — new "Served before you had an account?" card in Bookings &
+Service History: paste the reference, inline validation, per-error feedback, success line naming the
+linked service and date. `refreshData()` already scopes on `customer_id`, so a claimed booking
+appears in the history table with no extra query. Empty-state text unchanged so the card is the
+discoverable path.
+
+**Type changes** — `Appointment.customer_id`, `JobOrder.customer_id`, `Invoice.customer_id` are now
+`string | null`; `Appointment.walk_in_name` / `walk_in_phone` added as nullable. `Vehicle`/`Shop`
+`customer_id`-style fields left alone (not nullable in practice).
+
+### Files touched
+- `supabase/migrations/20261003_walk_in_appointments.sql` — **new**: nullability on appointments /
+  job_orders / invoices, `walk_in_name` + `walk_in_phone` + phone index, column and function
+  comments, `claim_walk_in_appointment()`, patched `notify_shop_owner_on_appointment()`.
+- `src/services/appointmentService.ts` — **new** `claimWalkInAppointment()` + `ClaimedAppointment`.
+  Surfaces the RPC's exception text verbatim so the customer sees "already claimed" rather than a
+  generic database error.
+- `src/pages/AppointmentCalendarPage.tsx` — shop_id fallback, nullable customer_id, walk-in fields,
+  slot picker, search, copyable reference, toast errors replacing `alert()`, walk-in badge.
+- `src/pages/UserProfilePage.tsx` — claim card + `handleClaimWalkIn`.
+- `src/types/index.ts` — nullability and walk-in fields.
+- `supabase/schema.sql` — synced. Note it had **already drifted**: it never had `booking_id` at all,
+  which the claim RPC depends on, so a fresh install would have had a broken claim flow. Added
+  `booking_id VARCHAR(40) NOT NULL` + its unique index + generator trigger, the walk-in columns,
+  the nullable customer IDs on job_orders/invoices, the claim RPC, and the walk-in branch in
+  `notify_shop_owner_on_appointment()`.
+- `MEMORY.md` — this entry.
+
+### Verified
+- `npx tsc --noEmit` clean. `npm run build` passes (2825 modules, 18.5s; only the pre-existing
+  chunk-size warning).
+- `npm run lint` is **not runnable** — `eslint` is not installed and there is no eslint config in the
+  repo (already noted earlier in this file). `tsc` + `build` are the gate.
+- Had to run `npm install` first: `papaparse` / `@types/papaparse` were in `package.json` but missing
+  from `node_modules`, so `tsc` reported a spurious `TS2307` in `AdminShopImportModal.tsx` (a file
+  this task does not touch). Installed 3 packages; the error cleared and the file was unmodified.
+- `updated_at` on `appointments` is maintained by an existing `set_updated_at` BEFORE UPDATE trigger,
+  so the claim's `UPDATE` deliberately does not set it. `booking_id` is uniquely indexed
+  (`20260831`), so the reference lookup can match at most one row.
+- **Not verified:** no live Supabase run and no browser click-through. The migration is **not
+  applied** — per the DB-access rule near the top of this file it has to be run by the user in the
+  Supabase SQL Editor. Until then the owner booking insert still hits the old `NOT NULL` constraint
+  and the claim RPC does not exist.
+- Root-level `COMPLETE_DATABASE_SCHEMA.sql` and `MOTOLINK_ERD_SCHEMA.sql` still declare these
+  customer IDs `NOT NULL` — flagged as stale, left untouched (they are reference docs, not applied).
+- Not committed/pushed (waiting on user).
+
+---
+
 **Last Updated**: Oct 03, 2026
 **Compatibility Version**: 1.0
 

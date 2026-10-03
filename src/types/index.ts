@@ -57,7 +57,8 @@ export type AppointmentStatus =
 export interface Appointment {
   id: string;
   booking_id?: string;
-  customer_id: string;
+  /** NULL for a walk-in booked by the shop — see walk_in_name / walk_in_phone. */
+  customer_id: string | null;
   vehicle_id: string;
   shop_id: string;
   scheduled_date: string;
@@ -67,6 +68,8 @@ export interface Appointment {
   mechanic_id?: string;
   status: AppointmentStatus;
   notes?: string;
+  walk_in_name?: string | null;
+  walk_in_phone?: string | null;
   parts?: any[];
   total_amount?: number;
   estimated_price?: number;
@@ -84,7 +87,8 @@ export interface JobOrderPart {
 export interface JobOrder {
   id: string;
   appointment_id: string;
-  customer_id: string;
+  /** NULL when the source appointment is a walk-in with no registered account. */
+  customer_id: string | null;
   mechanic_id: string;
   shop_id: string;
   vehicle_id: string;
@@ -140,7 +144,8 @@ export interface AuditLogEntry {
 export interface Invoice {
   id: string;
   job_order_id: string;
-  customer_id: string;
+  /** NULL when the source job order came from a walk-in booking. */
+  customer_id: string | null;
   shop_id: string;
   subtotal: number;
   tax_rate: number;
