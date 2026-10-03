@@ -82,7 +82,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           supabase
             .from("appointments")
             .select(
-              "id, status, total_amount, estimated_price, updated_at, scheduled_date",
+              "id, status, total_amount, estimated_price, customer_id, updated_at, scheduled_date",
             )
             .eq("shop_id", user.shop_id)
             .eq("status", "completed"),
@@ -93,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             .eq("status", "pending"),
           supabase
             .from("users")
-            .select("id", { count: "exact", head: true })
+            .select("id")
             .eq("shop_id", user.shop_id)
             .eq("role", "customer"),
           inventoryService.getLowStockParts(user.shop_id),
@@ -119,6 +119,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       const sum = (rows: any[], pick: (r: any) => number) =>
         rows.reduce((t, r) => t + (Number(pick(r)) || 0), 0);
+
+      // Customers = registered shop customers + anyone with a completed booking here.
+      const customerIds = new Set<string>();
+      ((customers.data || []) as any[]).forEach(
+        (u) => u.id && customerIds.add(u.id),
+      );
+      ((apptsDone.data || []) as any[])
+        .map((a: any) => a.customer_id)
+        .forEach((id) => id && customerIds.add(id));
+      const customerCount = customerIds.size;
 
       const apptValue = (a: any) => a.total_amount || a.estimated_price;
       // Parts sold inside a booking live in job_orders.parts_used.
@@ -185,7 +195,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         posToday,
         revenueAll: apptAll + posAll,
         appointments: pending.count || 0,
-        customers: customers.count || 0,
+        customers: customerCount,
         lowStock: stock.length,
         products: products.count || 0,
       });
@@ -231,7 +241,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {
         label: "Customers",
         value: metrics.customers,
-        sub: "registered",
+        sub: "registered or booked here",
         icon: Users,
         accent: "#8b5cf6",
         page: "customers",

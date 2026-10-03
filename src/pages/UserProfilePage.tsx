@@ -819,117 +819,115 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-moto-gray text-xs text-slate-300">
-                        <th className="px-3 py-2 font-medium">Service</th>
-                        <th className="px-3 py-2 font-medium">Vehicle</th>
-                        <th className="px-3 py-2 font-medium">Shop</th>
-                        <th className="px-3 py-2 font-medium">Date</th>
-                        <th className="px-3 py-2 font-medium">Cost</th>
-                        <th className="px-3 py-2 font-medium">Status</th>
-                        <th className="px-3 py-2 font-medium" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleHistory.map((h) => (
-                        <tr
-                          key={h.id}
-                          className="border-b border-moto-gray/60 align-top last:border-0"
-                        >
-                          <td className="px-3 py-3 font-medium text-slate-100">
-                            {h.service_type}
-                          </td>
-                          <td className="px-3 py-3 text-slate-300">
-                            {h.vehicle_name ? (
-                              <span className="inline-flex items-center gap-1.5">
-                                <Car
-                                  size={13}
-                                  className="shrink-0 text-moto-accent"
-                                />
-                                {h.vehicle_name}
-                              </span>
-                            ) : (
-                              <span className="text-slate-500">—</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 text-slate-300">
-                            {h.shop_name || "—"}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-slate-300">
-                            {formatDate(h.scheduled_date)}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-slate-300">
-                            {h.total_amount != null
-                              ? `₱${Number(h.total_amount).toLocaleString()}`
-                              : "—"}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                                getAppointmentStatus(h.status).pill
-                              }`}
-                            >
-                              {getAppointmentStatus(h.status).label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              <button
-                                onClick={() => setRebooking(h)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
-                              >
-                                <RotateCcw size={12} /> Rebook
-                              </button>
-
-                              {canCancelBooking(h) && (
-                                <button
-                                  onClick={() =>
-                                    setConfirmCancelId((current) =>
-                                      current === h.id ? null : h.id,
-                                    )
-                                  }
-                                  disabled={cancellingId === h.id}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  {cancellingId === h.id
-                                    ? "Cancelling..."
-                                    : "Cancel"}
-                                </button>
-                              )}
+                <div className="space-y-3">
+                  {visibleHistory.map((h) => {
+                    const st = getAppointmentStatus(h.status);
+                    const confirmOpen = confirmCancelId === h.id;
+                    return (
+                      <div
+                        key={h.id}
+                        className={`rounded-xl border bg-moto-darker/40 transition ${
+                          confirmOpen
+                            ? "border-rose-500/40"
+                            : "border-moto-gray/80"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+                          {/* Service + shop */}
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
+                              <Wrench size={18} />
                             </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-100">
+                                {h.service_type}
+                              </p>
+                              <p className="truncate text-xs text-slate-400">
+                                {h.shop_name || "Motor repair shop"}
+                              </p>
+                            </div>
+                          </div>
 
-                            {confirmCancelId === h.id && (
-                              <div className="mt-2 rounded-xl border border-moto-gray bg-moto-darker/70 p-3">
-                                <p className="mb-2 text-left text-[11px] leading-relaxed text-slate-200">
-                                  Are you sure you want to cancel this
-                                  appointment?
-                                </p>
-                                <div className="flex items-center justify-end gap-2">
-                                  <button
-                                    onClick={() =>
-                                      handleCancelBooking(h.id)
-                                    }
-                                    disabled={cancellingId === h.id}
-                                    className="rounded-full bg-moto-accent px-5 py-1.5 text-[11px] font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
-                                  >
-                                    OK
-                                  </button>
-                                  <button
-                                    onClick={() => setConfirmCancelId(null)}
-                                    className="rounded-full border border-moto-gray bg-moto-gray/80 px-4 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-moto-gray-light"
-                                  >
-                                    Keep
-                                  </button>
-                                </div>
-                              </div>
+                          {/* Date + vehicle */}
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 tabular-nums">
+                              <Calendar size={12} className="text-moto-accent" />
+                              {formatDate(h.scheduled_date)}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1">
+                              <Car size={12} className="shrink-0 text-moto-accent" />
+                              <span className="max-w-[140px] truncate">
+                                {h.vehicle_name || "Vehicle"}
+                              </span>
+                            </span>
+                          </div>
+
+                          {/* Cost + status */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-300">
+                              <DollarSign size={12} className="text-emerald-400" />
+                              {h.total_amount != null
+                                ? `₱${Number(h.total_amount).toLocaleString()}`
+                                : "—"}
+                            </span>
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${st.pill}`}
+                            >
+                              {st.label}
+                            </span>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setRebooking(h)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
+                            >
+                              <RotateCcw size={12} /> Rebook
+                            </button>
+
+                            {canCancelBooking(h) && (
+                              <button
+                                onClick={() =>
+                                  setConfirmCancelId((current) =>
+                                    current === h.id ? null : h.id,
+                                  )
+                                }
+                                disabled={cancellingId === h.id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {cancellingId === h.id ? "Cancelling..." : "Cancel"}
+                              </button>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+
+                        {/* Cancel confirm */}
+                        {confirmOpen && (
+                          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-moto-gray/80 px-4 py-3">
+                            <p className="text-[11px] text-slate-200">
+                              Are you sure you want to cancel this appointment?
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleCancelBooking(h.id)}
+                                disabled={cancellingId === h.id}
+                                className="rounded-full bg-moto-accent px-5 py-1.5 text-[11px] font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {cancellingId === h.id ? "Cancelling..." : "Yes, cancel"}
+                              </button>
+                              <button
+                                onClick={() => setConfirmCancelId(null)}
+                                className="rounded-full border border-moto-gray bg-moto-gray/80 px-4 py-1.5 text-[11px] font-semibold text-slate-200 transition hover:bg-moto-gray-light"
+                              >
+                                Keep
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
