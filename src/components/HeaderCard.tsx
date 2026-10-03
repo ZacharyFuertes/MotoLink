@@ -6,7 +6,6 @@ interface HeaderCardProps {
   shop: {
     name: string;
     rating?: number;
-    description?: string;
     location?: string;
     phone?: string;
     email?: string;
@@ -36,7 +35,6 @@ export const HeaderCard: React.FC<HeaderCardProps> = ({ shop }) => {
           </span>
         )}
       </div>
-      <p className="text-slate-300 mt-2 max-w-2xl">{shop.description}</p>
       <div className="flex flex-wrap gap-2 mt-4">
         {shop.location && (
           <BadgePill icon={MapPin} text={shop.location} variant="default" />
