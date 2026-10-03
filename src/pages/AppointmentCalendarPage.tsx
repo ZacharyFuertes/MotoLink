@@ -14,6 +14,8 @@ import {
   Clock,
   Wrench,
   Tag,
+  Lock,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -207,9 +209,17 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
 
+        if (statusUpdatingId === appointmentId) return;
+        setStatusUpdatingId(appointmentId);
+
+        if (appointment.status === "completed") {
+          setCompleteConfirmId(null);
+          alert("This appointment is already completed and can no longer be edited.");
+          return;
+        }
+
         if (
           (newStatus === "confirmed" || newStatus === "in_progress") &&
-          appointment.status !== "completed" &&
           appointment.shop_id &&
           appointment.customer_id
         ) {
@@ -227,7 +237,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           }
         }
 
-        if (newStatus === "completed" && appointment.status !== "completed") {
+        if (newStatus === "completed") {
           const parts = appointment.parts || [];
 
           for (const part of parts) {
@@ -269,7 +279,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           }
         }
 
-        if (newStatus === "completed" && appointment.status !== "completed") {
+        if (newStatus === "completed") {
           const jobOrder =
             await jobOrderService.ensureJobOrderForAppointment(appointment);
           if (jobOrder) {
@@ -322,6 +332,9 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
       } catch (err) {
         console.error("Error updating appointment status:", err);
         alert("Failed to update status. Please try again.");
+      } finally {
+        setStatusUpdatingId(null);
+        setCompleteConfirmId(null);
       }
     }
   };
@@ -390,6 +403,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
     "all",
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [completeConfirmId, setCompleteConfirmId] = useState<string | null>(
+    null,
+  );
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
   const todayKey = new Date().toISOString().split("T")[0];
 
@@ -707,31 +724,47 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                     {/* Right: actions */}
                     {canUpdateStatus && (
                       <div className="flex items-center gap-2 shrink-0">
-                        {apt.status === "in_progress" && isOwner && (
-                          <button
-                            onClick={() => handleStatusChange(apt.id, "completed")}
-                            className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
+                        {apt.status === "completed" ? (
+                          <span
+                            title="This appointment is completed and can no longer be edited."
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[13px] font-bold text-emerald-300"
                           >
-                            <CheckCircle className="w-4 h-4" />
-                            Finalize
-                          </button>
+                            <Lock className="w-4 h-4" />
+                            Locked
+                          </span>
+                        ) : (
+                          <>
+                            {apt.status === "in_progress" && isOwner && (
+                              <button
+                                onClick={() => setCompleteConfirmId(apt.id)}
+                                disabled={statusUpdatingId === apt.id}
+                                className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Finalize
+                              </button>
+                            )}
+                            <select
+                              value={apt.status}
+                              disabled={statusUpdatingId === apt.id}
+                              onChange={(e) => {
+                                const next = e.target.value as AppointmentStatus;
+                                if (next === "completed") {
+                                  setCompleteConfirmId(apt.id);
+                                } else {
+                                  handleStatusChange(apt.id, next);
+                                }
+                              }}
+                              className="px-3 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition disabled:opacity-50"
+                            >
+                              {Object.entries(statusConfig).map(([status, config]) => (
+                                <option key={status} value={status}>
+                                  {config.label}
+                                </option>
+                              ))}
+                            </select>
+                          </>
                         )}
-                        <select
-                          value={apt.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              apt.id,
-                              e.target.value as AppointmentStatus,
-                            )
-                          }
-                          className="px-3 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
-                        >
-                          {Object.entries(statusConfig).map(([status, config]) => (
-                            <option key={status} value={status}>
-                              {config.label}
-                            </option>
-                          ))}
-                        </select>
                       </div>
                     )}
                   </motion.div>
@@ -741,6 +774,77 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Finalize Confirmation Modal */}
+      <AnimatePresence>
+        {completeConfirmId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setCompleteConfirmId(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-moto-gray pb-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
+                    <CheckCircle size={18} />
+                  </span>
+                  <h3 className="font-display text-xl uppercase tracking-wide text-slate-100">
+                    Finalize this booking?
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setCompleteConfirmId(null)}
+                  className="p-1 rounded-lg hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Mark this appointment as{" "}
+                <span className="font-bold text-emerald-300">Completed</span>?
+                This deducts used parts from stock, generates the invoice,
+                notifies the customer, and locks the booking so it can no longer
+                be edited.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setCompleteConfirmId(null)}
+                  disabled={statusUpdatingId === completeConfirmId}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Not yet
+                </button>
+                <button
+                  onClick={() =>
+                    handleStatusChange(completeConfirmId, "completed")
+                  }
+                  disabled={statusUpdatingId === completeConfirmId}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-emerald-600/20"
+                >
+                  {statusUpdatingId === completeConfirmId ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  Yes, Complete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Booking Modal */}
       <AnimatePresence>
