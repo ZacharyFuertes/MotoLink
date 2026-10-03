@@ -151,12 +151,19 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     setNotificationsOpen((prev) => !prev);
   };
 
-  const handleNotificationClick = async (notificationId: string) => {
-    await markNotificationRead(notificationId);
+  const handleNotificationClick = async (notification: AppNotification) => {
+    await markNotificationRead(notification.id);
     setNotifications((prev) =>
-      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
+      prev.map((n) =>
+        n.id === notification.id ? { ...n, read: true } : n,
+      ),
     );
     setUnreadCount((prev) => Math.max(0, prev - 1));
+    setNotificationsOpen(false);
+
+    // Direct the owner to the page that matches the notification.
+    const target = notification.appointment_id ? "appointments" : "dashboard";
+    onNavigate?.(target);
   };
 
   const handleMarkAllRead = async () => {
@@ -476,7 +483,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                           <button
                             key={notification.id}
                             onClick={() =>
-                              handleNotificationClick(notification.id)
+                              handleNotificationClick(notification)
                             }
                             className={`w-full text-left px-4 py-3.5 transition ${
                               notification.read

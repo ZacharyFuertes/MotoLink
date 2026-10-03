@@ -423,16 +423,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     }
   };
 
-  // Real-data health estimate: progress toward the next routine service interval,
-  // derived from the user's actual completed-service cadence.
-  const healthProgress = Math.min(100, (completedCount % 5) * 20);
-  const healthLabel =
-    healthProgress >= 80
-      ? "Service due soon"
-      : healthProgress >= 40
-        ? "Getting close"
-        : "Up to date";
-
   return (
     <div className="min-h-screen bg-[#090d16] font-sans tracking-tight text-slate-100">
       {/* ── Top Navbar ── */}
@@ -772,34 +762,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     })}
                   </div>
                 )}
-              </div>
-
-              {/* Maintenance Health Tracker */}
-              <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
-                <div className="mb-4 flex items-center gap-2">
-                  <Gauge size={16} className="text-moto-accent" />
-                  <h2 className="text-lg font-bold text-slate-100">
-                    Maintenance Health
-                  </h2>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">
-                    Estimated time until next routine service
-                  </span>
-                  <span className="font-semibold text-moto-accent">
-                    {100 - healthProgress}%
-                  </span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-moto-gray">
-                  <div
-                    className="h-full rounded-full bg-moto-accent transition-all"
-                    style={{ width: `${healthProgress}%` }}
-                  />
-                </div>
-                <p className="mt-3 text-sm text-slate-300">
-                  Based on your {completedCount} completed service
-                  {completedCount === 1 ? "" : "s"}. {healthLabel}.
-                </p>
               </div>
             </div>
           )}
