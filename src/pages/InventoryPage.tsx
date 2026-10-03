@@ -13,11 +13,93 @@ import {
   Package,
   DollarSign,
   AlertTriangle,
+  CheckCircle2,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { imageService } from "../services/imageService";
 import { Part } from "../types";
+
+const parseCSV = (text: string): string[][] => {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field);
+      field = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      field = "";
+      if (row.some((f) => f.trim() !== "")) rows.push(row);
+      row = [];
+    } else {
+      field += c;
+    }
+  }
+  row.push(field);
+  if (row.some((f) => f.trim() !== "")) rows.push(row);
+  return rows;
+};
+
+const HEADER_ALIASES: Record<string, string> = {
+  "part name": "name",
+  "item name": "name",
+  "product name": "name",
+  name: "name",
+  sku: "sku",
+  "part number": "sku",
+  category: "category",
+  "unit price": "unit_price",
+  price: "unit_price",
+  cost: "unit_price",
+  unit_price: "unit_price",
+  "in stock": "quantity_in_stock",
+  stock: "quantity_in_stock",
+  quantity: "quantity_in_stock",
+  "quantity in stock": "quantity_in_stock",
+  qty: "quantity_in_stock",
+  "reorder level": "reorder_level",
+  reorder: "reorder_level",
+  threshold: "reorder_level",
+  reorder_level: "reorder_level",
+  description: "description",
+  status: "status",
+};
+
+const CATEGORY_ALIASES: Record<string, Part["category"]> = {
+  brakes: "brakes",
+  brake: "brakes",
+  "brake pads": "brakes",
+  tires: "tires",
+  tire: "tires",
+  oils: "oils",
+  oil: "oils",
+  electrical: "electrical",
+  electronics: "electrical",
+  electric: "electrical",
+  suspension: "suspension",
+  exhaust: "exhaust",
+  filters: "filters",
+  filter: "filters",
+};
 
 const categoryColors: Record<string, string> = {
   brakes: "#ef4444",
@@ -70,6 +152,28 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  // CSV import state
+  const [showImportForm, setShowImportForm] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
+  const [importPreview, setImportPreview] = useState<
+    {
+      name: string;
+      sku: string;
+      category: Part["category"];
+      unit_price: number;
+      quantity_in_stock: number;
+      reorder_level: number;
+      description: string;
+    }[]
+  >([]);
+  const [importError, setImportError] = useState("");
+  const [importSummary, setImportSummary] = useState<{
+    imported: number;
+    skipped: number;
+    failed: number;
+  } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<PartFormData>({
@@ -346,6 +450,121 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     a.click();
   };
 
+  const resetImport = () => {
+    setImportFileName("");
+    setImportPreview([]);
+    setImportError("");
+    setImportSummary(null);
+  };
+
+  const openImport = () => {
+    resetImport();
+    setShowImportForm(true);
+  };
+
+  const handleImportFile = async (file: File) => {
+    resetImport();
+    setImportFileName(file.name);
+    const text = await file.text();
+    const parsed = parseCSV(text.replace(/^\uFEFF/, ""));
+
+    if (parsed.length < 2) {
+      setImportError(
+        "The CSV file appears to be empty — no data rows were found.",
+      );
+      return;
+    }
+
+    const headers = parsed[0].map((h) =>
+      h.trim().toLowerCase().replace(/\s+/g, " "),
+    );
+    const col = (key: string) =>
+      headers.findIndex((h) => HEADER_ALIASES[h] === key);
+
+    const nameIdx = col("name");
+    const skuIdx = col("sku");
+    if (nameIdx === -1 || skuIdx === -1) {
+      setImportError(
+        'CSV must include "Part Name" and "SKU" columns. Use the exported file as a template.',
+      );
+      return;
+    }
+
+    const catIdx = col("category");
+    const priceIdx = col("unit_price");
+    const qtyIdx = col("quantity_in_stock");
+    const reorderIdx = col("reorder_level");
+    const descIdx = col("description");
+
+    const existingSkus = new Set(
+      parts.map((p) => p.sku.trim().toLowerCase()),
+    );
+    const seenSkus = new Set<string>();
+    const preview: typeof importPreview = [];
+
+    parsed.slice(1).forEach((r) => {
+      const name = (r[nameIdx] || "").trim();
+      const sku = (r[skuIdx] || "").trim();
+      if (!name || !sku) return;
+      const skuKey = sku.toLowerCase();
+      if (existingSkus.has(skuKey) || seenSkus.has(skuKey)) return;
+      seenSkus.add(skuKey);
+
+      const catRaw = (r[catIdx] || "").trim().toLowerCase();
+      const category = CATEGORY_ALIASES[catRaw] || "other";
+      preview.push({
+        name,
+        sku,
+        category,
+        unit_price:
+          parseFloat((r[priceIdx] || "").replace(/[₱,\s]/g, "")) || 0,
+        quantity_in_stock:
+          parseInt((r[qtyIdx] || "").replace(/[\s]/g, ""), 10) || 0,
+        reorder_level:
+          parseInt((r[reorderIdx] || "").replace(/[\s]/g, ""), 10) || 5,
+        description: (r[descIdx] || "").trim(),
+      });
+    });
+
+    setImportPreview(preview);
+    if (preview.length === 0) {
+      setImportError(
+        "No new items to import — every row is missing a name/SKU or uses a SKU that already exists in your inventory.",
+      );
+    }
+  };
+
+  const handleImportSubmit = async () => {
+    if (importPreview.length === 0 || importing) return;
+    setImporting(true);
+    try {
+      const rows = importPreview.map((p) => ({
+        shop_id: user?.shop_id || "",
+        name: p.name,
+        sku: p.sku,
+        category: p.category,
+        unit_price: p.unit_price,
+        quantity_in_stock: p.quantity_in_stock,
+        reorder_level: p.reorder_level,
+        description: p.description || "",
+      }));
+      const created = await inventoryService.createPartsBulk(rows);
+      const imported = created?.length ?? 0;
+      setImportSummary({
+        imported,
+        skipped: rows.length - imported,
+        failed: 0,
+      });
+      setImportPreview([]);
+      setImportFileName("");
+      await fetchParts();
+    } catch {
+      setImportError("Import failed. Please try again.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const inputClass =
     "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
   const labelClass =
@@ -509,6 +728,15 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {isOwner && (
+            <button
+              onClick={openImport}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition"
@@ -933,6 +1161,194 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                   {saving ? "Deleting..." : "Delete"}
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Import CSV Modal */}
+      <AnimatePresence>
+        {showImportForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowImportForm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="dashboard-card max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center shrink-0">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      Import Inventory (CSV)
+                    </h3>
+                    <p className="text-[12px] text-slate-400 mt-0.5">
+                      Bulk-add parts from a CSV file. Excel users: File → Save As → CSV.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowImportForm(false)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {importSummary ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-3">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-emerald-300">
+                        Import complete
+                      </p>
+                      <p className="text-[12px] text-slate-300 mt-0.5">
+                        {importSummary.imported} item(s) added to inventory.
+                        {importSummary.skipped > 0 &&
+                          ` ${importSummary.skipped} skipped (duplicate SKU or invalid).`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => {
+                        resetImport();
+                      }}
+                      className="px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
+                    >
+                      Import another file
+                    </button>
+                    <button
+                      onClick={() => setShowImportForm(false)}
+                      className="px-5 py-2.5 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* File picker */}
+                  <div className="relative">
+                    {importFileName ? (
+                      <div className="w-full rounded-xl bg-moto-gray/30 border border-moto-gray flex items-center gap-3 px-4 py-6">
+                        <FileText className="w-7 h-7 text-moto-accent shrink-0" />
+                        <p className="text-sm text-slate-200 font-semibold truncate pr-6">
+                          {importFileName}
+                        </p>
+                        <button
+                          onClick={resetImport}
+                          className="p-1 rounded-lg hover:bg-moto-gray/60 text-slate-400 hover:text-red-400 transition"
+                          title="Remove file"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-full h-36 rounded-xl border-2 border-dashed border-moto-gray hover:border-moto-accent/60 hover:bg-moto-accent/5 transition flex flex-col items-center justify-center gap-2">
+                          <Upload className="w-9 h-9 text-slate-400" />
+                          <span className="text-[13px] font-semibold text-slate-300">
+                            Click to select a .csv file
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            Matches the Export CSV format
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept=".csv,text/csv"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) await handleImportFile(file);
+                            e.target.value = "";
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  {/* Format guide */}
+                  <div className="mt-4 p-3.5 rounded-xl bg-moto-darker border border-moto-gray">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      Expected columns
+                    </p>
+                    <p className="text-[12px] text-slate-300 leading-relaxed">
+                      <span className="text-slate-100 font-semibold">Part Name</span>
+                      {" · "}
+                      <span className="text-slate-100 font-semibold">SKU</span> (required), then any of:
+                      Category, Unit Price, In Stock, Reorder Level, Description.
+                      Category accepts: brakes, tires, oils, electrical, suspension, exhaust, filters.
+                    </p>
+                  </div>
+
+                  {importError && (
+                    <div className="mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-[12.5px] text-red-300">{importError}</p>
+                    </div>
+                  )}
+
+                  {/* Preview */}
+                  {importPreview.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-[12px] font-bold text-slate-200 mb-2">
+                        {importPreview.length} new item(s) ready to import
+                      </p>
+                      <div className="max-h-44 overflow-y-auto rounded-xl border border-moto-gray divide-y divide-moto-gray/50 bg-moto-darker">
+                        {importPreview.map((p) => (
+                          <div
+                            key={p.sku}
+                            className="flex items-center justify-between px-3.5 py-2.5 text-[12px]"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-slate-200 font-semibold truncate">
+                                {p.name}
+                              </p>
+                              <p className="text-slate-400 font-mono text-[11px]">
+                                {p.sku} · {p.category}
+                              </p>
+                            </div>
+                            <span className="ml-3 text-slate-300 tabular-nums shrink-0">
+                              ₱{p.unit_price.toLocaleString()} · {p.quantity_in_stock} pcs
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 pt-5">
+                    <button
+                      type="button"
+                      onClick={() => setShowImportForm(false)}
+                      className="px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleImportSubmit}
+                      disabled={importPreview.length === 0 || importing}
+                      className="px-5 py-2.5 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 disabled:opacity-50"
+                    >
+                      {importing ? "Importing..." : `Import ${importPreview.length || ""}`.trim()}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -88,6 +88,28 @@ export const inventoryService = {
   },
 
   /**
+   * Bulk create parts (e.g. CSV import)
+   */
+  async createPartsBulk(
+    parts: Omit<Part, 'id' | 'created_at'>[],
+  ): Promise<Part[]> {
+    try {
+      if (parts.length === 0) return []
+      const { data, error } = await supabase
+        .from('parts')
+        .insert(parts)
+        .select()
+
+      if (error) throw error
+      console.log('✅ Parts imported:', (data || []).length)
+      return data || []
+    } catch (err) {
+      console.error('Error bulk creating parts:', err)
+      return []
+    }
+  },
+
+  /**
    * Update a part
    */
   async updatePart(partId: string, updates: Partial<Part>): Promise<Part | null> {
