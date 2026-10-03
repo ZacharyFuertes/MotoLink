@@ -14,7 +14,6 @@ import {
   Clock,
   Wrench,
   Tag,
-  Lock,
   Loader2,
   Ban,
   ArrowUpDown,
@@ -826,7 +825,7 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
                               title="This appointment is completed and can no longer be edited."
                               className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[13px] font-bold text-emerald-300"
                             >
-                              <Lock className="w-4 h-4" />
+                              <CheckCircle className="w-4 h-4" />
                               Completed
                             </span>
                           )

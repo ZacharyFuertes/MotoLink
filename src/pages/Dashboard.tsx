@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   TrendingUp,
   Users,
-  Wrench,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -48,7 +47,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [metrics, setMetrics] = useState({
     revenueToday: 0,
     apptToday: 0,
-    jobsToday: 0,
     posToday: 0,
     revenueAll: 0,
     appointments: 0,
@@ -70,7 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setLoading(true);
     const today = TODAY();
     try {
-      const [sales, apptsDone, jobsDone, pending, customers, low, products, upcoming] =
+      const [sales, apptsDone, pending, customers, low, products, upcoming] =
         await Promise.all([
           supabase
             .from("part_sales")
@@ -81,11 +79,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             .select(
               "id, status, total_amount, estimated_price, updated_at, scheduled_date",
             )
-            .eq("shop_id", user.shop_id)
-            .eq("status", "completed"),
-          supabase
-            .from("job_orders")
-            .select("id, status, total_cost, completed_at, created_at")
             .eq("shop_id", user.shop_id)
             .eq("status", "completed"),
           supabase
@@ -116,29 +109,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       const salesRows = (sales.data || []) as any[];
       const apptRows = (apptsDone.data || []) as any[];
-      const jobRows = (jobsDone.data || []) as any[];
       const stock = Array.isArray(low) ? low : [];
 
       const sum = (rows: any[], pick: (r: any) => number) =>
         rows.reduce((t, r) => t + (Number(pick(r)) || 0), 0);
 
       const apptValue = (a: any) => a.total_amount || a.estimated_price;
-      const jobValue = (j: any) => j.total_cost;
 
       const apptToday = sum(apptRows.filter((a) => (a.updated_at || "").startsWith(today)), apptValue);
-      const jobsToday = sum(
-        jobRows.filter((j) =>
-          (j.completed_at || j.created_at || "").startsWith(today),
-        ),
-        jobValue,
-      );
       const posToday = sum(
         salesRows.filter((s) => (s.created_at || "").startsWith(today)),
         (s) => s.sale_price,
       );
 
       const apptAll = sum(apptRows, apptValue);
-      const jobsAll = sum(jobRows, jobValue);
       const posAll = sum(salesRows, (s) => s.sale_price);
 
       // Revenue trend (last 14 days) — same convention as the platform dashboard.
@@ -154,10 +138,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       apptRows.forEach((a) => {
         const k = (a.updated_at || a.scheduled_date || "").slice(0, 10);
         if (k in revenueMap) revenueMap[k] += Number(apptValue(a)) || 0;
-      });
-      jobRows.forEach((j) => {
-        const k = (j.completed_at || j.created_at || "").slice(0, 10);
-        if (k in revenueMap) revenueMap[k] += Number(jobValue(j)) || 0;
       });
       salesRows.forEach((s) => {
         const k = (s.created_at || "").slice(0, 10);
@@ -175,11 +155,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       );
 
       setMetrics({
-        revenueToday: apptToday + jobsToday + posToday,
+        revenueToday: apptToday + posToday,
         apptToday,
-        jobsToday,
         posToday,
-        revenueAll: apptAll + jobsAll + posAll,
+        revenueAll: apptAll + posAll,
         appointments: pending.count || 0,
         customers: customers.count || 0,
         lowStock: stock.length,
@@ -203,7 +182,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {
         label: "Today's revenue",
         value: `₱${metrics.revenueToday.toLocaleString()}`,
-        sub: `${metrics.apptToday.toLocaleString()} appt · ${metrics.jobsToday.toLocaleString()} jobs · ${metrics.posToday.toLocaleString()} parts`,
+        sub: `${metrics.apptToday.toLocaleString()} appt · ${metrics.posToday.toLocaleString()} parts`,
         icon: Banknote,
         accent: "#35D0C0",
         page: "appointments",
@@ -211,7 +190,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {
         label: "All-time earnings",
         value: `₱${metrics.revenueAll.toLocaleString()}`,
-        sub: "appointments + jobs + parts",
+        sub: "appointments + parts",
         icon: TrendingUp,
         accent: "#10b981",
         page: "appointments",
@@ -251,13 +230,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       info: "completed bookings today",
       icon: CalendarDays,
       accent: "#FF7A3D",
-    },
-    {
-      label: "Job orders",
-      value: metrics.jobsToday,
-      info: "invoiced service work today",
-      icon: Wrench,
-      accent: "#35D0C0",
     },
     {
       label: "Parts & accessories",
@@ -395,7 +367,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </span>
           </div>
           <p className="mt-3 text-[11px] text-[#6B6879]">
-            Appointments + job orders + parts sales generated by your shop today.
+            Appointments and parts sales generated by your shop today.
           </p>
         </motion.div>
 
