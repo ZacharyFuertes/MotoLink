@@ -2,6 +2,22 @@ import { supabase } from './supabaseClient'
 import { User } from '../types'
 
 /**
+ * A MotoLink customer account returned by the owner booking search.
+ *
+ * Deliberately narrow: this is the only customer data that leaves the server,
+ * because the search has to bypass the `users` SELECT policies to reach
+ * customers the calling owner is not linked to.
+ */
+export interface RegisteredCustomer {
+  id: string
+  name: string
+  phone: string | null
+  email: string
+  /** True when the customer already belongs to one of the owner's shops. */
+  is_shop_member: boolean
+}
+
+/**
  * Customers Service
  * Handles all customer and vehicle database operations
  */
@@ -25,6 +41,37 @@ export const customerService = {
       console.error('Error fetching customers:', err)
       return []
     }
+  },
+
+  /**
+   * Search MotoLink customer accounts for the owner booking flow.
+   *
+   * Searches every role='customer' row on the platform, not just the calling
+   * owner's shop — a customer who signed up but has never booked here has
+   * shop_id = NULL and cannot be reached through `users` under the owner RLS
+   * policies at all, so this runs through the SECURITY DEFINER
+   * search_registered_customers() RPC.
+   *
+   * An empty `query` returns the most recently created accounts, so the picker
+   * opens populated instead of blank.
+   *
+   * Unlike every other method on this service this one THROWS instead of
+   * logging and returning an empty list: a swallowed error would render as
+   * "no customers found", which is indistinguishable from a genuine miss and
+   * would hide the case where the RPC has not been created yet.
+   */
+  async searchRegisteredCustomers(
+    query: string,
+    limit: number = 8,
+  ): Promise<RegisteredCustomer[]> {
+    const { data, error } = await supabase.rpc('search_registered_customers', {
+      p_query: (query || '').trim(),
+      p_limit: limit,
+    })
+
+    if (error) throw error
+
+    return (data as RegisteredCustomer[]) || []
   },
 
   /**

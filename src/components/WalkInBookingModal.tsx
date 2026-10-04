@@ -18,6 +18,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getShopByOwnerId } from "../services/shopService";
 import { sendBookingConfirmationEmail } from "../services/notificationService";
+import {
+  customerService,
+  type RegisteredCustomer,
+} from "../services/customerService";
+import {
+  mapBookingError,
+  SCHEMA_NOT_APPLIED_MESSAGE,
+} from "../services/appointmentService";
 import { Appointment } from "../types";
 import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
 import DateStrip from "./DateStrip";
@@ -34,11 +42,10 @@ interface Mechanic {
   email: string;
 }
 
-interface ShopCustomer {
-  id: string;
-  name: string;
-  phone: string | null;
-}
+/** Debounce for the registered-customer search box, in ms. */
+const CUSTOMER_SEARCH_DEBOUNCE_MS = 250;
+/** How many matches the search box shows. The RPC hard-caps at 25. */
+const CUSTOMER_SEARCH_LIMIT = 8;
 
 interface WalkInBookingModalProps {
   isOpen: boolean;
@@ -79,11 +86,18 @@ const inputClass =
  *  - **Registered customer**: link straight to an existing account, so the
  *    service shows in their history and they get the confirmation email.
  *
- * The registered list is deliberately limited to customers already linked to
- * this shop. RLS policy "Shop owners can view shop members" only lets an owner
- * read `users` rows whose `shop_id` matches their shop, so a customer who signed
- * up minutes ago (shop_id still NULL) cannot appear here. The reference flow is
- * the path for them, which is why the picker says so.
+ * The registered picker searches **every MotoLink customer account**, not just
+ * this shop's members — a customer who signed up but has never booked here has
+ * `users.shop_id = NULL` and is exactly the person an owner needs to reach. That
+ * is not reachable with a plain `.from("users")` query: RLS policy "Shop owners
+ * can view shop members" only exposes rows whose `shop_id` matches, so the search
+ * runs through the SECURITY DEFINER search_registered_customers() RPC instead.
+ * Returns only id / name / phone / email / is_shop_member — never a whole row.
+ *
+ * The RPC needs `20261004_registered_customer_search.sql`; the walk-in columns
+ * need `20261003_walk_in_appointments.sql`. Neither is idempotently guaranteed on
+ * a live DB, so the modal probes for the column on open and says so plainly
+ * instead of failing at submit with PostgREST's PGRST204.
  */
 const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   isOpen,
@@ -96,12 +110,12 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [identityMode, setIdentityMode] = useState<"walkin" | "registered">(
     "walkin",
   );
-  const [selectedCustomer, setSelectedCustomer] = useState<ShopCustomer | null>(
-    null,
-  );
-  const [customers, setCustomers] = useState<ShopCustomer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<RegisteredCustomer | null>(null);
+  const [customers, setCustomers] = useState<RegisteredCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerQuery, setCustomerQuery] = useState("");
+  const [_customerSearchError, setCustomerSearchError] = useState("");
 
   const [formData, setFormData] = useState(emptyForm);
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -112,6 +126,12 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  /**
+   * null = probe still running, true = walk-in columns exist, false = migration
+   * not applied. Checked before booking so the owner gets an actionable message
+   * instead of "Could not find the 'walk_in_name' column".
+   */
+  const [schemaReady, setSchemaReady] = useState<boolean | null>(null);
   // Re-evaluated each minute so a slot that has just passed stops being offered
   // while the modal is still open.
   const now = useMinuteClock();
@@ -142,6 +162,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setIdentityMode("walkin");
     setSelectedCustomer(null);
     setCustomerQuery("");
+    setCustomerSearchError("");
     setFormData(emptyForm);
     setSelectedDate(todayKey());
     setSelectedSlot("");
@@ -149,6 +170,33 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setError("");
     setCopied(false);
     setConfirmed(null);
+    setSchemaReady(null);
+  }, [isOpen]);
+
+  // Preflight: does `appointments.walk_in_name` exist yet?
+  //
+  // The walk-in insert sends that column, and PostgREST answers PGRST204
+  // ("Could not find the 'walk_in_name' column of 'appointments' in the schema
+  // cache") when the 20261003 migration has not been run — a message that tells
+  // an owner nothing about what to do. One cheap single-column read turns that
+  // into a stated requirement before they fill the form in.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { error: probeError } = await supabase
+          .from("appointments")
+          .select("walk_in_name")
+          .limit(1);
+        if (!cancelled) setSchemaReady(!probeError);
+      } catch {
+        if (!cancelled) setSchemaReady(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
   // Keep the chosen slot valid when the day changes: picking an earlier date can
@@ -177,38 +225,46 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     }
   }, [resolveShopId, user?.role]);
 
-  const loadCustomers = useCallback(async () => {
+  // Registered-customer search: server-side, debounced, platform-wide.
+  //
+  // Replaces a one-shot `.from("users")` fetch scoped to `.eq("shop_id")`, which
+  // could only ever see this shop's members — RLS blocks the rest, so the filter
+  // was not even the limiting factor. An empty query is valid and returns the
+  // most recent accounts, so the list is populated the moment the tab is opened.
+  useEffect(() => {
+    if (!isOpen || identityMode !== "registered") return;
+
+    let cancelled = false;
     setCustomersLoading(true);
-    try {
-      const shopId = await resolveShopId();
-      if (!shopId) {
+
+    const handle = setTimeout(async () => {
+      try {
+        const results = await customerService.searchRegisteredCustomers(
+          customerQuery,
+          CUSTOMER_SEARCH_LIMIT,
+        );
+        if (cancelled) return;
+        setCustomers(results);
+        setCustomerSearchError("");
+      } catch (err) {
+        if (cancelled) return;
         setCustomers([]);
-        return;
+        setCustomerSearchError(mapBookingError(err));
+      } finally {
+        if (!cancelled) setCustomersLoading(false);
       }
-      const { data, error: qErr } = await supabase
-        .from("users")
-        .select("id, name, phone")
-        .eq("role", "customer")
-        .eq("shop_id", shopId)
-        .order("name");
-      if (qErr) throw qErr;
-      setCustomers((data || []) as ShopCustomer[]);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setCustomersLoading(false);
-    }
-  }, [resolveShopId]);
+    }, CUSTOMER_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [isOpen, identityMode, customerQuery]);
 
   useEffect(() => {
     if (!isOpen) return;
     loadMechanics();
   }, [isOpen, loadMechanics]);
-
-  useEffect(() => {
-    if (!isOpen || identityMode !== "registered") return;
-    loadCustomers();
-  }, [isOpen, identityMode, loadCustomers]);
 
   // Slots already taken on the chosen date so the booking can't double-book.
   // Scoped to the resolved shop: an owner can belong to more than one shop, and
@@ -260,32 +316,21 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     return BOOKING_TIME_SLOTS.filter((s) => isSlotPast(selectedDate, s, now));
   }, [selectedDate, now]);
 
-  const filteredCustomers = useMemo(() => {
-    const q = customerQuery.trim().toLowerCase();
-    if (!q) return customers.slice(0, 6);
-    return customers
-      .filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.phone || "").toLowerCase().includes(q),
-      )
-      .slice(0, 6);
-  }, [customers, customerQuery]);
-
   const resetForm = (justBooked?: string | null) => {
     setFormData(emptyForm);
     setSelectedCustomer(null);
     setCustomerQuery("");
+    setCustomerSearchError("");
     setSelectedSlot("");
     setSelectedDate(todayKey());
     setIdentityMode("walkin");
     setConfirmed(null);
     setError("");
     setCopied(false);
-    // Refresh both lists: the slot we just took is now unavailable, and a
-    // newly linked customer's shop membership may have changed.
+    // Refresh the slot list: the one we just took is now unavailable. The
+    // customer list is not refetched — the search effect re-runs when the owner
+    // switches back to Registered, because identityMode changes.
     loadMechanics();
-    if (identityMode === "registered") loadCustomers();
     void loadBookedSlots(todayKey(), justBooked);
   };
 
@@ -302,6 +347,11 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
   const handleBook = async () => {
     setError("");
+
+    if (schemaReady === false) {
+      setError(SCHEMA_NOT_APPLIED_MESSAGE);
+      return;
+    }
 
     if (!selectedDate || !selectedSlot) {
       setError("Pick a date and a time slot.");
@@ -363,6 +413,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         description: `${formData.vehicle_make.trim()} - ${formData.service_type}`,
         status: "pending",
         mechanic_id: formData.mechanic_id || null,
+        // Identity columns are populated only when there is no account to point
+        // at. This is the insert that fails with PGRST204 if the 20261003
+        // migration has not been applied — hence the preflight above.
         walk_in_name: customerId ? null : name,
         walk_in_phone: customerId ? null : phone,
       };
@@ -394,7 +447,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         prev.includes(selectedSlot) ? prev : [...prev, selectedSlot],
       );
     } catch (err: any) {
-      setError(err?.message || "Failed to book the appointment. Please try again.");
+      setError(mapBookingError(err));
     } finally {
       setSaving(false);
     }
@@ -591,7 +644,10 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                         {selectedCustomer.name}
                       </p>
                       <p className="truncate text-[11px] text-slate-400">
-                        {selectedCustomer.phone || "No phone on file"}
+                        {selectedCustomer.phone || selectedCustomer.email || "No contact on file"}
+                      </p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-moto-accent">
+                        {selectedCustomer.is_shop_member ? "Linked to this shop" : "MotoLink account"}
                       </p>
                     </div>
                     <button
@@ -611,7 +667,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                         type="text"
                         value={customerQuery}
                         onChange={(e) => setCustomerQuery(e.target.value)}
-                        placeholder="Search this shop's customers by name or phone..."
+                        placeholder="Search MotoLink customers by name, phone or email…"
                         aria-label="Search registered customers"
                         className={`${inputClass} pl-9`}
                       />
@@ -624,16 +680,11 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                       </p>
                     ) : customers.length === 0 ? (
                       <p className="rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-400">
-                        No customers linked to this shop yet.
-                      </p>
-                    ) : filteredCustomers.length === 0 ? (
-                      <p className="rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-400">
-                        No match. Leave it as a walk-in and share the reference
-                        instead.
+                        No MotoLink account matches.
                       </p>
                     ) : (
                       <div className="max-h-44 space-y-1 overflow-y-auto">
-                        {filteredCustomers.map((c) => (
+                        {customers.map((c) => (
                           <button
                             key={c.id}
                             type="button"
@@ -648,22 +699,19 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                               <span className="block truncate text-[13px] font-semibold text-slate-100">
                                 {c.name}
                               </span>
-                              {(c.phone || "") && (
+                              {(c.phone || c.email) && (
                                 <span className="block truncate text-[11px] text-slate-400">
-                                  {c.phone}
+                                  {c.phone || c.email}
                                 </span>
                               )}
+                            </span>
+                            <span className="shrink-0 rounded-full bg-moto-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-moto-accent">
+                              {c.is_shop_member ? "Linked to this shop" : "MotoLink account"}
                             </span>
                           </button>
                         ))}
                       </div>
                     )}
-
-                    <p className="text-[11px] leading-relaxed text-slate-400">
-                      Only customers already linked to this shop can be picked.
-                      For anyone else, book it as a walk-in and share the
-                      reference — they can link it themselves.
-                    </p>
                   </>
                 )}
               </div>
