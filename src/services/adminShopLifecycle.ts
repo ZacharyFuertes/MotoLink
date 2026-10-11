@@ -63,6 +63,34 @@ export const toggleLegalHold = (
     p_reason: reason || null,
   });
 
+/**
+ * ON_HOLD only — export + encrypt + anonymize immediately (no timer). Runs
+ * through the admin-authenticated /api/admin-purge-shop function so the
+ * encryption key never leaves the server.
+ */
+export const purgeShopNow = async (shopId: string): Promise<void> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  if (!accessToken) throw new Error("You must be signed in to purge a shop.");
+
+  const res = await fetch("/api/admin-purge-shop", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shopId, accessToken }),
+  });
+  const json = (await res.json().catch(() => null)) as {
+    success?: boolean;
+    error?: string;
+  } | null;
+
+  if (!res.ok || !json?.success) {
+    const e = json as { error?: string } | null;
+    throw new Error(e?.error || `Purge failed (HTTP ${res.status}).`);
+  }
+};
+
 /** Admin-only listing of ON_HOLD shops with days remaining before purge. */
 export const listOnHoldShops = async (): Promise<
   Array<{

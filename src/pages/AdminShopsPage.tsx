@@ -17,6 +17,7 @@ import {
   Lock,
   CalendarClock,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import AdminShopReviewModal, {
@@ -27,8 +28,8 @@ import {
   approveShop,
   holdShop,
   reactivateShop,
-  extendRetention,
   toggleLegalHold,
+  purgeShopNow,
   lifecycleError,
 } from "../services/adminShopLifecycle";
 import {
@@ -73,10 +74,8 @@ interface HoldModalState {
   note: string;
 }
 
-interface ExtendModalState {
+interface PurgeModalState {
   shop: AdminShopRow;
-  days: string;
-  reason: string;
 }
 
 interface LegalHoldModalState {
@@ -116,7 +115,7 @@ const AdminShopsPage: React.FC = () => {
   const [reviewingShop, setReviewingShop] = useState<AdminShopRow | null>(null);
   const [importingShops, setImportingShops] = useState(false);
   const [holdTarget, setHoldTarget] = useState<HoldModalState | null>(null);
-  const [extendTarget, setExtendTarget] = useState<ExtendModalState | null>(null);
+  const [purgeTarget, setPurgeTarget] = useState<PurgeModalState | null>(null);
   const [legalHoldTarget, setLegalHoldTarget] = useState<LegalHoldModalState | null>(null);
 
   const fetchShops = useCallback(async () => {
@@ -298,19 +297,14 @@ const AdminShopsPage: React.FC = () => {
     await runAction(shop.id, () => reactivateShop(shop.id), `${shop.name} reactivated and accepting bookings.`);
   };
 
-  const submitExtend = async () => {
-    if (!extendTarget) return;
-    const days = parseInt(extendTarget.days, 10);
-    if (!Number.isFinite(days) || days <= 0) {
-      setError("Enter a positive number of days.");
-      return;
-    }
+  const submitPurge = async () => {
+    if (!purgeTarget) return;
     const ok = await runAction(
-      extendTarget.shop.id,
-      () => extendRetention(extendTarget.shop.id, days, extendTarget.reason.trim()),
-      `Retention extended by ${days} days for ${extendTarget.shop.name}.`,
+      purgeTarget.shop.id,
+      () => purgeShopNow(purgeTarget.shop.id),
+      `${purgeTarget.shop.name} was purged — data exported (encrypted) and PII anonymized.`,
     );
-    if (ok) setExtendTarget(null);
+    if (ok) setPurgeTarget(null);
   };
 
   const submitLegalHold = async () => {
@@ -653,9 +647,11 @@ const AdminShopsPage: React.FC = () => {
                             <CalendarClock className="w-3.5 h-3.5" />
                             {shop.legal_hold
                               ? "Legal hold — purge blocked"
-                              : daysUntilPurge(shop) === 0
-                                ? "Purge due"
-                                : `${daysUntilPurge(shop)} day${daysUntilPurge(shop) === 1 ? "" : "s"} left`}
+                              : shop.purge_scheduled_at == null
+                                ? "Retained — no purge scheduled"
+                                : daysUntilPurge(shop) === 0
+                                  ? "Purge due"
+                                  : `${daysUntilPurge(shop)} day${daysUntilPurge(shop) === 1 ? "" : "s"} left`}
                           </span>
                           <span className="text-slate-500">
                             {shop.purge_scheduled_at
@@ -724,15 +720,17 @@ const AdminShopsPage: React.FC = () => {
                               Reactivate
                             </button>
                             <button
-                              onClick={() =>
-                                setExtendTarget({ shop, days: "", reason: "" })
+                              onClick={() => setPurgeTarget({ shop })}
+                              disabled={actingId === shop.id || shop.legal_hold}
+                              title={
+                                shop.legal_hold
+                                  ? "Purge is blocked by an active legal hold"
+                                  : "Export + anonymize this shop's data now"
                               }
-                              disabled={actingId === shop.id}
-                              title="Extend the retention window"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-[13px] font-bold transition disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500 hover:text-white text-red-400 text-[13px] font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <CalendarClock className="w-4 h-4" />
-                              Extend
+                              <Trash2 className="w-4 h-4" />
+                              Purge
                             </button>
                             <button
                               onClick={() =>
@@ -813,10 +811,10 @@ const AdminShopsPage: React.FC = () => {
                 closeShopReview();
               }
             }}
-            onExtendRetention={(shop: ReviewShop) => {
+            onPurge={(shop: ReviewShop) => {
               const row = shops.find((s) => s.id === shop.id);
               if (row) {
-                setExtendTarget({ shop: row, days: "", reason: "" });
+                setPurgeTarget({ shop: row });
                 closeShopReview();
               }
             }}
@@ -973,8 +971,8 @@ const AdminShopsPage: React.FC = () => {
                     Holding{" "}
                     <span className="font-bold">{holdTarget.shop.name}</span>{" "}
                     immediately blocks new bookings and locks the owner out of the
-                    dashboard. No data is deleted — the retention window (default 45 days)
-                    runs before customer data is anonymized.
+                    dashboard. No data is deleted automatically — it is retained securely
+                    until an admin reactivates the shop or triggers a data purge.
                   </p>
                 </div>
 
@@ -1041,104 +1039,6 @@ const AdminShopsPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Extend Retention Modal */}
-      <AnimatePresence>
-        {extendTarget && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setExtendTarget(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center">
-                    <CalendarClock className="w-5 h-5 text-sky-400" />
-                  </div>
-                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
-                    Extend Retention
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setExtendTarget(null)}
-                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="mb-5">
-                <p className="text-[13px] text-slate-300 mb-4 leading-relaxed">
-                  Push the anonymization date out for{" "}
-                  <span className="font-bold text-slate-100">{extendTarget.shop.name}</span>.
-                  Current purge date:{" "}
-                  <span className="font-semibold text-slate-200">
-                    {extendTarget.shop.purge_scheduled_at
-                      ? new Date(extendTarget.shop.purge_scheduled_at).toLocaleDateString()
-                      : "—"}
-                  </span>
-                  .
-                </p>
-
-                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold">
-                  Additional days (1 – 3650)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={3650}
-                  value={extendTarget.days}
-                  onChange={(e) => setExtendTarget({ ...extendTarget, days: e.target.value })}
-                  placeholder="e.g. 30"
-                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition placeholder:text-slate-500"
-                />
-
-                <label className="block text-[13px] text-slate-300 mb-1.5 mt-4 font-semibold">
-                  Reason (required)
-                </label>
-                <textarea
-                  value={extendTarget.reason}
-                  onChange={(e) => setExtendTarget({ ...extendTarget, reason: e.target.value })}
-                  rows={3}
-                  placeholder="Why is the retention window being extended?"
-                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder:text-slate-500"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setExtendTarget(null)}
-                  disabled={actingId === extendTarget.shop.id}
-                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={submitExtend}
-                  disabled={actingId === extendTarget.shop.id}
-                  className="flex-1 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-sky-500/20"
-                >
-                  {actingId === extendTarget.shop.id ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <CalendarClock size={15} />
-                  )}
-                  Extend Retention
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Legal Hold Modal */}
       <AnimatePresence>
         {legalHoldTarget && (
@@ -1179,15 +1079,15 @@ const AdminShopsPage: React.FC = () => {
                   <p className="text-[13px] text-sky-200 leading-relaxed">
                     {legalHoldTarget.active ? (
                       <>
-                        A legal hold blocks the purge job from anonymizing{" "}
-                        <span className="font-bold">{legalHoldTarget.shop.name}</span> until the
-                        hold is lifted, regardless of how long the retention window has run.
+                        A legal hold blocks any attempt to purge{" "}
+                        <span className="font-bold">{legalHoldTarget.shop.name}</span> —{" "}
+                        including a manual purge — until the hold is lifted.
                       </>
                     ) : (
                       <>
-                        Lifting the legal hold lets the purge job resume for{" "}
-                        <span className="font-bold">{legalHoldTarget.shop.name}</span> if the
-                        retention window has already elapsed.
+                        Lifting the legal hold lets{" "}
+                        <span className="font-bold">{legalHoldTarget.shop.name}</span> be
+                        purged manually when an admin decides to.
                       </>
                     )}
                   </p>
@@ -1230,6 +1130,84 @@ const AdminShopsPage: React.FC = () => {
                     <Lock size={15} />
                   )}
                   {legalHoldTarget.active ? "Place Legal Hold" : "Lift Legal Hold"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Purge Shop Modal */}
+      <AnimatePresence>
+        {purgeTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setPurgeTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
+                    Purge Shop Data
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setPurgeTarget(null)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-red-200 leading-relaxed">
+                    This is an irreversible action. All customer data for{" "}
+                    <span className="font-bold">{purgeTarget.shop.name}</span> will be
+                    exported as an encrypted archive, then customer PII is anonymized and the
+                    shop is permanently removed from MotoLink.
+                  </p>
+                </div>
+                <p className="text-[13px] text-slate-300 leading-relaxed">
+                  The encrypted archive is stored in Supabase Storage and can only be
+                  restored by a platform administrator with the{" "}
+                  <span className="font-semibold text-slate-200">EXPORT_ENCRYPTION_KEY</span>.
+                  A legal hold on this shop blocks purge entirely.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPurgeTarget(null)}
+                  disabled={actingId === purgeTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitPurge}
+                  disabled={actingId === purgeTarget.shop.id || purgeTarget.shop.legal_hold}
+                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-red-500/20"
+                >
+                  {actingId === purgeTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 size={15} />
+                  )}
+                  Purge Now
                 </button>
               </div>
             </motion.div>

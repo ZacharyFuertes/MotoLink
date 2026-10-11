@@ -14,7 +14,6 @@ import {
   SENDGRID_API_KEY,
   SENDGRID_FROM_EMAIL,
   createAdminClient,
-  getRetentionDays,
   daysBetween,
   sendHoldEmail,
 } from "./_lib/shop-retention";
@@ -89,11 +88,12 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ success: false, error: "Shop owner has no email address." });
   }
 
-  // 3) Retention countdown (fall back to the configured default if unscheduled).
-  let daysLeft =
+  // 3) Retention countdown — null when no schedule exists (admin-controlled;
+  // holding a shop never starts a timer).
+  const daysLeft =
     shop.purge_scheduled_at != null
       ? daysBetween(shop.purge_scheduled_at, new Date().toISOString())
-      : await getRetentionDays(db);
+      : null;
 
   try {
     await sendHoldEmail({ to: owner.email, shopName: shop.name, daysLeft, kind: "hold" });

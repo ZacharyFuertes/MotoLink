@@ -330,7 +330,6 @@ AS $$
 DECLARE
   v_shop      public.shops%ROWTYPE;
   v_old       text;
-  v_retention integer;
   v_actor     uuid := p_actor;
   v_purged_at timestamptz;
   v_owner     uuid;
@@ -359,7 +358,6 @@ BEGIN
 
   -- This write is allowed past the guard trigger.
   PERFORM set_config('app.shop_status_tx', '1', true);
-  v_retention := public.get_retention_days();
 
   IF p_new_status = 'ON_HOLD' THEN
     UPDATE public.shops SET
@@ -368,7 +366,7 @@ BEGIN
       hold_reason       = p_reason,
       hold_note         = p_note,
       set_by_admin_id   = COALESCE(v_actor, auth.uid()),
-      purge_scheduled_at = now() + (v_retention || ' days')::interval,
+      purge_scheduled_at = NULL, -- admin-controlled; placing a shop on hold never starts a countdown
       purged_at         = NULL,
       legal_hold        = false,
       legal_hold_reason = NULL
@@ -418,14 +416,13 @@ BEGIN
       v_owner,
       'system',
       'Your shop has been placed on hold',
-      'Effective now, customers can no longer book your shop. Your data is retained until '
-      || (now() + (v_retention || ' days')::interval)::date::text
-      || ' (UTC). Contact support to resolve this.',
+      'Effective now, customers can no longer book your shop. Your data is retained securely '
+      || 'until an admin reactivates the shop or runs a data purge. Contact support to resolve this.',
       'pending'
     );
     INSERT INTO public.notifications (recipient_id, type, subject, message, status)
     SELECT u.id, 'system', 'Shop placed on hold',
-           'Shop "' || v_shop.name || '" (' || p_reason || ') now has ' || v_retention || ' days before purge.',
+           'Shop "' || v_shop.name || '" (' || p_reason || ') is on hold. Data is retained securely; an admin can reactivate the shop or purge it manually.',
            'pending'
     FROM public.users u WHERE u.role = 'admin';
   ELSIF p_new_status = 'ACTIVE' THEN
@@ -455,10 +452,7 @@ BEGIN
     'shop_id', p_shop_id,
     'old_status', v_old,
     'new_status', p_new_status,
-    'purge_scheduled_at',
-      CASE WHEN p_new_status = 'ON_HOLD'
-           THEN to_char(now() + (v_retention || ' days')::interval, 'YYYY-MM-DD"T"HH24:MI:SSZ')
-           ELSE NULL END
+    'purge_scheduled_at', NULL -- no automatic countdown; admin controls retention
   );
 END;
 $$;
@@ -647,7 +641,9 @@ BEGIN
   RETURN QUERY
   SELECT s.id, s.name, s.slug, s.city, s.status, s.hold_reason, s.hold_note,
          s.on_hold_at, s.purge_scheduled_at,
-         GREATEST(0, CEIL(EXTRACT(EPOCH FROM (s.purge_scheduled_at - now())) / 86400))::integer AS days_remaining,
+         CASE WHEN s.purge_scheduled_at IS NULL THEN NULL
+              ELSE GREATEST(0, CEIL(EXTRACT(EPOCH FROM (s.purge_scheduled_at - now())) / 86400))::integer
+         END AS days_remaining,
          s.legal_hold, s.legal_hold_reason, s.export_archive_ref,
          s.owner_id, u.email AS owner_email
   FROM public.shops s
@@ -699,7 +695,8 @@ $$;
 
 -- Step B — anonymize PII + finalize PURGED (one transaction per shop).
 CREATE OR REPLACE FUNCTION public.purge_shop(
-  p_shop_id uuid
+  p_shop_id uuid,
+  p_force   boolean DEFAULT false
 )
 RETURNS boolean
 LANGUAGE plpgsql
@@ -733,7 +730,7 @@ BEGIN
   IF v_shop.legal_hold THEN
     RAISE EXCEPTION 'Shop % is under a legal hold; purge blocked.', p_shop_id;
   END IF;
-  IF v_shop.purge_scheduled_at IS NULL OR v_shop.purge_scheduled_at > now() THEN
+  IF NOT p_force AND (v_shop.purge_scheduled_at IS NULL OR v_shop.purge_scheduled_at > now()) THEN
     RAISE EXCEPTION 'Shop % purge is not scheduled yet (due %).', p_shop_id, v_shop.purge_scheduled_at;
   END IF;
   IF v_shop.export_archive_ref IS NULL THEN
@@ -1004,7 +1001,7 @@ REVOKE EXECUTE ON FUNCTION
   public.admin_toggle_legal_hold(uuid, boolean, text),
   public.list_on_hold_shops(),
   public.purge_mark_exported(uuid, text),
-  public.purge_shop(uuid)
+  public.purge_shop(uuid, boolean)
 FROM PUBLIC, anon;
 
 GRANT EXECUTE ON FUNCTION
@@ -1016,5 +1013,5 @@ GRANT EXECUTE ON FUNCTION
   public.admin_toggle_legal_hold(uuid, boolean, text),
   public.list_on_hold_shops(),
   public.purge_mark_exported(uuid, text),
-  public.purge_shop(uuid)
+  public.purge_shop(uuid, boolean)
 TO authenticated, service_role;

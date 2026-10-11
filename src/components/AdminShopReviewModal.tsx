@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   XCircle,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
@@ -38,7 +39,7 @@ interface AdminShopReviewModalProps {
   onHold?: (shop: ReviewShop) => void;
   onReactivate?: (shop: ReviewShop) => void;
   onToggleLegalHold?: (shop: ReviewShop) => void;
-  onExtendRetention?: (shop: ReviewShop) => void;
+  onPurge?: (shop: ReviewShop) => void;
   onViewCustomers?: (shop: ReviewShop) => void;
 }
 
@@ -69,7 +70,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
   onHold,
   onReactivate,
   onToggleLegalHold,
-  onExtendRetention,
+  onPurge,
   onViewCustomers,
 }) => {
   const [details, setDetails] = useState<any>(null);
@@ -256,13 +257,15 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                     Reactivate
                   </button>
                 )}
-                {shop.status === "ON_HOLD" && onExtendRetention && (
+                {shop.status === "ON_HOLD" && onPurge && (
                   <button
-                    onClick={() => onExtendRetention(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent text-[13px] font-bold rounded-xl transition"
+                    onClick={() => onPurge(shop)}
+                    disabled={shop.legal_hold}
+                    title={shop.legal_hold ? "Purge is blocked by legal hold" : "Purge shop now (exports encrypted archive and anonymizes PII)"}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Clock className="w-5 h-5" />
-                    Extend Retention
+                    <Trash2 className="w-5 h-5" />
+                    Purge Now
                   </button>
                 )}
                 {shop.status === "ON_HOLD" && onToggleLegalHold && (

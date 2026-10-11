@@ -29,6 +29,23 @@ export const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
 
 export type SdClient = ReturnType<typeof createClient>;
 
+/** Every table that carries shop-scoped data and is captured into the export.
+ *  Tables missing on the current schema are skipped and reported, never fatal. */
+export const SNAPSHOT_TABLES = [
+  "appointments",
+  "reservations",
+  "job_orders",
+  "invoices",
+  "payments",
+  "parts",
+  "part_sales",
+  "products",
+  "services_pricing",
+  "mechanic_availability",
+  "shop_gallery",
+  "shop_reviews",
+] as const;
+
 /** Service-role client — can write through RLS to run the lifecycle RPCs. */
 export const createAdminClient = (): SdClient =>
   createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -207,6 +224,63 @@ export const uploadExport = async (
   return `${STORAGE_BUCKET}/${path}`;
 };
 
+/** Fetch every shop-scoped table into a plain object. Missing tables or
+ *  columns are recorded, never fatal. */
+export const buildSnapshot = async (
+  db: SdClient,
+  shopId: string,
+): Promise<{
+  tables: Record<string, unknown[]>;
+  snapshotErrors: { table: string; message: string }[];
+}> => {
+  const tables: Record<string, unknown[]> = {};
+  const snapshotErrors: { table: string; message: string }[] = [];
+  for (const table of SNAPSHOT_TABLES) {
+    try {
+      const { data, error } = await db.from(table).select("*").eq("shop_id", shopId);
+      if (error) {
+        snapshotErrors.push({ table, message: error.message });
+        continue;
+      }
+      tables[table] = data || [];
+    } catch (err: any) {
+      snapshotErrors.push({ table, message: err?.message || "unknown error" });
+    }
+  }
+  return { tables, snapshotErrors };
+};
+
+/** Encrypt + upload a shop's snapshot, record the archive reference, then run
+ *  purge_shop. `force` bypasses the schedule check (manual admin purge). */
+export const performPurge = async (
+  db: SdClient,
+  shopId: string,
+  shopName: string,
+  opts: { retentionDays: number; force?: boolean },
+): Promise<{ archiveRef: string; snapshotErrors: { table: string; message: string }[] }> => {
+  const { tables, snapshotErrors } = await buildSnapshot(db, shopId);
+  const envelope = encryptSnapshot({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    retentionDays: opts.retentionDays,
+    shop: { id: shopId, name: shopName },
+    tables,
+  });
+  const ref = await uploadExport(db, shopId, envelope);
+  const { error: markError } = await db.rpc("purge_mark_exported", {
+    p_shop_id: shopId,
+    p_export_ref: ref,
+  });
+  if (markError) throw markError;
+  const { data: done, error: purgeError } = await db.rpc("purge_shop", {
+    p_shop_id: shopId,
+    ...(opts.force ? { p_force: true } : {}),
+  });
+  if (purgeError) throw purgeError;
+  if (!done) throw new Error("purge_shop returned false (already purged or not eligible).");
+  return { archiveRef: ref, snapshotErrors };
+};
+
 // ─── Hold notifications (SendGrid) ────────────────────────────────────────────
 
 const holdLayout = (opts: {
@@ -247,7 +321,7 @@ const holdLayout = (opts: {
 export const sendHoldEmail = async (opts: {
   to: string;
   shopName: string;
-  daysLeft: number;
+  daysLeft: number | null;
   kind: "hold" | "reminder" | "purge-warning";
 }) => {
   if (!SENDGRID_API_KEY || !SENDGRID_FROM_EMAIL) {
@@ -266,21 +340,31 @@ export const sendHoldEmail = async (opts: {
       ? `Effective immediately, customers can no longer book ${shopName}.`
       : `Your shop ${shopName} remains on hold. The retention window is still running.`;
 
+  const retentionRow =
+    daysLeft === null
+      ? `<tr>
+        <td style="padding:16px 20px;color:#64748b;font-size:13px;width:38%;border-top:1px solid #e2e8f0;">Data anonymization</td>
+        <td style="padding:16px 20px;color:#0f172a;font-size:14px;font-weight:700;border-top:1px solid #e2e8f0;">No automatic date — data is retained securely until an admin acts</td>
+      </tr>`
+      : `<tr>
+        <td style="padding:16px 20px;color:#64748b;font-size:13px;width:38%;border-top:1px solid #e2e8f0;">Days until data anonymized</td>
+        <td style="padding:16px 20px;color:#b45309;font-size:16px;font-weight:800;border-top:1px solid #e2e8f0;">${daysLeft}</td>
+      </tr>`;
+
   const body = `
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
       <tr>
         <td style="padding:16px 20px;color:#64748b;font-size:13px;width:38%;">Shop</td>
         <td style="padding:16px 20px;color:#0f172a;font-size:14px;font-weight:700;">${shopName}</td>
       </tr>
-      <tr>
-        <td style="padding:16px 20px;color:#64748b;font-size:13px;width:38%;border-top:1px solid #e2e8f0;">Days until data anonymized</td>
-        <td style="padding:16px 20px;color:#b45309;font-size:16px;font-weight:800;border-top:1px solid #e2e8f0;">${daysLeft}</td>
-      </tr>
+      ${retentionRow}
     </table>
     <p style="margin:20px 0 0;color:#64748b;font-size:13px;line-height:1.7;">
-      Your bookings, job orders, invoices, and records are kept secure. If you believe this is a mistake,
-      contact MotoLink support to have your shop reactivated. After the retention window ends, customer data
-      is anonymized in line with the Philippine Data Privacy Act — only anonymized operational records remain.
+      ${
+        daysLeft === null
+          ? "Your bookings, job orders, invoices, and records are kept secure. Your data is only anonymized when MotoLink support performs an explicit purge — please contact support if you believe this hold is a mistake."
+          : "Your bookings, job orders, invoices, and records are kept secure. If you believe this is a mistake, contact MotoLink support to have your shop reactivated. After the retention window ends, customer data is anonymized in line with the Philippine Data Privacy Act — only anonymized operational records remain."
+      }
     </p>`;
 
   sgMail.setApiKey(SENDGRID_API_KEY);
@@ -289,7 +373,11 @@ export const sendHoldEmail = async (opts: {
     from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
     subject: heading,
     html: holdLayout({ heading, subheading, body }),
-    text: `${heading}\n\n${subheading}\nShop: ${shopName}\nDays until anonymization: ${daysLeft}\n\nContact MotoLink support if this is a mistake.`,
+    text: `${heading}\n\n${subheading}\nShop: ${shopName}\n${
+      daysLeft === null
+        ? "Data anonymization: no automatic date — retained securely until an admin acts"
+        : `Days until anonymization: ${daysLeft}`
+    }\n\nContact MotoLink support if this is a mistake.`,
   });
 };
 
