@@ -13,6 +13,18 @@ export interface Shop {
   operating_hours: string;
   is_active: boolean;
   is_open?: boolean;
+  /** Shop lifecycle (20261012 migration): PENDING | ACTIVE | ON_HOLD | PURGED. */
+  status?: "PENDING" | "ACTIVE" | "ON_HOLD" | "PURGED";
+  /** UTC moment the shop entered ON_HOLD. */
+  on_hold_at?: string | null;
+  /** UTC moment the daily purge job may anonymize the shop (legal holds block it). */
+  purge_scheduled_at?: string | null;
+  /** While true the purge job skips this shop regardless of the window. */
+  legal_hold?: boolean;
+  /** TERMINATED | ARCHIVED — why the shop is on hold. */
+  hold_reason?: string | null;
+  /** Storage path of the pre-purge encrypted export, once created. */
+  export_archive_ref?: string | null;
   /** Owner toggle — when false, GCash/Maya is "Unavailable" during booking. */
   online_payment_enabled?: boolean;
   /** "fixed" = peso downpayment, "percent" = % of estimated total. */

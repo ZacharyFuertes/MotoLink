@@ -517,6 +517,33 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     );
   }
 
+  // Held/purged shops are no longer bookable; show a friendly notice instead
+  // of the full public profile (they were still resolvable by id via the shop
+  // service, e.g. from deep links or browser history).
+  if (shop.status === "ON_HOLD" || shop.status === "PURGED") {
+    return (
+      <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <AlertCircle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+          <p className="text-slate-100 text-sm font-bold uppercase tracking-widest mb-2">
+            {shop.status === "PURGED" ? "This shop has been closed" : "This shop is currently unavailable"}
+          </p>
+          <p className="text-slate-400 text-xs leading-relaxed mb-6">
+            {shop.status === "PURGED"
+              ? "This shop is no longer operating on MotoLink and its listing has been removed."
+              : "This shop is on hold and not accepting bookings right now. Please try another shop nearby."}
+          </p>
+          <button
+            onClick={onBack}
+            className="mt-2 inline-flex items-center gap-2 rounded-xl border border-moto-accent/40 bg-moto-accent/15 px-6 py-3 text-xs font-bold uppercase tracking-widest text-moto-accent transition hover:bg-moto-accent/25 hover:text-white"
+          >
+            <ArrowLeft size={16} /> Back to shops
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const hasCoords =
     typeof shop.latitude === "number" && typeof shop.longitude === "number";
 

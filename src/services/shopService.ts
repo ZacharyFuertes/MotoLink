@@ -17,7 +17,7 @@ export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
 };
 
 const SHOP_CORE =
-  "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active";
+  "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, status, on_hold_at, purge_scheduled_at, legal_hold, hold_reason, export_archive_ref";
 // Payment settings live on `shops` behind the 20261011 migration.
 const SHOP_PAYMENT_COLS = "online_payment_enabled, deposit_type, deposit_value";
 const SHOP_SELECT = `${SHOP_CORE}, is_open, ${SHOP_PAYMENT_COLS}`;
