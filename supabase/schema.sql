@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS public.shops (
   operating_hours TEXT NOT NULL DEFAULT 'Hours unavailable',
   is_active       BOOLEAN NOT NULL DEFAULT true,
   is_open         BOOLEAN NOT NULL DEFAULT true,
+  -- Online payments: platform PayMongo account is toggled on/off per shop.
+  online_payment_enabled BOOLEAN NOT NULL DEFAULT false,
+  deposit_type    TEXT NOT NULL DEFAULT 'fixed' CHECK (deposit_type IN ('fixed', 'percent')),
+  deposit_value   NUMERIC(10,2) NOT NULL DEFAULT 0,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -172,6 +176,13 @@ CREATE TABLE IF NOT EXISTS public.appointments (
   estimated_price   NUMERIC(10,2),
   total_amount      NUMERIC(10,2),
   parts             JSONB DEFAULT '[]',
+  -- Online / cash payment state chosen at booking time.
+  payment_method    TEXT CHECK (payment_method IS NULL OR payment_method IN ('cash', 'gcash', 'maya')),
+  payment_status    TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN (
+                      'unpaid', 'deposit_paid', 'paid', 'failed', 'expired', 'refunded'
+                    )),
+  amount_paid       NUMERIC(10,2) NOT NULL DEFAULT 0,
+  deposit_amount    NUMERIC(10,2),
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   -- Human-readable receipt reference (MTL-YYYYMMDD-XXXXXX), generated
@@ -245,6 +256,36 @@ CREATE TABLE IF NOT EXISTS public.invoices (
 
 CREATE INDEX IF NOT EXISTS idx_invoices_customer ON public.invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_job_order ON public.invoices(job_order_id);
+
+-- 12b. PAYMENTS (online GCash/Maya payment attempts via PayMongo)
+CREATE TABLE IF NOT EXISTS public.payments (
+  id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  appointment_id             UUID NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
+  shop_id                    UUID REFERENCES public.shops(id) ON DELETE SET NULL,
+  customer_id                UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  provider                   TEXT NOT NULL DEFAULT 'paymongo',
+  method                     TEXT NOT NULL CHECK (method IN ('gcash', 'maya')),
+  amount                     NUMERIC(10,2) NOT NULL DEFAULT 0,
+  currency                   TEXT NOT NULL DEFAULT 'PHP',
+  status                     TEXT NOT NULL DEFAULT 'created' CHECK (status IN (
+                               'created', 'awaiting_action', 'processing', 'paid', 'failed', 'expired'
+                             )),
+  provider_intent_id         TEXT,
+  provider_payment_method_id TEXT,
+  provider_payment_id        TEXT,
+  qr_payload                 TEXT,
+  redirect_url               TEXT,
+  paid_at                    TIMESTAMPTZ,
+  raw_last_event             JSONB,
+  created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_appointment ON public.payments(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_payments_customer ON public.payments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_payments_shop ON public.payments(shop_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_intent ON public.payments(provider_intent_id)
+  WHERE provider_intent_id IS NOT NULL;
 
 -- 13. PART_SALES (individual part sale transactions)
 CREATE TABLE IF NOT EXISTS public.part_sales (
@@ -346,6 +387,7 @@ ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.part_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mechanic_availability ENABLE ROW LEVEL SECURITY;
@@ -543,6 +585,18 @@ CREATE POLICY "Shop owners can manage invoices"
     )
   );
 
+-- PAYMENTS (read-only for the owning customer / shop owner; writes are service-role only)
+CREATE POLICY "Customers can view own payments"
+  ON public.payments FOR SELECT USING (auth.uid() = customer_id);
+
+CREATE POLICY "Shop owners can view own shop payments"
+  ON public.payments FOR SELECT USING (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  );
+
+CREATE POLICY "Admin can view all payments"
+  ON public.payments FOR SELECT USING (public.is_admin());
+
 -- PART SALES
 CREATE POLICY "Shop owners can view own part sales"
   ON public.part_sales FOR SELECT USING (
@@ -637,6 +691,8 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.appointments
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.job_orders
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.reservations
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.payments
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.customer_notification_settings
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

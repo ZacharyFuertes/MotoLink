@@ -20,10 +20,21 @@ import {
   Sparkles,
   Package,
   Plus,
+  Banknote,
+  QrCode,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { notifyOwnerOfNewAppointment, sendBookingConfirmationEmail, sendOwnerBookingEmail } from "../services/notificationService";
+import {
+  startOnlinePayment,
+  computeDeposit,
+  getPaymentConfig,
+  CreatedOnlinePayment,
+  OnlinePaymentError,
+} from "../services/paymentService";
+import OnlinePaymentModal from "./OnlinePaymentModal";
+import { OnlinePaymentMethod } from "../types";
 import TermsCheckbox from "./TermsCheckbox";
 import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
@@ -163,6 +174,26 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     year: "",
   });
 
+  // Online payments: the shop's own config (mirrors shops.online_payment_enabled
+  // + deposit_type + deposit_value) and whether the platform provider is wired.
+  // Everything is read through RLS-safe queries; the browser never sees secrets.
+  const [shopPaymentEnabled, setShopPaymentEnabled] = useState(false);
+  const [providerReady, setProviderReady] = useState(false);
+  const [shopDeposit, setShopDeposit] = useState<{
+    deposit_type: "fixed" | "percent";
+    deposit_value: number;
+  }>({ deposit_type: "fixed", deposit_value: 0 });
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | OnlinePaymentMethod>("cash");
+  const [qrPayment, setQrPayment] = useState<CreatedOnlinePayment | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [paymentNotice, setPaymentNotice] = useState("");
+  // Appointment snapshot produced by a successful online booking. The parent
+  // (App.tsx) closes this modal to show the receipt, so we hold the callback
+  // until the QR modal is dismissed — otherwise the QR would unmount mid-pay.
+  const receiptRef = useRef<any>(null);
+
+  const onlinePaymentsAvailable = shopPaymentEnabled && providerReady === true;
+
   // Slide direction for step transitions (1 = forward, -1 = back). Ref is enough
   // because step content re-mounts on every currentStep change.
   const stepDir = useRef(1);
@@ -266,6 +297,38 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   }, [isOpen, defaultShopId, shopId]);
 
+  // Payment availability for this shop + platform provider.
+  useEffect(() => {
+    if (!isOpen || !defaultShopId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("shops")
+          .select("online_payment_enabled, deposit_type, deposit_value")
+          .eq("id", defaultShopId)
+          .maybeSingle();
+        if (mounted) {
+          setShopPaymentEnabled(data?.online_payment_enabled === true);
+          if (data) {
+            setShopDeposit({
+              deposit_type: data.deposit_type === "percent" ? "percent" : "fixed",
+              deposit_value: Number(data.deposit_value) || 0,
+            });
+          }
+        }
+      } catch {
+        if (mounted) setShopPaymentEnabled(false);
+      }
+    })();
+    getPaymentConfig().then((config) => {
+      if (mounted) setProviderReady(config.providerConfigured === true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen, defaultShopId]);
+
   useEffect(() => {
     if (!isOpen) {
       setTimeout(() => {
@@ -288,6 +351,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setAddingVehicle(false);
         setSavingVehicle(false);
         setNewVehicle({ make: "", model: "", year: "" });
+        setPaymentMethod("cash");
+        setQrPayment(null);
+        setQrModalOpen(false);
+        setPaymentNotice("");
+        receiptRef.current = null;
       }, 300);
     }
   }, [isOpen]);
@@ -557,6 +625,26 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     [bookedSlots, mechanicAvailability, selectedDate],
   );
 
+  const partsTotal = useMemo(
+    () => selectedParts.reduce((sum, p) => sum + p.quantity * p.unit_price, 0),
+    [selectedParts],
+  );
+  const estimatedTotal = selectedServicePrice + partsTotal;
+  const depositAmount = computeDeposit(estimatedTotal, {
+    deposit_type: shopDeposit.deposit_type,
+    deposit_value: shopDeposit.deposit_value,
+  });
+
+  // Delivers the created appointment to onAppointmentBooked exactly once, once
+  // the online payment QR has been dismissed (or immediately for cash).
+  const finalizeReceipt = () => {
+    if (receiptRef.current && onAppointmentBooked) {
+      const data = receiptRef.current;
+      receiptRef.current = null;
+      onAppointmentBooked(data);
+    }
+  };
+
   const canGoNext = () => {
     switch (currentStep) {
       case 0:
@@ -629,11 +717,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         quantity: part.quantity,
       }));
 
-      const partsTotal = selectedParts.reduce(
-        (sum, part) => sum + part.quantity * part.unit_price,
-        0,
-      );
-
       const insertData: any = {
         customer_id: user.id,
         shop_id: shopIdToUse,
@@ -699,9 +782,29 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         sendBookingConfirmationEmail(appointment.id);
         sendOwnerBookingEmail(appointment.id);
 
-        // Call the callback to notify parent and display receipt
-        if (onAppointmentBooked) {
-          onAppointmentBooked(appointmentData);
+        if (paymentMethod === "cash") {
+          // Cash bookings hand off to the receipt immediately (existing flow).
+          if (onAppointmentBooked) onAppointmentBooked(appointmentData);
+        } else {
+          // Online deposit: hold the receipt until the QR flow is dismissed so
+          // the parent doesn't unmount this modal (and the QR) mid-payment.
+          receiptRef.current = appointmentData;
+          try {
+            const created = await startOnlinePayment(appointment.id, paymentMethod);
+            setQrPayment(created);
+            setQrModalOpen(true);
+          } catch (err) {
+            console.warn("Online payment not started — falling back to cash:", err);
+            const e = err as OnlinePaymentError;
+            receiptRef.current = null;
+            setPaymentMethod("cash");
+            setPaymentNotice(
+              `We couldn't start your ${
+                paymentMethod === "gcash" ? "GCash" : "Maya"
+              } payment (${e?.message || "please try again"}). Your appointment is confirmed — please settle at the shop instead.`,
+            );
+            if (onAppointmentBooked) onAppointmentBooked(appointmentData);
+          }
         }
       }
     } catch (err: any) {
@@ -1435,6 +1538,19 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     ).toLocaleString()}
                                   </span>
                                 </div>
+                                {paymentMethod !== "cash" && onlinePaymentsAvailable && (
+                                  <div className="flex items-center justify-between rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3">
+                                    <span className="text-cyan-300 text-xs font-bold uppercase tracking-wide">
+                                      Reservation Deposit
+                                      {shopDeposit.deposit_type === "percent"
+                                        ? ` · ${shopDeposit.deposit_value}%`
+                                        : ""}
+                                    </span>
+                                    <span className="text-cyan-200 font-mono font-black text-lg">
+                                      ₱{depositAmount.toLocaleString()}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-start gap-2.5 mt-4 rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-slate-400">
                                 <Info
@@ -1473,6 +1589,120 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </span>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="mt-8 space-y-3">
+                        <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                          Payment Method
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod("cash")}
+                            className={`flex items-start gap-3 p-4 text-left rounded-2xl border transition-all duration-200 ${
+                              paymentMethod === "cash"
+                                ? "bg-moto-accent/[0.07] border-moto-accent ring-1 ring-moto-accent/40"
+                                : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
+                            }`}
+                          >
+                            <span
+                              className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
+                                paymentMethod === "cash"
+                                  ? "bg-moto-accent text-slate-950"
+                                  : "bg-moto-gray/40 text-slate-400"
+                              }`}
+                            >
+                              <Banknote size={18} strokeWidth={1.75} />
+                            </span>
+                            <span className="min-w-0">
+                              <span
+                                className={`block text-xs font-bold uppercase tracking-wide ${
+                                  paymentMethod === "cash" ? "text-moto-accent" : "text-slate-100"
+                                }`}
+                              >
+                                Cash at shop
+                              </span>
+                              <span className="block text-[11px] text-slate-400 mt-0.5">
+                                Pay when you arrive.
+                              </span>
+                            </span>
+                          </button>
+
+                          {(["gcash", "maya"] as OnlinePaymentMethod[]).map((m) => {
+                            const unavailable = !onlinePaymentsAvailable;
+                            const selected = paymentMethod === m;
+                            return (
+                              <button
+                                key={m}
+                                type="button"
+                                disabled={unavailable}
+                                onClick={() => setPaymentMethod(m)}
+                                aria-disabled={unavailable}
+                                className={`flex items-start gap-3 p-4 text-left rounded-2xl border transition-all duration-200 ${
+                                  unavailable
+                                    ? "bg-moto-darker/60 border-moto-gray/60 opacity-60 cursor-not-allowed"
+                                    : selected
+                                      ? "bg-cyan-500/[0.08] border-cyan-500 ring-1 ring-cyan-500/40"
+                                      : "bg-moto-darker border-moto-gray hover:border-cyan-500/60"
+                                }`}
+                              >
+                                <span
+                                  className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
+                                    unavailable
+                                      ? "bg-moto-gray/30 text-slate-500"
+                                      : selected
+                                        ? "bg-cyan-500 text-slate-950"
+                                        : "bg-moto-gray/40 text-slate-400"
+                                  }`}
+                                >
+                                  <QrCode size={18} strokeWidth={1.75} />
+                                </span>
+                                <span className="min-w-0">
+                                  <span
+                                    className={`block text-xs font-bold uppercase tracking-wide ${
+                                      unavailable
+                                        ? "text-slate-500"
+                                        : selected
+                                          ? "text-cyan-300"
+                                          : "text-slate-100"
+                                    }`}
+                                  >
+                                    {m === "gcash" ? "GCash" : "Maya"}
+                                  </span>
+                                  <span className="block text-[11px] text-slate-400 mt-0.5">
+                                    {unavailable
+                                      ? "Unavailable"
+                                      : `Pay ₱${depositAmount.toLocaleString()} deposit`}
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {!onlinePaymentsAvailable && (
+                          <div className="flex items-start gap-2.5 rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-slate-400">
+                            <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
+                            <p className="text-xs font-light leading-relaxed">
+                              Online payment isn't available for this shop right now — you'll
+                              pay at the counter when you arrive. No QR will be shown.
+                            </p>
+                          </div>
+                        )}
+
+                        {paymentMethod !== "cash" && onlinePaymentsAvailable && (
+                          <div className="flex items-start gap-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/[0.07] px-4 py-3 text-cyan-200">
+                            <QrCode size={14} className="text-cyan-300 shrink-0 mt-0.5" />
+                            <p className="text-xs font-light leading-relaxed">
+                              A reservation deposit of{" "}
+                              <span className="font-bold">₱{depositAmount.toLocaleString()}</span>{" "}
+                              via {paymentMethod === "gcash" ? "GCash" : "Maya"} is required to
+                              lock in your slot. After you confirm, scan the QR to pay — otherwise
+                              pay the balance at the shop.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-6">
@@ -1862,6 +2092,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   </div>
                 </div>
               )}
+              {paymentNotice && (
+                <div className="mb-5 max-w-md flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-200">
+                  <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                  <p className="text-xs font-light leading-relaxed">{paymentNotice}</p>
+                </div>
+              )}
               <p className="text-slate-400 mb-4 text-sm text-center max-w-md font-light">
                 Your appointment has been successfully scheduled. You'll receive
                 a confirmation soon.
@@ -1889,6 +2125,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       )}
     </AnimatePresence>
     <TermsModal isOpen={termsOpen} onClose={() => setTermsOpen(false)} />
+    <OnlinePaymentModal
+      isOpen={qrModalOpen}
+      payment={qrPayment}
+      onClose={() => {
+        setQrModalOpen(false);
+        finalizeReceipt();
+      }}
+    />
     </>
   );
 };

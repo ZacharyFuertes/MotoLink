@@ -16,28 +16,46 @@ export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
-const SHOP_SELECT = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open";
-const SHOP_SELECT_NO_IS_OPEN = "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active";
+const SHOP_CORE =
+  "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active";
+// Payment settings live on `shops` behind the 20261011 migration.
+const SHOP_PAYMENT_COLS = "online_payment_enabled, deposit_type, deposit_value";
+const SHOP_SELECT = `${SHOP_CORE}, is_open, ${SHOP_PAYMENT_COLS}`;
+const SHOP_SELECT_NO_IS_OPEN = `${SHOP_CORE}, ${SHOP_PAYMENT_COLS}`;
+const SHOP_SELECT_CORE = SHOP_CORE;
 
-const isMissingIsOpenColumn = (error: unknown): boolean => {
+const isMissingColumn = (error: unknown): boolean => {
   const err = error as Record<string, unknown>;
   if (err && err.code === "42703") return true;
-  const message = typeof err?.message === "string" ? err.message : typeof error === "string" ? error : "";
-  return /is_open/i.test(message) && /column|schema cache|not found|could not find/i.test(message);
+  const message =
+    typeof err?.message === "string"
+      ? err.message
+      : typeof error === "string"
+        ? error
+        : "";
+  return (
+    /is_open|online_payment_enabled|deposit_type|deposit_value/i.test(message) &&
+    /column|schema cache|not found|could not find/i.test(message)
+  );
 };
 
 type QueryResult<T = unknown> = { data: T; error: unknown };
 
-// Runs the query builder against a best-effort column set. If the live DB has
-// not yet applied the shops.is_open migration, PostgREST rejects the select
-// with a 400 — retry once without is_open so the app keeps working.
+// Runs the query builder against progressively smaller column sets. New columns
+// (is_open, payment settings) may not be live yet — PostgREST rejects unknown
+// columns with a 400, so retry without them until one succeeds.
 const runShopQuery = async <T>(
   buildQuery: (select: string) => PromiseLike<QueryResult<T>>,
 ): Promise<QueryResult<T>> => {
   const first = await buildQuery(SHOP_SELECT);
   if (!first.error) return first;
-  if (isMissingIsOpenColumn(first.error)) {
-    return await buildQuery(SHOP_SELECT_NO_IS_OPEN);
+  if (isMissingColumn(first.error)) {
+    const second = await buildQuery(SHOP_SELECT_NO_IS_OPEN);
+    if (!second.error) return second;
+    if (isMissingColumn(second.error)) {
+      return await buildQuery(SHOP_SELECT_CORE);
+    }
+    return second;
   }
   return first;
 };
@@ -192,22 +210,23 @@ export const updateShop = async (
       | "operating_hours"
       | "is_active"
       | "is_open"
+      | "online_payment_enabled"
+      | "deposit_type"
+      | "deposit_value"
     >
   >,
 ): Promise<Shop | null> => {
-  // Only send is_open in the UPDATE payload if the migration is live.
-  const safeUpdates: Record<string, unknown> = { ...updates };
-  const isOpenUpdate = "is_open" in updates;
-  if (isOpenUpdate) delete safeUpdates.is_open;
+  const hasIsOpen = "is_open" in updates;
 
-  const attempt = async (
-    select: string,
-    includeIsOpenInUpdate: boolean,
-  ): Promise<QueryResult<unknown>> => {
-    const payload =
-      isOpenUpdate && includeIsOpenInUpdate
-        ? { ...updates, is_open: updates.is_open }
-        : safeUpdates;
+  const attempt = async (select: string, allowed: "all" | "payment" | "core") => {
+    // Strip columns the live DB doesn't have yet (migration not applied).
+    const payload: Record<string, unknown> = { ...updates };
+    if (allowed !== "all") delete payload.is_open;
+    if (allowed === "core") {
+      delete payload.online_payment_enabled;
+      delete payload.deposit_type;
+      delete payload.deposit_value;
+    }
     return (supabase
       .from("shops")
       .update(payload)
@@ -216,26 +235,24 @@ export const updateShop = async (
       .single()) as PromiseLike<QueryResult<unknown>>;
   };
 
-  const first = await attempt(SHOP_SELECT, true);
-  if (!first.error && first.data) {
-    return normalizeShop(first.data as Record<string, unknown>);
-  }
+  const attempts: { select: string; allowed: "all" | "payment" | "core" }[] = [
+    { select: SHOP_SELECT, allowed: "all" },
+    { select: SHOP_SELECT_NO_IS_OPEN, allowed: "payment" },
+    { select: SHOP_SELECT_CORE, allowed: "core" },
+  ];
 
-  if (isMissingIsOpenColumn(first.error) && isOpenUpdate) {
-    const { data, error } = await attempt(SHOP_SELECT_NO_IS_OPEN, false);
-    if (error || !data) return null;
-    // Column not live yet — keep the requested value in memory so the UI
-    // reflects the intended state; it will persist after the migration runs.
-    return normalizeShop({
-      ...(data as Record<string, unknown>),
-      is_open: updates.is_open,
-    });
-  }
-
-  if (isMissingIsOpenColumn(first.error) && !isOpenUpdate) {
-    const { data, error } = await attempt(SHOP_SELECT_NO_IS_OPEN, false);
-    if (error || !data) return null;
-    return normalizeShop(data as Record<string, unknown>);
+  for (const a of attempts) {
+    const { data, error } = await attempt(a.select, a.allowed);
+    if (!error && data) {
+      const normalized = normalizeShop(data as Record<string, unknown>);
+      // is_open migration not live yet — keep the requested value in memory so
+      // the UI reflects the intended state until the migration is applied.
+      if (hasIsOpen && !a.select.includes("is_open")) {
+        (normalized as any).is_open = updates.is_open;
+      }
+      return normalized;
+    }
+    if (!isMissingColumn(error)) return null;
   }
 
   return null;

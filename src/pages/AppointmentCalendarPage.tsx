@@ -19,6 +19,7 @@ import {
   ArrowUpDown,
   Banknote,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -670,6 +671,35 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 const displayPhone =
                   (apt as any).customer?.phone || apt.walk_in_phone;
                 const isWalkIn = !apt.customer_id;
+                // Online payment / deposit state for this booking.
+                const payMethod = (apt as any).payment_method as string | undefined;
+                const payStatus = ((apt as any).payment_status as string) || "unpaid";
+                const payTone =
+                  payStatus === "paid" || payStatus === "deposit_paid"
+                    ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/25"
+                    : payStatus === "failed" || payStatus === "expired"
+                      ? "text-rose-300 bg-rose-500/10 border-rose-500/25"
+                      : "text-amber-300 bg-amber-500/10 border-amber-500/25";
+                const payLabel =
+                  payMethod === "gcash"
+                    ? "GCash"
+                    : payMethod === "maya"
+                      ? "Maya"
+                      : payMethod === "cash"
+                        ? "Cash"
+                        : "";
+                const payState =
+                  payStatus === "paid"
+                    ? "Paid"
+                    : payStatus === "deposit_paid"
+                      ? `Deposit ₱${Number((apt as any).amount_paid || (apt as any).deposit_amount || 0).toLocaleString("en-PH")}`
+                      : payStatus === "failed"
+                        ? "Payment failed"
+                        : payStatus === "expired"
+                          ? "Payment expired"
+                          : payMethod && payMethod !== "cash"
+                            ? "Deposit pending"
+                            : "Pay at shop";
                 return (
                   <motion.div
                     key={apt.id}
@@ -718,6 +748,15 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                             <Banknote className="w-4 h-4 text-emerald-400" />
                             {isEst ? "Est. " : ""}₱
                             {Number(amt).toLocaleString("en-PH")}
+                          </span>
+                        )}
+                        {payLabel && (
+                          <span
+                            title="Payment / reservation deposit for this booking"
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[12px] font-bold ${payTone}`}
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                            {payLabel} · {payState}
                           </span>
                         )}
                       </div>

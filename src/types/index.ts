@@ -73,6 +73,12 @@ export interface Appointment {
   parts?: any[];
   total_amount?: number;
   estimated_price?: number;
+  /** Payment method chosen at booking: cash | gcash | maya. */
+  payment_method?: "cash" | "gcash" | "maya" | null;
+  /** unpaid | deposit_paid | paid | failed | expired | refunded */
+  payment_status?: "unpaid" | "deposit_paid" | "paid" | "failed" | "expired" | "refunded";
+  amount_paid?: number;
+  deposit_amount?: number;
   created_at: string;
   updated_at: string;
 }
@@ -158,6 +164,36 @@ export interface Invoice {
   paid_date?: string;
   notes?: string;
   created_at: string;
+}
+
+// Online Payment (PayMongo) attempts on an appointment
+export type OnlinePaymentMethod = "gcash" | "maya";
+export type OnlinePaymentStatus =
+  | "created"
+  | "awaiting_action"
+  | "processing"
+  | "paid"
+  | "failed"
+  | "expired";
+
+export interface Payment {
+  id: string;
+  appointment_id: string;
+  shop_id?: string | null;
+  customer_id?: string | null;
+  provider: string;
+  method: OnlinePaymentMethod;
+  amount: number;
+  currency: string;
+  status: OnlinePaymentStatus;
+  provider_intent_id?: string | null;
+  provider_payment_method_id?: string | null;
+  provider_payment_id?: string | null;
+  qr_payload?: string | null;
+  redirect_url?: string | null;
+  paid_at?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // Chat Types

@@ -23,9 +23,12 @@ import {
   Camera,
   Check,
   X,
+  QrCode,
+  Percent,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop, parseOperatingHoursString } from "../services/shopService";
+import { getPaymentConfig } from "../services/paymentService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
 import LocationPicker from "../components/LocationPicker";
@@ -140,6 +143,20 @@ const [loading, setLoading] = useState(true);
     type: "success" | "error";
     text: string;
   } | null>(null);
+  // Whether the platform's PayMongo account is configured. Controls the
+  // owner's ability to flip online payments on (no point enabling a feature
+  // that physically can't charge anyone).
+  const [providerConfigured, setProviderConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getPaymentConfig().then((config) => {
+      if (mounted) setProviderConfigured(config.providerConfigured);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const loadGallery = async (shopId: string) => {
     const photos = await getShopGallery(shopId);
@@ -361,6 +378,22 @@ const [loading, setLoading] = useState(true);
       return;
     }
 
+    if (
+      shop.online_payment_enabled === true &&
+      (!(Number(shop.deposit_value) > 0) ||
+        (shop.deposit_type === "percent" && Number(shop.deposit_value) > 100))
+    ) {
+      setSaving(false);
+      setMessage({
+        type: "error",
+        text:
+          shop.deposit_type === "percent"
+            ? "Set a valid reservation deposit percentage (1–100) before enabling online payments."
+            : "Set a valid reservation deposit amount (greater than ₱0) before enabling online payments.",
+      });
+      return;
+    }
+
     try {
       if (!user?.shop_id) throw new Error("No shop linked to this account.");
       // Keep unmappable legacy hours unless the owner edited the schedule.
@@ -381,6 +414,9 @@ const [loading, setLoading] = useState(true);
         email: shop.email || null,
         operating_hours: operatingHours,
         is_active: shop.is_active,
+        online_payment_enabled: shop.online_payment_enabled,
+        deposit_type: shop.deposit_type || "fixed",
+        deposit_value: shop.deposit_value || 0,
       });
 
       if (!updated) throw new Error("Save failed.");
@@ -428,6 +464,25 @@ const [loading, setLoading] = useState(true);
       });
     } finally {
       setTogglingAvailability(false);
+    }
+  };
+
+  const onlineEnabled = shop.online_payment_enabled === true;
+
+  const handleToggleOnlinePayments = () => {
+    if (!onlineEnabled && providerConfigured !== true) {
+      // Guard: never let the owner flip this on when the payment provider
+      // isn't wired up — otherwise customers would see a QR that can't charge.
+      setMessage({
+        type: "error",
+        text: "Online payments aren't set up on MotoLink yet — the payment provider has to be connected by a platform administrator first.",
+      });
+      return;
+    }
+    setMessage(null);
+    handleField("online_payment_enabled", !onlineEnabled);
+    if (onlineEnabled && (shop.deposit_value === undefined || shop.deposit_value === null)) {
+      handleField("deposit_value", 0);
     }
   };
 
@@ -947,6 +1002,150 @@ const [loading, setLoading] = useState(true);
                   {shop.is_open === false ? "Closed" : "Open"}
                 </span>
               </div>
+            </div>
+          </motion.div>
+
+          {/* Online Payments Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-cyan-500/15 text-cyan-400 rounded-xl flex items-center justify-center shrink-0">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Online Payments
+                </h2>
+                <p className="text-[13px] text-slate-400">
+                  Accept GCash &amp; Maya reservation deposits from online bookings.
+                </p>
+              </div>
+            </div>
+
+            {providerConfigured === false && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-3 text-xs text-amber-200">
+                <AlertTriangle size={15} className="mt-px shrink-0" />
+                <span>
+                  Online payments aren't available on MotoLink yet — a platform
+                  administrator needs to connect the payment provider first.
+                </span>
+              </div>
+            )}
+
+            <div className="mt-5 rounded-2xl border border-moto-gray bg-moto-dark p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={onlineEnabled}
+                    aria-label="Accept online payments"
+                    onClick={handleToggleOnlinePayments}
+                    disabled={providerConfigured === null}
+                    className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-cyan-500 ${
+                      onlineEnabled ? "bg-cyan-500" : "bg-moto-gray"
+                    } disabled:opacity-60 disabled:cursor-not-allowed`}
+                  >
+                    <span
+                      className={`inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-1 ring-black/5 transition-transform duration-200 ${
+                        onlineEnabled ? "translate-x-8" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                  <div>
+                    <p className="text-base font-semibold text-slate-100">
+                      {onlineEnabled
+                        ? "Online payments are on"
+                        : "Online payments are off"}
+                    </p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">
+                      {onlineEnabled
+                        ? "Customers can pay a reservation deposit via GCash or Maya when booking. Changes apply after you hit Save Changes."
+                        : "Customers will only see 'Pay at shop' when booking — online will show as unavailable and no QR will be generated. Changes apply after you hit Save Changes."}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold shrink-0 ${
+                    onlineEnabled
+                      ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
+                      : "bg-moto-gray/40 text-slate-400 border border-moto-gray"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${onlineEnabled ? "bg-cyan-400 animate-pulse" : "bg-slate-500"}`} />
+                  {onlineEnabled ? "Active" : "Off"}
+                </span>
+              </div>
+
+              {onlineEnabled && (
+                <div className="mt-5 pt-5 border-t border-moto-gray/70 grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>
+                      <QrCode className="w-4 h-4 text-cyan-500" /> Deposit Type
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleField("deposit_type", "fixed")}
+                        className={`rounded-xl border px-3 py-2.5 text-[13px] font-bold transition ${
+                          (shop.deposit_type || "fixed") === "fixed"
+                            ? "border-cyan-500/60 bg-cyan-500/10 text-cyan-300"
+                            : "border-moto-gray bg-moto-darker text-slate-400 hover:border-cyan-500/40"
+                        }`}
+                      >
+                        Fixed Amount
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleField("deposit_type", "percent")}
+                        className={`rounded-xl border px-3 py-2.5 text-[13px] font-bold transition ${
+                          shop.deposit_type === "percent"
+                            ? "border-cyan-500/60 bg-cyan-500/10 text-cyan-300"
+                            : "border-moto-gray bg-moto-darker text-slate-400 hover:border-cyan-500/40"
+                        }`}
+                      >
+                        <Percent className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />
+                        Percent of estimate
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>
+                      {shop.deposit_type === "percent" ? "Percentage" : "Amount"}
+                    </label>
+                    <div className="relative">
+                      {shop.deposit_type !== "percent" && (
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                          ₱
+                        </span>
+                      )}
+                      <input
+                        type="number"
+                        min={shop.deposit_type === "percent" ? 1 : 0}
+                        max={shop.deposit_type === "percent" ? 100 : undefined}
+                        step="any"
+                        value={shop.deposit_value ?? 0}
+                        onChange={(e) =>
+                          handleField("deposit_value", Number(e.target.value) || 0)
+                        }
+                        placeholder={shop.deposit_type === "percent" ? "e.g. 10" : "e.g. 200"}
+                        className={`${inputClass} ${shop.deposit_type !== "percent" ? "pl-8" : ""}`}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[12px] text-slate-500">
+                      {shop.deposit_type === "percent"
+                        ? `Charged as % of the booking's estimated total (${
+                            Number(shop.deposit_value) || 0
+                          }%).`
+                        : "Fixed reservation downpayment charged at booking."}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
 

@@ -7605,6 +7605,77 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
 
 ---
 
-**Last Updated**: Oct 03, 2026
+## ONLINE PAYMENTS (GCash / Maya via PayMongo)
+
+Status: **code complete, NOT yet run live** — migration `20261011_online_payments.sql` must be applied
+and the two PayMongo server env vars set in Vercel. `tsc --noEmit` + `npm run build` pass.
+
+### Model (locked with product owner)
+- Provider: **PayMongo** (handles GCash + Maya). **One platform account**, not per-shop credentials.
+- Per-shop **on/off toggle** + a shop-configurable **reservation/downpayment** (fixed ₱ or % of estimate).
+- Only online bookings can pay online; **walk-ins stay cash-only**.
+- HARD RULE: when online payment is off / provider unconfigured, the UI shows **"Unavailable"** and
+  renders **NO QR** — never a fake/placeholder QR. `api/create-payment` is the source of truth: a QR
+  exists only if PayMongo returned a real `next_action.redirect.url`.
+
+### Flow
+1. Customer picks Cash / GCash / Maya on the Confirm step of `BookAppointmentModal`.
+2. On Confirm, the appointment row is inserted first (method stored), then the client calls
+   `POST /api/create-payment` with the Supabase access token.
+3. Server: `payment_intent` → `payment_method` → `attach`, reads `next_action.redirect.url`, stores a
+   `payments` row (`awaiting_action`) + updates `appointments.payment_method`/`deposit_amount`.
+4. Client renders the redirect URL as a QR (`qrcode.react` `QRCodeSVG`) in `OnlinePaymentModal` and polls
+   `GET /api/payment-status` every 3s.
+5. PayMongo POSTs to `/api/payment-webhook`; signature verified, payment flipped to `paid`, appointment
+   set to `payment_status='deposit_paid'` + `amount_paid`, in-app notifications sent to customer + owner.
+
+### Serverless functions (`api/`, NOT covered by tsconfig `include: ["src"]`)
+- `api/payment-config.ts` — GET → `{ providerConfigured: Boolean(process.env.PAYMONGO_SECRET_KEY) }`.
+- `api/create-payment.ts` — guards: `not_configured` (503), unknown method (400), `online_disabled` (409),
+  `amount_too_low` (<₱1.00) / `amount_too_high` (>₱100k) (400), `provider_error` (502). Method maps
+  internal `maya` → PayMongo `paymaya`, `gcash` → `gcash` (do NOT send "maya" to PayMongo). Basic auth
+  `base64("SK:")`.
+- `api/payment-status.ts` — GET `?id=&accessToken=`; authorizes owner/shop-staff or the paying customer,
+  returns `{id, appointmentId, method, amount, status, paidAt}`.
+- `api/payment-webhook.ts` — verifies `Paymongo-Signature` (`t` + HMAC-SHA256 of `t.<rawBody>` with
+  `PAYMONGO_WEBHOOK_SECRET` via Node `crypto`; if unset, logs + accepts — dev only). Idempotent on
+  `provider_intent_id`. Handles `payment.paid`/`payment_intent.succeeded`,
+  `payment.failed`/`payment_intent.cancelled`, `payment.expired`/`payment_intent.expired`.
+- Env (server-only, never `VITE_*`): `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` — documented in
+  `.env.example`.
+
+### DB (migration `20261011_online_payments.sql`, mirrored into `supabase/schema.sql`)
+- `shops`: `online_payment_enabled BOOLEAN DEFAULT false`, `deposit_type TEXT 'fixed'|'percent'`,
+  `deposit_value NUMERIC(10,2) DEFAULT 0`.
+- `appointments`: `payment_method` (`cash|gcash|maya`), `payment_status`
+  (`unpaid|deposit_paid|paid|failed|expired|refunded`), `amount_paid`, `deposit_amount`.
+- `payments` table: `provider_intent_id` (unique partial index), `provider_payment_id`,
+  `provider_payment_method_id`, `qr_payload`, `redirect_url`, `status`
+  (`created|awaiting_action|processing|paid|failed|expired`), `paid_at`, `raw_last_event JSONB`. RLS:
+  SELECT own/shop/admin only; writes are service-role (functions) only.
+
+### Client
+- `src/services/paymentService.ts` — `getPaymentConfig`, `startOnlinePayment`, `getPaymentStatus`,
+  `computeDeposit` (mirrors the server math).
+- `src/components/OnlinePaymentModal.tsx` — QR only when `qrValue` present; else "Online payment isn't
+  available" state; polls to paid; "pay later" dismiss keeps the booking with deposit pending.
+- `BookAppointmentModal.tsx` — payment-method cards, deposit summary, and a **receipt hold**: for online
+  bookings the `onAppointmentBooked` callback (which `App.tsx` uses to close the modal + show the receipt)
+  is deferred via `receiptRef` until the QR modal closes, so the QR isn't unmounted mid-pay. On any
+  provider failure the booking falls back to cash with an amber notice (no QR).
+- `ShopSettingsPage.tsx` — "Online Payments" card: toggle (blocked unless `providerConfigured`), deposit
+  type/value, validation before save. Saved with the form (not instantly like availability).
+- Badges: `AppointmentCalendarPage.tsx` + `ServiceHistoryModal.tsx` show method + deposit state.
+- Dep: `qrcode.react@^4.2.0` added to `package.json` + installed.
+
+### Verified / not verified
+- Verified: `npx tsc --noEmit` clean; `npm run build` passes. `npm run lint` still **not runnable**
+  (eslint not installed — pre-existing).
+- NOT verified: no live Supabase run, no real PayMongo sandbox charge, migration not applied, webhook not
+  registered. Runtime testing blocked until migration + env vars are in place.
+
+---
+
+**Last Updated**: Oct 11, 2026
 **Compatibility Version**: 1.0
 

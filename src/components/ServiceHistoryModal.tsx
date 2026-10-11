@@ -14,6 +14,7 @@ import {
   Package,
   AlertCircle,
   FileText,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -47,6 +48,11 @@ interface ServiceRecord {
   };
   total_amount?: number;
   estimated_price?: number;
+  /** Appointment-level reservation deposit (PayMongo GCash/Maya). */
+  payment_method?: string;
+  payment_status?: string;
+  amount_paid?: number;
+  deposit_amount?: number;
 }
 
 interface ServiceHistoryModalProps {
@@ -91,7 +97,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
       // Fetch all appointments (completed, in_progress, cancelled)
       let query = supabase
         .from("appointments")
-        .select("id, booking_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price")
+        .select("id, booking_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price, payment_method, payment_status, amount_paid, deposit_amount")
         .eq("customer_id", user.id)
         .in("status", ["completed", "cancelled", "confirmed", "pending"])
         .order("scheduled_date", { ascending: false });
@@ -152,6 +158,10 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
           invoice: inv || undefined,
           total_amount: apt.total_amount,
           estimated_price: apt.estimated_price,
+          payment_method: apt.payment_method,
+          payment_status: apt.payment_status,
+          amount_paid: apt.amount_paid,
+          deposit_amount: apt.deposit_amount,
         };
       });
 
@@ -403,6 +413,31 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                             </span>
                           )}
                           <div className="flex items-center gap-2 sm:gap-3">
+                            {record.payment_method && record.payment_method !== "cash" && (
+                              <span
+                                title="Reservation deposit paid online"
+                                className={`flex items-center gap-1.5 text-[9px] px-3 py-1.5 border rounded-full font-bold tracking-widest uppercase ${
+                                  record.payment_status === "paid" ||
+                                  record.payment_status === "deposit_paid"
+                                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                                    : record.payment_status === "failed" ||
+                                        record.payment_status === "expired"
+                                      ? "border-rose-500/25 bg-rose-500/10 text-rose-300"
+                                      : "border-amber-500/25 bg-amber-500/10 text-amber-300"
+                                }`}
+                              >
+                                <Wallet size={12} />
+                                {record.payment_method === "gcash" ? "GCash" : "Maya"} ·{" "}
+                                {record.payment_status === "paid" ||
+                                record.payment_status === "deposit_paid"
+                                  ? "Deposit paid"
+                                  : record.payment_status === "failed"
+                                    ? "Failed"
+                                    : record.payment_status === "expired"
+                                      ? "Expired"
+                                      : "Deposit pending"}
+                              </span>
+                            )}
                             <span className={`flex items-center gap-1.5 text-[9px] px-3 py-1.5 border rounded-full font-bold tracking-widest uppercase ${status.pill}`}>
                               {status.label}
                             </span>
