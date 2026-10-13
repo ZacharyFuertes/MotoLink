@@ -596,6 +596,31 @@ html.light .group:hover .group-hover\:text-white:not(.keep-dark):not(.keep-dark 
   color: #0f172a;
 }
 
+/* Light theme: status/functional tints would be too pale on light surfaces
+   (badges, lock states, messages) — remap to deeper, readable tones. */
+html.light .text-emerald-300:not(.keep-dark):not(.keep-dark *),
+html.light .text-emerald-400:not(.keep-dark):not(.keep-dark *) {
+  color: #059669;
+}
+html.light .hover\:text-emerald-300:hover:not(.keep-dark):not(.keep-dark *) {
+  color: #047857;
+}
+html.light .text-amber-300:not(.keep-dark):not(.keep-dark *),
+html.light .text-amber-400:not(.keep-dark):not(.keep-dark *) {
+  color: #b45309;
+}
+html.light .text-rose-300:not(.keep-dark):not(.keep-dark *),
+html.light .text-rose-400:not(.keep-dark):not(.keep-dark *) {
+  color: #be123c;
+}
+html.light .hover\:text-rose-300:hover:not(.keep-dark):not(.keep-dark *) {
+  color: #e11d48;
+}
+html.light .text-red-400:not(.keep-dark):not(.keep-dark *),
+html.light .text-red-500:not(.keep-dark):not(.keep-dark *) {
+  color: #dc2626;
+}
+
 /* ── Light theme: hardcoded dark surfaces inside modals/cards ── */
 html.light [class~="bg-[#0d1420]"]:not(.keep-dark):not(.keep-dark *),
 html.light [class~="bg-[#1C1B24]"]:not(.keep-dark):not(.keep-dark *) {
@@ -670,6 +695,20 @@ html.light .dashboard-table th {
 }
 html.light .dashboard-table td {
   border-bottom-color: #cde0ea;
+}
+
+/* ── Profile ("My Garage") page: main panels get a solid, raised surface so
+   they stand out against the page in both themes ── */
+.profile-page .profile-panel {
+  background-color: rgb(var(--moto-darker));
+  border-color: rgb(var(--moto-gray));
+  box-shadow: 0 16px 38px -22px rgba(0, 0, 0, 0.55);
+}
+html.light .profile-page .profile-panel {
+  border-color: #b9d4e2;
+  box-shadow:
+    0 14px 34px -22px rgba(15, 118, 110, 0.2),
+    0 8px 20px -18px rgba(15, 23, 42, 0.16);
 }
 
 /* ── Light theme: charts & selection ── */

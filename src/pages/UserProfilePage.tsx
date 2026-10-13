@@ -562,7 +562,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] font-sans tracking-tight text-slate-100">
+    <div className="profile-page min-h-screen bg-[#090d16] font-sans tracking-tight text-slate-100">
       {/* ── Top Navbar ── */}
       <header className="sticky top-0 z-30 border-b border-moto-gray/80 bg-moto-dark/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -635,7 +635,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         {/* ── LEFT SIDEBAR ── */}
         <aside className="space-y-5">
           {/* Avatar badge card */}
-          <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6 text-center">
+          <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6 text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-xl font-bold text-moto-accent">
               {initials(displayName)}
             </div>
@@ -657,7 +657,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           </div>
 
           {/* Vertical nav tabs */}
-          <nav className="space-y-1 rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-2">
+          <nav className="profile-panel space-y-1 rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-2">
             {NAV_TABS.map((tab) => (
               <button
                 key={tab.key}
@@ -676,14 +676,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
           {/* Quick stats */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
+            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
               <Car size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {vehicles.length}
               </p>
               <p className="text-xs font-medium text-slate-300">Bikes Registered</p>
             </div>
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
+            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
               <Wrench size={16} className="mb-2 text-moto-accent" />
               <p className="text-2xl font-bold text-slate-100">
                 {completedCount}
@@ -698,7 +698,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {activeTab === "profile" && (
             <div className="space-y-6">
               {/* My Garage */}
-              <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+              <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-slate-100">
@@ -905,7 +905,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "history" && (
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <History size={16} className="text-moto-accent" />
@@ -1142,7 +1142,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "saved" && (
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <h2 className="text-lg font-bold text-slate-100">
                 Saved Shops
               </h2>
@@ -1159,7 +1159,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           )}
 
           {activeTab === "settings" && (
-            <div className="rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <h2 className="text-lg font-bold text-slate-100">
                 Account Settings
               </h2>
