@@ -46,6 +46,7 @@ import { supabase } from "../services/supabaseClient";
 import AdminShopReviewModal, {
   ReviewShop,
 } from "../components/AdminShopReviewModal";
+import ThemeToggle from "../components/ThemeToggle";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -717,6 +718,13 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           <LogOut className="w-[22px] h-[22px] shrink-0" />
           {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
         </button>
+        <div className="mt-2">
+          <ThemeToggle
+            variant="dark"
+            showLabel={!sidebarCollapsed || isMobile}
+            className="w-full justify-center"
+          />
+        </div>
       </div>
     </>
   );
@@ -725,7 +733,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     <div className="min-h-screen bg-moto-darker flex">
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
+        className={`keep-dark hidden lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
           sidebarCollapsed ? "w-20" : "w-[260px]"
         }`}
       >
@@ -748,7 +756,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
+              className="keep-dark fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
             >
               <SidebarContent isMobile />
             </motion.aside>

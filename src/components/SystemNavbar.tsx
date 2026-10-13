@@ -20,6 +20,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AppPage, getPagesByRole, getRoleLabel } from "../utils/roleAccess";
+import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
   currentPage: string;
@@ -179,7 +180,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <nav className="keep-dark fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       {/* Accent line at top */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-slate-900" />
       <div className="w-full px-2 sm:px-4 lg:px-6 2xl:px-8">
@@ -258,6 +259,9 @@ const SystemNavbar: React.FC<NavbarProps> = ({
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Theme Toggle */}
+            <ThemeToggle variant="light" />
 
             {/* AI Chat Button */}
             <motion.button

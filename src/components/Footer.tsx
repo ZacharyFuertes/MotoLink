@@ -75,7 +75,7 @@ const Footer: React.FC = () => {
   }
 
   return (
-    <footer className="w-full bg-moto-darker border-t border-moto-gray text-white">
+    <footer className="keep-dark w-full bg-moto-darker border-t border-moto-gray text-white">
       {/* Main Footer Content */}
       <motion.div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16"

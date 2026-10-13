@@ -332,7 +332,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
               ].map((step) => (
                 <motion.div key={step.number} variants={itemVariants} style={{ contain: "content" }} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
-                  <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-white/10">{step.number}</span>
+                  <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-moto-ink/10">{step.number}</span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
                     <step.icon size={22} />
                   </span>
@@ -359,7 +359,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <div className="flex items-center gap-8">
                 {stats.avgRating !== null && stats.avgRating > 0 && (
                   <div className="text-center">
-                    <p className="flex items-center justify-center gap-1 font-display text-3xl font-black text-white"><Star size={18} className="fill-amber-400 text-amber-400" />{stats.avgRating.toFixed(1)}</p>
+                    <p className="flex items-center justify-center gap-1 font-display text-3xl font-black text-slate-100"><Star size={18} className="fill-amber-400 text-amber-400" />{stats.avgRating.toFixed(1)}</p>
                     <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">Average rating</p>
                   </div>
                 )}

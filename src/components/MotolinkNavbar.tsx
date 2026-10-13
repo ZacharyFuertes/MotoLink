@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import motolinkLogo from "../../public/favicon.svg";
+import ThemeToggle from "./ThemeToggle";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface MotolinkNavbarProps {
   isAuthenticated: boolean;
@@ -17,6 +19,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeLabel, setActiveLabel] = useState<string>("");
+  const { isDark } = useTheme();
 
   // Scroll-responsive shell: transparent at the very top, floating glass once scrolled.
   useEffect(() => {
@@ -41,13 +44,18 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
     setMenuOpen(false);
   };
 
+  // In light mode the navbar always shows as a light glass bar so it stays a
+  // light color even while scrolling through the hero. In dark mode it starts
+  // transparent over the hero and gains its glass shell once scrolled.
+  const showShell = isDark ? scrolled : true;
+
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 220, damping: 26, mass: 0.9 }}
-      className={`fixed inset-x-0 top-0 z-40 border-b transition-all duration-500 ${
-        scrolled
+      className={`fixed inset-x-0 top-0 z-40 border-b transition-all duration-500 ${showShell ? "nav-scrolled" : "nav-top keep-dark"} ${
+        showShell
           ? "border-moto-gray/60 bg-moto-dark/60 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.35)]"
           : "border-transparent bg-transparent"
       }`}
@@ -60,7 +68,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.98 }}
         >
-          <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="h-16 sm:h-20 lg:h-24 max-w-[200px] sm:max-w-[260px] w-auto object-contain drop-shadow-[0_0_16px_rgba(34,211,238,0.35)]" />
+          <img src={motolinkLogo} alt="Motolink Autoshop Clientele" className="moto-logo h-16 sm:h-20 lg:h-24 max-w-[200px] sm:max-w-[260px] w-auto object-contain drop-shadow-[0_0_16px_rgba(34,211,238,0.35)]" />
         </motion.button>
 
         {/* Desktop nav */}
@@ -92,16 +100,6 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
 
         {/* Desktop CTA / auth */}
         <div className="hidden items-center gap-3 md:flex">
-          {/* System status badge (dev/localhost only) */}
-          {typeof window !== "undefined" && window.location.hostname === "localhost" && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-emerald-300 whitespace-nowrap">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-              </span>
-              System online
-            </span>
-          )}
           {isAuthenticated ? (
             <>
               {onOpenProfile && (
@@ -150,18 +148,22 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
               </motion.button>
             </>
           )}
+          <ThemeToggle className="h-10 w-10" />
         </div>
 
-        {/* Mobile toggle — clean text-based control */}
-        <motion.button
-          onClick={() => setMenuOpen((value) => !value)}
-          whileTap={{ scale: 0.94 }}
-          className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-moto-gray bg-moto-darker/40 backdrop-blur-md transition hover:border-moto-accent/60 md:hidden"
-          aria-expanded={menuOpen}
-          aria-label="Toggle navigation"
-        >
-          {menuOpen ? "Close" : "Menu"}
-        </motion.button>
+        {/* Mobile controls — theme toggle + clean text-based menu control */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle className="h-10 w-10" />
+          <motion.button
+            onClick={() => setMenuOpen((value) => !value)}
+            whileTap={{ scale: 0.94 }}
+            className="rounded-xl px-4 py-2 text-sm font-bold text-slate-100 border border-moto-gray bg-moto-darker/40 backdrop-blur-md transition hover:border-moto-accent/60"
+            aria-expanded={menuOpen}
+            aria-label="Toggle navigation"
+          >
+            {menuOpen ? "Close" : "Menu"}
+          </motion.button>
+        </div>
       </div>
 
       {/* Mobile menu */}
