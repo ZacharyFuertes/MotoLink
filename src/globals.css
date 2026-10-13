@@ -492,3 +492,242 @@ textarea:focus {
   padding: 0 4px;
   box-shadow: 0 0 0 2px white;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME SYSTEM — class-based (darkMode: 'class')
+   Dark charcoal is the default (`:root` = `.dark`). `.light` flips
+   every surface through CSS custom properties. Photographic/glass
+   regions that must stay dark opt out with `.keep-dark`.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root,
+.dark {
+  /* Charcoal / blue-tinted dark palette */
+  --moto-dark: 15 23 35; /* #0f1723 */
+  --moto-darker: 11 21 38; /* #0b1526 */
+  --moto-gray: 37 51 78; /* #25334e */
+  --moto-gray-light: 51 69 107; /* #33456b */
+  --moto-gray-muted: 148 163 184; /* #94a3b8 */
+  --moto-side: 10 18 32; /* #0a1220 */
+  --moto-muted: 148 163 184; /* #94a3b8 */
+  --moto-ink: 238 242 248; /* #eef2f8 */
+  --moto-light: 248 250 252; /* #f8fafc */
+  color-scheme: dark;
+}
+
+.light {
+  --moto-dark: 241 245 249; /* #f1f5f9 */
+  --moto-darker: 255 255 255; /* #ffffff */
+  --moto-gray: 226 232 240; /* #e2e8f0 */
+  --moto-gray-light: 203 213 225; /* #cbd5e1 */
+  --moto-gray-muted: 100 116 139; /* #64748b */
+  --moto-side: 255 255 255; /* #ffffff */
+  --moto-muted: 100 116 139; /* #64748b */
+  --moto-ink: 15 23 42; /* #0f172a */
+  --moto-light: 15 23 42; /* #0f172a */
+  color-scheme: light;
+}
+
+/* Photo heroes, glass navbars, branded sidebars stay dark in both themes */
+.keep-dark {
+  --moto-dark: 15 23 35;
+  --moto-darker: 11 21 38;
+  --moto-gray: 37 51 78;
+  --moto-gray-light: 51 69 107;
+  --moto-gray-muted: 148 163 184;
+  --moto-side: 10 18 32;
+  --moto-muted: 148 163 184;
+  --moto-ink: 238 242 248;
+  --moto-light: 248 250 252;
+  color-scheme: dark;
+}
+
+/* ── Smooth cross-fade while switching themes ── */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease,
+    stroke 220ms ease,
+    box-shadow 220ms ease,
+    outline-color 220ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
+}
+
+/* ── Light theme: remap light text utilities used across dark surfaces ── */
+html.light .text-slate-50:not(.keep-dark):not(.keep-dark *),
+html.light .text-slate-100:not(.keep-dark):not(.keep-dark *) {
+  color: #0f172a;
+}
+html.light .text-slate-200:not(.keep-dark):not(.keep-dark *) {
+  color: #1e293b;
+}
+html.light .text-slate-300:not(.keep-dark):not(.keep-dark *) {
+  color: #334155;
+}
+html.light .text-slate-400:not(.keep-dark):not(.keep-dark *) {
+  color: #475569;
+}
+html.light .text-slate-500:not(.keep-dark):not(.keep-dark *) {
+  color: #64748b;
+}
+
+/* In light mode "white" text becomes near-black so it stays readable on the
+   now-light surfaces. Regions that must stay dark opt out via `.keep-dark`. */
+html.light .text-white:not(.keep-dark):not(.keep-dark *) {
+  color: #0f172a;
+}
+html.light .hover\:text-white:hover:not(.keep-dark):not(.keep-dark *),
+html.light .group:hover .group-hover\:text-white:not(.keep-dark):not(.keep-dark *) {
+  color: #0f172a;
+}
+
+/* ── Light theme: hardcoded dark surfaces inside modals/cards ── */
+html.light [class~="bg-[#0d1420]"]:not(.keep-dark):not(.keep-dark *),
+html.light [class~="bg-[#1C1B24]"]:not(.keep-dark):not(.keep-dark *) {
+  background-color: #ffffff;
+}
+html.light [class~="bg-[#090d16]"]:not(.keep-dark):not(.keep-dark *),
+html.light [class~="bg-[#0a0f1d]"]:not(.keep-dark):not(.keep-dark *) {
+  background-color: #f1f5f9;
+}
+html.light [class~="bg-[#14131A]"]:not(.keep-dark):not(.keep-dark *) {
+  background-color: #f4f6fb;
+}
+html.light [class~="border-[#2B2A37]"]:not(.keep-dark):not(.keep-dark *) {
+  border-color: #e2e8f0;
+}
+html.light [class~="text-[#F3F1F7]"]:not(.keep-dark):not(.keep-dark *) {
+  color: #0f172a;
+}
+html.light [class~="text-[#948FA3]"]:not(.keep-dark):not(.keep-dark *) {
+  color: #64748b;
+}
+html.light [class~="text-[#6B6879]"]:not(.keep-dark):not(.keep-dark *) {
+  color: #475569;
+}
+
+/* ── Light theme: semantic dashboard surfaces ── */
+html.light body {
+  background-image:
+    radial-gradient(circle at top left, rgba(53, 208, 192, 0.1), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(53, 208, 192, 0.06), transparent 28%);
+}
+
+html.light .sidebar-dark:not(.keep-dark),
+html.light .sidebar-dark-violet:not(.keep-dark) {
+  background: #ffffff;
+  border-right-color: #e2e8f0;
+}
+html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item,
+html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item {
+  color: #64748b;
+}
+html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item:hover,
+html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-active,
+html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-active {
+  background: rgba(53, 208, 192, 0.14);
+  color: #0f766e;
+}
+html.light .dashboard-card,
+html.light .stat-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html.light .dashboard-card:hover,
+html.light .stat-card:hover {
+  border-color: #cbd5e1;
+}
+html.light .dashboard-header {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+html.light .chart-container {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+html.light .dashboard-table th {
+  color: #64748b;
+  border-bottom-color: #e2e8f0;
+}
+html.light .dashboard-table td {
+  border-bottom-color: #e2e8f0;
+}
+
+/* ── Light theme: charts & selection ── */
+html.light .recharts-tooltip {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light .recharts-tooltip-label {
+  color: #334155 !important;
+}
+html.light .recharts-tooltip-item {
+  color: #475569 !important;
+}
+html.light .recharts-cartesian-grid line {
+  stroke: #e2e8f0;
+}
+html.light .recharts-cartesian-axis-tick-value,
+html.light .recharts-text {
+  fill: #475569;
+}
+
+/* ── Light theme: the landing hero keeps a medium-dark scrim so its white copy
+   stays readable while the photo remains visible (a touch lighter than the
+   full dark-mode treatment). Hero text stays light via `.keep-dark`. ── */
+html.light .bg-gradient-overlay {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.15),
+    rgba(15, 23, 42, 0.4)
+  );
+}
+html.light [class~="bg-moto-dark/70"] {
+  background-color: rgba(15, 23, 42, 0.18);
+}
+
+/* Light theme: hero is lighter now, so the white copy gets a dark soft shadow
+   to keep its contrast over the (brighter) photo. */
+html.light .hero-content h1,
+html.light .hero-content p {
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Light theme: navbar adapts to the section it overlaps. Over the hero
+   (`nav-top` + keep-dark) its text stays light on the medium-dark scrim; once
+   scrolled past (`nav-scrolled`) it drops to dark ink on the light glass and
+   the white logo wordmark gains a dark halo. */
+html.light .nav-scrolled {
+  background-color: #f8fafc;
+}
+html.light .moto-logo:not(.keep-dark):not(.keep-dark *) {
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.9))
+    drop-shadow(0 0 10px rgba(15, 23, 42, 0.55));
+}
+html.light .nav-scrolled .text-emerald-300 {
+  color: #059669;
+}
+
+/* Accent text needs a deeper teal to stay legible on light surfaces */
+html.light .text-moto-accent:not(.keep-dark):not(.keep-dark *) {
+  color: #0d9488;
+}
