@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Optional: Dev-only warning about Supabase lock issue
 if (import.meta.env.DEV) {
@@ -29,11 +30,11 @@ const root = ReactDOM.createRoot(rootElement);
 // Render WITHOUT StrictMode in development to avoid Supabase lock timeouts
 // StrictMode is safe to enable in production builds
 root.render(
-  <>
+  <ThemeProvider>
     <LanguageProvider>
       <AuthProvider>
         <App />
       </AuthProvider>
     </LanguageProvider>
-  </>,
+  </ThemeProvider>,
 );

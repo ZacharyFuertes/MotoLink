@@ -12,6 +12,19 @@
      crossorigin=""/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
      crossorigin=""/>
+    <script>
+      // Apply the saved theme before paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var saved = localStorage.getItem("motolink_theme");
+          var theme = saved === "light" ? "light" : "dark";
+          var el = document.documentElement;
+          el.classList.add(theme);
+        } catch (e) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
    <div id="root"></div>
