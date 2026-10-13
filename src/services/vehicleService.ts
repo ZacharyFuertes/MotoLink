@@ -300,6 +300,25 @@ export const requestVehicleEdit = async (
   if (error) throw error;
 };
 
+/**
+ * Customer-facing: withdraws a pending change request before an admin reacts
+ * to it. The vehicle stays locked while it has service activity.
+ */
+export const cancelVehicleEditRequest = async (
+  vehicleId: string,
+): Promise<void> => {
+  if (!editLockColumnsAvailable) {
+    throw new Error(
+      "Vehicle change requests are unavailable until the vehicle edit-lock migration is applied.",
+    );
+  }
+  const { error } = await supabase
+    .from("vehicles")
+    .update({ edit_requested: false, edit_note: null })
+    .eq("id", vehicleId);
+  if (error) throw error;
+};
+
 /** Admin-only: grants a one-time edit window, or dismisses the request. */
 export const resolveVehicleEditRequest = async (
   vehicleId: string,

@@ -6,7 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  DollarSign,
+  Coins,
   Gauge,
   History,
   Link2,
@@ -25,6 +25,7 @@ import {
   Trash2,
   User,
   Wrench,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -39,6 +40,7 @@ import {
   VehicleStats,
   addVehicle,
   areEditLockColumnsAvailable,
+  cancelVehicleEditRequest,
   deleteVehicle,
   findDuplicateVehicle,
   getMyVehicles,
@@ -164,6 +166,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [historyVehicle, setHistoryVehicle] = useState<VehicleRecord | null>(null);
   const [historyAll, setHistoryAll] = useState(false);
+  const [vehicleDetailId, setVehicleDetailId] = useState<string | null>(null);
+  const [lockedNoticeId, setLockedNoticeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLockedNoticeId(null);
+  }, [vehicleDetailId]);
 
   // Walk-in claim: a shop may have serviced this customer before they created an
   // account. They paste the booking reference from their receipt to attach that
@@ -395,6 +403,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     }
   };
 
+  const handleCancelEditRequest = async (vehicle: VehicleRecord) => {
+    setBusyVehicleId(vehicle.id);
+    try {
+      await cancelVehicleEditRequest(vehicle.id);
+      await refreshData();
+    } catch (err) {
+      console.error("Error cancelling vehicle edit request:", err);
+      alert("Failed to cancel your request. Please try again.");
+    } finally {
+      setBusyVehicleId(null);
+    }
+  };
+
   const handleDeleteVehicle = async (vehicle: VehicleRecord) => {
     setBusyVehicleId(vehicle.id);
     try {
@@ -427,6 +448,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     setHistoryAll(false);
     setHistoryVehicle(vehicle);
   };
+
+  const detailVehicle =
+    vehicles.find((v) => v.id === vehicleDetailId) ?? null;
+  const detailStats = detailVehicle
+    ? vehicleStats(detailVehicle.id)
+    : EMPTY_VEHICLE_STATS;
+  const detailLocked = detailVehicle
+    ? isVehicleLocked(detailVehicle, stats[detailVehicle.id])
+    : false;
+  const showLockedNotice =
+    detailVehicle != null && lockedNoticeId === detailVehicle.id;
 
   const completedCount = history.filter(
     (h) => h.status === "completed",
@@ -640,17 +672,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               {initials(displayName)}
             </div>
             <div className="mt-5 space-y-1.5">
-              <h1 className="text-lg font-bold text-slate-100">
+              <h1 className="break-words text-lg font-bold leading-tight text-slate-100">
                 {displayName}
               </h1>
-              <p className="text-sm text-slate-400">{email}</p>
-              {phone && <p className="text-sm text-slate-400">{phone}</p>}
+              <p className="break-words text-sm leading-snug text-slate-400">{email}</p>
+              {phone && <p className="break-words text-sm leading-snug text-slate-400">{phone}</p>}
               <span className="inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-xs font-semibold text-moto-accent">
                 <ShieldCheck size={12} /> Verified Rider
               </span>
               {user?.address && (
-                <p className="flex items-center justify-center gap-1 text-sm text-slate-400">
-                  <MapPin size={12} /> {user.address}
+                <p className="flex items-center justify-center gap-1 break-words text-sm leading-snug text-slate-400">
+                  <MapPin size={12} /> <span>{user.address}</span>
                 </p>
               )}
             </div>
@@ -699,18 +731,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             <div className="space-y-6">
               {/* My Garage */}
               <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-100">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold leading-tight text-slate-100">
                       My Garage
                     </h2>
-                    <p className="text-sm text-slate-400">
+                    <p className="mt-1 text-sm leading-snug text-slate-400">
                       Your registered motorcycles
                     </p>
                   </div>
                   <button
                     onClick={openAddBike}
-                    className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
                   >
                     <Plus size={15} /> Add Motorcycle
                   </button>
@@ -726,176 +758,55 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       Add your first bike to get started.
                     </p>
                   </div>
-                ) : (
+) : (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {vehicles.map((v) => {
-                      const s = vehicleStats(v.id);
-                      const locked = isVehicleLocked(v, stats[v.id]);
                       const busy = busyVehicleId === v.id;
                       const label = vehicleLabel(v);
                       return (
-                        <div
+                        <button
                           key={v.id}
-                          className="flex flex-col rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 transition hover:border-moto-gray-light"
+                          type="button"
+                          onClick={() => setVehicleDetailId(v.id)}
+                          disabled={busy}
+                          className="group flex flex-col rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 text-left transition hover:border-moto-accent/50 hover:shadow-lg hover:shadow-black/20 active:scale-[0.99] disabled:opacity-50"
                         >
-                          <div className="mb-4 flex items-start justify-between">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
+                          <div className="mb-4 flex items-start justify-between gap-2">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
                               <Car size={18} />
                             </span>
-                            {v.is_primary && (
-                              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                            {v.is_primary ? (
+                              <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">
                                 Primary Bike
                               </span>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={() => openHistory(v)}
-                            className="group text-left"
-                          >
-                            <h3 className="flex items-center gap-1.5 text-base font-semibold text-slate-100 transition group-hover:text-moto-accent">
-                              {label}
+                            ) : (
                               <ChevronRight
-                                size={15}
+                                size={16}
                                 className="shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-moto-accent"
                               />
-                            </h3>
-                            <p className="mt-0.5 text-xs text-slate-400">
-                              View repair history
-                            </p>
-                          </button>
-
-                          <div className="mt-3 space-y-1.5 text-sm text-slate-300">
-                            {v.year != null && (
-                              <p className="flex items-center gap-2">
-                                <Calendar size={13} className="text-slate-400" />{" "}
-                                Year · {v.year}
-                              </p>
-                            )}
-                            {v.engine_number && (
-                              <p className="flex items-center gap-2">
-                                <Gauge size={13} className="text-slate-400" />{" "}
-                                Engine No. · {v.engine_number}
-                              </p>
                             )}
                           </div>
 
-                          {/* Per-bike stats */}
-                          <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-moto-gray/60 pt-4 text-center">
-                            <div>
-                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                <Wrench size={10} /> Services
-                              </dt>
-                              <dd className="mt-1 text-sm font-bold text-slate-100">
-                                {s.completedCount}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                <DollarSign size={10} /> Spent
-                              </dt>
-                              <dd className="mt-1 text-sm font-bold text-slate-100">
-                                ₱{s.totalSpent.toLocaleString()}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                                <Clock size={10} /> Last
-                              </dt>
-                              <dd className="mt-1 text-sm font-bold text-slate-100">
-                                {s.lastServiceDate
-                                  ? formatDate(s.lastServiceDate)
-                                  : "—"}
-                              </dd>
-                            </div>
-                          </dl>
+                          <h3 className="truncate text-base font-semibold text-slate-100 transition group-hover:text-moto-accent">
+                            {label}
+                          </h3>
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            {v.year != null
+                              ? `Registered ${v.year}`
+                              : "Registered motorcycle"}
+                          </p>
 
-                          {/* Lock / request state */}
-                          {v.edit_requested && (
-                            <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                              Change requested — waiting for admin approval.
-                            </p>
-                          )}
-                          {locked && !v.edit_requested && (
-                            <p className="mt-4 flex items-start gap-2 rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-400">
-                              <Lock size={12} className="mt-0.5 shrink-0" />
-                              Details are locked because this bike has service
-                              records.
-                            </p>
-                          )}
-                          {!locked && v.edit_approved_at && (
-                            <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                              Admin approved a change — save it before it
-                              closes.
-                            </p>
-                          )}
-
-                          {/* Actions */}
-                          <div className="mt-4 flex flex-wrap items-center gap-2">
-                            {locked ? (
-                              v.edit_requested ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-300">
-                                  <Clock size={12} /> Pending
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() => handleRequestEdit(v)}
-                                  disabled={busy}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent disabled:opacity-50"
-                                >
-                                  <ShieldCheck size={12} /> Request a change
-                                </button>
-                              )
-                            ) : (
-                              <button
-                                onClick={() => openEditBike(v)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent"
-                              >
-                                <Pencil size={12} /> Edit
-                              </button>
-                            )}
-                            {!v.is_primary && areEditLockColumnsAvailable() && (
-                              <button
-                                onClick={() => handleSetPrimary(v)}
-                                disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-moto-gray-light hover:text-slate-100 disabled:opacity-50"
-                              >
-                                <RotateCcw size={12} /> Set primary
-                              </button>
-                            )}
-                            {locked ? (
-                              <span
-                                className="inline-flex items-center gap-1.5 px-1 py-1.5 text-xs text-slate-500"
-                                title="A bike with service records cannot be removed"
-                              >
-                                <Trash2 size={12} /> Locked
+                          <div className="mt-4 flex items-center gap-2">
+                            {v.edit_requested ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300">
+                                <Clock size={11} /> Change pending
                               </span>
-                            ) : deleteId === v.id ? (
-                              <span className="inline-flex items-center gap-1.5">
-                                <button
-                                  onClick={() => handleDeleteVehicle(v)}
-                                  disabled={busy}
-                                  className="rounded-lg bg-rose-500/90 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500 disabled:opacity-50"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => setDeleteId(null)}
-                                  className="rounded-lg border border-moto-gray px-2.5 py-1.5 text-xs text-slate-400 transition hover:text-slate-100"
-                                >
-                                  Cancel
-                                </button>
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => setDeleteId(v.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-rose-500/50 hover:text-rose-300"
-                              >
-                                <Trash2 size={12} /> Remove
-                              </button>
-                            )}
+                            ) : null}
+                            <span className="ml-auto whitespace-nowrap text-[11px] font-semibold text-slate-500 transition group-hover:text-moto-accent">
+                              View details →
+                            </span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -907,18 +818,18 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           {activeTab === "history" && (
             <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <History size={16} className="text-moto-accent" />
-                  <h2 className="text-lg font-bold text-slate-100">
+                <div className="flex min-w-0 items-center gap-2">
+                  <History size={16} className="shrink-0 text-moto-accent" />
+                  <h2 className="text-lg font-bold leading-tight text-slate-100">
                     Bookings &amp; Service History
                   </h2>
                 </div>
-                <div className="flex items-center gap-1 rounded-xl border border-moto-gray/80 bg-moto-darker/60 p-1">
+                <div className="flex flex-wrap items-center gap-1 rounded-xl border border-moto-gray/80 bg-moto-darker/60 p-1">
                   {HISTORY_FILTERS.map((f) => (
                     <button
                       key={f.key}
                       onClick={() => setHistoryFilter(f.key)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                         historyFilter === f.key
                           ? "bg-moto-gray text-moto-accent"
                           : "text-slate-400 hover:text-slate-100"
@@ -1062,7 +973,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           {/* Cost + status */}
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-300">
-                              <DollarSign size={12} className="text-emerald-400" />
+                              <Coins size={12} className="text-emerald-400" />
                               {amt.value != null
                                 ? `${amt.isEstimate ? "Est. " : ""}${formatMoney(amt.value)}`
                                 : "—"}
@@ -1277,7 +1188,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <DollarSign
+                <Coins
                   size={15}
                   className="mt-0.5 shrink-0 text-moto-accent"
                 />
@@ -1593,6 +1504,207 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         }}
       />
 
+      {/* ── My Garage: Vehicle Details Modal ── */}
+      {detailVehicle && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setVehicleDetailId(null);
+          }}
+        >
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-moto-gray bg-[#0d1420]">
+            <div className="flex items-start justify-between gap-3 border-b border-moto-gray/70 px-6 py-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
+                  <Car size={20} />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="truncate text-lg font-bold text-slate-100">
+                    {vehicleLabel(detailVehicle)}
+                  </h3>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    {detailVehicle.year != null && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} /> {detailVehicle.year}
+                      </span>
+                    )}
+                    {detailVehicle.is_primary && (
+                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                        Primary
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setVehicleDetailId(null)}
+                className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+              {detailVehicle.engine_number && (
+                <p className="flex items-center gap-2 text-sm text-slate-300">
+                  <Gauge size={14} className="text-slate-400" />
+                  Engine No. · {detailVehicle.engine_number}
+                </p>
+              )}
+
+              <dl className="mt-4 grid w-full grid-cols-3 items-center divide-x divide-slate-200/60 rounded-xl border border-moto-gray/60 bg-moto-darker/40 py-3 text-center dark:divide-moto-gray">
+                <div className="min-w-0 px-1">
+                  <dt className="flex items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <Wrench size={10} className="shrink-0" /> Services
+                  </dt>
+                  <dd className="mt-1 truncate whitespace-nowrap text-sm font-bold tabular-nums text-slate-100 sm:text-base">
+                    {detailStats.completedCount}
+                  </dd>
+                </div>
+                <div className="min-w-0 px-1">
+                  <dt className="flex items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <Coins size={10} className="shrink-0" /> Spent
+                  </dt>
+                  <dd
+                    className="mt-1 truncate whitespace-nowrap text-xs font-bold tabular-nums text-slate-100 sm:text-sm"
+                    title={`₱${detailStats.totalSpent.toLocaleString()}`}
+                  >
+                    ₱{detailStats.totalSpent.toLocaleString()}
+                  </dd>
+                </div>
+                <div className="min-w-0 px-1">
+                  <dt className="flex items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <Clock size={10} className="shrink-0" /> Last
+                  </dt>
+                  <dd
+                    className="mt-1 truncate whitespace-nowrap text-xs font-semibold tabular-nums text-slate-100 sm:text-sm"
+                    title={
+                      detailStats.lastServiceDate
+                        ? formatDate(detailStats.lastServiceDate)
+                        : undefined
+                    }
+                  >
+                    {detailStats.lastServiceDate
+                      ? formatDate(detailStats.lastServiceDate)
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+
+              {detailVehicle.edit_requested && (
+                <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                  Change requested — waiting for admin approval.
+                </p>
+              )}
+              {showLockedNotice && (
+                <p className="mt-4 flex items-start gap-2 rounded-lg border border-moto-gray bg-moto-darker/60 px-3 py-2 text-xs text-slate-400">
+                  <Lock size={12} className="mt-0.5 shrink-0" />
+                  Details are locked because this bike has service records.
+                </p>
+              )}
+              {!detailLocked && detailVehicle.edit_approved_at && (
+                <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                  Admin approved a change — save it before it closes.
+                </p>
+              )}
+
+              <div className="mt-5 space-y-2">
+                <button
+                  onClick={() => {
+                    setVehicleDetailId(null);
+                    openHistory(detailVehicle);
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
+                >
+                  <History size={15} /> View repair history
+                </button>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {detailLocked ? (
+                    detailVehicle.edit_requested ? (
+                      <>
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-300">
+                          <Clock size={12} /> Pending
+                        </span>
+                        <button
+                          onClick={() => handleCancelEditRequest(detailVehicle)}
+                          disabled={busyVehicleId === detailVehicle.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-rose-500/50 hover:text-rose-300 disabled:opacity-50"
+                        >
+                          <X size={12} /> Cancel request
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setLockedNoticeId(detailVehicle.id);
+                          handleRequestEdit(detailVehicle);
+                        }}
+                        disabled={busyVehicleId === detailVehicle.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent disabled:opacity-50"
+                      >
+                        <ShieldCheck size={12} /> Request a change
+                      </button>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setVehicleDetailId(null);
+                        openEditBike(detailVehicle);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent"
+                    >
+                      <Pencil size={12} /> Edit details
+                    </button>
+                  )}
+                  {!detailVehicle.is_primary &&
+                    areEditLockColumnsAvailable() && (
+                      <button
+                        onClick={() => handleSetPrimary(detailVehicle)}
+                        disabled={busyVehicleId === detailVehicle.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-moto-gray-light hover:text-slate-100 disabled:opacity-50"
+                      >
+                        <RotateCcw size={12} /> Set as primary
+                      </button>
+                    )}
+                  {detailLocked ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-1 py-1.5 text-xs text-slate-500"
+                      title="A bike with service records cannot be removed"
+                    >
+                      <Trash2 size={12} /> Locked
+                    </span>
+                  ) : deleteId === detailVehicle.id ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleDeleteVehicle(detailVehicle)}
+                        disabled={busyVehicleId === detailVehicle.id}
+                        className="rounded-lg bg-rose-500/90 px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-500 disabled:opacity-50"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(null)}
+                        className="rounded-lg border border-moto-gray px-2.5 py-1.5 text-xs text-slate-400 transition hover:text-slate-100"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteId(detailVehicle.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-moto-gray bg-moto-darker px-3 py-1.5 text-xs font-semibold text-slate-400 transition hover:border-rose-500/50 hover:text-rose-300"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Per-bike Service History ── */}
       <ServiceHistoryModal
         isOpen={Boolean(historyVehicle) || historyAll}
@@ -1606,6 +1718,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             ? undefined
             : vehicleLabel(historyVehicle)
         }
+        vehicleMake={historyVehicle?.make}
+        vehicleModel={historyVehicle?.model}
         onClearVehicle={() => setHistoryAll(true)}
       />
     </div>
