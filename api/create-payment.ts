@@ -104,7 +104,7 @@ export default async function handler(req: any, res: any) {
 
   const { data: shop, error: shopError } = await db
     .from("shops")
-    .select("id, status, online_payment_enabled, deposit_type, deposit_value")
+    .select("id, online_payment_enabled, deposit_type, deposit_value")
     .eq("id", appointment.shop_id)
     .maybeSingle();
 
@@ -112,16 +112,7 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ success: false, error: "Could not resolve shop." });
   }
 
-  // 3) Guard: held/deactivated shops must not collect deposits.
-  if (shop.status !== "ACTIVE") {
-    return res.status(409).json({
-      success: false,
-      error: "shop_not_active",
-      message: "This shop is not accepting bookings right now.",
-    });
-  }
-
-  // 4) Guard: shop must have turned online payment ON.
+  // 3) Guard: shop must have turned online payment ON.
   if (shop.online_payment_enabled !== true) {
     return res.status(409).json({
       success: false,
@@ -130,7 +121,7 @@ export default async function handler(req: any, res: any) {
     });
   }
 
-  // 5) Compute the reservation deposit.
+  // 4) Compute the reservation deposit.
   const estimatedTotal = Number(appointment.total_amount) || Number(appointment.estimated_price) || 0;
   let deposit = 0;
   if (shop.deposit_type === "percent") {

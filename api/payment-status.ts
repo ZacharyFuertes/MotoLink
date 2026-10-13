@@ -63,23 +63,6 @@ export default async function handler(req: any, res: any) {
     return res.status(403).json({ success: false, error: "Not authorized." });
   }
 
-  // Held/deactivated shops can no longer finish a payment — the QR screen
-  // should stop polling and surface the shop's unavailable state.
-  if (payment.status === "awaiting_action" || payment.status === "awaiting_payment") {
-    const { data: shop } = await db
-      .from("shops")
-      .select("status")
-      .eq("id", payment.shop_id)
-      .maybeSingle();
-    if (shop?.status && shop.status !== "ACTIVE") {
-      return res.status(409).json({
-        success: false,
-        error: "shop_not_active",
-        message: "This shop is no longer accepting bookings.",
-      });
-    }
-  }
-
   return res.status(200).json({
     success: true,
     payment: {

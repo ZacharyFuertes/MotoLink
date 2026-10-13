@@ -354,7 +354,7 @@ export default async function handler(req: any, res: any) {
   const { data: appointment, error: apptError } = await db
     .from("appointments")
     .select(
-      "id, booking_id, customer_id, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(name, email), shop:shops(id, name, city, address, phone, owner_id, status)",
+      "id, booking_id, customer_id, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(name, email), shop:shops(id, name, city, address, phone, owner_id)",
     )
     .eq("id", appointmentId)
     .maybeSingle();
@@ -382,20 +382,6 @@ export default async function handler(req: any, res: any) {
 
   if (!isCustomer && !isShopStaff) {
     return res.status(403).json({ success: false, error: "Not authorized for this appointment." });
-  }
-
-  // Held/deactivated shops must not emit booking confirmations or service
-  // update emails (they can no longer take work). Cancellation notices are
-  // still delivered — a customer affected by a hold must be told — and owner
-  // notifications always go through.
-  if (
-    appointment.shop?.status &&
-    appointment.shop.status !== "ACTIVE" &&
-    (template === "booking-confirmation" ||
-      template === "booking-updated" ||
-      template === "service-completion")
-  ) {
-    return res.status(200).json({ success: false, skipped: true });
   }
 
   // 4) Resolve customer/owner entity + vehicle + part names.

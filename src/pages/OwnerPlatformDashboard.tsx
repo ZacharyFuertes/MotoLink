@@ -30,7 +30,6 @@ import {
   CheckCircle2,
   Bot,
   UserPlus,
-  Lock,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
@@ -81,12 +80,11 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
 
-  const isPendingApproval = !!shop && !!shop.status && shop.status === "PENDING";
-  const isOnHold = !!shop && shop.status === "ON_HOLD";
+  const isPendingApproval = !!shop && !shop.is_active;
   // Owner with no resolvable shop (missing/linked-after signup) is treated as
   // unapproved and locked too — they have nothing to manage yet.
   const shopNotFound = !shopLoading && !shop;
-  const isLocked = shopLoading || isPendingApproval || isOnHold || shopNotFound;
+  const isLocked = shopLoading || isPendingApproval || shopNotFound;
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -401,8 +399,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               </h1>
               {isLocked && (
                 <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-amber-400">
-                  <Lock className="w-4 h-4" />
-                  {isOnHold ? "Shop On Hold" : "Pending Approval"}
+                  <Clock className="w-4 h-4" />
+                  Pending Approval
                 </span>
               )}
               {!isLocked && (
@@ -556,36 +554,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
         {/* Page Content */}
         <main className="min-w-0 w-full flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
-          {shopLoading ? null : isOnHold ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="dashboard-card p-5 sm:p-8 lg:p-12 mb-6 flex flex-col items-center text-center"
-            >
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-red-500/15 to-red-500/25 border border-red-400/40 flex items-center justify-center mb-8 shadow-sm">
-                <Lock className="w-12 h-12 text-red-400" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-100 mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                Your shop is on hold
-              </h2>
-              <p className="text-slate-300 text-sm max-w-md leading-relaxed">
-                {shop && (
-                  <>
-                    <span className="font-semibold text-slate-200">{shop.name}</span> is no
-                    longer accepting bookings and your dashboard has been locked. Your records
-                    are retained securely. Please contact MotoLink support to resolve this and
-                    have your shop reactivated.
-                  </>
-                )}
-              </p>
-              <div className="mt-8 flex items-center gap-3 px-5 py-3 rounded-2xl bg-red-500/10 border border-red-500/30">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse" />
-                <span className="text-sm font-medium text-red-300">
-                  Status: ON HOLD{shop?.hold_reason ? ` — ${shop.hold_reason}` : ""}
-                </span>
-              </div>
-            </motion.div>
-          ) : isPendingApproval || shopNotFound ? (
+          {shopLoading ? null : isPendingApproval || shopNotFound ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

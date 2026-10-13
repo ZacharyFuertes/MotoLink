@@ -95,14 +95,13 @@ const notify = async (
   appointmentId: string,
   recipientId: string,
   message: string,
-  subject = "Online payment received",
 ) => {
   try {
     await db.from("notifications").insert({
       recipient_id: recipientId,
       appointment_id: appointmentId,
       type: "status_update",
-      subject,
+      subject: "Online payment received",
       message,
       status: "pending",
     });
@@ -223,41 +222,6 @@ export default async function handler(req: any, res: any) {
 
   // 3) Mirror the result onto the appointment.
   if (nextStatus === "paid") {
-    // A deposit that lands after the shop was placed on hold (or otherwise
-    // deactivated) must NOT produce a valid booking. The payment row stays
-    // "paid" (that is fact — the money moved), but the appointment is flagged
-    // for a refund and admins are alerted to it.
-    const { data: shop } = await db
-      .from("shops")
-      .select("id, status, owner_id")
-      .eq("id", payment.shop_id)
-      .maybeSingle();
-
-    if (shop?.status && shop.status !== "ACTIVE") {
-      const { error: refundErr } = await db
-        .from("appointments")
-        .update({ payment_status: "refunded", amount_paid: 0 })
-        .eq("id", payment.appointment_id);
-      if (refundErr) {
-        console.error("[payment-webhook] Refund-flag update error:", refundErr?.message || refundErr);
-      }
-      const { data: adminList } = await db
-        .from("users")
-        .select("id")
-        .eq("role", "admin")
-        .limit(5);
-      for (const admin of adminList || []) {
-        await notify(
-          db,
-          payment.appointment_id,
-          admin.id as string,
-          `Deposit of ${fmtPeso(Number(payment.amount))} via ${payment.method === "gcash" ? "GCash" : "Maya"} was received for a booking whose shop is no longer ACTIVE — process a refund.`,
-          "Refund needed — payment on inactive shop",
-        );
-      }
-      return res.status(200).json({ ok: true, holdRefundFlagged: true });
-    }
-
     const appointmentUpdates: Record<string, unknown> = {
       payment_status: "deposit_paid",
       amount_paid: Number(payment.amount) || 0,
@@ -282,6 +246,11 @@ export default async function handler(req: any, res: any) {
     if (appointment?.customer_id) {
       await notify(db, appointment.id, appointment.customer_id, msg);
     }
+    const { data: shop } = await db
+      .from("shops")
+      .select("owner_id")
+      .eq("id", appointment?.shop_id)
+      .maybeSingle();
     if (shop?.owner_id) {
       await notify(db, appointment.id, shop.owner_id, msg);
     }

@@ -433,9 +433,10 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const approveShop = useCallback(
     async (shopId: string) => {
       setApprovingId(shopId);
-      const { error } = await supabase.rpc("admin_approve_shop", {
-        p_shop_id: shopId,
-      });
+      const { error } = await supabase
+        .from("shops")
+        .update({ is_active: true })
+        .eq("id", shopId);
       setApprovingId(null);
       if (!error) fetchAdminData();
     },
