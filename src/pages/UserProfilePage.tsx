@@ -6,7 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
-  Coins,
+  
   Gauge,
   History,
   Link2,
@@ -973,7 +973,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           {/* Cost + status */}
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-300">
-                              <Coins size={12} className="text-emerald-400" />
+                              <span className="text-emerald-400 text-[12px] font-black leading-none">₱</span>
                               {amt.value != null
                                 ? `${amt.isEstimate ? "Est. " : ""}${formatMoney(amt.value)}`
                                 : "—"}
@@ -1188,10 +1188,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
-                <Coins
-                  size={15}
-                  className="mt-0.5 shrink-0 text-moto-accent"
-                />
+                <span className="mt-0.5 shrink-0 text-moto-accent text-[15px] font-black leading-none">₱</span>
                 <div className="min-w-0">
                   <p className="text-[11px] uppercase tracking-wide text-slate-400">
                     Total cost
@@ -1563,7 +1560,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
                 <div className="min-w-0 px-1">
                   <dt className="flex items-center justify-center gap-1 whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    <Coins size={10} className="shrink-0" /> Spent
+                    <span className="shrink-0 text-[10px] font-black leading-none">₱</span> Spent
                   </dt>
                   <dd
                     className="mt-1 truncate whitespace-nowrap text-xs font-bold tabular-nums text-slate-100 sm:text-sm"

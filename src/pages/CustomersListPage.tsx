@@ -11,7 +11,7 @@ import {
   Package,
   CheckCircle,
   Users,
-  Coins,
+  
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
@@ -266,7 +266,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
-              <Coins className="w-5 h-5" />
+              <span className="text-lg font-black leading-none">₱</span>
             </div>
             <div>
               <p className="text-[13px] font-semibold text-slate-300">Avg. Spend / Customer</p>

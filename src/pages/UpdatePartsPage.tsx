@@ -5,7 +5,7 @@ import {
   Package,
   ShoppingBag,
   XCircle,
-  Coins,
+  
   TrendingUp,
   Hash,
   X,
@@ -501,7 +501,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
               <div className="w-4 h-4 border-2 border-slate-950/40 border-t-slate-950 rounded-full animate-spin" />
             ) : (
               <>
-                <Coins size={18} />
+                <span className="text-[18px] font-black leading-none">₱</span>
                 Record Sale
               </>
             )}

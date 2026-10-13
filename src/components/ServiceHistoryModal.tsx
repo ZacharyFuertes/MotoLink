@@ -7,7 +7,7 @@ import {
   Calendar,
   Clock,
   CheckCircle,
-  Coins,
+  
   Car,
   ChevronDown,
   ChevronUp,
@@ -328,7 +328,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
             </div>
             <div className="flex flex-col gap-1 px-4 sm:px-8 py-4 border-r border-moto-gray">
               <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                <Coins size={12} className="text-moto-accent" /> Total spent
+                <span className="text-moto-accent text-[12px] font-black leading-none">₱</span> Total spent
               </div>
               <span className="font-mono text-lg sm:text-2xl font-black text-moto-accent leading-none tabular-nums">
                 ₱{totalSpent.toLocaleString()}
@@ -512,7 +512,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                                 {record.invoice && (
                                   <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
                                     <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                      <Coins size={12} className="text-moto-accent" /> Invoice
+                                      <span className="text-moto-accent text-[12px] font-black leading-none">₱</span> Invoice
                                     </h5>
                                     <div className="space-y-3 text-[10px] tracking-widest uppercase font-bold">
                                       <div className="flex justify-between gap-4">

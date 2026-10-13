@@ -20,7 +20,7 @@ import {
   Users,
   Wrench,
   Calendar,
-  Coins,
+  
   Activity,
   ChevronLeft,
   ChevronRight,
@@ -608,7 +608,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       label: "Platform Revenue",
       value: `₱${totalRevenue.toLocaleString()}`,
       sub: "combined",
-      icon: <Coins className="w-6 h-6" />,
+      icon: <span className="text-lg font-black leading-none">₱</span>,
       accent: "#35D0C0",
       bgTint: "bg-moto-accent/15",
       iconBg: "bg-moto-accent/15",
@@ -1173,7 +1173,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-moto-accent/15 flex items-center justify-center">
-                      <Coins className="w-5 h-5 text-moto-accent" />
+                      <span className="text-lg font-black leading-none text-moto-accent">₱</span>
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Platform Revenue Trend</h3>
