@@ -516,12 +516,14 @@ textarea:focus {
 }
 
 .light {
-  --moto-dark: 241 245 249; /* #f1f5f9 */
-  --moto-darker: 255 255 255; /* #ffffff */
-  --moto-gray: 226 232 240; /* #e2e8f0 */
-  --moto-gray-light: 203 213 225; /* #cbd5e1 */
+  /* Glacier aqua palette — a cool, lightly-tinted light mode (no pure whites)
+     that complements the blue-charcoal dark mode + teal/cyan accent. */
+  --moto-dark: 233 243 248; /* #e9f3f8 body mist */
+  --moto-darker: 244 250 252; /* #f4fafc aqua frost surfaces */
+  --moto-gray: 205 224 234; /* #cde0ea */
+  --moto-gray-light: 188 212 224; /* #bcd4e0 */
   --moto-gray-muted: 100 116 139; /* #64748b */
-  --moto-side: 255 255 255; /* #ffffff */
+  --moto-side: 241 248 251; /* #f1f8fb */
   --moto-muted: 100 116 139; /* #64748b */
   --moto-ink: 15 23 42; /* #0f172a */
   --moto-light: 15 23 42; /* #0f172a */
@@ -597,17 +599,17 @@ html.light .group:hover .group-hover\:text-white:not(.keep-dark):not(.keep-dark 
 /* ── Light theme: hardcoded dark surfaces inside modals/cards ── */
 html.light [class~="bg-[#0d1420]"]:not(.keep-dark):not(.keep-dark *),
 html.light [class~="bg-[#1C1B24]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #ffffff;
+  background-color: #f4fafc;
 }
 html.light [class~="bg-[#090d16]"]:not(.keep-dark):not(.keep-dark *),
 html.light [class~="bg-[#0a0f1d]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #f1f5f9;
+  background-color: #e2edf4;
 }
 html.light [class~="bg-[#14131A]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #f4f6fb;
+  background-color: #eff8fb;
 }
 html.light [class~="border-[#2B2A37]"]:not(.keep-dark):not(.keep-dark *) {
-  border-color: #e2e8f0;
+  border-color: #cde0ea;
 }
 html.light [class~="text-[#F3F1F7]"]:not(.keep-dark):not(.keep-dark *) {
   color: #0f172a;
@@ -622,14 +624,14 @@ html.light [class~="text-[#6B6879]"]:not(.keep-dark):not(.keep-dark *) {
 /* ── Light theme: semantic dashboard surfaces ── */
 html.light body {
   background-image:
-    radial-gradient(circle at top left, rgba(53, 208, 192, 0.1), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(53, 208, 192, 0.06), transparent 28%);
+    radial-gradient(circle at top left, rgba(53, 208, 192, 0.14), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(53, 208, 192, 0.08), transparent 30%);
 }
 
 html.light .sidebar-dark:not(.keep-dark),
 html.light .sidebar-dark-violet:not(.keep-dark) {
-  background: #ffffff;
-  border-right-color: #e2e8f0;
+  background: #f1f8fb;
+  border-right-color: #cde0ea;
 }
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item {
@@ -638,7 +640,7 @@ html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item {
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item:hover,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item:hover {
   color: #0f172a;
-  background: #f1f5f9;
+  background: #e5f2f7;
 }
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-active,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-active {
@@ -647,33 +649,33 @@ html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-active {
 }
 html.light .dashboard-card,
 html.light .stat-card {
-  background: #ffffff;
-  border-color: #e2e8f0;
+  background: #f4fafc;
+  border-color: #cde0ea;
 }
 html.light .dashboard-card:hover,
 html.light .stat-card:hover {
-  border-color: #cbd5e1;
+  border-color: #b8cfdd;
 }
 html.light .dashboard-header {
-  background: #ffffff;
-  border-bottom-color: #e2e8f0;
+  background: #f4fafc;
+  border-bottom-color: #cde0ea;
 }
 html.light .chart-container {
-  background: #ffffff;
-  border-color: #e2e8f0;
+  background: #f4fafc;
+  border-color: #cde0ea;
 }
 html.light .dashboard-table th {
   color: #64748b;
-  border-bottom-color: #e2e8f0;
+  border-bottom-color: #cde0ea;
 }
 html.light .dashboard-table td {
-  border-bottom-color: #e2e8f0;
+  border-bottom-color: #cde0ea;
 }
 
 /* ── Light theme: charts & selection ── */
 html.light .recharts-tooltip {
-  background-color: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background-color: #f4fafc !important;
+  border-color: #cde0ea !important;
 }
 html.light .recharts-tooltip-label {
   color: #334155 !important;
@@ -682,7 +684,7 @@ html.light .recharts-tooltip-item {
   color: #475569 !important;
 }
 html.light .recharts-cartesian-grid line {
-  stroke: #e2e8f0;
+  stroke: #cde0ea;
 }
 html.light .recharts-cartesian-axis-tick-value,
 html.light .recharts-text {
@@ -717,7 +719,7 @@ html.light .hero-content p {
    scrolled past (`nav-scrolled`) it drops to dark ink on the light glass and
    the white logo wordmark gains a dark halo. */
 html.light .nav-scrolled {
-  background-color: #f8fafc;
+  background-color: #eef6fa;
 }
 html.light .moto-logo:not(.keep-dark):not(.keep-dark *) {
   filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.9))
