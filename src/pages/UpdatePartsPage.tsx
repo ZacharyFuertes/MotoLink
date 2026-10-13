@@ -5,7 +5,7 @@ import {
   Package,
   ShoppingBag,
   XCircle,
-  DollarSign,
+  Coins,
   TrendingUp,
   Hash,
   X,
@@ -501,7 +501,7 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
               <div className="w-4 h-4 border-2 border-slate-950/40 border-t-slate-950 rounded-full animate-spin" />
             ) : (
               <>
-                <DollarSign size={18} />
+                <Coins size={18} />
                 Record Sale
               </>
             )}
