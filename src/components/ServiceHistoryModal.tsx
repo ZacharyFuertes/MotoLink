@@ -7,7 +7,7 @@ import {
   Calendar,
   Clock,
   CheckCircle,
-  DollarSign,
+  Coins,
   Car,
   ChevronDown,
   ChevronUp,
@@ -23,6 +23,7 @@ import { getAppointmentStatus, PAYMENT_STATUS_TONE } from "../utils/appointmentS
 interface ServiceRecord {
   id: string;
   booking_id?: string;
+  vehicle_id?: string | null;
   service_type: string;
   description?: string;
   scheduled_date: string;
@@ -62,6 +63,9 @@ interface ServiceHistoryModalProps {
   vehicleId?: string | null;
   /** Shown in the header when scoped to a vehicle. */
   vehicleLabel?: string;
+  /** Best-effort matching keys for untagged legacy appointments. */
+  vehicleMake?: string;
+  vehicleModel?: string;
   /** Called when the user clears the vehicle filter. */
   onClearVehicle?: () => void;
 }
@@ -77,6 +81,8 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
   onClose,
   vehicleId = null,
   vehicleLabel,
+  vehicleMake,
+  vehicleModel,
   onClearVehicle,
 }) => {
   const { user } = useAuth();
@@ -94,16 +100,41 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
     try {
       setLoading(true);
 
-      // Fetch all appointments (completed, in_progress, cancelled)
+      // Fetch all appointments for this customer. The in-page history table
+      // and garage stats count every status (including in_progress, declined,
+      // draft), so scoping to a vehicle must not silently drop them either.
+      // The full select carries the online-payments columns (migration
+      // 20261011_online_payments.sql). If that migration hasn't been applied
+      // to the live database, PostgREST rejects the select with PGRST204 —
+      // which would blank every history view, so fall back to the pre-payment
+      // columns and keep the list working. See SCHEMA_NOT_APPLIED_MESSAGE.
+      const APPOINTMENT_BASE_SELECT =
+        "id, booking_id, vehicle_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price";
       let query = supabase
         .from("appointments")
-        .select("id, booking_id, service_type, description, scheduled_date, scheduled_time, status, notes, mechanic_id, total_amount, estimated_price, payment_method, payment_status, amount_paid, deposit_amount")
+        .select(
+          `${APPOINTMENT_BASE_SELECT}, payment_method, payment_status, amount_paid, deposit_amount`,
+        )
         .eq("customer_id", user.id)
-        .in("status", ["completed", "cancelled", "confirmed", "pending"])
         .order("scheduled_date", { ascending: false });
-      if (vehicleId) query = query.eq("vehicle_id", vehicleId);
 
-      const { data: appointments, error: aptErr } = await query;
+      let { data: appointments, error: aptErr } = await query;
+      if (
+        aptErr &&
+        /payment_method|payment_status|amount_paid|deposit_amount/i.test(
+          aptErr.message,
+        ) &&
+        /column|schema cache|not found|could not find|PGRST20[24]/i.test(
+          aptErr.message,
+        )
+      ) {
+        ({ data: appointments, error: aptErr } = await supabase
+          .from("appointments")
+          .select(APPOINTMENT_BASE_SELECT)
+          .eq("customer_id", user.id)
+          .order("scheduled_date", { ascending: false }));
+      }
+      if (aptErr) throw aptErr;
 
       if (aptErr) throw aptErr;
 
@@ -147,6 +178,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
         return {
           id: apt.id,
           booking_id: apt.booking_id,
+          vehicle_id: apt.vehicle_id ?? null,
           service_type: apt.service_type,
           description: apt.description,
           scheduled_date: apt.scheduled_date,
@@ -174,7 +206,25 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
     }
   };
 
-  const filtered = records.filter((r) => {
+  const matchesVehicle = (r: ServiceRecord): boolean => {
+    if (!vehicleId) return true;
+    if (r.vehicle_id === vehicleId) return true;
+    // Legacy rows: some bookings (shop-created walk-ins, older sessions) never
+    // stored vehicle_id, keeping only the bike as free text in description
+    // (e.g. "Yamaha Mio - Change Oil"). Best-effort attribute those to a bike
+    // when both make and model appear in the text.
+    if (!vehicleMake) return false;
+    const d = (r.description ?? "").toLowerCase();
+    const make = vehicleMake.trim().toLowerCase();
+    const model = (vehicleModel ?? "").trim().toLowerCase();
+    if (!d) return false;
+    if (model) return d.includes(make) && d.includes(model);
+    return d.includes(make);
+  };
+
+  const scoped = records.filter(matchesVehicle);
+
+  const filtered = scoped.filter((r) => {
     if (filter === "all") return true;
     return r.status === filter;
   });
@@ -185,11 +235,11 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
     return hour >= 12 ? `${hour === 12 ? 12 : hour - 12}:00 PM` : `${hour}:00 AM`;
   };
 
-  const totalSpent = records
+  const totalSpent = scoped
     .filter((r) => r.status === "completed")
     .reduce((sum, r) => sum + (Number(r.invoice?.total_amount || r.total_amount || r.estimated_price) || 0), 0);
 
-  const completedCount = records.filter((r) => r.status === "completed").length;
+  const completedCount = scoped.filter((r) => r.status === "completed").length;
 
   return (
     <AnimatePresence>
@@ -278,7 +328,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
             </div>
             <div className="flex flex-col gap-1 px-4 sm:px-8 py-4 border-r border-moto-gray">
               <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400">
-                <DollarSign size={12} className="text-moto-accent" /> Total spent
+                <Coins size={12} className="text-moto-accent" /> Total spent
               </div>
               <span className="font-mono text-lg sm:text-2xl font-black text-moto-accent leading-none tabular-nums">
                 ₱{totalSpent.toLocaleString()}
@@ -289,7 +339,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                 <FileText size={12} className="text-slate-300" /> Records
               </div>
               <span className="font-display text-xl sm:text-2xl text-slate-100 leading-none tabular-nums">
-                {records.length}
+                {scoped.length}
               </span>
             </div>
           </div>
@@ -299,7 +349,7 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
             {FILTER_TABS.map((tab) => {
               const active = filter === tab.key;
               const count =
-                tab.key === "all" ? records.length : records.filter((r) => r.status === tab.key).length;
+                tab.key === "all" ? scoped.length : scoped.filter((r) => r.status === tab.key).length;
               return (
                 <button
                   key={tab.key}
@@ -345,12 +395,6 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                 {filtered.map((record, index) => {
                   const status = getAppointmentStatus(record.status);
                   const isExpanded = expandedId === record.id;
-                  const laborTotal = record.job_order
-                    ? record.job_order.labor_hours * record.job_order.labor_rate
-                    : 0;
-                  const partsTotal = record.job_order
-                    ? (record.job_order.parts_used || []).reduce((s, p) => s + p.quantity_used * p.unit_price, 0)
-                    : 0;
 
                   return (
                     <motion.div
@@ -463,50 +507,12 @@ const ServiceHistoryModal: React.FC<ServiceHistoryModalProps> = ({
                             className="overflow-hidden"
                           >
                             <div className="px-5 sm:px-6 pb-6 border-t border-moto-gray space-y-4">
-                              <div className="pt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Job Order Details */}
-                                {record.job_order && (
-                                  <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
-                                    <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                      <Wrench size={12} className="text-moto-accent" /> Job details
-                                    </h5>
-                                    <div className="space-y-3 text-[10px] tracking-widest uppercase font-bold">
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-slate-500">Status</span>
-                                        <span className="text-slate-100 text-right">{record.job_order.status.replace("_", " ")}</span>
-                                      </div>
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-slate-500">Labor</span>
-                                        <span className="text-slate-100 text-right font-mono normal-case tracking-normal">{record.job_order.labor_hours}h × ₱{record.job_order.labor_rate} = ₱{laborTotal.toLocaleString()}</span>
-                                      </div>
-                                      {(record.job_order.parts_used || []).length > 0 && (
-                                        <div className="flex justify-between gap-4">
-                                          <span className="text-slate-500">Parts ({record.job_order.parts_used.length})</span>
-                                          <span className="text-slate-100 text-right font-mono normal-case tracking-normal">₱{partsTotal.toLocaleString()}</span>
-                                        </div>
-                                      )}
-                                      {record.job_order.completed_at && (
-                                        <div className="flex justify-between border-t border-moto-gray/80 pt-3 mt-3 gap-4">
-                                          <span className="text-slate-500">Completed</span>
-                                          <span className="text-slate-100 text-right normal-case tracking-normal">
-                                            {new Date(record.job_order.completed_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {record.job_order.notes && (
-                                        <div className="pt-3 border-t border-moto-gray/80 mt-3">
-                                          <p className="text-slate-400 font-light lowercase normal-case tracking-normal italic">"{record.job_order.notes}"</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-
+                              <div className="pt-5">
                                 {/* Invoice Details */}
                                 {record.invoice && (
                                   <div className="bg-moto-dark/50 rounded-xl p-5 border border-moto-gray/80">
                                     <h5 className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                      <DollarSign size={12} className="text-moto-accent" /> Invoice
+                                      <Coins size={12} className="text-moto-accent" /> Invoice
                                     </h5>
                                     <div className="space-y-3 text-[10px] tracking-widest uppercase font-bold">
                                       <div className="flex justify-between gap-4">
