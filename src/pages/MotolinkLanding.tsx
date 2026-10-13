@@ -490,7 +490,8 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         </div>
       </motion.section>
 
-      {/* 5. REGISTER YOUR SHOP CTA */}
+      {/* 5. REGISTER YOUR SHOP CTA — only for visitors (hidden when signed in) */}
+      {!isAuthenticated && (
       <motion.section
         variants={sectionVariants}
         initial="hidden"
@@ -524,12 +525,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <Store size={20} />
             Register my shop
           </motion.button>
-          {isAuthenticated ? (
-            <motion.p variants={itemVariants} className="mt-4 text-sm text-slate-400">
-              Signed in as a customer registering a new shop will start a
-              separate Shop Owner account.
-            </motion.p>
-          ) : onShopOwnerLogin ? (
+          {onShopOwnerLogin ? (
             <motion.div variants={itemVariants} className="mt-6 text-sm text-slate-400">
               Already have a shop?{" "}
               <button onClick={onShopOwnerLogin} className="text-moto-accent font-semibold hover:underline transition-all">
@@ -539,6 +535,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           ) : null}
         </motion.div>
       </motion.section>
+      )}
 
       {/* 6. ABOUT MOTOLINK */}
       <motion.section
