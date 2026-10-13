@@ -14,8 +14,22 @@ export const invoiceService = {
     const existing = await this.getInvoiceForJobOrder(jobOrder.id);
     if (existing) return existing;
 
-    const totalAmount =
-      Math.round((jobOrder.total_cost || 0) * 100) / 100;
+    // Fall back to the appointment's billed amount when the job order was
+    // never finalized (ensureJobOrderForAppointment starts total_cost at 0,
+    // which would otherwise produce a ₱0 invoice for every completed booking).
+    let totalAmount = Math.round((jobOrder.total_cost || 0) * 100) / 100;
+    if (!totalAmount && jobOrder.appointment_id) {
+      const { data: appointment } = await supabase
+        .from("appointments")
+        .select("total_amount, estimated_price")
+        .eq("id", jobOrder.appointment_id)
+        .maybeSingle();
+      const billed =
+        Number(appointment?.total_amount) ||
+        Number(appointment?.estimated_price) ||
+        0;
+      totalAmount = Math.round(billed * 100) / 100;
+    }
 
     const { data, error } = await supabase
       .from("invoices")
