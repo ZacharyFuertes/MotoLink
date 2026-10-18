@@ -12,6 +12,12 @@
 
 import { createClient } from "@supabase/supabase-js";
 import sgMail from "@sendgrid/mail";
+import {
+  isGmailConfigured,
+  sendBookingConfirmationEmail,
+  sendGmailEmail,
+  sendReadyForPickupEmail,
+} from "../src/services/gmailService";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
@@ -183,9 +189,9 @@ const partsTable = (parts: PartRow[]) => {
 const buildSubject = (template: EmailTemplate, ctx: EmailContext): string => {
   switch (template) {
     case "booking-confirmation":
-      return `Booking received – ${ctx.serviceType} | MotoLink`;
+      return `Booking Confirmed — MotoLink [Ref: ${ctx.bookingRef}]`;
     case "service-completion":
-      return `Your ${ctx.serviceType} is complete – MotoLink`;
+      return `Service Completed — Your Motorcycle is Ready for Pickup! 🏍️`;
     case "booking-cancelled":
       return `Your appointment has been cancelled – MotoLink`;
     case "booking-updated":
@@ -320,11 +326,13 @@ export default async function handler(req: any, res: any) {
         "Email service not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing on the server.",
     });
   }
-  if (!SENDGRID_API_KEY || !FROM_EMAIL) {
+  const gmailReady = isGmailConfigured();
+  const sendgridReady = Boolean(SENDGRID_API_KEY && FROM_EMAIL);
+  if (!gmailReady && !sendgridReady) {
     return res.status(500).json({
       success: false,
       error:
-        "Email service not configured: SENDGRID_API_KEY or SENDGRID_FROM_EMAIL is missing on the server.",
+        "Email service not configured: set GMAIL_USER/GMAIL_APP_PASS (Gmail App Password) or SENDGRID_API_KEY/SENDGRID_FROM_EMAIL on the server.",
     });
   }
 
@@ -514,29 +522,77 @@ export default async function handler(req: any, res: any) {
   });
   const text = buildText(ctx);
 
+  // Vehicle label: prefer the linked garage vehicle, else the vehicle text the
+  // booking/walk-in form stored before " - " in the description.
+  const vehicleLabel =
+    (ctx.vehicle
+      ? `${ctx.vehicle.make || ""} ${ctx.vehicle.model || ""}${ctx.vehicle.year ? ` (${ctx.vehicle.year})` : ""}`.trim()
+      : "") ||
+    (appointment.description || "").split(" - ")[0].trim() ||
+    undefined;
+
+  let sentSubject = subject;
+  const via = gmailReady ? "gmail" : "sendgrid";
+
   try {
-    sgMail.setApiKey(SENDGRID_API_KEY);
-    await sgMail.send({
-      to: recipient.email,
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      subject,
-      html,
-      text,
-    });
-    console.log(`[send-email] ${template} sent to ${recipient.email} (appt ${appointment.id})`);
+    if (gmailReady && template === "booking-confirmation") {
+      const result = await sendBookingConfirmationEmail({
+        to: recipient.email,
+        customerName: ctx.customer?.name || "",
+        shopName: ctx.shop?.name || "MotoLink",
+        bookingId: ctx.bookingRef,
+        vehicle: vehicleLabel,
+        scheduledDate: ctx.scheduledDate,
+        scheduledTime: ctx.scheduledTime,
+        serviceType: ctx.serviceType,
+      });
+      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
+      sentSubject = result.subject || subject;
+    } else if (gmailReady && template === "service-completion") {
+      const result = await sendReadyForPickupEmail({
+        to: recipient.email,
+        customerName: ctx.customer?.name,
+        shopName: ctx.shop?.name || "MotoLink",
+        bookingId: ctx.bookingRef,
+        vehicle: vehicleLabel,
+        totalAmount: ctx.totalAmount,
+        shopAddress: ctx.shop?.address
+          ? `${ctx.shop.address}${ctx.shop.city ? `, ${ctx.shop.city}` : ""}`
+          : undefined,
+        shopContact: ctx.shop?.phone || undefined,
+      });
+      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
+      sentSubject = result.subject || subject;
+    } else if (gmailReady) {
+      const result = await sendGmailEmail({ to: recipient.email, subject, html, text });
+      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
+      sentSubject = result.subject || subject;
+    } else {
+      sgMail.setApiKey(SENDGRID_API_KEY);
+      await sgMail.send({
+        to: recipient.email,
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject,
+        html,
+        text,
+      });
+    }
+    console.log(
+      `[send-email] ${template} sent via ${via} to ${recipient.email} (appt ${appointment.id})`,
+    );
     await logAudit(
       db,
       appointment.id,
       recipient.id,
-      subject,
+      sentSubject,
       `Email sent to ${recipient.email}`,
       "sent",
     );
     return res.status(200).json({ success: true });
   } catch (err: any) {
-    console.error("[send-email] SendGrid failure:", err?.message || err);
+    console.error(`[send-email] ${via} failure:`, err?.message || err);
     const message = `Email delivery failed: ${err?.message || "unknown error"}`;
-    await logAudit(db, appointment.id, recipient.id, subject, message, "failed");
+    await logAudit(db, appointment.id, recipient.id, sentSubject, message, "failed");
     return res.status(200).json({ success: false, error: message });
   }
 }
