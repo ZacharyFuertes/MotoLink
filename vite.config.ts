@@ -1,21 +1,76 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 3000,
-    open: true,
-    hmr: {
-      host: 'localhost',
-      protocol: 'ws'
-    },
-    proxy: {
-      '/api/sendgrid': {
-        target: 'https://api.sendgrid.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/sendgrid/, '')
+const localEmailApi = {
+  name: 'motolink-local-email-api',
+  configureServer(server: any) {
+    server.middlewares.use(async (req: any, res: any, next: (error?: unknown) => void) => {
+      const pathname = (req.url || '').split('?')[0];
+      if (pathname !== '/api/send-email' || req.method !== 'POST') {
+        next();
+        return;
       }
-    }
+
+      try {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) chunks.push(Buffer.from(chunk));
+        req.body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+
+        const { default: handler } = await server.ssrLoadModule('/api/send-email.ts');
+        let statusCode = 200;
+        const response = {
+          status(code: number) {
+            statusCode = code;
+            return {
+              json(body: unknown) {
+                res.statusCode = statusCode;
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.end(JSON.stringify(body));
+                return response;
+              },
+            };
+          },
+        };
+
+        await handler(req, response);
+      } catch (error) {
+        server.ssrFixStacktrace(error as Error);
+        console.error('[local-email-api] Request failed:', error);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({ success: false, error: 'Local email API failed. Check the Vite terminal for details.' }));
+        }
+      }
+    });
+  },
+};
+
+export default defineConfig(({ mode }) => {
+  // Vercel functions read process.env. Load local .env files into the Node
+  // process for this development-only API middleware; never expose them to the
+  // browser bundle.
+  const env = loadEnv(mode, process.cwd(), '');
+  for (const [key, value] of Object.entries(env)) {
+    if (process.env[key] === undefined) process.env[key] = value;
   }
+
+  return {
+    plugins: [react(), localEmailApi],
+    server: {
+      port: 3000,
+      open: true,
+      hmr: {
+        host: 'localhost',
+        protocol: 'ws'
+      },
+      proxy: {
+        '/api/sendgrid': {
+          target: 'https://api.sendgrid.com',
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/sendgrid/, '')
+        }
+      }
+    },
+  };
 })

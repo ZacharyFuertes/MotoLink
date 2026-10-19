@@ -34,7 +34,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { supabase } from "../services/supabaseClient";
-import { getShopById, getShopByOwnerId, updateShop } from "../services/shopService";
+import { getShopById, getShopByOwnerId, updateShopAvailability } from "../services/shopService";
 import {
   getMyNotifications,
   getUnreadNotificationCount,
@@ -185,8 +185,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     setTogglingAvailability(true);
     setAvailabilityMessage(null);
     try {
-      const updated = await updateShop(shop.id, { is_open: !shop.is_open });
-      if (!updated) throw new Error("Update failed.");
+      const updated = await updateShopAvailability(shop.id, !shop.is_open);
       setShop((prev) => (prev ? { ...prev, is_open: updated.is_open } : prev));
       setAvailabilityMessage({
         type: "success",

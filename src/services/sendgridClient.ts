@@ -9,6 +9,7 @@
 import { supabase } from "./supabaseClient";
 
 export type EmailTemplate =
+  | "booking-request-received"
   | "booking-confirmation"
   | "service-completion"
   | "booking-cancelled"

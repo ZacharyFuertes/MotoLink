@@ -21,6 +21,7 @@ const SHOP_CORE =
 // Payment settings live on `shops` behind the 20261011 migration.
 const SHOP_PAYMENT_COLS = "online_payment_enabled, deposit_type, deposit_value";
 const SHOP_SELECT = `${SHOP_CORE}, is_open, ${SHOP_PAYMENT_COLS}`;
+const SHOP_SELECT_NO_PAYMENT = `${SHOP_CORE}, is_open`;
 const SHOP_SELECT_NO_IS_OPEN = `${SHOP_CORE}, ${SHOP_PAYMENT_COLS}`;
 const SHOP_SELECT_CORE = SHOP_CORE;
 
@@ -41,19 +42,25 @@ const isMissingColumn = (error: unknown): boolean => {
 
 type QueryResult<T = unknown> = { data: T; error: unknown };
 
-// Runs the query builder against progressively smaller column sets. New columns
-// (is_open, payment settings) may not be live yet — PostgREST rejects unknown
-// columns with a 400, so retry without them until one succeeds.
+// Run progressively smaller selects while preserving is_open whenever that
+// column exists. Payment columns and is_open were introduced in separate
+// migrations, so omitting both together can make schedule-derived status
+// incorrectly replace the owner's persisted availability on reload.
 const runShopQuery = async <T>(
   buildQuery: (select: string) => PromiseLike<QueryResult<T>>,
 ): Promise<QueryResult<T>> => {
   const first = await buildQuery(SHOP_SELECT);
   if (!first.error) return first;
   if (isMissingColumn(first.error)) {
-    const second = await buildQuery(SHOP_SELECT_NO_IS_OPEN);
+    const second = await buildQuery(SHOP_SELECT_NO_PAYMENT);
     if (!second.error) return second;
     if (isMissingColumn(second.error)) {
-      return await buildQuery(SHOP_SELECT_CORE);
+      const third = await buildQuery(SHOP_SELECT_NO_IS_OPEN);
+      if (!third.error) return third;
+      if (isMissingColumn(third.error)) {
+        return await buildQuery(SHOP_SELECT_CORE);
+      }
+      return third;
     }
     return second;
   }
@@ -252,10 +259,48 @@ export const updateShop = async (
       }
       return normalized;
     }
-    if (!isMissingColumn(error)) return null;
+    if (!isMissingColumn(error)) {
+      console.error("Error updating shop:", error);
+      return null;
+    }
   }
 
   return null;
+};
+
+/** Persist the owner's manual availability independently of operating hours. */
+export const updateShopAvailability = async (
+  shopId: string,
+  isOpen: boolean,
+): Promise<Shop> => {
+  const { data, error } = (await supabase
+    .from("shops")
+    .update({ is_open: isOpen })
+    .eq("id", shopId)
+    .select(`${SHOP_CORE}, is_open`)
+    .single()) as QueryResult<unknown>;
+
+  if (error) {
+    if (isMissingColumn(error)) {
+      throw new Error(
+        "Shop availability is not enabled in the database yet. Apply supabase/migrations/20261019_shop_availability_toggle.sql in the Supabase SQL Editor, then refresh this page.",
+      );
+    }
+    const message = (error as { message?: unknown }).message;
+    throw new Error(
+      typeof message === "string" && message
+        ? `Could not update shop availability: ${message}`
+        : "Could not update shop availability. Check your connection and shop permissions.",
+    );
+  }
+
+  if (!data || Array.isArray(data)) {
+    throw new Error(
+      "The shop was not updated. Verify this account owns the shop, then refresh and try again.",
+    );
+  }
+
+  return normalizeShop(data as Record<string, unknown>);
 };
 
 export interface PublicShopStats {

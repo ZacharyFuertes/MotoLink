@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import { notifyOwnerOfNewAppointment, sendBookingConfirmationEmail, sendOwnerBookingEmail } from "../services/notificationService";
+import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail } from "../services/notificationService";
 import {
   startOnlinePayment,
   computeDeposit,
@@ -778,8 +778,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           scheduledTime: selectedTime,
         });
 
-        // Transactional emails (fire-and-forget): customer confirmation + owner email.
-        sendBookingConfirmationEmail(appointment.id);
+        // The customer request is not confirmed until the shop accepts it.
+        // Send a receipt/pending-approval message now; confirmation is sent
+        // when the owner changes the appointment status to confirmed.
+        sendBookingRequestReceivedEmail(appointment.id);
         sendOwnerBookingEmail(appointment.id);
 
         if (paymentMethod === "cash") {

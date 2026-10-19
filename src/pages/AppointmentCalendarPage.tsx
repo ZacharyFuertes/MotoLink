@@ -29,7 +29,7 @@ import { Appointment, AppointmentStatus } from "../types";
 import { todayKey } from "../utils/dateTime";
 import {
   sendServiceCompletionEmail,
-  sendBookingUpdatedEmail,
+  sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
@@ -249,27 +249,6 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
             }
           }
 
-          if (appointment.customer_id) {
-            sendServiceCompletionEmail(appointment.id)
-              .then((result) => {
-                if (result.notConfigured) {
-                  console.info(
-                    "Completion email not sent – email service is not configured yet.",
-                  );
-                  return;
-                }
-                if (result.skipped) {
-                  showToast("Email skipped – customer opted out.", "info");
-                } else if (result.success) {
-                  showToast("Completion email sent to customer");
-                } else {
-                  showToast(`Email delivery failed: ${result.error}`, "error");
-                }
-              })
-              .catch(() =>
-                showToast("Could not send notification email.", "error")
-              );
-          }
         }
 
         if (newStatus === "completed") {
@@ -303,9 +282,30 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
           .eq("id", appointmentId);
         if (error) throw error;
 
+        // Send only after the completion status has persisted. The email API
+        // resolves the appointment server-side, and must see its completed
+        // state before generating the customer notification.
+        if (newStatus === "completed" && appointment.customer_id) {
+          try {
+            const result = await sendServiceCompletionEmail(appointment.id);
+            if (result.notConfigured) {
+              showToast("Booking completed, but email delivery is not configured.", "error");
+            } else if (result.skipped) {
+              showToast("Booking completed. Customer has opted out of email notifications.", "info");
+            } else if (result.success) {
+              showToast("Booking completed and confirmation email sent to customer.");
+            } else {
+              showToast(`Booking completed, but email delivery failed: ${result.error || "Unknown error"}`, "error");
+            }
+          } catch (emailError) {
+            console.error("Could not send service completion email:", emailError);
+            showToast("Booking completed, but the confirmation email could not be sent.", "error");
+          }
+        }
+
         if (appointment.customer_id) {
           if (newStatus === "confirmed") {
-            sendBookingUpdatedEmail(appointment.id);
+            sendBookingConfirmationEmail(appointment.id);
           } else if (newStatus === "cancelled") {
             sendBookingCancelledEmail(appointment.id);
           }

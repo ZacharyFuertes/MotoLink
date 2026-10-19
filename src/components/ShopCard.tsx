@@ -19,7 +19,12 @@ const getShopStatus = (shop: ShopSearchResult) => {
 };
 
 const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCardProps) => {
-  const inferredOpen = isOpenNowFromOperatingHours(shop.operating_hours);
+  // is_open is the owner's explicit availability override. Only use schedule
+  // hours as a fallback for legacy rows where that column is unavailable.
+  const inferredOpen =
+    typeof shop.is_open === "boolean"
+      ? shop.is_open
+      : isOpenNowFromOperatingHours(shop.operating_hours);
   let status = getShopStatus(shop);
   if (typeof inferredOpen === "boolean") {
     status = inferredOpen

@@ -29,6 +29,7 @@ const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
 
 type EmailTemplate =
+  | "booking-request-received"
   | "booking-confirmation"
   | "service-completion"
   | "booking-cancelled"
@@ -36,6 +37,7 @@ type EmailTemplate =
   | "owner-booking";
 
 const TEMPLATES: EmailTemplate[] = [
+  "booking-request-received",
   "booking-confirmation",
   "service-completion",
   "booking-cancelled",
@@ -188,6 +190,8 @@ const partsTable = (parts: PartRow[]) => {
 
 const buildSubject = (template: EmailTemplate, ctx: EmailContext): string => {
   switch (template) {
+    case "booking-request-received":
+      return `Booking Request Received — MotoLink [Ref: ${ctx.bookingRef}]`;
     case "booking-confirmation":
       return `Booking Confirmed — MotoLink [Ref: ${ctx.bookingRef}]`;
     case "service-completion":
@@ -223,6 +227,14 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
       : "";
 
   switch (template) {
+    case "booking-request-received":
+      return `
+        ${detailsTable(baseRows)}
+        ${partsBlock}
+        <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#1d4ed8;">Your booking request was received.</p>
+          <p style="margin:0;font-size:13px;color:#64748b;">The shop has not confirmed this appointment yet. We’ll email you again when the shop reviews and confirms your booking.</p>
+        </div>`;
     case "booking-confirmation":
       return `
         ${detailsTable(baseRows)}
@@ -383,10 +395,14 @@ export default async function handler(req: any, res: any) {
     .maybeSingle();
 
   const isCustomer = appointment.customer_id === authData.user.id;
+  // `users.shop_id` is nullable for legacy owner accounts; ownership is
+  // authoritatively stored on the shop row. Admins are platform-wide.
   const isShopStaff =
     caller &&
-    (caller.role === "owner" || caller.role === "admin") &&
-    caller.shop_id === appointment.shop_id;
+    (caller.role === "admin" ||
+      (caller.role === "owner" &&
+        (caller.shop_id === appointment.shop_id ||
+          appointment.shop?.owner_id === caller.id)));
 
   if (!isCustomer && !isShopStaff) {
     return res.status(403).json({ success: false, error: "Not authorized for this appointment." });
@@ -496,12 +512,21 @@ export default async function handler(req: any, res: any) {
   // 7) Render + send.
   const subject = buildSubject(template, ctx);
   const html = emailLayout({
-    badge: template === "service-completion" ? "SERVICE COMPLETE" : "MOTOLINK",
+    badge:
+      template === "service-completion"
+        ? "SERVICE COMPLETE"
+        : template === "booking-request-received"
+          ? "REQUEST RECEIVED"
+          : template === "booking-confirmation"
+            ? "BOOKING CONFIRMED"
+            : "MOTOLINK",
     heading:
       template === "service-completion"
         ? `Your vehicle is ready, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
+        : template === "booking-request-received"
+          ? `Booking request received, ${ctx.customer?.name?.split(" ")[0] || "there"}`
         : template === "booking-confirmation"
-          ? `Thanks for booking, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
+          ? `Your booking is confirmed, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
           : template === "owner-booking"
             ? "New appointment request"
             : template === "booking-cancelled"
@@ -510,8 +535,10 @@ export default async function handler(req: any, res: any) {
     subheading:
       template === "service-completion"
         ? "Great news — your service appointment has been completed. Here is the full summary."
+        : template === "booking-request-received"
+          ? "We’ve received your appointment request. It is pending confirmation from the shop."
         : template === "booking-confirmation"
-          ? "We received your booking request. Here are the details."
+          ? "The shop has confirmed your appointment. Here are the confirmed details."
           : template === "owner-booking"
             ? "A customer has booked an appointment at your shop."
             : template === "booking-cancelled"

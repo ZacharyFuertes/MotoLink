@@ -27,7 +27,7 @@ import {
   Percent,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { getShopById, updateShop, parseOperatingHoursString } from "../services/shopService";
+import { getShopById, updateShop, updateShopAvailability, parseOperatingHoursString } from "../services/shopService";
 import { getPaymentConfig } from "../services/paymentService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
@@ -445,10 +445,7 @@ const [loading, setLoading] = useState(true);
     setTogglingAvailability(true);
     setMessage(null);
     try {
-      const updated = await updateShop(user.shop_id, {
-        is_open: !shop.is_open,
-      });
-      if (!updated) throw new Error("Update failed.");
+      const updated = await updateShopAvailability(user.shop_id, !shop.is_open);
       setShop((prev) => ({ ...prev, is_open: updated.is_open }));
       setMessage({
         type: "success",

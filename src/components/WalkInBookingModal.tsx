@@ -17,7 +17,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getShopByOwnerId } from "../services/shopService";
-import { sendBookingConfirmationEmail } from "../services/notificationService";
+import { sendBookingRequestReceivedEmail } from "../services/notificationService";
 import {
   customerService,
   type RegisteredCustomer,
@@ -431,7 +431,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
       // Only a real account has an inbox to confirm.
       if (data?.customer_id) {
-        sendBookingConfirmationEmail(data.id);
+        sendBookingRequestReceivedEmail(data.id);
       }
 
       setConfirmed({

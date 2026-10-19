@@ -146,7 +146,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
     () =>
       sortByDistance(shops, location).filter(
         (shop) =>
-          (!availabilityOnly || isOpenNowFromOperatingHours(shop.operating_hours) !== false) &&
+          (!availabilityOnly ||
+            (typeof shop.is_open === "boolean"
+              ? shop.is_open
+              : isOpenNowFromOperatingHours(shop.operating_hours) !== false)) &&
           (!city || `${shop.name} ${shop.city} ${shop.address}`.toLowerCase().includes(city.toLowerCase()))
       ),
     [shops, location, availabilityOnly, city]

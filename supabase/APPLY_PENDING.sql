@@ -17,16 +17,21 @@
 --        search_registered_customers() + the "Shop owners can view customers
 --        they serve" RLS policy.
 --
--- Everything below is idempotent (IF NOT EXISTS / CREATE OR REPLACE /
--- DROP POLICY IF EXISTS / ADD COLUMN IF NOT EXISTS), so re-running is safe.
+-- The owner availability toggle also needs shops.is_open. Its existing
+-- 20260813 migration has not been applied to the live database, so this bundle
+-- includes the column addition below. This stores the owner's availability
+-- separately from the operating-hours schedule.
 --
--- It is safe to run both files separately instead — this file is only their
--- concatenation, in the order they must be applied.
---
--- After running: the Supabase SQL Editor reloads PostgREST's schema cache on
--- its own. If the walk-in error persists, restart the project once
--- (Settings -> Database -> ... or just re-run this file).
+-- The walk-in and registered-customer migrations can still be run from their
+-- individual files; this bundle includes their SQL below as well.
+-- Everything in this bundle is safe to re-run (IF NOT EXISTS / CREATE OR
+-- REPLACE / DROP POLICY IF EXISTS).
 -- ============================================================================
+-- MIGRATION: Persist owner-controlled shop availability
+-- ============================================================================
+ALTER TABLE public.shops
+  ADD COLUMN IF NOT EXISTS is_open BOOLEAN NOT NULL DEFAULT true;
+NOTIFY pgrst, 'reload schema';
 
 -- ============================================================================
 -- MIGRATION: Walk-in appointments (shop owner books for a non-registered customer)

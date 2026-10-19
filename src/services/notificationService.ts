@@ -64,7 +64,11 @@ const sendEmailForAppointment = (template: EmailTemplate, appointmentId: string)
 export const sendServiceCompletionEmail = async (appointmentId: string) =>
   sendEmailForAppointment("service-completion", appointmentId);
 
-/** Send the customer a booking-confirmation email after booking. */
+/** Tell the customer their booking request was received, pending shop approval. */
+export const sendBookingRequestReceivedEmail = async (appointmentId: string) =>
+  sendEmailForAppointment("booking-request-received", appointmentId);
+
+/** Send the customer a booking-confirmation email after shop approval. */
 export const sendBookingConfirmationEmail = async (appointmentId: string) =>
   sendEmailForAppointment("booking-confirmation", appointmentId);
 
