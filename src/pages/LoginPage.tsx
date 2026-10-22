@@ -150,6 +150,28 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             model: formData.vehicle_model,
           },
         );
+
+        // The signup helper creates the account/profile, but do not leave its
+        // initial session active. Require email OTP before granting app access.
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) throw signOutError;
+
+        const otpResult = await requestLoginCode(formData.email.trim());
+        if (!otpResult.success) {
+          setError(
+            otpResult.error ||
+              "Your account was created, but we could not send the verification code. Use email-code login to request another code.",
+          );
+          setLoading(false);
+          return;
+        }
+
+        setLoginMode("otp");
+        setOtpSent(true);
+        setOtpCode("");
+        setFormData((prev) => ({ ...prev, password: "" }));
+        setLoading(false);
+        return;
       } else {
         // Validate the password server-side, then require the emailed OTP
         // before creating a browser session.
@@ -392,10 +414,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             {/* Form */}
             <form
               onSubmit={
-                !isSignup && loginMode === "otp"
-                  ? otpSent
-                    ? handleOtpSubmit
-                    : (e) => {
+                loginMode === "otp" && otpSent
+                  ? handleOtpSubmit
+                  : !isSignup && loginMode === "otp"
+                    ? (e) => {
                         e.preventDefault();
                         handleSendOtp();
                       }
@@ -413,7 +435,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   className="space-y-4"
                 >
                   {/* Name (Signup only) */}
-                  {isSignup && (
+                  {isSignup && !otpSent && (
                     <div>
                       <div className="relative">
                         <User size={18} className={iconClass} />
@@ -441,15 +463,15 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                         onChange={handleChange}
                         placeholder="Email"
                         required
-                        readOnly={!isSignup && loginMode === "otp" && otpSent}
+                        readOnly={loginMode === "otp" && otpSent}
                         className={`${inputClass} ${
-                          !isSignup && loginMode === "otp" && otpSent
+                          loginMode === "otp" && otpSent
                             ? "opacity-70"
                             : ""
                         }`}
                       />
                     </div>
-                    {!isSignup && loginMode === "otp" && otpSent && (
+                    {loginMode === "otp" && otpSent && (
                       <p className="mt-1.5 ml-1 text-xs text-slate-500">
                         We sent a 6-digit code to{" "}
                         <span className="text-slate-300 font-semibold">
@@ -494,7 +516,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* OTP verification code (login only) */}
-                  {!isSignup && loginMode === "otp" && otpSent && (
+                  {loginMode === "otp" && otpSent && (
                     <div>
                       <div className="relative">
                         <KeyRound size={18} className={iconClass} />
@@ -530,7 +552,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Phone (Signup only) */}
-                  {isSignup && (
+                  {isSignup && !otpSent && (
                     <div>
                       <div className="relative">
                         <Phone size={18} className={iconClass} />
@@ -548,7 +570,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Address (Signup only) */}
-                  {isSignup && (
+                  {isSignup && !otpSent && (
                     <div>
                       <div className="relative">
                         <MapPin size={18} className={iconClass} />
@@ -566,12 +588,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Motorcycle Section Divider */}
-                  {isSignup && (
+                  {isSignup && !otpSent && (
                     <div className="pt-2 mt-4 border-t border-slate-200" />
                   )}
 
                   {/* Motorcycle Information (Signup only) */}
-                  {isSignup && (
+                  {isSignup && !otpSent && (
                     <div className="space-y-3">
                       <label className="text-xs text-slate-400 ml-1 block">
                         Motorcycle Information
@@ -617,7 +639,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               )}
 
 {/* Terms and Conditions agreement (signup and login) */}
-              {!isSignup && loginMode === "otp" && otpSent ? null : (
+              {loginMode === "otp" && otpSent ? null : (
                 <TermsCheckbox
                   checked={acceptedTerms}
                   onChange={setAcceptedTerms}
@@ -635,13 +657,15 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
-                {isSignup
-                  ? "Create Account"
-                  : loginMode === "otp"
-                    ? otpSent
-                      ? "Verify & Login"
-                      : "Send Verification Code"
-                    : "Login"}
+                {loginMode === "otp" && otpSent
+                  ? isSignup
+                    ? "Verify Email & Create Account"
+                    : "Verify & Login"
+                  : isSignup
+                    ? "Create Account"
+                    : loginMode === "otp"
+                      ? "Send Verification Code"
+                      : "Login"}
               </motion.button>
 
               {/* Switch between password login and email-code login */}
@@ -678,16 +702,16 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             </form>
 
             {/* Divider */}
-            <div className="flex items-center gap-4 my-6">
+            {!otpSent && <div className="flex items-center gap-4 my-6">
               <div className="flex-1 h-px bg-moto-gray" />
               <span className="text-slate-500 text-xs tracking-wider font-medium">
                 or
               </span>
               <div className="flex-1 h-px bg-moto-gray" />
-            </div>
+            </div>}
 
             {/* Footer */}
-            <div className="text-center mt-6">
+            {!otpSent && <div className="text-center mt-6">
               <p className="text-slate-500 text-sm">
                 {isSignup ? "Already have an account?" : "Don't have an account?"}
                 <button
@@ -714,7 +738,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   {isSignup ? "Sign in" : "Sign up for free"}
                 </button>
               </p>
-            </div>
+            </div>}
           </div>
         </div>
 

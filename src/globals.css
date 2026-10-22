@@ -602,6 +602,9 @@ html.light .text-emerald-300:not(.keep-dark):not(.keep-dark *),
 html.light .text-emerald-400:not(.keep-dark):not(.keep-dark *) {
   color: #059669;
 }
+html.light .text-emerald-200:not(.keep-dark):not(.keep-dark *) {
+  color: #047857;
+}
 html.light .hover\:text-emerald-300:hover:not(.keep-dark):not(.keep-dark *) {
   color: #047857;
 }
