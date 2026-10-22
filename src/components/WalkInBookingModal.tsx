@@ -17,7 +17,10 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { getShopByOwnerId } from "../services/shopService";
-import { sendBookingRequestReceivedEmail } from "../services/notificationService";
+import {
+  sendBookingRequestReceivedEmail,
+  sendOwnerBookingEmail,
+} from "../services/notificationService";
 import {
   customerService,
   type RegisteredCustomer,
@@ -426,6 +429,15 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         .select()
         .single();
       if (insertError) throw insertError;
+
+      // Owner email notifications use the same protected server-side email
+      // route as customer-created bookings. Send for both linked customers and
+      // unregistered walk-ins; the owner is resolved from the appointment's shop.
+      void sendOwnerBookingEmail(data.id).then((result) => {
+        if (!result.success) {
+          console.warn("Could not send new-booking email to shop owner:", result.error);
+        }
+      });
 
       onBooked?.(data as Appointment);
 
