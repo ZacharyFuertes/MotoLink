@@ -12,6 +12,7 @@ import {
   BellRing,
   Lock,
   Search,
+  Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
@@ -117,6 +118,8 @@ const inputClassName =
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const { user, logout } = useAuth();
+  const [newEmail, setNewEmail] = useState(user?.email || "");
+  const [changingEmail, setChangingEmail] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -136,6 +139,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     type: "success" | "error";
   } | null>(null);
   const [lastSignInAt, setLastSignInAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNewEmail(user?.email || "");
+  }, [user?.email]);
 
   // Account Repair state
   const [repairEmail, setRepairEmail] = useState("");
@@ -369,6 +376,36 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleChangeEmail = async () => {
+    const email = newEmail.trim().toLowerCase();
+    setStatusMsg(null);
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      setStatusMsg({ text: "Enter a valid email address.", type: "error" });
+      return;
+    }
+    if (email === user?.email?.toLowerCase()) {
+      setStatusMsg({ text: "This is already your account email.", type: "error" });
+      return;
+    }
+
+    try {
+      setChangingEmail(true);
+      const { error } = await supabase.auth.updateUser({ email });
+      if (error) throw error;
+      setStatusMsg({
+        text: "Check your new email address and follow Supabase's confirmation link to complete the change.",
+        type: "success",
+      });
+    } catch (err: any) {
+      setStatusMsg({
+        text: err?.message || "Failed to request the email change. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setChangingEmail(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -458,6 +495,36 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             <p className="text-[13px] font-semibold text-slate-200">
               Role: <span className="font-bold text-moto-accent capitalize">{user.role}</span>
             </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-moto-gray/30 border border-moto-gray">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+              Change Email
+            </p>
+            <p className="text-xs text-slate-400 mb-3">
+              Supabase will send a confirmation link before the account email changes.
+            </p>
+            <input
+              type="email"
+              autoComplete="email"
+              placeholder="New email address"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className={`${inputClassName} mb-3`}
+            />
+            <button
+              type="button"
+              onClick={handleChangeEmail}
+              disabled={changingEmail || !newEmail.trim()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 rounded-xl text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-moto-accent/20"
+            >
+              {changingEmail ? (
+                <div className="w-3.5 h-3.5 border-2 border-slate-950/40 border-t-slate-950 rounded-full animate-spin" />
+              ) : (
+                <Mail size={14} />
+              )}
+              {changingEmail ? "Requesting..." : "Update Email"}
+            </button>
           </div>
 
           <div className="p-4 rounded-xl bg-moto-gray/30 border border-moto-gray">

@@ -166,6 +166,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (session?.user?.id) {
           console.log("👤 [Auth] User authenticated:", session.user.id);
+          // Supabase updates the Auth email only after its confirmation flow.
+          // Keep the app's public profile email in sync once that confirmation
+          // arrives, without changing it while the request is still pending.
+          if (event === "USER_UPDATED" && session.user.email) {
+            void supabase
+              .from("users")
+              .update({ email: session.user.email })
+              .eq("id", session.user.id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error("❌ [Auth] Could not sync confirmed email to profile:", error);
+                  return;
+                }
+                void setUserProfileFromSession(session.user.id, session.user.email);
+              });
+          }
           // Fetch profile in background
           setUserProfileFromSession(session.user.id, session.user.email);
         } else {

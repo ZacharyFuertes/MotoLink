@@ -482,8 +482,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                     )}
                   </div>
 
-                  {/* Password (login) OR Verification code (OTP login) */}
-                  {!isSignup && loginMode === "password" && (
+                  {/* Password is required for signup and password login; hide it during OTP verification. */}
+                  {!otpSent && (isSignup || loginMode === "password") && (
                     <div>
                       <div className="relative">
                         <Lock size={18} className={iconClass} />
