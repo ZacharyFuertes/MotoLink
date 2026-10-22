@@ -4,11 +4,13 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
-import { isGmailConfigured, sendGmailEmail } from "../src/services/gmailService";
+import nodemailer from "nodemailer";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+const GMAIL_USER = (process.env.GMAIL_USER || "").trim();
+const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_REQUESTS_PER_15_MIN = 3;
@@ -41,7 +43,7 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ success: false, error: "Server not configured." });
     }
 
-    if (!isGmailConfigured()) {
+    if (!GMAIL_USER || !GMAIL_APP_PASS) {
       console.error("Gmail not configured");
       return res
         .status(500)
@@ -230,17 +232,23 @@ export default async function handler(req: any, res: any) {
     const text = `MOTOLINK - Login Verification Code\n\nHi ${firstName},\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`;
 
     try {
-      const result = await sendGmailEmail({
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: GMAIL_USER,
+          pass: GMAIL_APP_PASS,
+        },
+      });
+      await transporter.sendMail({
+        from: `"MotoLink" <${GMAIL_USER}>`,
         to: normalizedEmail,
         subject: `Your MotoLink Login Code: ${code}`,
         html,
         text,
       });
-
-      if (!result.success) {
-        console.error("[send-login-otp] failed to send email:", result.error);
-        return res.status(500).json({ success: false, error: result.error || "Failed to send verification code." });
-      }
     } catch (e: any) {
       console.error("[send-login-otp] send exception:", e);
       return res.status(500).json({ success: false, error: e?.message || "Failed to send verification code." });
