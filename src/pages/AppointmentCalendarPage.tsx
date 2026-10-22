@@ -29,6 +29,7 @@ import { Appointment, AppointmentStatus } from "../types";
 import { todayKey } from "../utils/dateTime";
 import {
   sendServiceCompletionEmail,
+  sendServiceInProgressEmail,
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
 } from "../services/notificationService";
@@ -306,6 +307,8 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         if (appointment.customer_id) {
           if (newStatus === "confirmed") {
             sendBookingConfirmationEmail(appointment.id);
+          } else if (newStatus === "in_progress" && appointment.status !== "in_progress") {
+            sendServiceInProgressEmail(appointment.id);
           } else if (newStatus === "cancelled") {
             sendBookingCancelledEmail(appointment.id);
           }

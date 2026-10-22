@@ -186,7 +186,7 @@ const NotificationPreferencesModal: React.FC<
                           Email Notifications
                         </p>
                         <p className="text-slate-500 text-xs mt-0.5">
-                          Receive service completion emails
+                          Receive booking, progress, and completion emails
                         </p>
                       </div>
                     </div>
@@ -220,13 +220,13 @@ const NotificationPreferencesModal: React.FC<
                     {emailEnabled ? (
                       <span>
                         ✅ You will receive an email at{" "}
-                        <strong>{user?.email}</strong> when your vehicle service
-                        is marked as completed.
+                        <strong>{user?.email}</strong> when your booking is
+                        confirmed, service begins, or service is completed.
                       </span>
                     ) : (
                       <span>
                         📵 Email notifications are disabled. You won't receive
-                        service completion emails.
+                        booking or service status emails.
                       </span>
                     )}
                   </div>

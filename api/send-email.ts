@@ -28,6 +28,7 @@ const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 type EmailTemplate =
   | "booking-request-received"
   | "booking-confirmation"
+  | "service-in-progress"
   | "service-completion"
   | "booking-cancelled"
   | "booking-updated"
@@ -36,6 +37,7 @@ type EmailTemplate =
 const TEMPLATES: EmailTemplate[] = [
   "booking-request-received",
   "booking-confirmation",
+  "service-in-progress",
   "service-completion",
   "booking-cancelled",
   "booking-updated",
@@ -191,6 +193,8 @@ const buildSubject = (template: EmailTemplate, ctx: EmailContext): string => {
       return `Booking Request Received — MotoLink [Ref: ${ctx.bookingRef}]`;
     case "booking-confirmation":
       return `Booking Confirmed — MotoLink [Ref: ${ctx.bookingRef}]`;
+    case "service-in-progress":
+      return `Service In Progress — MotoLink [Ref: ${ctx.bookingRef}]`;
     case "service-completion":
       return `Service Completed — Your Motorcycle is Ready for Pickup! 🏍️`;
     case "booking-cancelled":
@@ -239,6 +243,14 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
         <div style="margin-top:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:20px;">
           <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#22c55e;">We received your booking request!</p>
           <p style="margin:0;font-size:13px;color:#64748b;">Our team will review your request and confirm shortly. You can track it anytime in your MotoLink account.</p>
+        </div>`;
+    case "service-in-progress":
+      return `
+        ${detailsTable(baseRows)}
+        ${partsBlock}
+        <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
+          <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#1d4ed8;">Work on your vehicle is now in progress.</p>
+          <p style="margin:0;font-size:13px;color:#64748b;">The shop has started your service. You can track the appointment status in your MotoLink account.</p>
         </div>`;
     case "service-completion":
       return `
@@ -512,6 +524,8 @@ export default async function handler(req: any, res: any) {
     badge:
       template === "service-completion"
         ? "SERVICE COMPLETE"
+        : template === "service-in-progress"
+          ? "SERVICE IN PROGRESS"
         : template === "booking-request-received"
           ? "REQUEST RECEIVED"
           : template === "booking-confirmation"
@@ -520,6 +534,8 @@ export default async function handler(req: any, res: any) {
     heading:
       template === "service-completion"
         ? `Your vehicle is ready, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
+        : template === "service-in-progress"
+          ? `Work on your vehicle has started, ${ctx.customer?.name?.split(" ")[0] || "there"}.`
         : template === "booking-request-received"
           ? `Booking request received, ${ctx.customer?.name?.split(" ")[0] || "there"}`
         : template === "booking-confirmation"
@@ -532,6 +548,8 @@ export default async function handler(req: any, res: any) {
     subheading:
       template === "service-completion"
         ? "Great news — your service appointment has been completed. Here is the full summary."
+        : template === "service-in-progress"
+          ? "The shop has started working on your appointment. Here are the booking details."
         : template === "booking-request-received"
           ? "We’ve received your appointment request. It is pending confirmation from the shop."
         : template === "booking-confirmation"

@@ -72,6 +72,10 @@ export const sendBookingRequestReceivedEmail = async (appointmentId: string) =>
 export const sendBookingConfirmationEmail = async (appointmentId: string) =>
   sendEmailForAppointment("booking-confirmation", appointmentId);
 
+/** Notify the customer when the shop starts work on their appointment. */
+export const sendServiceInProgressEmail = async (appointmentId: string) =>
+  sendEmailForAppointment("service-in-progress", appointmentId);
+
 /** Send the customer an update email (details changed / confirmed). */
 export const sendBookingUpdatedEmail = async (appointmentId: string) =>
   sendEmailForAppointment("booking-updated", appointmentId);
