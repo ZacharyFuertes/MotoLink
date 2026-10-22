@@ -54,6 +54,11 @@ import {
   markNotificationRead,
 } from "../services/notificationService";
 import { AppNotification } from "../services/notificationService";
+import {
+  approveShop as approveShopLifecycle,
+  reactivateShop as reactivateShopLifecycle,
+} from "../services/adminShopLifecycle";
+import { isShopStatus, type ShopStatus } from "../lib/shopLifecycle";
 
 interface AdminDashboardProps {
   onNavigate?: (page: string) => void;
@@ -71,6 +76,7 @@ interface ShopRow {
   appointment_count: number;
   total_revenue: number;
   is_active: boolean;
+  status: ShopStatus;
   created_at: string;
 }
 
@@ -82,6 +88,8 @@ interface PendingShop {
   owner_email?: string;
   is_active: boolean;
   is_open: boolean;
+  status: ShopStatus;
+  legal_hold: boolean;
   customer_count: number;
   created_at: string;
 }
@@ -167,12 +175,27 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const fetchAdminData = useCallback(async () => {
     setLoading(true);
     try {
-        const { data: shops } = await supabase
-          .from("shops")
-          .select("id, name, slug, city, is_active, created_at, owner_id");
+        let shops: any[] | null = null;
+        {
+          const primary = await supabase
+            .from("shops")
+            .select(
+              "id, name, slug, city, is_active, is_open, status, legal_hold, created_at, owner_id",
+            );
+          if (primary.error) {
+            const fallback = await supabase
+              .from("shops")
+              .select("id, name, slug, city, is_active, is_open, created_at, owner_id");
+            shops = fallback.data;
+          } else {
+            shops = primary.data;
+          }
+        }
         const allShops = shops || [];
+        const statusOf = (s: any): ShopStatus =>
+          isShopStatus(s.status) ? s.status : s.is_active ? "ACTIVE" : "PENDING";
         setTotalShops(allShops.length);
-        setActiveShops(allShops.filter((s) => s.is_active).length);
+        setActiveShops(allShops.filter((s) => statusOf(s) === "ACTIVE").length);
 
         const { data: allUsers } = await supabase
           .from("users")
@@ -182,7 +205,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         setTotalMechanics(users.filter((u) => u.role === "mechanic").length);
         setPendingShops(
           allShops
-            .filter((s) => !s.is_active)
+            .filter((s) => statusOf(s) === "PENDING")
             .map((s) => {
               const owner = users.find((u) => u.id === s.owner_id);
               return {
@@ -193,6 +216,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 owner_email: owner?.email || "",
                 is_active: s.is_active,
                 is_open: s.is_open !== false,
+                status: statusOf(s),
+                legal_hold: s.legal_hold === true,
                 customer_count: 0,
                 created_at: s.created_at,
               };
@@ -407,6 +432,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
             appointment_count: shopAppts.length,
             total_revenue: shopApptRev + shopJobRev + shopPosRev,
             is_active: s.is_active,
+            status: statusOf(s),
             created_at: s.created_at,
           };
         });
@@ -434,14 +460,21 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const approveShop = useCallback(
     async (shopId: string) => {
       setApprovingId(shopId);
-      const { error } = await supabase
-        .from("shops")
-        .update({ is_active: true })
-        .eq("id", shopId);
-      setApprovingId(null);
-      if (!error) fetchAdminData();
+      try {
+        const shop = recentShops.find((s) => s.id === shopId);
+        if (shop?.status === "ON_HOLD") {
+          await reactivateShopLifecycle(shopId);
+        } else {
+          await approveShopLifecycle(shopId);
+        }
+        fetchAdminData();
+      } catch (err) {
+        console.error("Error approving shop:", err);
+      } finally {
+        setApprovingId(null);
+      }
     },
-    [fetchAdminData],
+    [fetchAdminData, recentShops],
   );
 
   const refreshNotifications = async () => {
@@ -617,7 +650,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
     {
       label: "Active Shops",
       value: activeShops,
-      sub: `${totalShops - activeShops} inactive`,
+      sub: `${totalShops - activeShops} not active`,
       icon: <Activity className="w-6 h-6" />,
       accent: "#ec4899",
       bgTint: "bg-pink-500/15",
@@ -986,6 +1019,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               owner_email: shop.owner_email,
                               is_active: shop.is_active,
                               is_open: shop.is_open,
+                              status: shop.status,
+                              legal_hold: shop.legal_hold,
                               customer_count: shop.customer_count,
                             })}
                             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-moto-dark border border-amber-500/30 text-amber-400 hover:bg-amber-500/15 text-[13px] font-bold transition-all"
@@ -1342,13 +1377,33 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                             <td className="text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${
-                                  shop.is_active
+                                  shop.status === "ACTIVE"
                                     ? "bg-emerald-500/15 text-emerald-400"
-                                    : "bg-red-500/15 text-red-400"
+                                    : shop.status === "ON_HOLD"
+                                      ? "bg-red-500/15 text-red-400"
+                                      : shop.status === "PURGED"
+                                        ? "bg-slate-500/15 text-slate-400"
+                                        : "bg-amber-500/15 text-amber-400"
                                 }`}
                               >
-                                <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-red-400"}`} />
-                                {shop.is_active ? "Active" : "Inactive"}
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    shop.status === "ACTIVE"
+                                      ? "bg-emerald-500"
+                                      : shop.status === "ON_HOLD"
+                                        ? "bg-red-400"
+                                        : shop.status === "PURGED"
+                                          ? "bg-slate-500"
+                                          : "bg-amber-400"
+                                  }`}
+                                />
+                                {shop.status === "ACTIVE"
+                                  ? "Active"
+                                  : shop.status === "ON_HOLD"
+                                    ? "On Hold"
+                                    : shop.status === "PURGED"
+                                      ? "Purged"
+                                      : "Pending"}
                               </span>
                             </td>
                           </tr>

@@ -10,7 +10,9 @@ import {
   Phone,
   BadgeCheck,
   XCircle,
+  ShieldCheck,
   Trash2,
+  CalendarClock,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
@@ -25,24 +27,54 @@ export interface ReviewShop {
   is_active: boolean;
   is_open: boolean;
   customer_count?: number;
+  status?: "PENDING" | "ACTIVE" | "ON_HOLD" | "PURGED";
+  legal_hold?: boolean;
+  purge_scheduled_at?: string | null;
+  hold_reason?: string | null;
 }
 
 interface AdminShopReviewModalProps {
   shop: ReviewShop;
   onClose: () => void;
   onApprove?: (shop: ReviewShop) => void;
-  onDeactivate?: (shop: ReviewShop) => void;
+  onHold?: (shop: ReviewShop) => void;
+  onReactivate?: (shop: ReviewShop) => void;
+  onToggleLegalHold?: (shop: ReviewShop) => void;
+  onPurge?: (shop: ReviewShop) => void;
+  onExtend?: (shop: ReviewShop) => void;
   onViewCustomers?: (shop: ReviewShop) => void;
-  onDelete?: (shop: ReviewShop) => void;
 }
+
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: "bg-amber-500/15 text-amber-400",
+  ACTIVE: "bg-emerald-500/15 text-emerald-400",
+  ON_HOLD: "bg-red-500/15 text-red-400",
+  PURGED: "bg-slate-500/15 text-slate-400",
+};
+
+const statusLabel = (shop: ReviewShop): string => {
+  switch (shop.status) {
+    case "PENDING":
+      return "Pending Approval";
+    case "ON_HOLD":
+      return shop.legal_hold ? "ON HOLD (Legal)" : "ON HOLD";
+    case "PURGED":
+      return "Purged";
+    default:
+      return "Active";
+  }
+};
 
 const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
   shop,
   onClose,
   onApprove,
-  onDeactivate,
+  onHold,
+  onReactivate,
+  onToggleLegalHold,
+  onPurge,
+  onExtend,
   onViewCustomers,
-  onDelete,
 }) => {
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +88,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
       const { data, error: err } = await supabase
         .from("shops")
         .select(
-          "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open, created_at, logo_url",
+          "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open, status, legal_hold, hold_reason, on_hold_at, purge_scheduled_at, created_at, logo_url",
         )
         .eq("id", shop.id)
         .maybeSingle();
@@ -104,11 +136,22 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
               <div className="flex items-center gap-2 mt-0.5">
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    shop.is_active ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"
+                    STATUS_BADGE[shop.status || (shop.is_active ? "ACTIVE" : "PENDING")] ||
+                    STATUS_BADGE.PENDING
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-500" : "bg-amber-500"}`} />
-                  {shop.is_active ? "Active" : "Pending Approval"}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      (shop.status || (shop.is_active ? "ACTIVE" : "PENDING")) === "ACTIVE"
+                        ? "bg-emerald-500"
+                        : (shop.status || "") === "ON_HOLD"
+                          ? "bg-red-400"
+                          : (shop.status || "") === "PURGED"
+                            ? "bg-slate-500"
+                            : "bg-amber-500"
+                    }`}
+                  />
+                  {statusLabel(shop)}
                 </span>
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
@@ -209,7 +252,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
 
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                {!shop.is_active && onApprove && (
+                {shop.status === "PENDING" && onApprove && (
                   <button
                     onClick={() => onApprove(shop)}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
@@ -218,13 +261,51 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                     Approve & Activate
                   </button>
                 )}
-                {shop.is_active && onDeactivate && (
+                {shop.status === "ON_HOLD" && onReactivate && (
                   <button
-                    onClick={() => onDeactivate(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-amber-500/20"
+                    onClick={() => onReactivate(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20"
+                  >
+                    <BadgeCheck className="w-5 h-5" />
+                    Reactivate
+                  </button>
+                )}
+                {shop.status === "ON_HOLD" && onExtend && (
+                  <button
+                    onClick={() => onExtend(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-[13px] font-bold rounded-xl transition"
+                  >
+                    <CalendarClock className="w-5 h-5" />
+                    Extend
+                  </button>
+                )}
+                {shop.status === "ON_HOLD" && onPurge && (
+                  <button
+                    onClick={() => onPurge(shop)}
+                    disabled={shop.legal_hold}
+                    title={shop.legal_hold ? "Purge is blocked by legal hold" : "Purge shop now (exports encrypted archive and anonymizes PII)"}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    Purge Now
+                  </button>
+                )}
+                {shop.status === "ON_HOLD" && onToggleLegalHold && (
+                  <button
+                    onClick={() => onToggleLegalHold(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-[13px] font-bold rounded-xl transition"
+                  >
+                    <ShieldCheck className="w-5 h-5" />
+                    {shop.legal_hold ? "Lift Legal Hold" : "Legal Hold"}
+                  </button>
+                )}
+                {(shop.status === "PENDING" || shop.status === "ACTIVE") && onHold && (
+                  <button
+                    onClick={() => onHold(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-[13px] font-bold rounded-xl transition"
                   >
                     <XCircle className="w-5 h-5" />
-                    Deactivate
+                    {shop.status === "PENDING" ? "Archive" : "Place on Hold"}
                   </button>
                 )}
                 {onViewCustomers && (
@@ -234,15 +315,6 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                   >
                     <Users className="w-5 h-5" />
                     View Customers ({shop.customer_count ?? 0})
-                  </button>
-                )}
-                {onDelete && (
-                  <button
-                    onClick={() => onDelete(shop)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[13px] font-bold rounded-xl transition"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    Delete
                   </button>
                 )}
               </div>

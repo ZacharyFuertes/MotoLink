@@ -81,11 +81,16 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const [showWalkIn, setShowWalkIn] = useState(false);
   const [dashboardRefresh, setDashboardRefresh] = useState(0);
 
-  const isPendingApproval = !!shop && !shop.is_active;
+  const shopStatus =
+    shop?.status ?? (shop ? (shop.is_active ? "ACTIVE" : "PENDING") : undefined);
+  const isPendingApproval = shopStatus === "PENDING";
+  const isOnHold = shopStatus === "ON_HOLD";
+  const isPurged = shopStatus === "PURGED";
   // Owner with no resolvable shop (missing/linked-after signup) is treated as
   // unapproved and locked too — they have nothing to manage yet.
   const shopNotFound = !shopLoading && !shop;
-  const isLocked = shopLoading || isPendingApproval || shopNotFound;
+  const isLocked =
+    shopLoading || shopNotFound || shopStatus !== "ACTIVE";
 
   const sidebarItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -405,9 +410,19 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 {currentLabel}
               </h1>
               {isLocked && (
-                <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-amber-400">
-                  <Clock className="w-4 h-4" />
-                  Pending Approval
+                <span className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${
+                  isOnHold || isPurged ? "text-red-400" : "text-amber-400"
+                }`}>
+                  {isOnHold || isPurged ? (
+                    <AlertTriangle className="w-4 h-4" />
+                  ) : (
+                    <Clock className="w-4 h-4" />
+                  )}
+                  {isPurged
+                    ? "Shop Closed"
+                    : isOnHold
+                      ? "On Hold"
+                      : "Pending Approval"}
                 </span>
               )}
               {!isLocked && (
@@ -561,7 +576,79 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
 
         {/* Page Content */}
         <main className="min-w-0 w-full flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
-          {shopLoading ? null : isPendingApproval || shopNotFound ? (
+          {shopLoading ? null : isOnHold ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="dashboard-card p-5 sm:p-8 lg:p-12 mb-6 flex flex-col items-center text-center"
+            >
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-red-500/15 to-red-500/25 border border-red-200/50 flex items-center justify-center mb-8 shadow-sm">
+                <AlertTriangle className="w-12 h-12 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-100 mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                Your Shop Is On Hold
+              </h2>
+              <p className="text-slate-300 text-sm max-w-lg leading-relaxed">
+                <span className="font-semibold text-slate-200">{shop?.name}</span>{" "}
+                has been placed on hold. New bookings are paused and dashboard
+                access is locked while the platform reviews the shop.
+                {shop?.hold_reason ? (
+                  <>
+                    {" "}Reason:{" "}
+                    <span className="font-semibold text-slate-200">
+                      {shop.hold_reason.replace(/_/g, " ").toLowerCase()}
+                    </span>.
+                  </>
+                ) : null}
+              </p>
+              <p className="mt-3 text-slate-400 text-[13px] max-w-lg leading-relaxed">
+                {shop?.legal_hold
+                  ? "A legal hold is active. The retention countdown is paused until the hold is lifted."
+                  : "Your data is retained for 45 days from the hold date so you can retrieve it. After that it will be exported securely and anonymized."}
+                {shop?.purge_scheduled_at ? (
+                  <>
+                    {" "}Scheduled purge date:{" "}
+                    <span className="font-semibold text-slate-200">
+                      {new Date(shop.purge_scheduled_at).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                    .
+                  </>
+                ) : null}
+              </p>
+              <p className="mt-6 text-slate-400 text-[13px] max-w-md leading-relaxed">
+                If you believe this is a mistake or need help retrieving your
+                data, contact MotoLink support.
+              </p>
+              <div className="mt-8 flex items-center gap-3 px-5 py-3 rounded-2xl bg-moto-gray/40 border border-moto-gray">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="text-sm font-medium text-slate-200">
+                  Status: {shop?.legal_hold ? "On Hold (Legal)" : "On Hold"}
+                </span>
+              </div>
+            </motion.div>
+          ) : isPurged ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="dashboard-card p-5 sm:p-8 lg:p-12 mb-6 flex flex-col items-center text-center"
+            >
+              <div className="w-24 h-24 rounded-3xl bg-moto-gray/40 border border-moto-gray flex items-center justify-center mb-8">
+                <Shield className="w-12 h-12 text-slate-400" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-100 mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                This Shop Has Been Closed
+              </h2>
+              <p className="text-slate-300 text-sm max-w-md leading-relaxed">
+                The shop's personal information has been anonymized and its
+                dashboard is no longer available. Contact MotoLink support if
+                you need assistance.
+              </p>
+            </motion.div>
+          ) : isPendingApproval || shopNotFound ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

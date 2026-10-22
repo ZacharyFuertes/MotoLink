@@ -5,7 +5,6 @@ import {
   Search,
   CheckCircle2,
   XCircle,
-  Trash2,
   X,
   MapPin,
   Mail,
@@ -15,12 +14,29 @@ import {
   AlertTriangle,
   Eye,
   Upload,
+  Lock,
+  CalendarClock,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import AdminShopReviewModal, {
   ReviewShop,
 } from "../components/AdminShopReviewModal";
 import AdminShopImportModal from "../components/AdminShopImportModal";
+import {
+  approveShop,
+  holdShop,
+  reactivateShop,
+  extendRetention,
+  toggleLegalHold,
+  purgeShopNow,
+  lifecycleError,
+} from "../services/adminShopLifecycle";
+import {
+  calcDaysRemaining,
+  isShopStatus,
+} from "../lib/shopLifecycle";
 
 interface AdminShopRow {
   id: string;
@@ -29,6 +45,11 @@ interface AdminShopRow {
   city: string;
   is_active: boolean;
   is_open: boolean;
+  status: "PENDING" | "ACTIVE" | "ON_HOLD" | "PURGED";
+  on_hold_at: string | null;
+  purge_scheduled_at: string | null;
+  legal_hold: boolean;
+  hold_reason: string | null;
   created_at: string;
   owner_id: string | null;
   owner_name: string;
@@ -46,7 +67,46 @@ interface ShopCustomer {
   created_at: string;
 }
 
-type FilterTab = "all" | "pending" | "active";
+type FilterTab = "all" | "pending" | "active" | "on_hold";
+
+interface HoldModalState {
+  shop: AdminShopRow;
+  reason: "TERMINATED" | "ARCHIVED";
+  note: string;
+}
+
+interface PurgeModalState {
+  shop: AdminShopRow;
+}
+
+interface ExtendModalState {
+  shop: AdminShopRow;
+  days: number;
+  reason: string;
+}
+
+interface LegalHoldModalState {
+  shop: AdminShopRow;
+  active: boolean;
+  reason: string;
+}
+
+const STATUS_BADGE: Record<AdminShopRow["status"], string> = {
+  PENDING: "bg-amber-500/15 text-amber-400",
+  ACTIVE: "bg-emerald-500/15 text-emerald-400",
+  ON_HOLD: "bg-red-500/15 text-red-400",
+  PURGED: "bg-slate-500/15 text-slate-400",
+};
+
+const STATUS_DOT: Record<AdminShopRow["status"], string> = {
+  PENDING: "bg-amber-400",
+  ACTIVE: "bg-emerald-400",
+  ON_HOLD: "bg-red-400",
+  PURGED: "bg-slate-500",
+};
+
+const statusLabel = (status: AdminShopRow["status"]) =>
+  status === "ON_HOLD" ? "On Hold" : status.charAt(0) + status.slice(1).toLowerCase();
 
 const AdminShopsPage: React.FC = () => {
   const [shops, setShops] = useState<AdminShopRow[]>([]);
@@ -54,15 +114,17 @@ const AdminShopsPage: React.FC = () => {
   const [filter, setFilter] = useState<FilterTab>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [actingId, setActingId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminShopRow | null>(null);
-  const [confirmationInput, setConfirmationInput] = useState("");
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [viewingShop, setViewingShop] = useState<AdminShopRow | null>(null);
   const [shopCustomers, setShopCustomers] = useState<ShopCustomer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(false);
   const [reviewingShop, setReviewingShop] = useState<AdminShopRow | null>(null);
   const [importingShops, setImportingShops] = useState(false);
+  const [holdTarget, setHoldTarget] = useState<HoldModalState | null>(null);
+  const [purgeTarget, setPurgeTarget] = useState<PurgeModalState | null>(null);
+  const [extendTarget, setExtendTarget] = useState<ExtendModalState | null>(null);
+  const [legalHoldTarget, setLegalHoldTarget] = useState<LegalHoldModalState | null>(null);
 
   const fetchShops = useCallback(async () => {
     setLoading(true);
@@ -80,7 +142,7 @@ const AdminShopsPage: React.FC = () => {
       let rawShopRows: any[];
       try {
         rawShopRows = await runQuery(
-          "id, name, slug, city, is_active, is_open, created_at, owner_id",
+          "id, name, slug, city, is_active, is_open, status, on_hold_at, purge_scheduled_at, legal_hold, hold_reason, created_at, owner_id",
         );
       } catch (err: any) {
         const message = err?.message || "";
@@ -88,12 +150,29 @@ const AdminShopsPage: React.FC = () => {
         if (
           code === 42703 ||
           (typeof message === "string" &&
-            /is_open/i.test(message) &&
+            /is_open|status|on_hold_at|purge_scheduled_at|legal_hold|hold_reason/i.test(message) &&
             /column|schema cache|not found|could not find/i.test(message))
         ) {
-          rawShopRows = await runQuery(
-            "id, name, slug, city, is_active, created_at, owner_id",
-          );
+          try {
+            rawShopRows = await runQuery(
+              "id, name, slug, city, is_active, status, on_hold_at, purge_scheduled_at, legal_hold, hold_reason, created_at, owner_id",
+            );
+          } catch (fallbackErr: any) {
+            const fallbackCode = fallbackErr?.code;
+            const fallbackMessage = fallbackErr?.message || "";
+            if (
+              fallbackCode === 42703 ||
+              (typeof fallbackMessage === "string" &&
+                /status|on_hold_at|purge_scheduled_at|legal_hold|hold_reason/i.test(fallbackMessage) &&
+                /column|schema cache|not found|could not find/i.test(fallbackMessage))
+            ) {
+              rawShopRows = await runQuery(
+                "id, name, slug, city, is_active, created_at, owner_id",
+              );
+            } else {
+              throw fallbackErr;
+            }
+          }
         } else {
           throw err;
         }
@@ -137,6 +216,11 @@ const AdminShopsPage: React.FC = () => {
       setShops(
         (rawShopRows || []).map((s: any) => {
           const owner = ownersById.get(s.owner_id);
+          const status = isShopStatus(s.status)
+            ? s.status
+            : s.is_active
+              ? "ACTIVE"
+              : "PENDING";
           return {
             id: s.id,
             name: s.name,
@@ -144,6 +228,11 @@ const AdminShopsPage: React.FC = () => {
             city: s.city,
             is_active: s.is_active,
             is_open: s.is_open !== false,
+            status,
+            on_hold_at: s.on_hold_at || null,
+            purge_scheduled_at: s.purge_scheduled_at || null,
+            legal_hold: s.legal_hold === true,
+            hold_reason: s.hold_reason || null,
             created_at: s.created_at,
             owner_id: s.owner_id,
             owner_name: owner?.name || "N/A",
@@ -176,21 +265,110 @@ const AdminShopsPage: React.FC = () => {
     };
   }, [fetchShops]);
 
-  const setShopActive = async (shop: AdminShopRow, is_active: boolean) => {
-    setActingId(shop.id);
+  const runAction = async (
+    shopId: string,
+    action: () => Promise<unknown>,
+    successMsg: string,
+  ): Promise<boolean> => {
+    setActingId(shopId);
     setError(null);
-    const { error: updateError } = await supabase
-      .from("shops")
-      .update({ is_active })
-      .eq("id", shop.id);
-    setActingId(null);
-    if (updateError) {
-      setError(updateError.message || "Failed to update shop");
-    } else {
-      setShops((prev) =>
-        prev.map((s) => (s.id === shop.id ? { ...s, is_active } : s)),
-      );
+    setSuccess(null);
+    try {
+      await action();
+      setSuccess(successMsg);
+      await fetchShops();
+      return true;
+    } catch (err) {
+      setError(lifecycleError(err));
+      return false;
+    } finally {
+      setActingId(null);
     }
+  };
+
+  const handleApprove = async (shop: AdminShopRow) => {
+    await runAction(shop.id, () => approveShop(shop.id), `${shop.name} approved and is now live.`);
+  };
+
+  const submitHold = async () => {
+    if (!holdTarget) return;
+    const ok = await runAction(
+      holdTarget.shop.id,
+      () => holdShop(holdTarget.shop.id, holdTarget.reason, holdTarget.note.trim()),
+      `${holdTarget.shop.name} placed on hold (${holdTarget.reason}). Data is retained for the retention window.`,
+    );
+    if (ok) {
+      void sendHoldNotification(holdTarget.shop.id);
+    }
+    setHoldTarget(null);
+  };
+
+  const sendHoldNotification = async (shopId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const accessToken = session?.session?.access_token;
+      if (!accessToken) return;
+      await fetch("/api/send-hold-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId, accessToken }),
+      });
+    } catch (err) {
+      console.warn("[AdminShopsPage] Hold notification email failed:", err);
+    }
+  };
+
+  const handleReactivate = async (shop: AdminShopRow) => {
+    await runAction(shop.id, () => reactivateShop(shop.id), `${shop.name} reactivated and accepting bookings.`);
+  };
+
+  const submitPurge = async () => {
+    if (!purgeTarget) return;
+    const ok = await runAction(
+      purgeTarget.shop.id,
+      () => purgeShopNow(purgeTarget.shop.id),
+      `${purgeTarget.shop.name} was purged — data exported (encrypted) and PII anonymized.`,
+    );
+    if (ok) setPurgeTarget(null);
+  };
+
+  const submitLegalHold = async () => {
+    if (!legalHoldTarget) return;
+    if (legalHoldTarget.active && !legalHoldTarget.reason.trim()) {
+      setError("A reason is required to place a legal hold.");
+      return;
+    }
+    const ok = await runAction(
+      legalHoldTarget.shop.id,
+      () =>
+        toggleLegalHold(
+          legalHoldTarget.shop.id,
+          legalHoldTarget.active,
+          legalHoldTarget.reason.trim(),
+        ),
+      legalHoldTarget.active
+        ? `Legal hold placed on ${legalHoldTarget.shop.name} — purge is blocked.`
+        : `Legal hold lifted on ${legalHoldTarget.shop.name}.`,
+    );
+    if (ok) setLegalHoldTarget(null);
+  };
+
+  const submitExtend = async () => {
+    if (!extendTarget) return;
+    if (!Number.isFinite(extendTarget.days) || extendTarget.days < 1) {
+      setError("Extension must be at least 1 day.");
+      return;
+    }
+    if (!extendTarget.reason.trim()) {
+      setError("A reason is required to extend retention.");
+      return;
+    }
+    const ok = await runAction(
+      extendTarget.shop.id,
+      () => extendRetention(extendTarget.shop.id, Math.floor(extendTarget.days), extendTarget.reason.trim()),
+      `Retention for ${extendTarget.shop.name} extended by ${Math.floor(extendTarget.days)} days.`,
+    );
+    if (ok) setExtendTarget(null);
   };
 
   const openShopCustomers = async (shop: AdminShopRow) => {
@@ -226,38 +404,10 @@ const AdminShopsPage: React.FC = () => {
     setReviewingShop(null);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    setError(null);
-    const { data: deletedRows, error: deleteError } = await supabase
-      .from("shops")
-      .delete()
-      .eq("id", deleteTarget.id)
-      .select("id");
-    setDeleting(false);
-    if (deleteError) {
-      setError(deleteError.message || "Failed to delete shop");
-      setDeleteTarget(null);
-      setConfirmationInput("");
-      return;
-    }
-    if (!deletedRows || deletedRows.length === 0) {
-      setError(
-        "Shop was not deleted. The admin DELETE permission is missing in the database.",
-      );
-      setDeleteTarget(null);
-      setConfirmationInput("");
-      return;
-    }
-    setShops((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-    setDeleteTarget(null);
-    setConfirmationInput("");
-  };
-
   const filteredShops = shops.filter((s) => {
-    if (filter === "pending") return !s.is_active;
-    if (filter === "active") return s.is_active;
+    if (filter === "pending") return s.status === "PENDING";
+    if (filter === "active") return s.status === "ACTIVE";
+    if (filter === "on_hold") return s.status === "ON_HOLD";
     return true;
   });
 
@@ -269,14 +419,21 @@ const AdminShopsPage: React.FC = () => {
       s.city.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const pendingCount = shops.filter((s) => !s.is_active).length;
-  const activeCount = shops.length - pendingCount;
+  const pendingCount = shops.filter((s) => s.status === "PENDING").length;
+  const activeCount = shops.filter((s) => s.status === "ACTIVE").length;
+  const onHoldCount = shops.filter((s) => s.status === "ON_HOLD").length;
 
   const tabs: { id: FilterTab; label: string; count: number }[] = [
     { id: "all", label: "All Shops", count: shops.length },
     { id: "pending", label: "Pending Approval", count: pendingCount },
     { id: "active", label: "Active Listings", count: activeCount },
+    { id: "on_hold", label: "On Hold", count: onHoldCount },
   ];
+
+  const daysUntilPurge = (shop: AdminShopRow): number | null => {
+    if (shop.status !== "ON_HOLD" || !shop.purge_scheduled_at) return null;
+    return calcDaysRemaining(new Date(shop.purge_scheduled_at), new Date());
+  };
 
   return (
     <div className="min-w-0 space-y-6">
@@ -295,6 +452,7 @@ const AdminShopsPage: React.FC = () => {
           </h1>
           <p className="text-[13px] text-slate-400 mt-1">
             Approve registered shops, manage listings, and view customer distribution.
+            On-hold shops are retained for a configurable window before their customer data is anonymized.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -306,6 +464,10 @@ const AdminShopsPage: React.FC = () => {
             <ShieldCheck className="w-4 h-4" />
             <span>{activeCount} Active</span>
           </div>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[13px] font-semibold">
+            <Lock className="w-4 h-4" />
+            <span>{onHoldCount} On Hold</span>
+          </div>
         </div>
       </motion.div>
 
@@ -316,8 +478,28 @@ const AdminShopsPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[13px] font-medium flex items-center justify-between"
         >
-          <span>{error}</span>
+          <span className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            {error}
+          </span>
           <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300">
+            <X className="w-4 h-4" />
+          </button>
+        </motion.div>
+      )}
+
+      {/* Success alert */}
+      {success && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-[13px] font-medium flex items-center justify-between"
+        >
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            {success}
+          </span>
+          <button onClick={() => setSuccess(null)} className="text-emerald-400 hover:text-emerald-300">
             <X className="w-4 h-4" />
           </button>
         </motion.div>
@@ -421,7 +603,7 @@ const AdminShopsPage: React.FC = () => {
                   <th className="text-center">Customers</th>
                   <th className="text-left">Registered</th>
                   <th className="text-center">Status</th>
-                  <th className="text-center">Availability</th>
+                  <th className="text-left">Retention</th>
                   <th className="text-right">Actions</th>
                 </tr>
               </thead>
@@ -432,9 +614,13 @@ const AdminShopsPage: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            shop.is_active
+                            shop.status === "ACTIVE"
                               ? "bg-emerald-500/10 text-emerald-400"
-                              : "bg-amber-500/10 text-amber-400"
+                              : shop.status === "ON_HOLD"
+                                ? "bg-red-500/10 text-red-400"
+                                : shop.status === "PURGED"
+                                  ? "bg-slate-500/10 text-slate-400"
+                                  : "bg-amber-500/10 text-amber-400"
                           }`}
                         >
                           <Store className="w-5 h-5" />
@@ -479,30 +665,49 @@ const AdminShopsPage: React.FC = () => {
                     <td className="text-center">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${
-                          shop.is_active
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-amber-500/15 text-amber-400"
+                          STATUS_BADGE[shop.status]
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${shop.is_active ? "bg-emerald-400" : "bg-amber-400"}`} />
-                        {shop.is_active ? "Active" : "Pending"}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold ${
-                          shop.is_open
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-amber-500/15 text-amber-400"
-                        }`}
-                        title={`Set by the shop owner. ${shop.is_open ? "Open, accepting bookings & orders" : "Closed, browse only"}`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${shop.is_open ? "bg-emerald-400" : "bg-amber-400"}`} />
-                        {shop.is_open ? "Open" : "Closed"}
+                        <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[shop.status]}`} />
+                        {statusLabel(shop.status)}
+                        {shop.legal_hold && (
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        )}
                       </span>
                     </td>
                     <td>
-                      <div className="flex items-center justify-end gap-2">
+                      {shop.status === "ON_HOLD" ? (
+                        <div className="flex flex-col gap-0.5 text-[12px]">
+                          <span
+                            className={`inline-flex items-center gap-1 font-bold ${
+                              shop.legal_hold
+                                ? "text-sky-400"
+                                : daysUntilPurge(shop) === 0
+                                  ? "text-red-400"
+                                  : "text-amber-400"
+                            }`}
+                          >
+                            <CalendarClock className="w-3.5 h-3.5" />
+                            {shop.legal_hold
+                              ? "Legal hold — purge blocked"
+                              : shop.purge_scheduled_at == null
+                                ? "Retained — no purge scheduled"
+                                : daysUntilPurge(shop) === 0
+                                  ? "Purge due"
+                                  : `${daysUntilPurge(shop)} day${daysUntilPurge(shop) === 1 ? "" : "s"} left`}
+                          </span>
+                          <span className="text-slate-500">
+                            {shop.purge_scheduled_at
+                              ? new Date(shop.purge_scheduled_at).toLocaleDateString()
+                              : "No schedule"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 text-xs">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
                         <button
                           onClick={() => openShopReview(shop)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-moto-accent/15 hover:bg-moto-accent/25 text-moto-accent text-[13px] font-bold transition disabled:opacity-50"
@@ -510,9 +715,10 @@ const AdminShopsPage: React.FC = () => {
                           <Eye className="w-4 h-4" />
                           Review
                         </button>
-                        {!shop.is_active && (
+
+                        {shop.status === "PENDING" && (
                           <button
-                            onClick={() => setShopActive(shop, true)}
+                            onClick={() => handleApprove(shop)}
                             disabled={actingId === shop.id}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-emerald-600/20"
                           >
@@ -524,24 +730,79 @@ const AdminShopsPage: React.FC = () => {
                             Approve
                           </button>
                         )}
-                        {shop.is_active && (
+
+                        {(shop.status === "PENDING" || shop.status === "ACTIVE") && (
                           <button
-                            onClick={() => setShopActive(shop, false)}
+                            onClick={() =>
+                              setHoldTarget({
+                                shop,
+                                reason: shop.status === "PENDING" ? "ARCHIVED" : "TERMINATED",
+                                note: "",
+                              })
+                            }
                             disabled={actingId === shop.id}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-400 text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-amber-500/10"
                           >
                             <XCircle className="w-4 h-4" />
-                            Deactivate
+                            {shop.status === "PENDING" ? "Archive" : "On Hold"}
                           </button>
                         )}
-                        <button
-                          onClick={() => setDeleteTarget(shop)}
-                          disabled={actingId === shop.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[13px] font-bold transition disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+
+                        {shop.status === "ON_HOLD" && (
+                          <>
+                            <button
+                              onClick={() => handleReactivate(shop)}
+                              disabled={actingId === shop.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-emerald-600/20"
+                            >
+                              {actingId === shop.id ? (
+                                <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                              Reactivate
+                            </button>
+                            <button
+                              onClick={() =>
+                                setExtendTarget({ shop, days: 30, reason: "" })
+                              }
+                              disabled={actingId === shop.id}
+                              title="Extend the retention window"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-[13px] font-bold transition disabled:opacity-50"
+                            >
+                              <CalendarClock className="w-4 h-4" />
+                              Extend
+                            </button>
+                            <button
+                              onClick={() => setPurgeTarget({ shop })}
+                              disabled={actingId === shop.id || shop.legal_hold}
+                              title={
+                                shop.legal_hold
+                                  ? "Purge is blocked by an active legal hold"
+                                  : "Export + anonymize this shop's data now"
+                              }
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500 hover:text-white text-red-400 text-[13px] font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Purge
+                            </button>
+                            <button
+                              onClick={() =>
+                                setLegalHoldTarget({
+                                  shop,
+                                  active: !shop.legal_hold,
+                                  reason: "",
+                                })
+                              }
+                              disabled={actingId === shop.id}
+                              title={shop.legal_hold ? "Lift the legal hold" : "Block purge with a legal hold"}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-[13px] font-bold transition disabled:opacity-50"
+                            >
+                              <Lock className="w-4 h-4" />
+                              {shop.legal_hold ? "Lift Hold" : "Legal"}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -572,20 +833,56 @@ const AdminShopsPage: React.FC = () => {
               owner_email: reviewingShop.owner_email,
               is_active: reviewingShop.is_active,
               is_open: reviewingShop.is_open,
+              status: reviewingShop.status,
+              legal_hold: reviewingShop.legal_hold,
+              purge_scheduled_at: reviewingShop.purge_scheduled_at,
+              hold_reason: reviewingShop.hold_reason,
               customer_count: reviewingShop.customer_count,
             }}
             onClose={closeShopReview}
             onApprove={(shop: ReviewShop) => {
               const row = shops.find((s) => s.id === shop.id);
               if (row) {
-                setShopActive(row, true);
+                handleApprove(row);
                 closeShopReview();
               }
             }}
-            onDeactivate={(shop: ReviewShop) => {
+            onHold={(shop: ReviewShop) => {
               const row = shops.find((s) => s.id === shop.id);
               if (row) {
-                setShopActive(row, false);
+                setHoldTarget({
+                  shop: row,
+                  reason: row.status === "PENDING" ? "ARCHIVED" : "TERMINATED",
+                  note: "",
+                });
+                closeShopReview();
+              }
+            }}
+            onReactivate={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                handleReactivate(row);
+                closeShopReview();
+              }
+            }}
+            onPurge={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setPurgeTarget({ shop: row });
+                closeShopReview();
+              }
+            }}
+            onExtend={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setExtendTarget({ shop: row, days: 30, reason: "" });
+                closeShopReview();
+              }
+            }}
+            onToggleLegalHold={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                setLegalHoldTarget({ shop: row, active: !row.legal_hold, reason: "" });
                 closeShopReview();
               }
             }}
@@ -593,13 +890,6 @@ const AdminShopsPage: React.FC = () => {
               const row = shops.find((s) => s.id === shop.id);
               if (row) {
                 openShopCustomers(row);
-                closeShopReview();
-              }
-            }}
-            onDelete={(shop: ReviewShop) => {
-              const row = shops.find((s) => s.id === shop.id);
-              if (row) {
-                setDeleteTarget(row);
                 closeShopReview();
               }
             }}
@@ -701,18 +991,324 @@ const AdminShopsPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Hold Shop Modal */}
       <AnimatePresence>
-        {deleteTarget && (
+        {holdTarget && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => {
-              setDeleteTarget(null);
-              setConfirmationInput("");
-            }}
+            onClick={() => setHoldTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                    <XCircle className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
+                    Place Shop on Hold
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setHoldTarget(null)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-amber-200 leading-relaxed">
+                    Holding{" "}
+                    <span className="font-bold">{holdTarget.shop.name}</span>{" "}
+                    immediately blocks new bookings and locks the owner out of the
+                    dashboard. The 45-day retention window starts now; an admin can
+                    extend it, place a legal hold, reactivate the shop, or purge early.
+                  </p>
+                </div>
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold">
+                  Reason
+                </label>
+                <select
+                  value={holdTarget.reason}
+                  onChange={(e) =>
+                    setHoldTarget({
+                      ...holdTarget,
+                      reason: e.target.value as "TERMINATED" | "ARCHIVED",
+                    })
+                  }
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition"
+                >
+                  <option value="TERMINATED">
+                    TERMINATED — subscription / payment not valid
+                  </option>
+                  <option value="ARCHIVED">ARCHIVED — soft deactivation</option>
+                </select>
+                {holdTarget.shop.status !== "PENDING" && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    TERMINATED is used when a shop is not paying its subscription. ARCHIVED is for
+                    soft deactivation.
+                  </p>
+                )}
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 mt-4 font-semibold">
+                  Note (optional)
+                </label>
+                <textarea
+                  value={holdTarget.note}
+                  onChange={(e) => setHoldTarget({ ...holdTarget, note: e.target.value })}
+                  rows={3}
+                  placeholder="Why is this shop being placed on hold?"
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder-text-slate-500"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setHoldTarget(null)}
+                  disabled={actingId === holdTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitHold}
+                  disabled={actingId === holdTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-amber-500/20"
+                >
+                  {actingId === holdTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <XCircle size={15} />
+                  )}
+                  Place on Hold
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Extend Retention Modal */}
+      <AnimatePresence>
+        {extendTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setExtendTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
+                    <CalendarClock className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
+                    Extend Retention
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setExtendTarget(null)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-3 mb-4">
+                  <CalendarClock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-amber-200 leading-relaxed">
+                    Add days to the scheduled purge date for{" "}
+                    <span className="font-bold">{extendTarget.shop.name}</span>. The current
+                    due date is{" "}
+                    {extendTarget.shop.purge_scheduled_at
+                      ? new Date(extendTarget.shop.purge_scheduled_at).toLocaleString()
+                      : "not scheduled"}.
+                  </p>
+                </div>
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold">
+                  Additional days
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={extendTarget.days}
+                  onChange={(e) =>
+                    setExtendTarget({ ...extendTarget, days: Number(e.target.value) })
+                  }
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition"
+                />
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 mt-4 font-semibold">
+                  Reason (required)
+                </label>
+                <textarea
+                  value={extendTarget.reason}
+                  onChange={(e) =>
+                    setExtendTarget({ ...extendTarget, reason: e.target.value })
+                  }
+                  rows={3}
+                  placeholder="e.g. Owner requested more time to retrieve their data"
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder:text-slate-500"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setExtendTarget(null)}
+                  disabled={actingId === extendTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitExtend}
+                  disabled={actingId === extendTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-amber-500/20"
+                >
+                  {actingId === extendTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <CalendarClock size={15} />
+                  )}
+                  Extend
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Legal Hold Modal */}
+      <AnimatePresence>
+        {legalHoldTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setLegalHoldTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-sky-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
+                    {legalHoldTarget.active ? "Place Legal Hold" : "Lift Legal Hold"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setLegalHoldTarget(null)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="p-4 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-start gap-3 mb-4">
+                  <ShieldCheck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-sky-200 leading-relaxed">
+                    {legalHoldTarget.active ? (
+                      <>
+                        A legal hold blocks any attempt to purge{" "}
+                        <span className="font-bold">{legalHoldTarget.shop.name}</span>{" "}
+                        including a manual purge and pauses the retention countdown
+                        until the hold is lifted.
+                      </>
+                    ) : (
+                      <>
+                        Lifting the legal hold resumes the purge window for{" "}
+                        <span className="font-bold">{legalHoldTarget.shop.name}</span>,
+                        shifted forward by the time the hold was active.
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                {legalHoldTarget.active && (
+                  <>
+                    <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold">
+                      Reason (required)
+                    </label>
+                    <textarea
+                      value={legalHoldTarget.reason}
+                      onChange={(e) =>
+                        setLegalHoldTarget({ ...legalHoldTarget, reason: e.target.value })
+                      }
+                      rows={3}
+                      placeholder="e.g. Open litigation / subpoena — evidence must be preserved"
+                      className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder:text-slate-500"
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setLegalHoldTarget(null)}
+                  disabled={actingId === legalHoldTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitLegalHold}
+                  disabled={actingId === legalHoldTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-sky-500/20"
+                >
+                  {actingId === legalHoldTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Lock size={15} />
+                  )}
+                  {legalHoldTarget.active ? "Place Legal Hold" : "Lift Legal Hold"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Purge Shop Modal */}
+      <AnimatePresence>
+        {purgeTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setPurgeTarget(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -724,76 +1320,57 @@ const AdminShopsPage: React.FC = () => {
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                    <Trash2 className="w-5 h-5 text-red-400" />
                   </div>
                   <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
-                    Delete Shop
+                    Purge Shop Data
                   </h3>
                 </div>
                 <button
-                  onClick={() => {
-                    setDeleteTarget(null);
-                    setConfirmationInput("");
-                  }}
+                  onClick={() => setPurgeTarget(null)}
                   className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="mb-6">
+              <div className="mb-5">
                 <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3 mb-4">
                   <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                  <p className="text-[13px] text-red-300 leading-relaxed">
-                    Deleting{" "}
-                    <span className="font-bold">{deleteTarget.name}</span>{" "}
-                    will permanently remove the shop and all associated data
-                    (inventory, services, appointments, job orders). This action cannot be undone.
+                  <p className="text-[13px] text-red-200 leading-relaxed">
+                    This is an irreversible action. All customer data for{" "}
+                    <span className="font-bold">{purgeTarget.shop.name}</span> will be
+                    exported as an encrypted archive, then customer PII is anonymized and the
+                    shop is permanently removed from MotoLink.
                   </p>
                 </div>
-
-                <p className="text-[13px] text-slate-300 mb-2">
-                  To confirm deletion, type{" "}
-                  <span className="font-mono font-bold text-moto-accent">
-                    DELETE
-                  </span>
+                <p className="text-[13px] text-slate-300 leading-relaxed">
+                  The encrypted archive is stored in Supabase Storage and can only be
+                  restored by a platform administrator with the{" "}
+                  <span className="font-semibold text-slate-200">EXPORT_ENCRYPTION_KEY</span>.
+                  A legal hold on this shop blocks purge entirely.
                 </p>
-                <input
-                  type="text"
-                  placeholder="Type DELETE to confirm"
-                  value={confirmationInput}
-                  onChange={(e) => setConfirmationInput(e.target.value)}
-                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none text-sm transition placeholder:text-slate-500"
-                />
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setDeleteTarget(null);
-                    setConfirmationInput("");
-                  }}
-                  disabled={deleting}
+                  onClick={() => setPurgeTarget(null)}
+                  disabled={actingId === purgeTarget.shop.id}
                   className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleDelete}
-                  disabled={deleting || confirmationInput !== "DELETE"}
-                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-red-600/20"
+                  onClick={submitPurge}
+                  disabled={actingId === purgeTarget.shop.id || purgeTarget.shop.legal_hold}
+                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-red-500/20"
                 >
-                  {deleting ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Deleting…
-                    </>
+                  {actingId === purgeTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <Trash2 size={15} />
-                      Delete Shop
-                    </>
+                    <Trash2 size={15} />
                   )}
+                  Purge Now
                 </button>
               </div>
             </motion.div>

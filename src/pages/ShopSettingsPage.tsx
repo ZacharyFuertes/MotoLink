@@ -413,7 +413,6 @@ const [loading, setLoading] = useState(true);
         phone: shop.phone || null,
         email: shop.email || null,
         operating_hours: operatingHours,
-        is_active: shop.is_active,
         online_payment_enabled: shop.online_payment_enabled,
         deposit_type: shop.deposit_type || "fixed",
         deposit_value: shop.deposit_value || 0,

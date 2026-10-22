@@ -16,14 +16,21 @@ export const distanceInKm = (origin: GeolocationCoordinates, shop: Shop) => {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
-const SHOP_CORE =
+const SHOP_CORE_BASE =
   "id, name, slug, logo_url, description, address, city, latitude, longitude, phone, email, operating_hours, is_active";
+const SHOP_LIFECYCLE_COLS =
+  "status, on_hold_at, purge_scheduled_at, legal_hold, legal_hold_at, legal_hold_reason, hold_reason, hold_note, purged_at, export_archive_ref";
+const SHOP_CORE = `${SHOP_CORE_BASE}, ${SHOP_LIFECYCLE_COLS}`;
 // Payment settings live on `shops` behind the 20261011 migration.
 const SHOP_PAYMENT_COLS = "online_payment_enabled, deposit_type, deposit_value";
 const SHOP_SELECT = `${SHOP_CORE}, is_open, ${SHOP_PAYMENT_COLS}`;
 const SHOP_SELECT_NO_PAYMENT = `${SHOP_CORE}, is_open`;
 const SHOP_SELECT_NO_IS_OPEN = `${SHOP_CORE}, ${SHOP_PAYMENT_COLS}`;
 const SHOP_SELECT_CORE = SHOP_CORE;
+const SHOP_SELECT_NO_LIFECYCLE = `${SHOP_CORE_BASE}, is_open, ${SHOP_PAYMENT_COLS}`;
+const SHOP_SELECT_NO_LIFECYCLE_NO_PAYMENT = `${SHOP_CORE_BASE}, is_open`;
+const SHOP_SELECT_NO_LIFECYCLE_NO_IS_OPEN = `${SHOP_CORE_BASE}, ${SHOP_PAYMENT_COLS}`;
+const SHOP_SELECT_NO_LIFECYCLE_CORE = SHOP_CORE_BASE;
 
 const isMissingColumn = (error: unknown): boolean => {
   const err = error as Record<string, unknown>;
@@ -49,22 +56,22 @@ type QueryResult<T = unknown> = { data: T; error: unknown };
 const runShopQuery = async <T>(
   buildQuery: (select: string) => PromiseLike<QueryResult<T>>,
 ): Promise<QueryResult<T>> => {
-  const first = await buildQuery(SHOP_SELECT);
-  if (!first.error) return first;
-  if (isMissingColumn(first.error)) {
-    const second = await buildQuery(SHOP_SELECT_NO_PAYMENT);
-    if (!second.error) return second;
-    if (isMissingColumn(second.error)) {
-      const third = await buildQuery(SHOP_SELECT_NO_IS_OPEN);
-      if (!third.error) return third;
-      if (isMissingColumn(third.error)) {
-        return await buildQuery(SHOP_SELECT_CORE);
-      }
-      return third;
-    }
-    return second;
+  const selects = [
+    SHOP_SELECT,
+    SHOP_SELECT_NO_PAYMENT,
+    SHOP_SELECT_NO_IS_OPEN,
+    SHOP_SELECT_CORE,
+    SHOP_SELECT_NO_LIFECYCLE,
+    SHOP_SELECT_NO_LIFECYCLE_NO_PAYMENT,
+    SHOP_SELECT_NO_LIFECYCLE_NO_IS_OPEN,
+    SHOP_SELECT_NO_LIFECYCLE_CORE,
+  ];
+  let result = await buildQuery(selects[0]);
+  for (let i = 1; i < selects.length; i += 1) {
+    if (!result.error || !isMissingColumn(result.error)) return result;
+    result = await buildQuery(selects[i]);
   }
-  return first;
+  return result;
 };
 
 // Parse operating_hours strings like "Sun: closed; Mon: 09:00-17:30; Tue: 09:00-17:30; ..."
@@ -215,7 +222,6 @@ export const updateShop = async (
       | "phone"
       | "email"
       | "operating_hours"
-      | "is_active"
       | "is_open"
       | "online_payment_enabled"
       | "deposit_type"
@@ -246,6 +252,9 @@ export const updateShop = async (
     { select: SHOP_SELECT, allowed: "all" },
     { select: SHOP_SELECT_NO_IS_OPEN, allowed: "payment" },
     { select: SHOP_SELECT_CORE, allowed: "core" },
+    { select: SHOP_SELECT_NO_LIFECYCLE, allowed: "all" },
+    { select: SHOP_SELECT_NO_LIFECYCLE_NO_IS_OPEN, allowed: "payment" },
+    { select: SHOP_SELECT_NO_LIFECYCLE_CORE, allowed: "core" },
   ];
 
   for (const a of attempts) {
@@ -273,12 +282,14 @@ export const updateShopAvailability = async (
   shopId: string,
   isOpen: boolean,
 ): Promise<Shop> => {
-  const { data, error } = (await supabase
-    .from("shops")
-    .update({ is_open: isOpen })
-    .eq("id", shopId)
-    .select(`${SHOP_CORE}, is_open`)
-    .single()) as QueryResult<unknown>;
+  const { data, error } = await runShopQuery<unknown>((select) =>
+    supabase
+      .from("shops")
+      .update({ is_open: isOpen })
+      .eq("id", shopId)
+      .select(select)
+      .single() as PromiseLike<QueryResult<unknown>>,
+  );
 
   if (error) {
     if (isMissingColumn(error)) {
