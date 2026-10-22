@@ -9,9 +9,12 @@ import {
   MapPin,
   Eye,
   EyeOff,
+  Mail,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { requestLoginCode, verifyLoginCode } from "../services/otpService";
 import InlineError from "../components/InlineError";
 import TermsModal from "../components/TermsModal";
 import TermsCheckbox from "../components/TermsCheckbox";
@@ -30,14 +33,17 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   onBack,
   initialIsSignup = false,
 }) => {
-  const { login, signup, user, isLoading } = useAuth();
+  const { signup, user, isLoading } = useAuth();
   const [isSignup, setIsSignup] = useState(initialIsSignup);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
-const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
   const [formData, setFormData] = useState(() => {
     // Restore the customer form after a reload (password is never saved).
     try {
@@ -145,7 +151,24 @@ const [showPassword, setShowPassword] = useState(false);
           },
         );
       } else {
-        await login(formData.email, formData.password);
+        // Validate the password server-side, then require the emailed OTP
+        // before creating a browser session.
+        const result = await requestLoginCode(
+          formData.email.trim(),
+          formData.password,
+        );
+        if (!result.success) {
+          setError(result.error || "Could not send the verification code.");
+          setLoading(false);
+          return;
+        }
+
+        setLoginMode("otp");
+        setOtpSent(true);
+        setOtpCode("");
+        setFormData((prev) => ({ ...prev, password: "" }));
+        setLoading(false);
+        return;
       }
 
       // Signal that login attempt has completed
@@ -179,6 +202,76 @@ const [showPassword, setShowPassword] = useState(false);
       }
 
       setError(errorMessage);
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Email OTP login — step 1: ask the server to email a 6-digit code.
+   */
+  const handleSendOtp = async () => {
+    setError("");
+
+    if (!formData.email.trim()) {
+      setError("Please enter your email address first.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await requestLoginCode(formData.email.trim());
+      if (!result.success) {
+        setError(result.error || "Could not send the verification code.");
+        setLoading(false);
+        return;
+      }
+      setOtpSent(true);
+      setOtpCode("");
+      setLoading(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not send the verification code.",
+      );
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Email OTP login — step 2: verify the code and establish the Supabase session.
+   */
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    const code = otpCode.trim();
+    if (!code) {
+      setError("Please enter the verification code from your email.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await verifyLoginCode(formData.email.trim(), code);
+      if (!result.success || !result.session) {
+        setError(result.error || "The code is invalid or has expired.");
+        setLoading(false);
+        return;
+      }
+
+      // Install the session — AuthContext picks it up via onAuthStateChange.
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.session.access_token,
+        refresh_token: result.session.refresh_token,
+      });
+
+      if (sessionError) throw sessionError;
+
+      setLoginAttempted(true);
+      setLoading(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Verification failed. Please try again.",
+      );
       setLoading(false);
     }
   };
@@ -297,7 +390,19 @@ const [showPassword, setShowPassword] = useState(false);
             <InlineError message={error} onClose={() => setError("")} />
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={
+                !isSignup && loginMode === "otp"
+                  ? otpSent
+                    ? handleOtpSubmit
+                    : (e) => {
+                        e.preventDefault();
+                        handleSendOtp();
+                      }
+                  : handleSubmit
+              }
+              className="space-y-4"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={isSignup ? "signup-fields" : "login-fields"}
@@ -336,41 +441,93 @@ const [showPassword, setShowPassword] = useState(false);
                         onChange={handleChange}
                         placeholder="Email"
                         required
-                        className={inputClass}
+                        readOnly={!isSignup && loginMode === "otp" && otpSent}
+                        className={`${inputClass} ${
+                          !isSignup && loginMode === "otp" && otpSent
+                            ? "opacity-70"
+                            : ""
+                        }`}
                       />
                     </div>
+                    {!isSignup && loginMode === "otp" && otpSent && (
+                      <p className="mt-1.5 ml-1 text-xs text-slate-500">
+                        We sent a 6-digit code to{" "}
+                        <span className="text-slate-300 font-semibold">
+                          {formData.email}
+                        </span>
+                        . It expires in 10 minutes.
+                      </p>
+                    )}
                   </div>
 
-                  {/* Password */}
-                  <div>
-                    <div className="relative">
-                      <Lock size={18} className={iconClass} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Password"
-                        required
-                        className={passwordInputClass}
-                      />
+                  {/* Password (login) OR Verification code (OTP login) */}
+                  {!isSignup && loginMode === "password" && (
+                    <div>
+                      <div className="relative">
+                        <Lock size={18} className={iconClass} />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          placeholder="Password"
+                          required
+                          className={passwordInputClass}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* OTP verification code (login only) */}
+                  {!isSignup && loginMode === "otp" && otpSent && (
+                    <div>
+                      <div className="relative">
+                        <KeyRound size={18} className={iconClass} />
+                        <input
+                          type="text"
+                          name="otpCode"
+                          value={otpCode}
+                          onChange={(e) =>
+                            setOtpCode(
+                              e.target.value.replace(/\D/g, "").slice(0, 6),
+                            )
+                          }
+                          placeholder="6-digit code"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          required
+                          className={passwordInputClass.replace(
+                            "pr-11",
+                            "pr-3 tracking-[0.5em] text-center font-mono text-lg",
+                          )}
+                        />
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                        title={showPassword ? "Hide password" : "Show password"}
+                        onClick={handleSendOtp}
+                        disabled={loading}
+                        className="mt-2 w-full text-xs font-semibold text-moto-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
+                        Resend code
                       </button>
                     </div>
-                  </div>
+                  )}
 
                   {/* Phone (Signup only) */}
                   {isSignup && (
@@ -447,7 +604,7 @@ const [showPassword, setShowPassword] = useState(false);
               </AnimatePresence>
 
               {/* Forgot Password (login only) */}
-              {!isSignup && (
+              {!isSignup && loginMode === "password" && (
                 <div className="flex justify-end -mt-1">
                   <a
                     href="#"
@@ -460,24 +617,64 @@ const [showPassword, setShowPassword] = useState(false);
               )}
 
 {/* Terms and Conditions agreement (signup and login) */}
-              <TermsCheckbox
-                checked={acceptedTerms}
-                onChange={setAcceptedTerms}
-                onOpenTerms={() => setTermsOpen(true)}
-                className="pt-1"
-              />
+              {!isSignup && loginMode === "otp" && otpSent ? null : (
+                <TermsCheckbox
+                  checked={acceptedTerms}
+                  onChange={setAcceptedTerms}
+                  onOpenTerms={() => setTermsOpen(true)}
+                  className="pt-1"
+                />
+              )}
 
               {/* Primary button */}
               <motion.button
                 type="submit"
-                disabled={loading || !acceptedTerms}
-                whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }}
-                whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }}
+                disabled={loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false)}
+                whileHover={{ scale: loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false) ? 1 : 1.02 }}
+                whileTap={{ scale: loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false) ? 1 : 0.98 }}
                 className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
-                {isSignup ? "Create Account" : "Login"}
+                {isSignup
+                  ? "Create Account"
+                  : loginMode === "otp"
+                    ? otpSent
+                      ? "Verify & Login"
+                      : "Send Verification Code"
+                    : "Login"}
               </motion.button>
+
+              {/* Switch between password login and email-code login */}
+              {!isSignup && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (loginMode === "password") {
+                      setLoginMode("otp");
+                      setOtpSent(false);
+                      setOtpCode("");
+                      setError("");
+                      setAcceptedTerms(true);
+                    } else {
+                      setLoginMode("password");
+                      setOtpSent(false);
+                      setOtpCode("");
+                      setError("");
+                    }
+                  }}
+                  className="w-full mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-moto-accent transition-colors"
+                >
+                  {loginMode === "password" ? (
+                    <>
+                      <Mail size={14} /> Login with email code instead
+                    </>
+                  ) : (
+                    <>
+                      <Lock size={14} /> Use password instead
+                    </>
+                  )}
+                </button>
+              )}
             </form>
 
             {/* Divider */}
@@ -500,6 +697,8 @@ const [showPassword, setShowPassword] = useState(false);
                     setError("");
                     setShowPassword(false);
                     setAcceptedTerms(false);
+                    setOtpSent(false);
+                    setOtpCode("");
                     setFormData({
                       email: "",
                       password: "",

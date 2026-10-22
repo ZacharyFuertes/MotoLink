@@ -4,9 +4,16 @@ import react from '@vitejs/plugin-react'
 const localEmailApi = {
   name: 'motolink-local-email-api',
   configureServer(server: any) {
+    const localApiRoutes: Record<string, string> = {
+      '/api/send-email': '/api/send-email.ts',
+      '/api/send-login-otp': '/api/send-login-otp.ts',
+      '/api/verify-login-otp': '/api/verify-login-otp.ts',
+    };
+
     server.middlewares.use(async (req: any, res: any, next: (error?: unknown) => void) => {
       const pathname = (req.url || '').split('?')[0];
-      if (pathname !== '/api/send-email' || req.method !== 'POST') {
+      const modulePath = localApiRoutes[pathname];
+      if (!modulePath) {
         next();
         return;
       }
@@ -16,7 +23,7 @@ const localEmailApi = {
         for await (const chunk of req) chunks.push(Buffer.from(chunk));
         req.body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
 
-        const { default: handler } = await server.ssrLoadModule('/api/send-email.ts');
+        const { default: handler } = await server.ssrLoadModule(modulePath);
         let statusCode = 200;
         const response = {
           status(code: number) {
@@ -35,11 +42,11 @@ const localEmailApi = {
         await handler(req, response);
       } catch (error) {
         server.ssrFixStacktrace(error as Error);
-        console.error('[local-email-api] Request failed:', error);
+        console.error(`[local-api] ${pathname} request failed:`, error);
         if (!res.headersSent) {
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.end(JSON.stringify({ success: false, error: 'Local email API failed. Check the Vite terminal for details.' }));
+          res.end(JSON.stringify({ success: false, error: 'Local API failed. Check the Vite terminal for details.' }));
         }
       }
     });
