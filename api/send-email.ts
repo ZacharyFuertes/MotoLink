@@ -12,12 +12,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import sgMail from "@sendgrid/mail";
-import {
-  isGmailConfigured,
-  sendBookingConfirmationEmail,
-  sendGmailEmail,
-  sendReadyForPickupEmail,
-} from "../src/services/gmailService";
+import nodemailer from "nodemailer";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
@@ -27,6 +22,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
+const GMAIL_USER = (process.env.GMAIL_USER || "").trim();
+const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 
 type EmailTemplate =
   | "booking-request-received"
@@ -338,7 +335,7 @@ export default async function handler(req: any, res: any) {
         "Email service not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing on the server.",
     });
   }
-  const gmailReady = isGmailConfigured();
+  const gmailReady = Boolean(GMAIL_USER && GMAIL_APP_PASS);
   const sendgridReady = Boolean(SENDGRID_API_KEY && FROM_EMAIL);
   if (!gmailReady && !sendgridReady) {
     return res.status(500).json({
@@ -549,51 +546,27 @@ export default async function handler(req: any, res: any) {
   });
   const text = buildText(ctx);
 
-  // Vehicle label: prefer the linked garage vehicle, else the vehicle text the
-  // booking/walk-in form stored before " - " in the description.
-  const vehicleLabel =
-    (ctx.vehicle
-      ? `${ctx.vehicle.make || ""} ${ctx.vehicle.model || ""}${ctx.vehicle.year ? ` (${ctx.vehicle.year})` : ""}`.trim()
-      : "") ||
-    (appointment.description || "").split(" - ")[0].trim() ||
-    undefined;
-
-  let sentSubject = subject;
   const via = gmailReady ? "gmail" : "sendgrid";
 
   try {
-    if (gmailReady && template === "booking-confirmation") {
-      const result = await sendBookingConfirmationEmail({
-        to: recipient.email,
-        customerName: ctx.customer?.name || "",
-        shopName: ctx.shop?.name || "MotoLink",
-        bookingId: ctx.bookingRef,
-        vehicle: vehicleLabel,
-        scheduledDate: ctx.scheduledDate,
-        scheduledTime: ctx.scheduledTime,
-        serviceType: ctx.serviceType,
+    if (gmailReady) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: {
+          user: GMAIL_USER,
+          pass: GMAIL_APP_PASS,
+        },
       });
-      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
-      sentSubject = result.subject || subject;
-    } else if (gmailReady && template === "service-completion") {
-      const result = await sendReadyForPickupEmail({
+      await transporter.sendMail({
+        from: `"${FROM_NAME}" <${GMAIL_USER}>`,
         to: recipient.email,
-        customerName: ctx.customer?.name,
-        shopName: ctx.shop?.name || "MotoLink",
-        bookingId: ctx.bookingRef,
-        vehicle: vehicleLabel,
-        totalAmount: ctx.totalAmount,
-        shopAddress: ctx.shop?.address
-          ? `${ctx.shop.address}${ctx.shop.city ? `, ${ctx.shop.city}` : ""}`
-          : undefined,
-        shopContact: ctx.shop?.phone || undefined,
+        subject,
+        html,
+        text,
       });
-      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
-      sentSubject = result.subject || subject;
-    } else if (gmailReady) {
-      const result = await sendGmailEmail({ to: recipient.email, subject, html, text });
-      if (!result.success) throw new Error(result.error || "Gmail SMTP send failed");
-      sentSubject = result.subject || subject;
     } else {
       sgMail.setApiKey(SENDGRID_API_KEY);
       await sgMail.send({
@@ -611,7 +584,7 @@ export default async function handler(req: any, res: any) {
       db,
       appointment.id,
       recipient.id,
-      sentSubject,
+      subject,
       `Email sent to ${recipient.email}`,
       "sent",
     );
@@ -619,7 +592,7 @@ export default async function handler(req: any, res: any) {
   } catch (err: any) {
     console.error(`[send-email] ${via} failure:`, err?.message || err);
     const message = `Email delivery failed: ${err?.message || "unknown error"}`;
-    await logAudit(db, appointment.id, recipient.id, sentSubject, message, "failed");
+    await logAudit(db, appointment.id, recipient.id, subject, message, "failed");
     return res.status(200).json({ success: false, error: message });
   }
 }
