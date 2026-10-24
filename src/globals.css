@@ -675,6 +675,15 @@ html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-active {
   background: rgba(53, 208, 192, 0.14);
   color: #0f766e;
 }
+html.light .sidebar-dark-violet:not(.keep-dark) [class*="text-white/"] {
+  color: #64748b;
+}
+html.light .sidebar-dark-violet:not(.keep-dark) [class*="hover:text-white/"]:hover {
+  color: #0f172a;
+}
+html.light .sidebar-dark-violet:not(.keep-dark) [class*="border-white/"] {
+  border-color: #cde0ea;
+}
 html.light .dashboard-card,
 html.light .stat-card {
   background: #f4fafc;

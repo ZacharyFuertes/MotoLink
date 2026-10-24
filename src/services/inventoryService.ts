@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import { Part } from '../types'
+import { notifyOwnerIfStockBecameLow } from './lowStockNotificationService'
 
 /**
  * Inventory Service
@@ -80,6 +81,9 @@ export const inventoryService = {
 
       if (error) throw error
       console.log('✅ Part created:', data)
+      if (data) {
+        void notifyOwnerIfStockBecameLow(null, data)
+      }
       return data || null
     } catch (err) {
       console.error('Error creating part:', err)
@@ -102,7 +106,11 @@ export const inventoryService = {
 
       if (error) throw error
       console.log('✅ Parts imported:', (data || []).length)
-      return data || []
+      const importedParts = data || []
+      importedParts.forEach((part) => {
+        void notifyOwnerIfStockBecameLow(null, part)
+      })
+      return importedParts
     } catch (err) {
       console.error('Error bulk creating parts:', err)
       return []
@@ -114,6 +122,7 @@ export const inventoryService = {
    */
   async updatePart(partId: string, updates: Partial<Part>): Promise<Part | null> {
     try {
+      const previous = await this.getPartById(partId)
       const { data, error } = await supabase
         .from('parts')
         .update(updates)
@@ -123,6 +132,9 @@ export const inventoryService = {
 
       if (error) throw error
       console.log('✅ Part updated:', data)
+      if (previous && data) {
+        void notifyOwnerIfStockBecameLow(previous, data)
+      }
       return data || null
     } catch (err) {
       console.error('Error updating part:', err)
@@ -135,12 +147,18 @@ export const inventoryService = {
    */
   async updatePartStock(partId: string, quantity: number): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const previous = await this.getPartById(partId)
+      const { data, error } = await supabase
         .from('parts')
         .update({ quantity_in_stock: quantity })
         .eq('id', partId)
+        .select('*')
+        .single()
 
       if (error) throw error
+      if (previous && data) {
+        void notifyOwnerIfStockBecameLow(previous, data)
+      }
       console.log('✅ Part stock updated')
       return true
     } catch (err) {

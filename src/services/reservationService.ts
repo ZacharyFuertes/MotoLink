@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { notifyOwnerIfStockBecameLow } from "./lowStockNotificationService";
 
 export type ReservationStatus =
   | "pending"
@@ -20,6 +21,7 @@ export interface Reservation {
     name: string;
     unit_price: number;
     quantity_in_stock: number;
+    reorder_level: number;
     shop_id: string;
   } | null;
   customer?: {
@@ -74,7 +76,7 @@ export const reservationService = {
   async getMyReservations(customerId: string): Promise<Reservation[]> {
     const { data, error } = await supabase
       .from("reservations")
-      .select("*, parts(id, name, unit_price, quantity_in_stock, shop_id)")
+      .select("*, parts(id, name, unit_price, quantity_in_stock, reorder_level, shop_id)")
       .eq("customer_id", customerId)
       .order("created_at", { ascending: false });
 
@@ -91,7 +93,7 @@ export const reservationService = {
     const { data, error } = await supabase
       .from("reservations")
       .select(
-        "*, parts(id, name, unit_price, quantity_in_stock, shop_id), customer:users(id, name, email, phone)",
+        "*, parts(id, name, unit_price, quantity_in_stock, reorder_level, shop_id), customer:users(id, name, email, phone)",
       )
       .eq("shop_id", shopId)
       .order("created_at", { ascending: false });
@@ -143,6 +145,19 @@ export const reservationService = {
       console.error("Error deducting stock for reservation:", stockError);
       return false;
     }
+
+    void notifyOwnerIfStockBecameLow(
+      {
+        id: part.id,
+        quantity_in_stock: part.quantity_in_stock,
+        reorder_level: Number(part.reorder_level) || 0,
+      },
+      {
+        id: part.id,
+        quantity_in_stock: newQty,
+        reorder_level: Number(part.reorder_level) || 0,
+      },
+    );
 
     return this.updateStatus(reservation.id, "fulfilled");
   },

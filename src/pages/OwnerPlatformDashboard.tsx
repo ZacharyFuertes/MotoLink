@@ -175,7 +175,12 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     setNotificationsOpen(false);
 
     // Direct the owner to the page that matches the notification.
-    const target = notification.appointment_id ? "appointments" : "dashboard";
+    const target =
+      notification.type === "low_stock"
+        ? "low-stock"
+        : notification.appointment_id
+          ? "appointments"
+          : "dashboard";
     onNavigate?.(target);
   };
 
@@ -251,9 +256,6 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     );
   }
 
-  const currentLabel =
-    sidebarItems.find((i) => i.id === currentPage)?.label || "Dashboard";
-
   /* ─── Sidebar content (shared between desktop + mobile) ─── */
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <>
@@ -295,7 +297,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="mx-4 border-t border-white/[0.06]" />
 
       {/* Nav items */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="min-h-0 flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const Icon = item.icon;
           const isActive = (currentPage || "dashboard") === item.id;
@@ -325,7 +327,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-white/[0.06]">
+      <div className="shrink-0 px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center text-white text-[13px] font-bold shadow-lg">
@@ -363,7 +365,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     <div className="min-h-screen bg-[#14131A] flex text-[#F3F1F7]">
       {/* Desktop Sidebar */}
       <aside
-        className={`keep-dark hidden lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
+        className={`sticky top-0 hidden h-screen shrink-0 lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
           sidebarCollapsed ? "w-20" : "w-[260px]"
         }`}
       >
@@ -386,7 +388,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="keep-dark fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
             >
               <SidebarContent isMobile />
             </motion.aside>
@@ -405,32 +407,22 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="min-w-0">
-              <h1 className="truncate text-lg sm:text-xl font-bold text-slate-100 tracking-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                {currentLabel}
-              </h1>
-              {isLocked && (
-                <span className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${
-                  isOnHold || isPurged ? "text-red-400" : "text-amber-400"
-                }`}>
-                  {isOnHold || isPurged ? (
-                    <AlertTriangle className="w-4 h-4" />
-                  ) : (
-                    <Clock className="w-4 h-4" />
-                  )}
-                  {isPurged
-                    ? "Shop Closed"
-                    : isOnHold
-                      ? "On Hold"
-                      : "Pending Approval"}
-                </span>
-              )}
-              {!isLocked && (
-                <p className="text-sm text-slate-400 font-medium hidden sm:block">
-                  {shop?.name || "Shop management"}
-                </p>
-              )}
-            </div>
+            {isLocked && (
+              <span className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${
+                isOnHold || isPurged ? "text-red-400" : "text-amber-400"
+              }`}>
+                {isOnHold || isPurged ? (
+                  <AlertTriangle className="w-4 h-4" />
+                ) : (
+                  <Clock className="w-4 h-4" />
+                )}
+                {isPurged
+                  ? "Shop Closed"
+                  : isOnHold
+                    ? "On Hold"
+                    : "Pending Approval"}
+              </span>
+            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
@@ -555,21 +547,6 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   </>
                 )}
               </AnimatePresence>
-            </div>
-            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-moto-gray/60">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-moto-accent to-moto-accent-dark flex items-center justify-center shadow-sm">
-                <span className="text-slate-950 font-semibold text-[13px]">
-                  {user?.name?.charAt(0)?.toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <p className="text-[15px] font-semibold text-slate-100 leading-none">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {getRoleLabel(user.role)}
-                </p>
-              </div>
             </div>
           </div>
         </header>
@@ -866,7 +843,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                         </p>
                         <div className="flex min-w-0 items-start gap-2 text-[13px] text-slate-300 mt-1">
                           <MapPin className="w-4 h-4 shrink-0 text-slate-300 mt-0.5" />
-                          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                          <span className="min-w-0 [overflow-wrap:anywhere]">
                             {[shop.address, shop.city].filter(Boolean).join(", ") ||
                               "No address set"}
                           </span>

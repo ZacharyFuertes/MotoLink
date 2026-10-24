@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   FileText,
   RefreshCw,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
@@ -424,16 +425,19 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     return sorted;
   }, [parts, filters]);
 
-  const categories = Array.from(new Set(parts.map((p) => p.category)));
+  const inventoryCategories = Array.from(new Set(parts.map((p) => p.category).filter(Boolean)));
   const isOwner = canManageInventory();
 
-  // Summary statistics
-  const totalValue = useMemo(
-    () => parts.reduce((sum, p) => sum + p.unit_price * p.quantity_in_stock, 0),
-    [parts],
-  );
   const lowStockCount = useMemo(
     () => parts.filter((p) => p.quantity_in_stock <= p.reorder_level).length,
+    [parts],
+  );
+  const outOfStockCount = useMemo(
+    () => parts.filter((p) => p.quantity_in_stock <= 0).length,
+    [parts],
+  );
+  const inventoryValue = useMemo(
+    () => parts.reduce((sum, part) => sum + Number(part.unit_price || 0) * Number(part.quantity_in_stock || 0), 0),
     [parts],
   );
 
@@ -745,306 +749,100 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
+    <div className="-m-3 flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-moto-darker sm:-m-4 lg:-m-8">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-moto-gray px-4 py-5 sm:px-7">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-            Inventory Management
-          </h1>
-          <p className="text-[13px] text-slate-300 mt-0.5">
-            {isOwner ? "Manage parts catalog, track stock levels, and set reorder alerts." : "View shop parts catalog."}
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-moto-light">Inventory Management</h1>
+          <p className="mt-1 text-[13px] text-moto-muted">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isOwner && (
-            <button
-              onClick={openImport}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition"
-            >
-              <Upload className="w-4 h-4" />
-              Import CSV
-            </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {isOwner && <button onClick={openImport} className="inline-flex items-center gap-2 rounded-lg border border-moto-gray px-3 py-2 text-xs font-semibold text-moto-light transition hover:bg-moto-gray/30"><Upload size={14} /> Import CSV</button>}
+          <button onClick={handleExportCSV} className="inline-flex items-center gap-2 rounded-lg border border-moto-gray px-3 py-2 text-xs font-semibold text-moto-light transition hover:bg-moto-gray/30"><Download size={14} /> Export</button>
+          {isOwner && <button onClick={() => { resetForm(); setShowAddForm(true); }} className="inline-flex items-center gap-2 rounded-lg bg-moto-accent px-3.5 py-2 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark"><Plus size={15} /> Add item</button>}
+        </div>
+      </header>
+
+      {!isOwner && <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-500 sm:px-6"><Lock size={15} /> Read-only inventory. Only shop owners can manage items.</div>}
+
+      <section className="grid grid-cols-2 gap-4 border-b border-moto-gray px-4 py-5 sm:grid-cols-4 sm:px-7">
+        {[
+          { label: "Total Items", value: parts.length, icon: Package, tone: "text-moto-accent bg-moto-accent/10" },
+          { label: "Low Stock Items", value: lowStockCount, icon: AlertTriangle, tone: "text-amber-500 bg-amber-500/10" },
+          { label: "Out of Stock", value: outOfStockCount, icon: AlertCircle, tone: "text-red-500 bg-red-500/10" },
+          { label: "Inventory Value", value: `₱${inventoryValue.toLocaleString()}`, icon: TrendingUp, tone: "text-emerald-500 bg-emerald-500/10" },
+        ].map(({ label, value, icon: Icon, tone }) => (
+          <div key={label} className="rounded-xl border border-moto-gray bg-moto-darker p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${tone}`}><Icon size={18} /></span>
+              <span className="text-xs font-medium text-moto-muted">{label}</span>
+            </div>
+            <p className="mt-3 text-2xl font-bold tabular-nums text-moto-light">{value}</p>
+          </div>
+        ))}
+      </section>
+
+      <main className="min-h-0 flex-1 overflow-y-auto bg-moto-dark/60 p-3 sm:p-5">
+        <section className="overflow-hidden rounded-xl border border-moto-gray bg-moto-darker">
+          <div className="flex flex-col gap-3 border-b border-moto-gray px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h2 className="text-base font-bold text-moto-light">Inventory Overview</h2>
+              <p className="mt-1 text-xs text-moto-muted">{filteredParts.length} of {parts.length} items</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[180px] flex-1 sm:flex-none">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-moto-muted" />
+                <input type="search" placeholder="Search item..." value={filters.searchTerm} onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })} className="w-full rounded-lg border border-moto-gray bg-moto-dark py-2 pl-9 pr-3 text-xs text-moto-light placeholder:text-moto-muted outline-none focus:border-moto-accent sm:w-52" />
+              </div>
+              <select value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as SortOption })} className="rounded-lg border border-moto-gray bg-moto-dark px-3 py-2 text-xs text-moto-light outline-none focus:border-moto-accent" aria-label="Sort inventory">
+                <option value="name">Name A–Z</option><option value="price-high">Price high to low</option><option value="price-low">Price low to high</option><option value="stock-low">Stock low to high</option><option value="popularity">Popularity</option>
+              </select>
+              <button type="button" onClick={fetchParts} className="rounded-lg border border-moto-gray p-2 text-moto-muted hover:bg-moto-gray/30 hover:text-moto-light" title="Refresh"><RefreshCw size={15} /></button>
+            </div>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto border-b border-moto-gray px-4 py-3.5 sm:px-6">
+            {["all", ...inventoryCategories].map((category) => {
+              const active = category === "all" ? !filters.category : filters.category === category;
+              return <button key={category} type="button" onClick={() => setFilters({ ...filters, category: category === "all" ? undefined : category })} className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${active ? "border-moto-accent bg-moto-accent text-slate-950" : "border-moto-gray text-moto-muted hover:border-moto-accent hover:text-moto-accent"}`}>{category === "all" ? "All items" : category.charAt(0).toUpperCase() + category.slice(1)}</button>;
+            })}
+            <button type="button" onClick={() => setFilters({ ...filters, showLowStock: !filters.showLowStock })} className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${filters.showLowStock ? "border-red-500 bg-red-500 text-white" : "border-moto-gray text-moto-muted hover:border-red-400 hover:text-red-500"}`}>Low stock</button>
+          </div>
+
+          {filteredParts.length === 0 ? (
+            <div className="flex min-h-56 flex-col items-center justify-center text-center"><Package className="mb-3 h-10 w-10 text-moto-muted" /><p className="text-sm font-semibold text-moto-light">No inventory items found</p><p className="mt-1 text-xs text-moto-muted">Try a different search or category.</p></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead className="bg-moto-dark/70 text-[10px] uppercase tracking-wider text-moto-muted">
+                  <tr><th className="px-4 py-4 text-[11px] font-semibold">Item name</th><th className="px-3 py-4 text-[11px] font-semibold">SKU / Category</th><th className="px-3 py-4 text-[11px] font-semibold">Unit price</th><th className="px-3 py-4 text-[11px] font-semibold">Quantity</th><th className="px-3 py-4 text-[11px] font-semibold">Status</th><th className="px-4 py-4 text-right text-[11px] font-semibold">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-moto-gray/70">
+                  {filteredParts.map((part) => {
+                    const isOut = part.quantity_in_stock <= 0;
+                    const isLow = !isOut && part.quantity_in_stock <= part.reorder_level;
+                    const statusClass = isOut ? "bg-red-500/10 text-red-500" : isLow ? "bg-amber-500/10 text-amber-500" : "bg-emerald-500/10 text-emerald-500";
+                    return <tr key={part.id} className="transition hover:bg-moto-dark/40">
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-moto-dark">
+                            {part.image_url ? <img src={part.image_url} alt="" className="h-full w-full object-contain" /> : <Package size={19} className="text-moto-muted" />}
+                          </div>
+                          <div className="min-w-0"><p className="max-w-[260px] truncate text-[13px] font-semibold text-moto-light" title={part.name}>{part.name}</p><p className="mt-1 max-w-[260px] truncate text-[11px] text-moto-muted">{part.description || "Inventory item"}</p></div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-4"><p className="text-xs text-moto-light">{part.sku || "—"}</p><p className="mt-1 text-[11px] capitalize text-moto-muted">{part.category || "Other"}</p></td>
+                      <td className="px-3 py-4 text-[13px] font-semibold tabular-nums text-moto-light">₱{Number(part.unit_price).toLocaleString()}</td>
+                      <td className="px-3 py-4"><p className="text-[13px] font-semibold tabular-nums text-moto-light">{part.quantity_in_stock}</p><p className="mt-1 text-[11px] text-moto-muted">Reorder at {part.reorder_level}</p></td>
+                      <td className="px-3 py-4"><span className={`inline-flex rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${statusClass}`}>{isOut ? "Out of stock" : isLow ? "Low stock" : "In stock"}</span></td>
+                      <td className="px-4 py-4"><div className="flex justify-end gap-1.5">{isOwner && <><button type="button" onClick={() => openEditForm(part)} className="rounded-lg p-2 text-moto-muted hover:bg-moto-accent/10 hover:text-moto-accent" title="Edit item" aria-label={`Edit ${part.name}`}><Edit2 size={16} /></button><button type="button" onClick={() => { setSelectedPart(part); setShowDeleteConfirm(true); }} className="rounded-lg p-2 text-moto-muted hover:bg-red-500/10 hover:text-red-500" title="Delete item" aria-label={`Delete ${part.name}`}><Trash2 size={16} /></button></>}</div></td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold transition"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-          {isOwner && (
-            <button
-              onClick={() => {
-                resetForm();
-                setShowAddForm(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
-            >
-              <Plus className="w-4 h-4" />
-              Add Part
-            </button>
-          )}
-        </div>
-      </motion.div>
-
-      {/* Read-Only Warning */}
-      {!isOwner && (
-        <div className="p-4 bg-amber-500/15 border border-amber-500/25 rounded-xl text-amber-400 text-[13px] font-medium flex items-center gap-3">
-          <Lock className="w-5 h-5 text-amber-400 shrink-0" />
-          <span>You are in read-only mode. Only shop owners can add or edit inventory items.</span>
-        </div>
-      )}
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#35D0C0" } as React.CSSProperties}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-slate-300">Total Items</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">{parts.length}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#10b981" } as React.CSSProperties}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-              <span className="text-lg font-black leading-none">₱</span>
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-slate-300">Total Inventory Value</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">₱{totalValue.toLocaleString()}</p>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#ef4444" } as React.CSSProperties}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-slate-300">Low Stock Alerts</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">{lowStockCount}</p>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Filters Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="dashboard-card p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
-      >
-        <div className="flex-1 w-full relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-          <input
-            type="text"
-            placeholder="Search by part name or SKU..."
-            value={filters.searchTerm}
-            onChange={(e) =>
-              setFilters({ ...filters, searchTerm: e.target.value })
-            }
-            className="w-full pl-10 pr-4 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <select
-            value={filters.category || ""}
-            onChange={(e) =>
-              setFilters({ ...filters, category: e.target.value || undefined })
-            }
-            className="px-3.5 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-medium text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filters.sortBy}
-            onChange={(e) =>
-              setFilters({ ...filters, sortBy: e.target.value as SortOption })
-            }
-            className="px-3.5 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-medium text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
-          >
-            <option value="name">Name A–Z</option>
-            <option value="price-high">Price: High → Low</option>
-            <option value="price-low">Price: Low → High</option>
-            <option value="stock-low">Stock: Low → High</option>
-            <option value="popularity">Popularity</option>
-          </select>
-
-          <button
-            onClick={() =>
-              setFilters({ ...filters, showLowStock: !filters.showLowStock })
-            }
-            className={`px-3.5 py-2 rounded-xl text-[13px] font-bold transition-all ${
-              filters.showLowStock
-                ? "bg-red-500/15 text-red-400 border border-red-500/25"
-                : "bg-moto-darker text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
-            }`}
-          >
-            Low Stock Only
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Parts Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        <AnimatePresence>
-          {filteredParts.map((part, index) => {
-            const isLowStock = part.quantity_in_stock <= part.reorder_level;
-            return (
-              <motion.div
-                key={part.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: index * 0.04 }}
-                className="dashboard-card overflow-hidden flex flex-col"
-              >
-                {/* Image Frame */}
-                <div className="relative aspect-[16/10] bg-moto-gray/40 border-b border-moto-gray overflow-hidden">
-                  {part.image_url ? (
-                    <img
-                      src={part.image_url}
-                      alt={part.name}
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-moto-dark to-moto-gray/40">
-                      <Package className="w-10 h-10 text-slate-600" />
-                    </div>
-                  )}
-                  {/* Badges */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-1.5">
-                    {isLowStock && (
-                      <span className="bg-red-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
-                        <AlertCircle size={12} /> Low Stock
-                      </span>
-                    )}
-                  </div>
-                  <div className="absolute bottom-3 left-3">
-                    <span className="bg-moto-dark/90 backdrop-blur-sm text-slate-200 text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm border border-moto-gray capitalize">
-                      {part.category}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="font-bold text-slate-100 text-base truncate mb-0.5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                    {part.name}
-                  </h3>
-                  <p className="text-xs text-slate-400 font-mono mb-3">
-                    SKU: {part.sku}
-                  </p>
-
-                  {part.description && (
-                    <p className="text-slate-400 text-[13px] leading-relaxed line-clamp-2 mb-4">
-                      {part.description}
-                    </p>
-                  )}
-
-                  {/* Stock Bar */}
-                  <div className="mt-auto pt-3 border-t border-moto-gray">
-                    <div className="flex items-center justify-between text-[13px] mb-1.5">
-                      <span className="text-slate-400 font-medium">Stock Status</span>
-                      <span
-                        className={`font-bold tabular-nums ${
-                          isLowStock ? "text-red-400" : "text-emerald-400"
-                        }`}
-                      >
-                        {part.quantity_in_stock} units
-                      </span>
-                    </div>
-                    <div className="w-full bg-moto-gray/40 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-1.5 rounded-full transition-all ${
-                          isLowStock ? "bg-red-500" : "bg-emerald-500"
-                        }`}
-                        style={{
-                          width: `${Math.min((part.quantity_in_stock / Math.max(part.reorder_level * 3, 1)) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price & Actions */}
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-moto-gray">
-                    <span className="text-xl font-extrabold text-slate-100 tabular-nums">
-                      ₱{part.unit_price.toLocaleString()}
-                    </span>
-                    {isOwner && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => openEditForm(part)}
-                          className="p-2 rounded-lg hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition"
-                          title="Edit part"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedPart(part);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="p-2 rounded-lg hover:bg-red-500/15 text-slate-300 hover:text-red-400 transition"
-                          title="Delete part"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
-
-      {/* Empty State */}
-      {filteredParts.length === 0 && (
-        <div className="dashboard-card p-16 text-center">
-          <Package className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-          <p className="text-slate-300 text-sm font-semibold">
-            No parts found matching your filters
-          </p>
-        </div>
-      )}
+        </section>
+      </main>
 
       {/* Add Part Modal */}
       <AnimatePresence>

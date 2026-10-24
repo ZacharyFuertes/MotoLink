@@ -35,6 +35,7 @@ import {
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
+import { notifyOwnerIfStockBecameLow } from "../services/lowStockNotificationService";
 
 // ─── Scroll-reveal / stagger presets matching the landing page ───────────────
 const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
@@ -231,7 +232,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
           for (const part of parts) {
             const { data: partData } = await supabase
               .from("parts")
-              .select("name, quantity_in_stock, unit_price")
+              .select("id, name, quantity_in_stock, reorder_level, unit_price")
               .eq("id", part.part_id)
               .single();
 
@@ -240,13 +241,19 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 0,
                 partData.quantity_in_stock - part.quantity,
               );
-              await supabase
+              const { error: stockUpdateError } = await supabase
                 .from("parts")
                 .update({
                   quantity_in_stock: newQty,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", part.part_id);
+              if (stockUpdateError) throw stockUpdateError;
+              void notifyOwnerIfStockBecameLow(partData, {
+                id: partData.id,
+                quantity_in_stock: newQty,
+                reorder_level: partData.reorder_level,
+              });
             }
           }
 
