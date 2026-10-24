@@ -4,9 +4,7 @@ import {
   Search,
   Package,
   ShoppingBag,
-  XCircle,
   TrendingUp,
-  Hash,
   X,
   CheckCircle2,
   RefreshCw,
@@ -311,27 +309,6 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
       alert("Failed to adjust stock.");
     } finally {
       setAdjusting(false);
-    }
-  };
-
-  const handleMarkSoldOut = async (part: Part) => {
-    if (!confirm(`Mark "${part.name}" as SOLD OUT? This will set stock to 0.`)) return;
-
-    try {
-      const { error } = await supabase
-        .from("parts")
-        .update({ quantity_in_stock: 0 })
-        .eq("id", part.id);
-
-      if (error) throw error;
-      void notifyOwnerIfStockBecameLow(part, {
-        id: part.id,
-        quantity_in_stock: 0,
-        reorder_level: part.reorder_level,
-      });
-      await fetchParts();
-    } catch (err) {
-      console.error("Error marking sold out:", err);
     }
   };
 
