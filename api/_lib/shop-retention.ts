@@ -1,6 +1,6 @@
 /**
- * Shared helpers for the shop-retention cron functions (/api/shop-purge,
- * /api/shop-reminders, /api/send-hold-notify).
+ * Shared helpers for the shop-retention cron route (/api/shop-retention) and
+ * admin-triggered hold notification endpoint (/api/send-hold-notify).
  *
  * Files whose path starts with `_` are NOT deployed as Vercel serverless
  * routes; they exist only as importable modules.

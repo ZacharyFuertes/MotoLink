@@ -30,10 +30,14 @@ jobs:
 
       - name: Send retention reminders (44/40/30-day and final notice)
         run: |
-          curl -fsS -X POST "${{ secrets.VERCEL_PROJECT_URL }}/api/shop-reminders" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+          curl -fsS -X POST "${{ secrets.VERCEL_PROJECT_URL }}/api/shop-retention" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"reminders"}'
 
       - name: Purge retention-due shops (encrypted export + anonymize)
         run: |
-          curl -fsS -X POST "${{ secrets.VERCEL_PROJECT_URL }}/api/shop-purge" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+          curl -fsS -X POST "${{ secrets.VERCEL_PROJECT_URL }}/api/shop-retention" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"purge"}'
