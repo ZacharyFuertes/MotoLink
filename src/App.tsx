@@ -215,6 +215,14 @@ const AppContent: React.FC = () => {
     const wasAuthenticated = wasAuthenticatedRef.current;
     wasAuthenticatedRef.current = isAuthenticated;
     if (wasAuthenticated && !isAuthenticated) {
+      // Customer signup intentionally signs out its temporary Supabase session
+      // while the user enters the email OTP. Keep that signup screen mounted.
+      // Signup can also be entered from the customer login page's internal
+      // toggle, where moto_login_type remains "customer". The explicit pending
+      // marker is therefore the reliable signal, regardless of portal label.
+      if (localStorage.getItem("moto_customer_signup_otp_pending") === "true") {
+        return;
+      }
       console.log("🚪 User logged out, resetting to landing");
       localStorage.removeItem("moto_last_page");
       localStorage.removeItem("moto_login_type");

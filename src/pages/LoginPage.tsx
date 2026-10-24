@@ -28,6 +28,8 @@ interface CustomerLoginPageProps {
   initialIsSignup?: boolean;
 }
 
+const SIGNUP_OTP_PENDING_KEY = "moto_customer_signup_otp_pending";
+
 const LoginPage: React.FC<CustomerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
@@ -35,14 +37,21 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 }) => {
   const { signup, user, isLoading } = useAuth();
   const [isSignup, setIsSignup] = useState(initialIsSignup);
+  const [signupOtpPending, setSignupOtpPending] = useState(
+    () => localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [loginMode, setLoginMode] = useState<"password" | "otp">("password");
-  const [otpSent, setOtpSent] = useState(false);
+  const [loginMode, setLoginMode] = useState<"password" | "otp">(() =>
+    localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true" ? "otp" : "password",
+  );
+  const [otpSent, setOtpSent] = useState(
+    () => localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true",
+  );
   const [otpCode, setOtpCode] = useState("");
   const [formData, setFormData] = useState(() => {
     // Restore the customer form after a reload (password is never saved).
@@ -94,6 +103,16 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
   const clearLoginDraft = () =>
     localStorage.removeItem("moto_customer_login_draft");
+
+  const handleBackFromLogin = () => {
+    if (signupOtpPending) {
+      localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
+      setSignupOtpPending(false);
+      setOtpSent(false);
+      setOtpCode("");
+    }
+    onBack();
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -151,6 +170,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           },
         );
 
+        // Switch into the pending state before signing out. App observes this
+        // marker and keeps the signup page mounted while auth state clears.
+        localStorage.setItem(SIGNUP_OTP_PENDING_KEY, "true");
+        setSignupOtpPending(true);
+        setLoginMode("otp");
+
         // The signup helper creates the account/profile, but do not leave its
         // initial session active. Require email OTP before granting app access.
         const { error: signOutError } = await supabase.auth.signOut();
@@ -160,13 +185,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         if (!otpResult.success) {
           setError(
             otpResult.error ||
-              "Your account was created, but we could not send the verification code. Use email-code login to request another code.",
+              "Your account was created, but we could not send the verification code. Try sending it again.",
           );
           setLoading(false);
           return;
         }
 
-        setLoginMode("otp");
         setOtpSent(true);
         setOtpCode("");
         setFormData((prev) => ({ ...prev, password: "" }));
@@ -280,6 +304,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         return;
       }
 
+      if (signupOtpPending) {
+        localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
+        setSignupOtpPending(false);
+      }
+
       // Install the session — AuthContext picks it up via onAuthStateChange.
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: result.session.access_token,
@@ -369,7 +398,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         >
           <div className="absolute inset-0 bg-gradient-to-t from-moto-darker via-moto-darker/40 to-transparent" />
           <button
-            onClick={onBack}
+            onClick={handleBackFromLogin}
             className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-moto-dark/80 px-3.5 py-1.5 text-xs font-semibold text-slate-200 backdrop-blur border border-moto-gray/80 hover:text-moto-accent transition-colors shadow-lg"
           >
             <ArrowLeft size={14} /> Back
@@ -380,7 +409,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         <div className="bg-moto-darker/40 p-6 sm:p-8 md:p-12 flex flex-col overflow-y-auto relative w-full scrollbar-hide">
           {/* Back nav for desktop */}
           <button
-            onClick={onBack}
+            onClick={handleBackFromLogin}
             className="hidden md:inline-flex absolute top-6 left-8 items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-moto-accent transition-colors"
           >
             <ArrowLeft size={16} /> Back
@@ -416,7 +445,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               onSubmit={
                 loginMode === "otp" && otpSent
                   ? handleOtpSubmit
-                  : !isSignup && loginMode === "otp"
+                  : loginMode === "otp"
                     ? (e) => {
                         e.preventDefault();
                         handleSendOtp();
@@ -435,7 +464,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   className="space-y-4"
                 >
                   {/* Name (Signup only) */}
-                  {isSignup && !otpSent && (
+                  {isSignup && !signupOtpPending && (
                     <div>
                       <div className="relative">
                         <User size={18} className={iconClass} />
@@ -463,9 +492,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                         onChange={handleChange}
                         placeholder="Email"
                         required
-                        readOnly={loginMode === "otp" && otpSent}
+                        readOnly={loginMode === "otp" && (otpSent || signupOtpPending)}
                         className={`${inputClass} ${
-                          loginMode === "otp" && otpSent
+                          loginMode === "otp" && (otpSent || signupOtpPending)
                             ? "opacity-70"
                             : ""
                         }`}
@@ -483,7 +512,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   </div>
 
                   {/* Password is required for signup and password login; hide it during OTP verification. */}
-                  {!otpSent && (isSignup || loginMode === "password") && (
+                  {!signupOtpPending && !otpSent && (isSignup || loginMode === "password") && (
                     <div>
                       <div className="relative">
                         <Lock size={18} className={iconClass} />
@@ -552,7 +581,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Phone (Signup only) */}
-                  {isSignup && !otpSent && (
+                  {isSignup && !signupOtpPending && (
                     <div>
                       <div className="relative">
                         <Phone size={18} className={iconClass} />
@@ -570,7 +599,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Address (Signup only) */}
-                  {isSignup && !otpSent && (
+                  {isSignup && !signupOtpPending && (
                     <div>
                       <div className="relative">
                         <MapPin size={18} className={iconClass} />
@@ -588,12 +617,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   )}
 
                   {/* Motorcycle Section Divider */}
-                  {isSignup && !otpSent && (
+                  {isSignup && !signupOtpPending && (
                     <div className="pt-2 mt-4 border-t border-slate-200" />
                   )}
 
                   {/* Motorcycle Information (Signup only) */}
-                  {isSignup && !otpSent && (
+                  {isSignup && !signupOtpPending && (
                     <div className="space-y-3">
                       <label className="text-xs text-slate-400 ml-1 block">
                         Motorcycle Information
@@ -639,7 +668,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               )}
 
 {/* Terms and Conditions agreement (signup and login) */}
-              {loginMode === "otp" && otpSent ? null : (
+              {loginMode === "otp" ? null : (
                 <TermsCheckbox
                   checked={acceptedTerms}
                   onChange={setAcceptedTerms}
@@ -651,9 +680,9 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               {/* Primary button */}
               <motion.button
                 type="submit"
-                disabled={loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false)}
-                whileHover={{ scale: loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false) ? 1 : 1.02 }}
-                whileTap={{ scale: loading || (isSignup ? !acceptedTerms : loginMode === "password" ? !acceptedTerms : false) ? 1 : 0.98 }}
+                disabled={loading || (!signupOtpPending && (isSignup || loginMode === "password") && !acceptedTerms)}
+                whileHover={{ scale: loading || (!signupOtpPending && (isSignup || loginMode === "password") && !acceptedTerms) ? 1 : 1.02 }}
+                whileTap={{ scale: loading || (!signupOtpPending && (isSignup || loginMode === "password") && !acceptedTerms) ? 1 : 0.98 }}
                 className="w-full mt-2 px-6 py-3 font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading && <Loader size={18} className="animate-spin" />}
@@ -661,11 +690,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   ? isSignup
                     ? "Verify Email & Create Account"
                     : "Verify & Login"
+                  : loginMode === "otp"
+                    ? "Send Verification Code"
                   : isSignup
                     ? "Create Account"
-                    : loginMode === "otp"
-                      ? "Send Verification Code"
-                      : "Login"}
+                    : "Login"}
               </motion.button>
 
               {/* Switch between password login and email-code login */}
@@ -702,7 +731,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             </form>
 
             {/* Divider */}
-            {!otpSent && <div className="flex items-center gap-4 my-6">
+            {!signupOtpPending && !otpSent && <div className="flex items-center gap-4 my-6">
               <div className="flex-1 h-px bg-moto-gray" />
               <span className="text-slate-500 text-xs tracking-wider font-medium">
                 or
@@ -711,7 +740,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             </div>}
 
             {/* Footer */}
-            {!otpSent && <div className="text-center mt-6">
+            {!signupOtpPending && !otpSent && <div className="text-center mt-6">
               <p className="text-slate-500 text-sm">
                 {isSignup ? "Already have an account?" : "Don't have an account?"}
                 <button
