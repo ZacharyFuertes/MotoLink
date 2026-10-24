@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
     .select("id, role")
     .eq("id", authData.user.id)
     .maybeSingle();
-  if (callerError || caller?.role !== "admin") {
+  if (callerError || !caller || caller.role !== "admin") {
     return res.status(403).json({ success: false, error: "Admins only." });
   }
 
@@ -84,7 +84,7 @@ export default async function handler(req: any, res: any) {
     .select("id, email")
     .eq("id", shop.owner_id)
     .maybeSingle();
-  if (!owner?.email) {
+  if (!owner || !owner.email) {
     return res.status(200).json({ success: false, error: "Shop owner has no email address." });
   }
 

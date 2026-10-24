@@ -62,7 +62,7 @@ export default async function handler(req: any, res: any) {
     .select("id, role")
     .eq("id", authData.user.id)
     .maybeSingle();
-  if (callerError || caller?.role !== "admin") {
+  if (callerError || !caller || caller.role !== "admin") {
     return res.status(403).json({ success: false, error: "Admins only." });
   }
 

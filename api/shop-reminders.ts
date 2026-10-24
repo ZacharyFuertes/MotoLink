@@ -27,7 +27,7 @@ import {
 
 export default async function handler(req: any, res: any) {
   const gate = requireCron(req);
-  if (!gate.ok) return res.status(gate.status).json(gate.body);
+  if (gate.ok === false) return res.status(gate.status).json(gate.body);
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return res.status(500).json({

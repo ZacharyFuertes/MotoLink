@@ -375,12 +375,12 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ success: false, error: "Session is invalid." });
   }
 
-  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  const db = createClient<any>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
   // 2) Resolve the appointment + related rows server-side.
-  const { data: appointment, error: apptError } = await db
+  const { data: appointmentData, error: apptError } = await db
     .from("appointments")
     .select(
       "id, booking_id, customer_id, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(name, email), shop:shops(id, name, city, address, phone, owner_id)",
@@ -392,9 +392,10 @@ export default async function handler(req: any, res: any) {
     console.error("Error resolving appointment:", apptError);
     return res.status(500).json({ success: false, error: "Could not resolve appointment." });
   }
-  if (!appointment) {
+  if (!appointmentData) {
     return res.status(404).json({ success: false, error: "Appointment not found." });
   }
+  const appointment = appointmentData as any;
 
   // 3) Authorization: caller must be the booking customer or shop owner/admin.
   const { data: caller } = await db

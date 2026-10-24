@@ -13,7 +13,7 @@
  *     (32 bytes, base64 or hex). Purge refuses to run without it.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import sgMail from "@sendgrid/mail";
 import { createCipheriv, randomBytes } from "crypto";
 
@@ -27,7 +27,7 @@ export const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 export const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
 export const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
 
-export type SdClient = ReturnType<typeof createClient>;
+export type SdClient = SupabaseClient<any, "public", "public", any>;
 
 /** Every table that carries shop-scoped data and is captured into the export.
  *  Tables missing on the current schema are skipped and reported, never fatal.
@@ -50,7 +50,7 @@ export const SNAPSHOT_TABLES = [
 
 /** Service-role client — can write through RLS to run the lifecycle RPCs. */
 export const createAdminClient = (): SdClient =>
-  createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  createClient<any>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
@@ -87,7 +87,7 @@ export const getRetentionDays = async (db: SdClient): Promise<number> => {
     .select("setting_value")
     .eq("setting_key", "shop_retention_days")
     .maybeSingle();
-  const days = Number(data?.setting_value?.value ?? 45);
+  const days = Number((data as any)?.setting_value?.value ?? 45);
   return Number.isFinite(days) && days > 0 ? Math.floor(days) : 45;
 };
 
@@ -117,7 +117,7 @@ export const attachOwnerEmails = async (
     .select("id, email")
     .in("id", ownerIds);
   if (error) throw error;
-  const byId = new Map((data || []).map((u) => [u.id as string, u.email as string | null]));
+  const byId = new Map(((data || []) as any[]).map((u) => [u.id as string, u.email as string | null]));
   return shops.map((s) => ({ ...s, owner_email: s.owner_id ? byId.get(s.owner_id) ?? null : null }));
 };
 
@@ -299,7 +299,7 @@ export const buildSnapshot = async (
     .select("id")
     .eq("shop_id", shopId);
   if (membersError) recordError("users", membersError.message);
-  for (const row of shopMembers || []) {
+  for (const row of (shopMembers || []) as any[]) {
     if (typeof row.id === "string") userIds.add(row.id);
   }
   for (const table of ["appointments", "job_orders", "payments"] as const) {
@@ -368,11 +368,11 @@ export const deleteShopImages = async (
   const productPhotos = new Set<string>();
   const logoPath = storagePathFromUrl(shop?.logo_url, "shop-photos");
   if (logoPath) shopPhotos.add(logoPath);
-  for (const row of gallery || []) {
+  for (const row of (gallery || []) as any[]) {
     const path = storagePathFromUrl(row.image_url, "shop-photos");
     if (path) shopPhotos.add(path);
   }
-  for (const row of [...(products || []), ...(parts || [])]) {
+  for (const row of [...((products || []) as any[]), ...((parts || []) as any[])]) {
     const path = storagePathFromUrl(row.image_url, "product-images");
     if (path) productPhotos.add(path);
   }
@@ -383,7 +383,7 @@ export const deleteShopImages = async (
     ["shop-photos", [...shopPhotos]],
     ["product-images", [...productPhotos]],
   ] as const) {
-    for (const group of chunk(paths)) {
+    for (const group of chunk([...paths])) {
       if (group.length === 0) continue;
       const { data, error } = await db.storage.from(bucket).remove(group);
       if (error) {
@@ -517,7 +517,7 @@ export const sendHoldEmail = async (opts: {
       ${
         daysLeft === null
           ? "Your bookings, job orders, invoices, and records are kept secure. A legal hold is active, so the countdown is paused and your data will only be anonymized after the hold is lifted. Contact MotoLink support if you believe this hold is a mistake."
-          : "Your bookings, job orders, invoices, and records are kept secure. If you believe this is a mistake, contact MotoLink support to have your shop reactivated. When the retention window ends, customer data is anonymized in line with the Philippine Data Privacy Act �?" only anonymized operational records remain."
+          : "Your bookings, job orders, invoices, and records are kept secure. If you believe this is a mistake, contact MotoLink support to have your shop reactivated. When the retention window ends, customer data is anonymized in line with the Philippine Data Privacy Act; only anonymized operational records remain."
       }
     </p>`;
 

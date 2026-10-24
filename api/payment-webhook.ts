@@ -10,7 +10,7 @@
  *               payment_intent.cancelled, payment.expired
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "crypto";
 
 // Disable Vercel's JSON body parser so we receive the EXACT raw bytes PayMongo
@@ -91,7 +91,7 @@ const verifySignature = (rawBody: string, signatureHeader: string): boolean => {
 };
 
 const notify = async (
-  db: ReturnType<typeof createClient>,
+  db: SupabaseClient<any, "public", "public", any>,
   appointmentId: string,
   recipientId: string,
   message: string,
@@ -282,7 +282,7 @@ export default async function handler(req: any, res: any) {
     if (appointment?.customer_id) {
       await notify(db, appointment.id, appointment.customer_id, msg);
     }
-    if (shop?.owner_id) {
+    if (shop?.owner_id && appointment?.id) {
       await notify(db, appointment.id, shop.owner_id, msg);
     }
   }
