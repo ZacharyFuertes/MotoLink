@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Hash,
   X,
+  CheckCircle2,
   RefreshCw,
   Plus,
   Minus,
@@ -57,7 +58,10 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
   // POS Cart
   const [cart, setCart] = useState<SaleEntry[]>([]);
   const [processingCheckout, setProcessingCheckout] = useState(false);
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [completedSale, setCompletedSale] = useState<{
+    items: SaleEntry[];
+    total: number;
+  } | null>(null);
 
   // Stock adjustment modal
   const [adjustPart, setAdjustPart] = useState<Part | null>(null);
@@ -264,9 +268,8 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
       await fetchTodaySales();
       await fetchSaleHistory();
 
+      setCompletedSale({ items: cart, total: cartTotal });
       setCart([]);
-      setCheckoutSuccess(true);
-      setTimeout(() => setCheckoutSuccess(false), 3000);
     } catch (err) {
       console.error("Checkout error:", err);
       alert("Error processing sale. Please try again.");
@@ -587,9 +590,6 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
               {processingCheckout ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <ShoppingBag size={16} />}
               {processingCheckout ? "Processing sale..." : "Complete sale"}
             </button>
-            {checkoutSuccess && (
-              <p className="text-center text-xs font-semibold text-emerald-600 dark:text-emerald-400">Sale completed. Stock has been updated.</p>
-            )}
             <p className="text-center text-[10px] text-moto-muted">No receipt will be printed.</p>
           </div>
         </aside>
@@ -641,7 +641,58 @@ const UpdatePartsPage: React.FC<UpdatePartsPageProps> = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      {/* Stock Adjustment Modal */}
+        <AnimatePresence>
+          {completedSale && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
+              onClick={() => setCompletedSale(null)}
+            >
+              <motion.section
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                transition={{ type: "spring", damping: 24, stiffness: 300 }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pos-sale-complete-title"
+                onClick={(event) => event.stopPropagation()}
+                className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-moto-darker shadow-2xl"
+              >
+                <div className="px-6 pb-5 pt-7 text-center">
+                  <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25">
+                    <CheckCircle2 size={34} strokeWidth={1.8} />
+                  </span>
+                  <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">POS transaction</p>
+                  <h2 id="pos-sale-complete-title" className="mt-1 text-2xl font-extrabold text-moto-light">Sale completed!</h2>
+                  <p className="mt-2 text-sm text-moto-muted">Inventory has been updated and the sale has been recorded.</p>
+                </div>
+                <div className="mx-6 mb-5 rounded-xl border border-moto-gray bg-moto-dark px-4">
+                  <div className="flex justify-between gap-4 border-b border-moto-gray py-3 text-sm">
+                    <span className="text-moto-muted">Items sold</span>
+                    <span className="font-semibold text-moto-light">{completedSale.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                  </div>
+                  <div className="flex justify-between gap-4 py-3">
+                    <span className="text-sm font-semibold text-moto-light">Total paid</span>
+                    <span className="text-lg font-extrabold text-emerald-400">₱{completedSale.total.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="px-6 pb-6">
+                  <button
+                    type="button"
+                    onClick={() => setCompletedSale(null)}
+                    className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker"
+                  >
+                    Done
+                  </button>
+                </div>
+              </motion.section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Stock Adjustment Modal */}
       <AnimatePresence>
         {adjustPart && (
           <motion.div

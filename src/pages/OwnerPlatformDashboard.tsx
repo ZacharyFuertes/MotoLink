@@ -552,7 +552,11 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className="min-w-0 w-full flex-1 overflow-auto p-3 sm:p-4 lg:p-8">
+        <main className={`min-w-0 w-full flex-1 overflow-auto ${
+          currentPage === "appointments"
+            ? "bg-moto-dark p-0"
+            : "p-3 sm:p-4 lg:p-8"
+        }`}>
           {shopLoading ? null : isOnHold ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}

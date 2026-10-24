@@ -1,27 +1,29 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   CheckCircle,
   XCircle,
   Mail,
   Calendar,
-  User,
-  Car,
   Plus,
   X,
   Search,
-  Phone,
   Clock,
-  Wrench,
-  Tag,
   Loader2,
-  Ban,
   ArrowUpDown,
   Banknote,
-  UserPlus,
-  Wallet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../services/supabaseClient";
 import { getShopByOwnerId } from "../services/shopService";
 import WalkInBookingModal from "../components/WalkInBookingModal";
@@ -36,24 +38,6 @@ import {
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
 import { notifyOwnerIfStockBecameLow } from "../services/lowStockNotificationService";
-
-// ─── Scroll-reveal / stagger presets matching the landing page ───────────────
-const REVEAL_EASE = [0.21, 0.47, 0.32, 0.98] as const;
-
-const containerStagger = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 18, scale: 0.99 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.5, ease: REVEAL_EASE, willChange: "transform, opacity" },
-  },
-};
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -92,6 +76,7 @@ interface AppointmentCalendarPageProps {
 
 const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const { user } = useAuth();
+  const { isDark } = useTheme();
 const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
@@ -137,7 +122,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
     try {
       let query = supabase
         .from("appointments")
-        .select(`*, customer:users!customer_id (name, phone)`)
+        .select(`*, customer:users!customer_id (name, phone, email)`)
         .order("scheduled_date", { ascending: true });
 
       if (user?.role === "owner" && resolvedShopId) {
@@ -346,6 +331,41 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
   const isCustomer = user?.role === "customer";
   const canBookAppointments = isCustomer || isOwner;
   const canUpdateStatus = isOwner;
+  const theme = isDark
+    ? {
+        canvas: "bg-[#111a27]",
+        panel: "bg-[#192535]",
+        panelAlt: "bg-[#202e40]",
+        border: "border-[#304157]",
+        heading: "text-[#f0f4fa]",
+        text: "text-[#c7d1df]",
+        muted: "text-[#91a0b4]",
+        input: "border-[#34475e] bg-[#121d2b] text-[#e7edf5] placeholder-[#8291a5]",
+        rowHover: "hover:bg-[#202d3e]",
+        tab: "text-[#b3bfd0] hover:bg-[#26364a] hover:text-white",
+        tabCount: "text-[#91a0b4]",
+        chartGrid: "#304157",
+        chartAxis: "#91a0b4",
+        chartTooltipBg: "#192535",
+        chartTooltipBorder: "#304157",
+      }
+    : {
+        canvas: "bg-[#f7f8fc]",
+        panel: "bg-white",
+        panelAlt: "bg-[#f8f9fc]",
+        border: "border-[#edf0f5]",
+        heading: "text-[#1d2945]",
+        text: "text-[#34415b]",
+        muted: "text-[#8a94a7]",
+        input: "border-[#e9edf3] bg-white text-[#34415b] placeholder-[#a3adbd]",
+        rowHover: "hover:bg-[#fbfcfe]",
+        tab: "text-[#7e899d] hover:bg-[#f5f7fb] hover:text-[#34415b]",
+        tabCount: "text-[#a0a9b8]",
+        chartGrid: "#edf0f5",
+        chartAxis: "#9aa4b6",
+        chartTooltipBg: "#ffffff",
+        chartTooltipBorder: "#e8ecf3",
+      };
 
   const [filterStatus, setFilterStatus] = useState<AppointmentStatus | "all">(
     "all",
@@ -372,32 +392,48 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const statCards = [
     {
-      label: "Today's Appointments",
-      value: filteredAppointments.filter((a) => a.scheduled_date === today)
-        .length,
+      label: "Total Appointments",
+      value: filteredAppointments.length.toLocaleString(),
       icon: Calendar,
-      tile: "bg-moto-accent/15 text-moto-accent",
+      tile: "bg-[#6b91ed] text-white",
+      detail: "All bookings at your shop",
     },
     {
-      label: "Pending",
-      value: filteredAppointments.filter((a) => a.status === "pending").length,
+      label: "Today's Appointments",
+      value: filteredAppointments.filter((a) => a.scheduled_date === today).length.toLocaleString(),
+      icon: Calendar,
+      tile: "bg-white text-[#1d2945]",
+      detail: "Scheduled for today",
+    },
+    {
+      label: "Pending Bookings",
+      value: filteredAppointments.filter((a) => a.status === "pending").length.toLocaleString(),
       icon: Clock,
-      tile: "bg-amber-500/15 text-amber-400",
+      tile: "bg-white text-[#1d2945]",
+      detail: "Waiting for your review",
     },
     {
-      label: "In Progress",
-      value: filteredAppointments.filter((a) => a.status === "in_progress")
-        .length,
-      icon: Wrench,
-      tile: "bg-moto-accent/15 text-moto-accent",
-    },
-    {
-      label: "Completed",
-      value: filteredAppointments.filter((a) => a.status === "completed").length,
-      icon: CheckCircle,
-      tile: "bg-emerald-500/15 text-emerald-400",
+      label: "Estimated Earnings",
+      value: `₱${filteredAppointments.reduce((sum, a) => sum + Number(a.total_amount || a.estimated_price || 0), 0).toLocaleString("en-PH")}`,
+      icon: Banknote,
+      tile: "bg-white text-[#1d2945]",
+      detail: "Across all appointments",
     },
   ];
+
+  const appointmentTrend = useMemo(() => {
+    const start = new Date(`${today}T00:00:00`);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      return {
+        date: key,
+        day: date.toLocaleDateString("en-US", { weekday: "short" }),
+        count: filteredAppointments.filter((appointment) => appointment.scheduled_date === key).length,
+      };
+    });
+  }, [filteredAppointments, today]);
 
   const filterTabs: { key: AppointmentStatus | "all"; label: string; count: number }[] = [
     { key: "all", label: "All", count: filteredAppointments.length },
@@ -471,7 +507,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
   }, [filteredAppointments, filterStatus, searchTerm, sortBy]);
 
   return (
-    <div className="space-y-6">
+    <div className={`min-h-full w-full space-y-7 p-5 sm:p-6 lg:p-8 ${theme.text}`}>
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -479,395 +515,302 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
-            className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs font-bold ${
+            className={`fixed right-5 top-5 z-[100] flex items-center gap-3 rounded-xl border px-4 py-3 text-xs font-bold shadow-xl ${
               toast.type === "success"
-                ? "bg-emerald-900 text-emerald-200 border-emerald-700"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : toast.type === "error"
-                  ? "bg-red-900 text-red-200 border-red-700"
-                  : "bg-moto-darker text-slate-200 border-moto-gray"
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-slate-200 bg-white text-slate-700"
             }`}
           >
-            {toast.type === "success" && <CheckCircle className="w-4 h-4 text-emerald-400" />}
-            {toast.type === "error" && <XCircle className="w-4 h-4 text-red-400" />}
-            {toast.type === "info" && <Mail className="w-4 h-4 text-slate-400" />}
+            {toast.type === "success" && <CheckCircle className="h-4 w-4 text-emerald-500" />}
+            {toast.type === "error" && <XCircle className="h-4 w-4 text-red-500" />}
+            {toast.type === "info" && <Mail className="h-4 w-4 text-slate-500" />}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="visible"
-        className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-      >
-        <motion.div variants={itemVariants}>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-            {isOwner ? "Manage your shop" : "Rider dashboard"}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${theme.muted}`}>
+            {isOwner ? "Shop management" : "Rider dashboard"}
           </p>
-          <h1 className="mt-1 font-display text-4xl sm:text-5xl uppercase tracking-wide text-slate-100">
+          <h1 className={`mt-1 text-4xl font-bold tracking-tight sm:text-[40px] ${theme.heading}`}>
             {isOwner ? "Appointments" : "My Bookings"}
-            <span className="text-moto-accent">.</span>
           </h1>
-          <p className="mt-2 text-[13px] text-slate-300">
-            {isOwner ? "Manage shop booking calendar and status workflow." : "Schedule and track your service appointments."}
-          </p>
-        </motion.div>
-        {canBookAppointments && (
-          <motion.button
-            variants={itemVariants}
-            onClick={() => setShowBookingForm(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-moto-accent px-5 py-3 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5"
-          >
-            <Plus className="w-4 h-4" />
-            {isOwner ? "Book Walk-in" : "New Appointment"}
-          </motion.button>
-        )}
-      </motion.div>
-
-      {/* Stats Row */}
-      <motion.div
-        variants={containerStagger}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-      >
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div
-              key={stat.label}
-              variants={itemVariants}
-              className="stat-card p-5"
-            >
-              <span className="absolute right-4 top-3 font-display text-6xl font-black leading-none text-white/5">
-                {stat.value}
-              </span>
-              <div className={`w-11 h-11 rounded-xl ${stat.tile} flex items-center justify-center`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <p className="mt-4 text-[13px] font-semibold text-slate-300">
-                {stat.label}
-              </p>
-              <p className="font-display text-4xl font-black text-moto-accent leading-none">
-                {stat.value}
-              </p>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-
-      {/* Filters Bar */}
-      <motion.div
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-        className="dashboard-card p-4 flex flex-col gap-4"
-      >
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-          <input
-            type="text"
-            placeholder="Search by customer, vehicle, service or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-moto-dark border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
-          />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {filterTabs.map((tab) => {
-              const active = filterStatus === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => setFilterStatus(tab.key)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-bold transition-all ${
-                    active
-                      ? "bg-moto-accent text-slate-950 shadow-sm shadow-moto-accent/25"
-                      : "bg-moto-dark text-slate-300 border border-moto-gray hover:bg-moto-gray/40"
-                  }`}
-                >
-                  {tab.label}
-                  <span
-                    className={`px-1.5 py-0.5 rounded-md text-xs tabular-nums ${
-                      active ? "bg-white/20 text-white" : "bg-moto-gray/40 text-slate-300"
+        {canBookAppointments && (
+          <button
+            type="button"
+            onClick={() => setShowBookingForm(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6b91ed] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#557fe3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6b91ed] focus-visible:ring-offset-2"
+          >
+            <Plus className="h-4 w-4" />
+            {isOwner ? "Book Walk-in" : "New Appointment"}
+          </button>
+        )}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.12fr]">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {statCards.map((stat, index) => {
+            const Icon = stat.icon;
+            const featured = index === 0;
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.25 }}
+                className={`relative min-h-[178px] overflow-hidden rounded-2xl border p-6 shadow-sm transition-colors ${
+                  featured
+                    ? "border-[#6b91ed] bg-[#6b91ed] text-white"
+                    : `${theme.border} ${theme.panel} ${theme.heading}`
+                }`}
+              >
+                {featured && (
+                  <div className="pointer-events-none absolute -right-6 -top-10 h-40 w-40 rounded-full border-[18px] border-white/10" />
+                )}
+                <div className="relative flex items-start justify-between gap-3">
+                  <div>
+                    <p className={`text-sm font-medium ${featured ? "text-white/80" : theme.muted}`}>
+                      {stat.label}
+                    </p>
+                    <p className="mt-3 text-3xl font-bold leading-none tracking-tight sm:text-[34px]">
+                      {stat.value}
+                    </p>
+                    <p className={`mt-4 text-xs ${featured ? "text-white/80" : theme.muted}`}>
+                      {stat.detail}
+                    </p>
+                  </div>
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${featured ? "bg-white/20 text-white" : "bg-[#6b91ed]/15 text-[#6b91ed]"}`}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <section className={`min-h-[370px] rounded-2xl border p-6 shadow-sm sm:p-7 ${theme.border} ${theme.panel}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className={`text-lg font-bold ${theme.heading}`}>Appointment activity</h2>
+              <p className={`mt-1 text-sm ${theme.muted}`}>Bookings scheduled over the next 7 days</p>
+            </div>
+            <span className={`rounded-lg px-3 py-2 text-xs font-medium ${theme.panelAlt} ${theme.muted}`}>This week</span>
+          </div>
+          <div className="mt-6 h-[265px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={appointmentTrend} margin={{ top: 8, right: 6, left: -22, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="appointmentTrendFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6b91ed" stopOpacity={0.24} />
+                    <stop offset="95%" stopColor="#6b91ed" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke={theme.chartGrid} strokeDasharray="3 4" vertical={false} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: theme.chartAxis, fontSize: 12 }} dy={8} />
+                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: theme.chartAxis, fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: theme.chartTooltipBg, border: `1px solid ${theme.chartTooltipBorder}`, borderRadius: 10, color: isDark ? "#e7edf5" : "#34415b", boxShadow: "0 8px 24px rgba(31,45,80,.14)", fontSize: 13 }}
+                  labelStyle={{ color: isDark ? "#c7d1df" : "#53617a", fontWeight: 600 }}
+                  formatter={(value) => [`${value} booking${Number(value) === 1 ? "" : "s"}`, "Appointments"]}
+                />
+                <Area type="monotone" dataKey="count" stroke="#6b91ed" strokeWidth={2.5} fill="url(#appointmentTrendFill)" activeDot={{ r: 4, fill: "#6b91ed", stroke: "white", strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      </div>
+
+      <section className={`overflow-hidden rounded-2xl border shadow-sm ${theme.border} ${theme.panel}`}>
+        <div className={`flex flex-col gap-6 border-b px-6 py-7 sm:px-8 sm:py-8 ${theme.border}`}>
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className={`text-2xl font-bold tracking-tight ${theme.heading}`}>Bookings</h2>
+              <p className={`mt-1.5 text-base ${theme.muted}`}>Review and manage your shop appointments</p>
+            </div>
+            <div className="relative w-full sm:max-w-[320px]">
+              <Search className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a3adbd]" />
+              <input
+                type="text"
+                placeholder="Search appointments..."
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className={`w-full rounded-lg border py-3 pl-10 pr-4 text-base outline-none transition focus:border-[#9bb5f5] focus:ring-2 focus:ring-[#6b91ed]/10 ${theme.input}`}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="flex max-w-full flex-wrap gap-2 overflow-x-auto pb-1">
+              {filterTabs.map((tab) => {
+                const active = filterStatus === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setFilterStatus(tab.key)}
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                      active ? "bg-[#6b91ed]/15 text-[#6b91ed]" : theme.tab
                     }`}
                   >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Sort
-            </span>
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortKey)}
-                className="appearance-none pl-3 pr-8 py-2 bg-moto-dark border border-moto-gray rounded-lg text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.key} value={opt.key}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ArrowUpDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    {tab.label}
+                    <span className={`tabular-nums ${active ? "text-[#6b91ed]" : theme.tabCount}`}>{tab.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex shrink-0 items-center gap-2 self-end sm:self-auto">
+              <span className={`text-sm ${theme.muted}`}>Sort:</span>
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value as SortKey)}
+                  className={`appearance-none rounded-lg border py-2.5 pl-3.5 pr-9 text-sm font-medium outline-none focus:border-[#9bb5f5] ${theme.input}`}
+                >
+                  {SORT_OPTIONS.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+                </select>
+                <ArrowUpDown className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${theme.muted}`} />
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
-
-      {/* Appointments List */}
-      <motion.div
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-        className="dashboard-card overflow-hidden"
-      >
-        <div className="flex items-center justify-between border-b border-moto-gray bg-moto-dark/60 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-moto-accent/15 text-moto-accent flex items-center justify-center">
-              <Calendar size={18} />
-            </div>
-            <h2 className="font-display text-xl uppercase tracking-wide text-slate-100">
-              {isOwner ? "Appointments" : "Your Bookings"}
-            </h2>
-          </div>
-          <span className="text-[13px] font-semibold text-slate-300">
-            {visibleAppointments.length}{" "}
-            {visibleAppointments.length === 1 ? "appointment" : "appointments"}
-          </span>
         </div>
 
         {visibleAppointments.length === 0 ? (
-          <div className="p-16 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
-              <Calendar className="w-8 h-8" />
-            </div>
-            <p className="font-display text-2xl uppercase tracking-wide text-slate-100">
-              No bookings found<span className="text-moto-accent">.</span>
+          <div className="px-6 py-16 text-center">
+            <Calendar className={`mx-auto h-10 w-10 ${theme.muted}`} />
+            <p className={`mt-3 text-base font-semibold ${theme.text}`}>No appointments found</p>
+            <p className={`mt-1 text-sm ${theme.muted}`}>
+              {isOwner ? "Try another filter or add a walk-in booking." : "Your bookings will appear here."}
             </p>
-            <p className="mt-2 text-sm text-slate-300">
-              {isOwner
-                ? "No appointments match these filters."
-                : "You don't have any bookings here yet. Book a shop to get started."}
-            </p>
-            {!isOwner && canBookAppointments && (
-              <button
-                onClick={() => setShowBookingForm(true)}
-                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-moto-accent px-5 py-2.5 text-sm font-bold text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4" /> Book Appointment
-              </button>
-            )}
           </div>
         ) : (
-          <div className="divide-y divide-moto-gray">
-            <AnimatePresence initial={false}>
-              {visibleAppointments.map((apt) => {
-                const conf = statusConfig[apt.status];
-                const amt = apt.total_amount || apt.estimated_price;
-                const isEst = !apt.total_amount;
-                // Walk-ins have no `customer` join — read their own columns so
-                // the card is not blank.
-                const displayName =
-                  (apt as any).customer?.name || apt.walk_in_name;
-                const displayPhone =
-                  (apt as any).customer?.phone || apt.walk_in_phone;
-                const isWalkIn = !apt.customer_id;
-                // Online payment / deposit state for this booking.
-                const payMethod = (apt as any).payment_method as string | undefined;
-                const payStatus = ((apt as any).payment_status as string) || "unpaid";
-                const payTone =
-                  payStatus === "paid" || payStatus === "deposit_paid"
-                    ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/25"
-                    : payStatus === "failed" || payStatus === "expired"
-                      ? "text-rose-300 bg-rose-500/10 border-rose-500/25"
-                      : "text-amber-300 bg-amber-500/10 border-amber-500/25";
-                const payLabel =
-                  payMethod === "gcash"
-                    ? "GCash"
-                    : payMethod === "maya"
-                      ? "Maya"
-                      : payMethod === "cash"
-                        ? "Cash"
-                        : "";
-                const payState =
-                  payStatus === "paid"
-                    ? "Paid"
-                    : payStatus === "deposit_paid"
-                      ? `Deposit ₱${Number((apt as any).amount_paid || (apt as any).deposit_amount || 0).toLocaleString("en-PH")}`
-                      : payStatus === "failed"
-                        ? "Payment failed"
-                        : payStatus === "expired"
-                          ? "Payment expired"
-                          : payMethod && payMethod !== "cash"
-                            ? "Deposit pending"
-                            : "Pay at shop";
-                return (
-                  <motion.div
-                    key={apt.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    layout
-                    className="relative px-6 py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-moto-gray/40 transition-colors"
-                  >
-                    <span className={`absolute left-0 top-5 bottom-5 w-1 rounded-r-full ${conf.dot}`} />
-                    {/* Left: status + service + customer */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold ${conf.color}`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${conf.dot}`} />
-                          {conf.label}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-300 tabular-nums">
-                          <Calendar className="w-4 h-4 text-slate-300" />
-                          {new Date(apt.scheduled_date).toLocaleDateString(
-                            "en-PH",
-                            { month: "short", day: "numeric", year: "numeric" },
-                          )}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-300">
-                          <Clock className="w-4 h-4 text-slate-300" />
-                          {apt.scheduled_time}
-                        </span>
-                        {apt.booking_id && (
-                          <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-moto-accent tabular-nums">
-                            <Tag className="w-4 h-4 text-moto-accent" />
-                            {apt.booking_id}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1120px] table-fixed border-collapse text-left">
+              <thead>
+                <tr className={`text-xs font-semibold uppercase tracking-wide ${theme.panelAlt} ${theme.muted}`}>
+                  <th className="w-[23%] px-6 py-4 font-semibold sm:px-8">Customer</th>
+                  <th className="w-[29%] px-5 py-4 font-semibold">Service / vehicle</th>
+                  <th className="w-[15%] px-5 py-4 font-semibold">Date &amp; time</th>
+                  <th className="w-[12%] px-5 py-4 font-semibold">Status</th>
+                  <th className="w-[9%] px-5 py-4 text-right font-semibold">Price</th>
+                  {canUpdateStatus && <th className="w-[12%] px-6 py-4 text-right font-semibold sm:px-8">Update</th>}
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${isDark ? "divide-[#304157]" : "divide-[#eff1f5]"}`}>
+                {visibleAppointments.map((appointment) => {
+                  const customer = (appointment as any).customer;
+                  const displayName = customer?.name || appointment.walk_in_name || "Guest";
+                  const email = customer?.email;
+                  const phone = customer?.phone || appointment.walk_in_phone;
+                  const amount = appointment.total_amount || appointment.estimated_price;
+                  const bookedServices = (appointment.service_type || "Service appointment")
+                    .split(",")
+                    .map((service) => service.trim())
+                    .filter(Boolean);
+                  const isNewAppointment = appointment.status === "pending";
+                  const badgeClass = appointment.status === "pending"
+                    ? "bg-rose-100 text-rose-700"
+                    : appointment.status === "confirmed"
+                      ? "bg-blue-100 text-blue-700"
+                      : appointment.status === "in_progress"
+                        ? "bg-amber-100 text-amber-700"
+                        : appointment.status === "completed"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600";
+                  const locked = appointment.status === "completed" || appointment.status === "cancelled";
+                  return (
+                    <tr
+                      key={appointment.id}
+                      className={`group transition ${
+                        isNewAppointment
+                          ? isDark
+                            ? "bg-amber-400/[0.08] hover:bg-amber-400/[0.13]"
+                            : "bg-amber-50 hover:bg-amber-100/70"
+                          : theme.rowHover
+                      }`}
+                    >
+                      <td className="px-6 py-6 sm:px-8">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#6b91ed]/15 text-sm font-bold text-[#6b91ed]">
+                            {displayName.split(/\s+/).map((part: string) => part[0]).join("").slice(0, 2).toUpperCase()}
                           </span>
-                        )}
-                        {(amt != null) && (
-                          <span
-                            title={
-                              isEst
-                                ? "Estimated amount for this booking"
-                                : "Revenue generated by this booking"
-                            }
-                            className="inline-flex items-center gap-1 text-[13px] font-bold text-emerald-300 tabular-nums"
-                          >
-                            <Banknote className="w-4 h-4 text-emerald-400" />
-                            {isEst ? "Est. " : ""}₱
-                            {Number(amt).toLocaleString("en-PH")}
-                          </span>
-                        )}
-                        {payLabel && (
-                          <span
-                            title="Payment / reservation deposit for this booking"
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[12px] font-bold ${payTone}`}
-                          >
-                            <Wallet className="w-3.5 h-3.5" />
-                            {payLabel} · {payState}
-                          </span>
-                        )}
-                      </div>
-
-                      <p
-                        className="font-bold text-slate-100 text-base mt-2"
-                        style={{ fontFamily: "Inter, system-ui, sans-serif" }}
-                      >
-                        {apt.service_type}
-                      </p>
-
-                      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-[13px] text-slate-400">
-                        {isWalkIn && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/30 text-violet-300 font-bold text-[11px] uppercase tracking-wider">
-                            <UserPlus className="w-3.5 h-3.5" />
-                            Walk-in
-                          </span>
-                        )}
-                        {displayName && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-4 h-4 text-slate-400" />
-                            {displayName}
-                          </span>
-                        )}
-                        {displayPhone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-4 h-4 text-slate-400" />
-                            {displayPhone}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Car className="w-4 h-4 text-slate-400" />
-                          {apt.description?.split(" - ")[0] || "Vehicle"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right: actions */}
-                    {canUpdateStatus && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        {apt.status === "completed" || apt.status === "cancelled" ? (
-                          apt.status === "cancelled" ? (
-                            <span
-                              title="This appointment was cancelled and can no longer be edited."
-                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[13px] font-bold text-rose-300"
-                            >
-                              <Ban className="w-4 h-4" />
-                              Cancelled
-                            </span>
-                          ) : (
-                            <span
-                              title="This appointment is completed and can no longer be edited."
-                              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-[13px] font-bold text-emerald-300"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Completed
-                            </span>
-                          )
-                        ) : (
-                          <>
-                            {apt.status === "in_progress" &&
-                              isOwner && (
-                                <button
-                                  onClick={() => setCompleteConfirmId(apt.id)}
-                                  disabled={statusUpdatingId === apt.id}
-                                  className="flex items-center gap-1 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-emerald-600/20 disabled:opacity-50"
-                                >
-                                  <CheckCircle className="w-4 h-4" />
-                                  Finalize
-                                </button>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className={`whitespace-normal break-words text-base font-semibold leading-snug ${theme.heading}`}>{displayName}</p>
+                              {isNewAppointment && (
+                                <span className="inline-flex items-center rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                                  New
+                                </span>
                               )}
-                            <select
-                              value={apt.status}
-                              disabled={statusUpdatingId === apt.id}
-                              onChange={(e) => {
-                                const next = e.target.value as AppointmentStatus;
-                                if (next === "completed") {
-                                  setCompleteConfirmId(apt.id);
-                                } else {
-                                  handleStatusChange(apt.id, next);
-                                }
-                              }}
-                              className="px-3 py-2 bg-moto-darker border border-moto-gray rounded-xl text-[13px] font-bold text-slate-100 focus:outline-none focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 transition disabled:opacity-50"
+                            </div>
+                            <p className={`mt-1 whitespace-normal break-all text-sm leading-snug ${theme.muted}`}>{email || phone || appointment.booking_id || "Walk-in booking"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-normal break-words px-5 py-6">
+                        <div className="flex flex-wrap gap-2">
+                          {bookedServices.map((service, serviceIndex) => (
+                            <span
+                              key={`${service}-${serviceIndex}`}
+                              className={`inline-flex max-w-full items-center rounded-full border px-3 py-1.5 text-sm font-medium leading-snug ${
+                                isDark
+                                  ? "border-[#6b91ed]/30 bg-[#6b91ed]/15 text-[#c8d7ff]"
+                                  : "border-[#d8e3ff] bg-[#edf3ff] text-[#4569bd]"
+                              }`}
                             >
-                              {Object.entries(statusConfig).map(([status, config]) => (
-                                <option key={status} value={status}>
-                                  {config.label}
-                                </option>
-                              ))}
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                        <p className={`mt-1.5 text-sm leading-snug ${theme.muted}`}>{appointment.description?.split(" - ")[0] || (appointment.customer_id ? "Motorcycle service" : "Walk-in")}</p>
+                      </td>
+                      <td className="whitespace-normal px-5 py-6">
+                        <p className={`text-base font-medium leading-snug ${theme.text}`}>{new Date(`${appointment.scheduled_date}T00:00:00`).toLocaleDateString("en-PH", { day: "numeric", month: "short", year: "numeric" })}</p>
+                        <p className={`mt-1.5 text-sm ${theme.muted}`}>{appointment.scheduled_time || "Time not set"}</p>
+                      </td>
+                      <td className="px-5 py-6">
+                        <span className={`inline-flex whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${badgeClass}`}>
+                          {statusConfig[appointment.status].label}
+                        </span>
+                      </td>
+                      <td className={`whitespace-nowrap px-5 py-6 text-right text-base font-semibold tabular-nums ${theme.text}`}>
+                        {amount != null ? `₱${Number(amount).toLocaleString("en-PH")}` : "—"}
+                      </td>
+                      {canUpdateStatus && (
+                        <td className="px-6 py-6 text-right sm:px-8">
+                          {locked ? (
+                            <span className={`whitespace-normal text-sm font-medium ${theme.muted}`}>{appointment.status === "completed" ? "Complete" : "Cancelled"}</span>
+                          ) : (
+                            <select
+                              aria-label={`Update appointment for ${displayName}`}
+                              value={appointment.status}
+                              disabled={statusUpdatingId === appointment.id}
+                              onChange={(event) => {
+                                const next = event.target.value as AppointmentStatus;
+                                if (next === "completed") setCompleteConfirmId(appointment.id);
+                                else handleStatusChange(appointment.id, next);
+                              }}
+                              className={`max-w-[140px] rounded-lg border px-2.5 py-2 text-xs font-semibold outline-none transition focus:border-[#9bb5f5] disabled:opacity-50 ${theme.input}`}
+                            >
+                              {Object.entries(statusConfig).map(([status, config]) => <option key={status} value={status}>{config.label}</option>)}
                             </select>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </motion.div>
+        <div className={`border-t px-6 py-4 text-xs sm:px-8 ${theme.border} ${theme.muted}`}>
+          Showing {visibleAppointments.length} of {filteredAppointments.length} appointments
+        </div>
+      </section>
 
       {/* Finalize Confirmation Modal */}
       <AnimatePresence>
@@ -885,26 +828,26 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="dashboard-card max-w-md w-full p-6 shadow-2xl space-y-4"
+              className={`dashboard-card max-w-md w-full space-y-4 p-6 shadow-2xl ${theme.panel} ${theme.border}`}
             >
-              <div className="flex items-center justify-between border-b border-moto-gray pb-3">
+              <div className={`flex items-center justify-between border-b pb-3 ${theme.border}`}>
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
                     <CheckCircle size={18} />
                   </span>
-                  <h3 className="font-display text-xl uppercase tracking-wide text-slate-100">
+                  <h3 className={`font-display text-xl uppercase tracking-wide ${theme.heading}`}>
                     Finalize this booking?
                   </h3>
                 </div>
                 <button
                   onClick={() => setCompleteConfirmId(null)}
-                  className="p-1 rounded-lg hover:bg-moto-gray/40 text-slate-400 hover:text-moto-accent transition"
+                  className={`rounded-lg p-1 transition hover:bg-moto-gray/40 hover:text-moto-accent ${theme.muted}`}
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className={`text-sm leading-relaxed ${theme.text}`}>
                 Mark this appointment as{" "}
                 <span className="font-bold text-emerald-300">Completed</span>?
                 This deducts used parts from stock, generates the invoice,
@@ -916,7 +859,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 <button
                   onClick={() => setCompleteConfirmId(null)}
                   disabled={statusUpdatingId === completeConfirmId}
-                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                  className={`flex-1 rounded-xl px-4 py-2.5 text-[13px] font-bold transition disabled:opacity-50 ${theme.panelAlt} ${theme.text}`}
                 >
                   Not yet
                 </button>
