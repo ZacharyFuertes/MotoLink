@@ -79,6 +79,10 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const { isDark } = useTheme();
 const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [completedAppointment, setCompletedAppointment] = useState<{
+    appointment: Appointment;
+    invoiceTotal?: number;
+  } | null>(null);
   const fetchAbortRef = React.useRef<AbortController | null>(null);
 
   const [toast, setToast] = useState<{
@@ -179,6 +183,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
       try {
         const appointment = appointments.find((a) => a.id === appointmentId);
         if (!appointment) return;
+        let generatedInvoiceTotal: number | undefined;
 
         if (statusUpdatingId === appointmentId) return;
         setStatusUpdatingId(appointmentId);
@@ -262,9 +267,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
               status: "completed",
             });
             if (invoice) {
-              showToast(
-                `Invoice ₱${Number(invoice.total_amount).toLocaleString()} generated.`,
-              );
+              generatedInvoiceTotal = Number(invoice.total_amount) || 0;
             }
           }
         }
@@ -317,6 +320,9 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
               : apt,
           ),
         );
+        if (newStatus === "completed") {
+          setCompletedAppointment({ appointment, invoiceTotal: generatedInvoiceTotal });
+        }
       } catch (err) {
         console.error("Error updating appointment status:", err);
         alert("Failed to update status. Please try again.");
@@ -376,15 +382,16 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
   );
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
 
-  type SortKey = "date-asc" | "date-desc" | "status" | "customer" | "service";
+  type SortKey = "pending-first" | "date-asc" | "date-desc" | "status" | "customer" | "service";
   const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+    { key: "pending-first", label: "Pending first (default)" },
     { key: "date-asc", label: "Date · Earliest first" },
     { key: "date-desc", label: "Date · Latest first" },
     { key: "status", label: "Status" },
     { key: "customer", label: "Customer" },
     { key: "service", label: "Service" },
   ];
-  const [sortBy, setSortBy] = useState<SortKey>("date-asc");
+  const [sortBy, setSortBy] = useState<SortKey>("pending-first");
 
   // Local calendar day, not UTC: between 00:00 and 08:00 in UTC+8 a
   // toISOString() key resolves to yesterday and the "today" count goes wrong.
@@ -480,6 +487,11 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         const nameOf = (x: Appointment) =>
           ((x as any).customer?.name || x.walk_in_name || "").toLowerCase();
         switch (sortBy) {
+          case "pending-first":
+            return (
+              Number(b.status === "pending") - Number(a.status === "pending") ||
+              byDate()
+            );
           case "date-desc":
             return (
               b.scheduled_date.localeCompare(a.scheduled_date) ||
@@ -879,6 +891,79 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Appointment completion success */}
+      <AnimatePresence>
+        {completedAppointment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm"
+            onClick={() => setCompletedAppointment(null)}
+          >
+            <motion.section
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.97 }}
+              transition={{ type: "spring", damping: 24, stiffness: 300 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="appointment-complete-title"
+              onClick={(event) => event.stopPropagation()}
+              className={`w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl ${theme.border} ${theme.panel}`}
+            >
+              <div className="px-6 pb-5 pt-7 text-center">
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500 ring-1 ring-emerald-500/25">
+                  <CheckCircle size={34} strokeWidth={1.8} />
+                </span>
+                <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500">Appointment completed</p>
+                <h2 id="appointment-complete-title" className={`mt-1 text-2xl font-extrabold ${theme.heading}`}>Service complete!</h2>
+                <p className={`mt-2 text-sm ${theme.muted}`}>The booking is complete. Inventory and invoice records have been updated.</p>
+              </div>
+
+              <div className={`mx-6 mb-5 divide-y rounded-xl border px-4 ${theme.border} ${theme.panelAlt}`}>
+                <div className="flex justify-between gap-4 py-3 text-sm">
+                  <span className={theme.muted}>Customer</span>
+                  <span className={`text-right font-semibold ${theme.text}`}>
+                    {(completedAppointment.appointment as any).customer?.name || completedAppointment.appointment.walk_in_name || "Walk-in customer"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4 py-3 text-sm">
+                  <span className={theme.muted}>Service</span>
+                  <span className={`max-w-[65%] text-right font-semibold ${theme.text}`}>
+                    {completedAppointment.appointment.service_type || "Service appointment"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4 py-3 text-sm">
+                  <span className={theme.muted}>Booking reference</span>
+                  <span className={`text-right font-medium ${theme.text}`}>
+                    {completedAppointment.appointment.booking_id || `#${completedAppointment.appointment.id.slice(0, 8).toUpperCase()}`}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4 py-3 text-sm">
+                  <span className={theme.muted}>Invoice total</span>
+                  <span className="text-right text-base font-extrabold text-emerald-500">
+                    {completedAppointment.invoiceTotal !== undefined
+                      ? `₱${completedAppointment.invoiceTotal.toLocaleString("en-PH")}`
+                      : `₱${Number(completedAppointment.appointment.total_amount || completedAppointment.appointment.estimated_price || 0).toLocaleString("en-PH")}`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-6 pb-6">
+                <button
+                  type="button"
+                  onClick={() => setCompletedAppointment(null)}
+                  className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.section>
           </motion.div>
         )}
       </AnimatePresence>
