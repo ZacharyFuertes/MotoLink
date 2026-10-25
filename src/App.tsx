@@ -10,6 +10,7 @@ import {
   isPageAllowedForRole,
 } from "./utils/roleAccess";
 import ErrorBoundary from "./components/ErrorBoundary";
+import BackToTop from "./components/BackToTop";
 import SystemNavbar from "./components/SystemNavbar";
 import AIChatModal from "./components/AIChatModal";
 import AdminChatbot from "./components/AdminChatbot";
@@ -745,6 +746,8 @@ const AppContent: React.FC = () => {
           />
         )}
       </main>
+
+      <BackToTop />
 
       {user?.role === "owner" ? (
         <AdminChatbot
