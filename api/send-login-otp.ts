@@ -4,11 +4,15 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
+import sgMail from "@sendgrid/mail";
 import nodemailer from "nodemailer";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
+const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
 const GMAIL_USER = (process.env.GMAIL_USER || "").trim();
 const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 
@@ -43,11 +47,17 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ success: false, error: "Server not configured." });
     }
 
-    if (!GMAIL_USER || !GMAIL_APP_PASS) {
-      console.error("Gmail not configured");
+    const gmailReady = Boolean(GMAIL_USER && GMAIL_APP_PASS);
+    const sendgridReady = Boolean(SENDGRID_API_KEY && SENDGRID_FROM_EMAIL);
+    if (!gmailReady && !sendgridReady) {
+      console.error("No email transport configured for login verification");
       return res
         .status(500)
-        .json({ success: false, error: "Email service not configured on the server." });
+        .json({
+          success: false,
+          error:
+            "Email service not configured: set GMAIL_USER/GMAIL_APP_PASS or SENDGRID_API_KEY/SENDGRID_FROM_EMAIL on the server.",
+        });
     }
 
     const { email, password } = req.body || {};
@@ -232,23 +242,34 @@ export default async function handler(req: any, res: any) {
     const text = `MOTOLINK - Login Verification Code\n\nHi ${firstName},\n\nYour verification code is: ${code}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this code, please ignore this email.`;
 
     try {
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        auth: {
-          user: GMAIL_USER,
-          pass: GMAIL_APP_PASS,
-        },
-      });
-      await transporter.sendMail({
-        from: `"MotoLink" <${GMAIL_USER}>`,
-        to: normalizedEmail,
-        subject: `Your MotoLink Login Code: ${code}`,
-        html,
-        text,
-      });
+      if (gmailReady) {
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          host: "smtp.gmail.com",
+          port: 465,
+          secure: true,
+          auth: {
+            user: GMAIL_USER,
+            pass: GMAIL_APP_PASS,
+          },
+        });
+        await transporter.sendMail({
+          from: `"MotoLink" <${GMAIL_USER}>`,
+          to: normalizedEmail,
+          subject: `Your MotoLink Login Code: ${code}`,
+          html,
+          text,
+        });
+      } else {
+        sgMail.setApiKey(SENDGRID_API_KEY);
+        await sgMail.send({
+          to: normalizedEmail,
+          from: { email: SENDGRID_FROM_EMAIL, name: SENDGRID_FROM_NAME },
+          subject: `Your MotoLink Login Code: ${code}`,
+          html,
+          text,
+        });
+      }
     } catch (e: any) {
       console.error("[send-login-otp] send exception:", e);
       return res.status(500).json({ success: false, error: e?.message || "Failed to send verification code." });
