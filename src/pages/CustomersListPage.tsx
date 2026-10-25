@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Users,
   RefreshCw,
+  ArrowUpDown,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
@@ -37,12 +38,21 @@ interface CustomersListPageProps {
   onNavigate?: (page: string) => void;
 }
 
+type CustomerSort =
+  | "name-asc"
+  | "name-desc"
+  | "spend-high"
+  | "spend-low"
+  | "joined-new"
+  | "joined-old";
+
 const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   const { user } = useAuth();
   const [resolvedShopId, setResolvedShopId] = useState<string | null>(user?.shop_id || null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<CustomerSort>("joined-new");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Customer | null>(null);
@@ -135,14 +145,44 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   }, [resolvedShopId]);
 
   useEffect(() => {
-    const filtered = customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(searchTerm)),
-    );
+    const query = searchTerm.trim().toLowerCase();
+    const filtered = customers
+      .filter((customer) =>
+        !query ||
+        customer.name.toLowerCase().includes(query) ||
+        customer.email.toLowerCase().includes(query) ||
+        (customer.phone || "").toLowerCase().includes(query) ||
+        (customer.city || "").toLowerCase().includes(query) ||
+        (customer.address || "").toLowerCase().includes(query),
+      )
+      .sort((a, b) => {
+        const byName = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        const aSpent = Number(a.total_spent) || 0;
+        const bSpent = Number(b.total_spent) || 0;
+        const aJoined = a.created_at ? new Date(a.created_at).getTime() : null;
+        const bJoined = b.created_at ? new Date(b.created_at).getTime() : null;
+        switch (sortBy) {
+          case "name-desc":
+            return -byName;
+          case "spend-high":
+            return bSpent - aSpent || byName;
+          case "spend-low":
+            return aSpent - bSpent || byName;
+          case "joined-old":
+            if (aJoined === null) return bJoined === null ? byName : 1;
+            if (bJoined === null) return -1;
+            return aJoined - bJoined || byName;
+          case "joined-new":
+            if (aJoined === null) return bJoined === null ? byName : 1;
+            if (bJoined === null) return -1;
+            return bJoined - aJoined || byName;
+          case "name-asc":
+          default:
+            return byName;
+        }
+      });
     setFilteredCustomers(filtered);
-  }, [searchTerm, customers]);
+  }, [searchTerm, customers, sortBy]);
 
   const handleDeleteCustomer = async () => {
     if (!deleteConfirm) return;
@@ -364,6 +404,22 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-moto-gray bg-moto-dark py-2 pl-9 pr-3 text-xs text-moto-light placeholder:text-moto-muted outline-none transition focus:border-moto-accent"
           />
+        </div>
+        <div className="relative shrink-0 sm:w-56">
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-moto-muted" />
+          <select
+            aria-label="Sort customers"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as CustomerSort)}
+            className="w-full appearance-none rounded-lg border border-moto-gray bg-moto-dark py-2 pl-9 pr-8 text-xs font-medium text-moto-light outline-none transition focus:border-moto-accent"
+          >
+            <option value="joined-new">Joined: newest first</option>
+            <option value="joined-old">Joined: oldest first</option>
+            <option value="name-asc">Name: A–Z</option>
+            <option value="name-desc">Name: Z–A</option>
+            <option value="spend-high">Lifetime spend: high to low</option>
+            <option value="spend-low">Lifetime spend: low to high</option>
+          </select>
         </div>
         <span className="shrink-0 px-2 text-xs font-medium text-moto-muted">
           {filteredCustomers.length} of {totalCustomers} customers
