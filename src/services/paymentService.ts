@@ -135,3 +135,28 @@ export const computeDeposit = (
   }
   return Math.round(deposit * 100) / 100;
 };
+
+/**
+ * PSEUDO FUNCTION - FOR SHOW ONLY
+ * This is not wired into the payment flow and does not make any real API calls.
+ * Added as requested since no changes were made to online payment in the latest pull.
+ */
+export const previewOnlinePaymentDemo = async (
+  appointmentId: string,
+  method: OnlinePaymentMethod,
+): Promise<{
+  mode: "demo";
+  appointmentId: string;
+  method: OnlinePaymentMethod;
+  message: string;
+  qrValue: string;
+}> => {
+  console.warn("[paymentService] previewOnlinePaymentDemo called (pseudo, for show only) - no real payment initiated");
+  return {
+    mode: "demo",
+    appointmentId,
+    method,
+    message: "This is a preview-only payment flow (demo). Real payment not initiated.",
+    qrValue: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23eee'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='12' fill='%23666'%3EDemo QR%3C/text%3E%3C/svg%3E",
+  };
+};
