@@ -1,7 +1,8 @@
-import { Bot, CalendarCheck, MapPin, Search, ShieldCheck, Star, Store } from "lucide-react";
+import { CalendarCheck, MapPin, Search, ShieldCheck, Star, Store } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import AIChatModal from "../components/AIChatModal";
+import BackToTop from "../components/BackToTop";
 import MotolinkNavbar from "../components/MotolinkNavbar";
 import HeroSlideshow from "../components/HeroSlideshow";
 import ShopFilters from "../components/ShopFilters";
@@ -10,6 +11,7 @@ import ShopMap from "../components/ShopMap";
 import ShopSearch from "../components/ShopSearch";
 import NavigationModal from "../components/NavigationModal";
 import Footer from "../components/Footer";
+import chatbotIcon from "../pictures/icons/chatbot icon.png";
 import { getPublicShops, getPublicShopStats, getShopReviewSummaries, isOpenNowFromOperatingHours, PublicShopStats, sortByDistance } from "../services/shopService";
 import { Shop, ShopSearchResult } from "../types/shop";
 
@@ -584,7 +586,10 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         </motion.div>
       </motion.section>
     </main>
-    <button onClick={() => setShowAIChat(true)} aria-label="Open Motolink AI chat" className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-xl shadow-moto-accent/30 transition hover:-translate-y-1 hover:bg-moto-accent-dark"><Bot size={26} /></button>
+    <BackToTop />
+    <button onClick={() => setShowAIChat(true)} aria-label="Open MotoLink AI chat" className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-xl shadow-moto-accent/30 transition hover:-translate-y-1 hover:bg-moto-accent-dark">
+      <img src={chatbotIcon} alt="" className="h-9 w-9 rounded-full bg-white p-1" />
+    </button>
     <Footer />
     <AIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
     <NavigationModal

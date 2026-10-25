@@ -70,6 +70,7 @@ export interface Appointment {
   notes?: string;
   walk_in_name?: string | null;
   walk_in_phone?: string | null;
+  walk_in_email?: string | null;
   parts?: any[];
   total_amount?: number;
   estimated_price?: number;

@@ -68,11 +68,39 @@ const SERVICE_TYPES = [
   "Custom Work",
 ];
 
+const VEHICLE_MAKES = [
+  "Honda",
+  "Yamaha",
+  "Suzuki",
+  "Kawasaki",
+  "KTM",
+  "SYM",
+  "Rusi",
+  "Euro Motor",
+  "Vespa",
+  "Others",
+];
+
+const VEHICLE_MODELS: Record<string, string[]> = {
+  Honda: ["Click 125i", "Click 150i", "Beat", "PCX 160", "ADV 150", "XRM 125", "Wave 110i", "TMX 125", "CB150R"],
+  Yamaha: ["Mio i 125", "Mio Gear", "Mio Aerox 155", "NMAX 155", "Sniper 155", "FZ-S", "SZ-R", "XSR 155"],
+  Suzuki: ["Skydrive", "Address 110", "Burgman Street", "Gixxer 155", "Raider 150 FI", "Satria F150"],
+  Kawasaki: ["Rouser NS200", "Rouser RS200", "Ninja 400", "Z400", "Dominar 400"],
+  KTM: ["Duke 200", "Duke 390", "RC 200", "Adventure 390"],
+  SYM: ["Symply 50", "Jet 14", "Cruisym 150", "Maxsym 400"],
+  Rusi: ["Rusi TC 125", "Rusi Mojo 200", "Rusi Pass 125"],
+  "Euro Motor": ["Euro 150", "Euro 200"],
+  Vespa: ["LX 125", "Sprint 150", "Primavera 150"],
+  Others: ["Other"],
+};
+
 const emptyForm = {
   customer_name: "",
   customer_phone: "",
+  customer_email: "",
   vehicle_make: "",
-  service_type: SERVICE_TYPES[0],
+  vehicle_model: "",
+  service_type: [] as string[],
   mechanic_id: "",
 };
 
@@ -98,9 +126,9 @@ const inputClass =
  * Returns only id / name / phone / email / is_shop_member — never a whole row.
  *
  * The RPC needs `20261004_registered_customer_search.sql`; the walk-in columns
- * need `20261003_walk_in_appointments.sql`. Neither is idempotently guaranteed on
- * a live DB, so the modal probes for the column on open and says so plainly
- * instead of failing at submit with PostgREST's PGRST204.
+ * need `20261003_walk_in_appointments.sql` and
+ * `20261025_walk_in_email_notifications.sql`. The modal probes for these
+ * columns on open and shows an actionable message if they are missing.
  */
 const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   isOpen,
@@ -176,7 +204,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setSchemaReady(null);
   }, [isOpen]);
 
-  // Preflight: does `appointments.walk_in_name` exist yet?
+  // Preflight the walk-in identity columns before allowing a booking.
   //
   // The walk-in insert sends that column, and PostgREST answers PGRST204
   // ("Could not find the 'walk_in_name' column of 'appointments' in the schema
@@ -190,7 +218,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       try {
         const { error: probeError } = await supabase
           .from("appointments")
-          .select("walk_in_name")
+          .select("walk_in_name, walk_in_email")
           .limit(1);
         if (!cancelled) setSchemaReady(!probeError);
       } catch {
@@ -388,10 +416,21 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         setError("Enter the walk-in's name and phone number.");
         return;
       }
+      if (
+        formData.customer_email.trim() &&
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email.trim())
+      ) {
+        setError("Enter a valid email address.");
+        return;
+      }
     }
 
     if (!formData.vehicle_make.trim()) {
-      setError("Enter the vehicle make / model.");
+      setError("Enter the vehicle make.");
+      return;
+    }
+    if (formData.service_type.length === 0) {
+      setError("Choose at least one service type.");
       return;
     }
 
@@ -406,14 +445,21 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         return;
       }
 
+      const vehicleDescription = [
+        formData.vehicle_make.trim(),
+        formData.vehicle_model.trim(),
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const serviceDescription = formData.service_type.join(", ");
       const payload = {
         customer_id: customerId,
         vehicle_id: null,
         shop_id: shopId,
         scheduled_date: selectedDate,
         scheduled_time: selectedSlot,
-        service_type: formData.service_type,
-        description: `${formData.vehicle_make.trim()} - ${formData.service_type}`,
+        service_type: serviceDescription,
+        description: `${vehicleDescription} - ${serviceDescription}`,
         status: "pending",
         mechanic_id: formData.mechanic_id || null,
         // Identity columns are populated only when there is no account to point
@@ -421,6 +467,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         // migration has not been applied — hence the preflight above.
         walk_in_name: customerId ? null : name,
         walk_in_phone: customerId ? null : phone,
+        walk_in_email: customerId ? null : formData.customer_email.trim() || null,
       };
 
       const { data, error: insertError } = await supabase
@@ -441,15 +488,20 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
       onBooked?.(data as Appointment);
 
-      // Only a real account has an inbox to confirm.
-      if (data?.customer_id) {
-        sendBookingRequestReceivedEmail(data.id);
+      // Registered customers and walk-ins with an email address both receive
+      // booking updates through the server-side notification endpoint.
+      if (data?.customer_id || formData.customer_email.trim()) {
+        void sendBookingRequestReceivedEmail(data.id).then((result) => {
+          if (!result.success && !result.skipped && !result.notConfigured) {
+            console.warn("Could not send booking-received email to customer:", result.error);
+          }
+        });
       }
 
       setConfirmed({
         bookingId: data?.booking_id || "",
         bookingSlot: selectedSlot,
-        serviceType: formData.service_type,
+        serviceType: serviceDescription,
         customerLabel: name,
         linked: Boolean(customerId),
       });
@@ -757,6 +809,20 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     className={inputClass}
                   />
                 </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-slate-200">
+                    Email for Notifications (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={formData.customer_email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, customer_email: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                </div>
               </div>
             )}
 
@@ -781,38 +847,77 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
-                    Vehicle (Make / Model)
+                  <label htmlFor="walk-in-vehicle-make" className="mb-1 block text-xs font-bold text-slate-200">
+                    Vehicle Make
                   </label>
                   <input
+                    id="walk-in-vehicle-make"
                     type="text"
-                    placeholder="e.g. Honda Click 150i"
+                    list="walk-in-vehicle-makes"
+                    placeholder="e.g. Honda"
                     value={formData.vehicle_make}
                     onChange={(e) =>
                       setFormData({ ...formData, vehicle_make: e.target.value })
                     }
                     className={inputClass}
                   />
+                  <datalist id="walk-in-vehicle-makes">
+                    {VEHICLE_MAKES.map((make) => (
+                      <option key={make} value={make} />
+                    ))}
+                  </datalist>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
-                    Service Type
+                  <label htmlFor="walk-in-vehicle-model" className="mb-1 block text-xs font-bold text-slate-200">
+                    Vehicle Model
                   </label>
-                  <select
-                    value={formData.service_type}
+                  <input
+                    id="walk-in-vehicle-model"
+                    type="text"
+                    list="walk-in-vehicle-models"
+                    placeholder="e.g. Click 150i"
+                    value={formData.vehicle_model}
                     onChange={(e) =>
-                      setFormData({ ...formData, service_type: e.target.value })
+                      setFormData({ ...formData, vehicle_model: e.target.value })
                     }
                     className={inputClass}
-                  >
-                    {SERVICE_TYPES.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
+                  />
+                  <datalist id="walk-in-vehicle-models">
+                    {(VEHICLE_MODELS[formData.vehicle_make] || []).map((model) => (
+                      <option key={model} value={model} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
               </div>
+
+              <fieldset>
+                <legend className="mb-2 block text-xs font-bold text-slate-200">
+                  Service Type (Choose all that apply)
+                </legend>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {SERVICE_TYPES.map((service) => (
+                    <label
+                      key={service}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-moto-gray bg-moto-darker px-3 py-2 text-xs text-slate-200"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.service_type.includes(service)}
+                        onChange={(e) =>
+                          setFormData((current) => ({
+                            ...current,
+                            service_type: e.target.checked
+                              ? [...current.service_type, service]
+                              : current.service_type.filter((item) => item !== service),
+                          }))
+                        }
+                        className="accent-moto-accent"
+                      />
+                      {service}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
               {mechanics.length > 0 && (
                 <div>
@@ -839,7 +944,10 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               {formData.vehicle_make.trim() && (
                 <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
                   <Car size={13} />
-                  {formData.vehicle_make.trim()} · {formData.service_type}
+                  {formData.vehicle_make.trim()}
+                  {formData.vehicle_model.trim() && ` ${formData.vehicle_model.trim()}`}
+                  {formData.service_type.length > 0 &&
+                    ` · ${formData.service_type.join(", ")}`}
                 </p>
               )}
             </div>

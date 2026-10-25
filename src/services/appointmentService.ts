@@ -18,7 +18,7 @@ import { supabase } from "./supabaseClient";
  * Shown when PostgREST says a column or function it expects is missing.
  *
  * Both unapplied migrations surface as the same thing — walk-in inserts fail
- * with PGRST204 on `walk_in_name`, and the registered-customer search fails
+ * with PGRST204 on walk-in identity columns, and the registered-customer search fails
  * with PGRST202 on `search_registered_customers` — and one file fixes both, so
  * both point at the same instruction.
  */
@@ -28,13 +28,13 @@ export const SCHEMA_NOT_APPLIED_MESSAGE =
 
 /**
  * Matches PostgREST's "… in the schema cache" family of errors:
- *   PGRST204 Could not find the 'walk_in_name' column of 'appointments' …
+ *   PGRST204 Could not find a walk-in column of 'appointments' …
  *   PGRST202 Could not find the function public.search_registered_customers …
  * Matching on the prose as well as the code keeps this working if supabase-js
  * hands back the message without the `code` field.
  */
 const SCHEMA_CACHE_ERROR =
-  /PGRST20[24]|schema cache|walk_in_name|search_registered_customers/i;
+  /PGRST20[24]|schema cache|walk_in_(?:name|email)|search_registered_customers/i;
 
 /**
  * Turn a raw Supabase error into something worth showing a shop owner.

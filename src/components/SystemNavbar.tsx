@@ -12,7 +12,6 @@ import {
   Lock,
   Wrench,
   Clock,
-  MessageSquare,
   ShoppingBag,
   AlertTriangle,
   Store,
@@ -21,6 +20,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { AppPage, getPagesByRole, getRoleLabel } from "../utils/roleAccess";
 import ThemeToggle from "./ThemeToggle";
+import chatbotIcon from "../pictures/icons/chatbot icon.png";
 
 interface NavbarProps {
   currentPage: string;
@@ -271,7 +271,11 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               className="flex items-center gap-1.5 xl:gap-2 px-2 xl:px-3 py-2 rounded-lg bg-transparent border border-slate-900 hover:bg-slate-900 text-slate-900 hover:text-white transition uppercase text-[9px] xl:text-[10px] font-bold tracking-widest"
               title="MotoMech AI Chat"
             >
-              <MessageSquare className="w-3 h-3" />
+              <img
+                src={chatbotIcon}
+                alt=""
+                className="h-4 w-4 rounded-full bg-white p-0.5"
+              />
               <span className="hidden sm:inline">AI CHAT</span>
             </motion.button>
 

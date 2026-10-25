@@ -2,8 +2,8 @@
 -- APPLY PENDING — paste this whole file into Supabase -> SQL Editor and run it.
 -- ============================================================================
 --
--- Two migrations in this project have never been applied to the live database.
--- Until they are, the owner "Book Walk-in" flow fails with:
+-- Two existing migrations in this project have never been applied to the live
+-- database. Until they are, the owner "Book Walk-in" flow fails with:
 --   Could not find the 'walk_in_name' column of 'appointments' in the schema cache
 -- and the "Registered" customer search cannot see customers outside one shop.
 --
@@ -17,13 +17,16 @@
 --        search_registered_customers() + the "Shop owners can view customers
 --        they serve" RLS policy.
 --
+--   3. 20261025_walk_in_email_notifications.sql
+--        Optional walk_in_email storage for customer email notifications.
+--
 -- The owner availability toggle also needs shops.is_open. Its existing
 -- 20260813 migration has not been applied to the live database, so this bundle
 -- includes the column addition below. This stores the owner's availability
 -- separately from the operating-hours schedule.
 --
--- The walk-in and registered-customer migrations can still be run from their
--- individual files; this bundle includes their SQL below as well.
+-- The walk-in, registered-customer, and walk-in email migrations can still be
+-- run from their individual files; this bundle includes their SQL below as well.
 -- Everything in this bundle is safe to re-run (IF NOT EXISTS / CREATE OR
 -- REPLACE / DROP POLICY IF EXISTS).
 -- ============================================================================
@@ -222,7 +225,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 
 -- ############################################################################
--- ##  MIGRATION 2/2 — 20261004_registered_customer_search.sql
+-- ##  MIGRATION 2/3 — 20261004_registered_customer_search.sql
 -- ############################################################################
 
 
@@ -386,3 +389,34 @@ COMMENT ON POLICY "Shop owners can view customers they serve" ON public.users IS
 -- The explicit a.shop_id IN (...) also means this does not depend on the
 -- appointments policies being applied inside a policy expression.
 -- ---------------------------------------------------------------------------
+
+-- ############################################################################
+-- ##  MIGRATION 3/3 — 20261025_walk_in_email_notifications.sql
+-- ############################################################################
+
+ALTER TABLE public.appointments
+  ADD COLUMN IF NOT EXISTS walk_in_email TEXT;
+
+COMMENT ON COLUMN public.appointments.walk_in_email IS
+  'Optional email address for appointment notifications while customer_id is NULL.';
+
+CREATE OR REPLACE FUNCTION public.clear_walk_in_email_when_claimed()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF OLD.customer_id IS NULL AND NEW.customer_id IS NOT NULL THEN
+    NEW.walk_in_email := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS clear_walk_in_email_when_claimed ON public.appointments;
+CREATE TRIGGER clear_walk_in_email_when_claimed
+  BEFORE UPDATE OF customer_id ON public.appointments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.clear_walk_in_email_when_claimed();
+
+NOTIFY pgrst, 'reload schema';

@@ -70,7 +70,7 @@ interface PartRow {
 }
 
 interface Entity {
-  id: string;
+  id?: string;
   name: string;
   email: string;
 }
@@ -383,7 +383,7 @@ export default async function handler(req: any, res: any) {
   const { data: appointmentData, error: apptError } = await db
     .from("appointments")
     .select(
-      "id, booking_id, customer_id, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(name, email), shop:shops(id, name, city, address, phone, owner_id)",
+      "id, booking_id, customer_id, walk_in_name, walk_in_email, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(id, name, email), shop:shops(id, name, city, address, phone, owner_id)",
     )
     .eq("id", appointmentId)
     .maybeSingle();
@@ -422,6 +422,11 @@ export default async function handler(req: any, res: any) {
   let customer: Entity | undefined;
   if (appointment.customer) {
     customer = appointment.customer as Entity;
+  } else if (!appointment.customer_id) {
+    customer = {
+      name: appointment.walk_in_name || "Walk-in customer",
+      email: appointment.walk_in_email || "",
+    };
   }
 
   let owner: Entity | undefined;
@@ -507,14 +512,7 @@ export default async function handler(req: any, res: any) {
 
     if (pref && pref.email_notifications_enabled === false) {
       const subject = buildSubject(template, ctx);
-      await logAudit(
-        db,
-        appointment.id,
-        recipient.id,
-        subject,
-        "Skipped – customer opted out of email notifications.",
-        "skipped",
-      );
+      await logAudit(db, appointment.id, recipient.id, subject, "Skipped – customer opted out of email notifications.", "skipped");
       return res.status(200).json({ success: false, skipped: true });
     }
   }
@@ -599,19 +597,23 @@ export default async function handler(req: any, res: any) {
     console.log(
       `[send-email] ${template} sent via ${via} to ${recipient.email} (appt ${appointment.id})`,
     );
-    await logAudit(
-      db,
-      appointment.id,
-      recipient.id,
-      subject,
-      `Email sent to ${recipient.email}`,
-      "sent",
-    );
+    if (recipient.id) {
+      await logAudit(
+        db,
+        appointment.id,
+        recipient.id,
+        subject,
+        `Email sent to ${recipient.email}`,
+        "sent",
+      );
+    }
     return res.status(200).json({ success: true });
   } catch (err: any) {
     console.error(`[send-email] ${via} failure:`, err?.message || err);
     const message = `Email delivery failed: ${err?.message || "unknown error"}`;
-    await logAudit(db, appointment.id, recipient.id, subject, message, "failed");
+    if (recipient.id) {
+      await logAudit(db, appointment.id, recipient.id, subject, message, "failed");
+    }
     return res.status(200).json({ success: false, error: message });
   }
 }
