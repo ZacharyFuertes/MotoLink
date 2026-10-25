@@ -709,6 +709,67 @@ html.light .dashboard-table td {
   border-bottom-color: #cde0ea;
 }
 
+/* Owner dashboard: keep legacy fixed-color panels and charts readable in light mode. */
+html.light .owner-dashboard [class~="text-[#948FA3]"] {
+  color: #475569;
+}
+html.light .owner-dashboard [class~="text-[#35D0C0]"] {
+  color: #0f766e;
+}
+html.light .owner-dashboard [class~="text-[#6B6879]"] {
+  color: #475569;
+}
+html.light .owner-dashboard [class~="text-[#8DE8DC]"] {
+  color: #0f766e;
+}
+html.light .owner-dashboard [class~="text-[#FFB894]"] {
+  color: #c2410c;
+}
+html.light .owner-dashboard [class~="text-[#FF5C7A]"] {
+  color: #be123c;
+}
+html.light .owner-dashboard [class~="border-[#2B2A37]"] {
+  border-color: #c5d7e2;
+}
+html.light .owner-dashboard [class~="bg-[#1C1B24]"] {
+  background-color: #f4fafc;
+}
+html.light .owner-dashboard [class~="bg-[#14131A]"] {
+  background-color: #e9f3f8;
+}
+html.light .owner-dashboard [class~="text-[#64748b]"] {
+  color: #475569;
+}
+html.light .owner-dashboard .recharts-cartesian-axis-tick-value {
+  fill: #475569;
+}
+html.light .owner-dashboard .recharts-cartesian-grid line {
+  stroke: #c5d7e2;
+}
+html.light .owner-dashboard input::placeholder,
+html.light .owner-dashboard textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+/* More readable owner dashboard typography on desktop, while preserving mobile sizing. */
+@media (min-width: 1280px) {
+  .owner-dashboard-content .text-xs,
+  .owner-dashboard-content [class~="text-[10px]"],
+  .owner-dashboard-content [class~="text-[11px]"],
+  .owner-dashboard-content [class~="text-[12px]"] {
+    font-size: 0.875rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .owner-dashboard-content .text-sm,
+  .owner-dashboard-content [class~="text-[13px]"],
+  .owner-dashboard-content [class~="text-[14px]"] {
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+  }
+}
+
 /* ── Profile ("My Garage") page: main panels get a solid, raised surface so
    they stand out against the page in both themes ── */
 .profile-page .profile-panel {

@@ -11,11 +11,13 @@ import {
   Package,
   CheckCircle,
   Users,
-  
+  RefreshCw,
+  ArrowUpDown,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
 import { useAuth } from "../contexts/AuthContext";
+import { getShopByOwnerId } from "../services/shopService";
 import {
   reservationService,
   Reservation,
@@ -36,13 +38,23 @@ interface CustomersListPageProps {
   onNavigate?: (page: string) => void;
 }
 
+type CustomerSort =
+  | "name-asc"
+  | "name-desc"
+  | "spend-high"
+  | "spend-low"
+  | "joined-new"
+  | "joined-old";
+
 const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   const { user } = useAuth();
+  const [resolvedShopId, setResolvedShopId] = useState<string | null>(user?.shop_id || null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<CustomerSort>("joined-new");
   const [loading, setLoading] = useState(true);
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState("");
@@ -52,9 +64,30 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   );
 
   useEffect(() => {
-    if (!user?.shop_id) return;
-    reservationService.getShopReservations(user.shop_id).then(setReservations);
-  }, [user?.shop_id]);
+    let cancelled = false;
+    const resolveShop = async () => {
+      if (user?.shop_id) return user.shop_id;
+      if (user?.role === "owner" && user.id) {
+        const shop = await getShopByOwnerId(user.id);
+        return shop?.id ?? null;
+      }
+      return null;
+    };
+    void resolveShop().then((shopId) => {
+      if (!cancelled) setResolvedShopId(shopId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.role, user?.shop_id]);
+
+  useEffect(() => {
+    if (!resolvedShopId) {
+      setReservations([]);
+      return;
+    }
+    reservationService.getShopReservations(resolvedShopId).then(setReservations);
+  }, [resolvedShopId]);
 
   const handleReservationAction = async (
     reservation: Reservation,
@@ -70,99 +103,86 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
       ok = await reservationService.updateStatus(reservation.id, "cancelled");
     }
     setUpdatingReservation(null);
-    if (ok && user?.shop_id) {
-      const updated = await reservationService.getShopReservations(user.shop_id);
+    if (ok && resolvedShopId) {
+      const updated = await reservationService.getShopReservations(resolvedShopId);
       setReservations(updated);
     }
   };
 
+  const fetchCustomers = async () => {
+    if (!resolvedShopId) {
+      setCustomers([]);
+      setFilteredCustomers([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const { data, error: fetchError } = await supabase.rpc(
+        "get_shop_customer_directory",
+        { p_shop_id: resolvedShopId },
+      );
+      if (fetchError) throw fetchError;
+      const directory = ((data || []) as Customer[]).map((customer) => ({
+        ...customer,
+        total_spent: Number(customer.total_spent) || 0,
+      }));
+      setCustomers(directory);
+      setFilteredCustomers(directory);
+    } catch (err) {
+      console.error("Error fetching shop customers:", err);
+      setError(err instanceof Error ? err.message : "Failed to load customers");
+      setCustomers([]);
+      setFilteredCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    void fetchCustomers();
+  }, [resolvedShopId]);
 
-        let customerQuery = supabase
-          .from("users")
-          .select("*")
-          .eq("role", "customer")
-          .order("created_at", { ascending: false });
-
-        if (user?.shop_id) {
-          customerQuery = customerQuery.eq("shop_id", user.shop_id);
+  useEffect(() => {
+    const query = searchTerm.trim().toLowerCase();
+    const filtered = customers
+      .filter((customer) =>
+        !query ||
+        customer.name.toLowerCase().includes(query) ||
+        customer.email.toLowerCase().includes(query) ||
+        (customer.phone || "").toLowerCase().includes(query) ||
+        (customer.city || "").toLowerCase().includes(query) ||
+        (customer.address || "").toLowerCase().includes(query),
+      )
+      .sort((a, b) => {
+        const byName = a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        const aSpent = Number(a.total_spent) || 0;
+        const bSpent = Number(b.total_spent) || 0;
+        const aJoined = a.created_at ? new Date(a.created_at).getTime() : null;
+        const bJoined = b.created_at ? new Date(b.created_at).getTime() : null;
+        switch (sortBy) {
+          case "name-desc":
+            return -byName;
+          case "spend-high":
+            return bSpent - aSpent || byName;
+          case "spend-low":
+            return aSpent - bSpent || byName;
+          case "joined-old":
+            if (aJoined === null) return bJoined === null ? byName : 1;
+            if (bJoined === null) return -1;
+            return aJoined - bJoined || byName;
+          case "joined-new":
+            if (aJoined === null) return bJoined === null ? byName : 1;
+            if (bJoined === null) return -1;
+            return bJoined - aJoined || byName;
+          case "name-asc":
+          default:
+            return byName;
         }
-
-        const { data: userData, error: fetchError } = await customerQuery;
-        if (fetchError) throw fetchError;
-
-        const baseCustomers = userData || [];
-
-        let aptQuery = supabase
-          .from("appointments")
-          .select("customer_id, booking_id, total_amount, estimated_price")
-          .eq("status", "completed");
-        if (user?.shop_id) aptQuery = aptQuery.eq("shop_id", user.shop_id);
-        const { data: appointments } = await aptQuery;
-
-        let joQuery = supabase
-          .from("job_orders")
-          .select("customer_id, total_cost")
-          .eq("status", "completed");
-        if (user?.shop_id) joQuery = joQuery.eq("shop_id", user.shop_id);
-        const { data: jobOrders } = await joQuery;
-
-        let resQuery = supabase
-          .from("reservations")
-          .select("customer_id, quantity, parts!inner(unit_price)")
-          .in("status", ["confirmed", "fulfilled"]);
-        if (user?.shop_id) resQuery = resQuery.eq("shop_id", user.shop_id);
-        const { data: reservations } = await resQuery;
-
-        const spendingMap: Record<string, number> = {};
-
-        appointments?.forEach(a => {
-          const amount = Number(a.total_amount || a.estimated_price) || 0;
-          spendingMap[a.customer_id] = (spendingMap[a.customer_id] || 0) + amount;
-        });
-
-        jobOrders?.forEach(j => {
-          const amount = Number(j.total_cost) || 0;
-          spendingMap[j.customer_id] = (spendingMap[j.customer_id] || 0) + amount;
-        });
-
-        reservations?.forEach((r: any) => {
-          const unitPrice = r.parts?.unit_price || 0;
-          const amount = (unitPrice * r.quantity) || 0;
-          spendingMap[r.customer_id] = (spendingMap[r.customer_id] || 0) + amount;
-        });
-
-        const customersWithSpent = baseCustomers.map(c => ({
-          ...c,
-          total_spent: spendingMap[c.id] || 0
-        }));
-
-        setCustomers(customersWithSpent);
-        setFilteredCustomers(customersWithSpent);
-      } catch (err) {
-        console.error("Error fetching customers:", err);
-        setError(err instanceof Error ? err.message : "Failed to load customers");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCustomers();
-  }, [user?.shop_id]);
-
-  useEffect(() => {
-    const filtered = customers.filter(
-      (customer) =>
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (customer.phone && customer.phone.includes(searchTerm)),
-    );
+      });
     setFilteredCustomers(filtered);
-  }, [searchTerm, customers]);
+  }, [searchTerm, customers, sortBy]);
 
   const handleDeleteCustomer = async () => {
     if (!deleteConfirm) return;
@@ -203,38 +223,32 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="-m-3 flex min-h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-moto-darker sm:-m-4 lg:-m-8">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-      >
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-moto-gray px-4 py-5 sm:px-7">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 font-display uppercase tracking-wide" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-            Customer Directory
-          </h1>
-          <p className="text-[13px] text-slate-300 mt-0.5">
-            Registered customer accounts, contact information, and total lifetime spend.
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-moto-light">Customer Management</h1>
+          <p className="mt-1 text-[13px] text-moto-muted">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</p>
         </div>
-      </motion.div>
+        <button type="button" onClick={() => void fetchCustomers()} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-moto-gray px-3 py-2 text-xs font-semibold text-moto-light transition hover:bg-moto-gray/30 disabled:opacity-50">
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+        </button>
+      </header>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 gap-4 border-b border-moto-gray px-4 py-5 sm:grid-cols-3 sm:px-7">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#35D0C0" } as React.CSSProperties}
+          className="rounded-xl border border-moto-gray bg-moto-darker p-4 sm:p-5"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-moto-accent/15 text-moto-accent flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-moto-accent/10 text-moto-accent">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[13px] font-semibold text-slate-300">Total Customers</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">{totalCustomers}</p>
+              <p className="text-xs font-medium text-moto-muted">Total Customers</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-moto-light">{totalCustomers}</p>
             </div>
           </div>
         </motion.div>
@@ -243,16 +257,15 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#10b981" } as React.CSSProperties}
+          className="rounded-xl border border-moto-gray bg-moto-darker p-4 sm:p-5"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[13px] font-semibold text-slate-300">Total Lifetime Spend</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">₱{totalSpent.toLocaleString()}</p>
+              <p className="text-xs font-medium text-moto-muted">Total Lifetime Spend</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-moto-light">₱{totalSpent.toLocaleString()}</p>
             </div>
           </div>
         </motion.div>
@@ -261,23 +274,23 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="stat-card p-5"
-          style={{ "--stat-accent": "#f59e0b" } as React.CSSProperties}
+          className="rounded-xl border border-moto-gray bg-moto-darker p-4 sm:p-5"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
               <span className="text-lg font-black leading-none">₱</span>
             </div>
             <div>
-              <p className="text-[13px] font-semibold text-slate-300">Avg. Spend / Customer</p>
-              <p className="text-3xl font-extrabold text-slate-100 tabular-nums">
+              <p className="text-xs font-medium text-moto-muted">Avg. Spend / Customer</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-moto-light">
                 ₱{totalCustomers > 0 ? Math.round(totalSpent / totalCustomers).toLocaleString() : 0}
               </p>
             </div>
           </div>
         </motion.div>
-      </div>
+      </section>
 
+      <main className="min-h-0 flex-1 overflow-y-auto bg-moto-dark/60 p-3 sm:p-5">
       {/* Part Reservations Section */}
       {reservations.length > 0 && (
         <motion.div
@@ -380,20 +393,36 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="dashboard-card p-4 flex items-center gap-3"
+        className="mb-4 flex flex-col gap-3 rounded-xl border border-moto-gray bg-moto-darker p-4 sm:flex-row sm:items-center"
       >
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-moto-muted" />
           <input
             type="text"
-            placeholder="Search by customer name, email, or phone number..."
+            placeholder="Search customers..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
+            className="w-full rounded-lg border border-moto-gray bg-moto-dark py-2 pl-9 pr-3 text-xs text-moto-light placeholder:text-moto-muted outline-none transition focus:border-moto-accent"
           />
         </div>
-        <span className="text-[13px] text-slate-300 font-medium px-2">
-          {filteredCustomers.length} results
+        <div className="relative shrink-0 sm:w-56">
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-moto-muted" />
+          <select
+            aria-label="Sort customers"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as CustomerSort)}
+            className="w-full appearance-none rounded-lg border border-moto-gray bg-moto-dark py-2 pl-9 pr-8 text-xs font-medium text-moto-light outline-none transition focus:border-moto-accent"
+          >
+            <option value="joined-new">Joined: newest first</option>
+            <option value="joined-old">Joined: oldest first</option>
+            <option value="name-asc">Name: A–Z</option>
+            <option value="name-desc">Name: Z–A</option>
+            <option value="spend-high">Lifetime spend: high to low</option>
+            <option value="spend-low">Lifetime spend: low to high</option>
+          </select>
+        </div>
+        <span className="shrink-0 px-2 text-xs font-medium text-moto-muted">
+          {filteredCustomers.length} of {totalCustomers} customers
         </span>
       </motion.div>
 
@@ -401,70 +430,70 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="dashboard-card overflow-hidden"
+        className="overflow-hidden rounded-xl border border-moto-gray bg-moto-darker"
       >
         {filteredCustomers.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm dashboard-table">
-              <thead>
+            <table className="w-full min-w-[800px] border-collapse text-left">
+              <thead className="bg-moto-dark/30 text-[10px] uppercase tracking-wider text-moto-muted">
                 <tr>
-                  <th className="text-left">Customer</th>
-                  <th className="text-left">Email</th>
-                  <th className="text-left">Phone</th>
-                  <th className="text-left">Location</th>
-                  <th className="text-right">Lifetime Spend</th>
-                  <th className="text-right">Joined</th>
-                  <th className="text-right">Actions</th>
+                  <th className="px-4 py-4 text-[11px] font-semibold">Customer</th>
+                  <th className="px-3 py-4 text-[11px] font-semibold">Email</th>
+                  <th className="px-3 py-4 text-[11px] font-semibold">Phone</th>
+                  <th className="px-3 py-4 text-[11px] font-semibold">Location</th>
+                  <th className="px-3 py-4 text-right text-[11px] font-semibold">Lifetime spend</th>
+                  <th className="px-3 py-4 text-right text-[11px] font-semibold">Joined</th>
+                  <th className="px-4 py-4 text-right text-[11px] font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-moto-gray/70">
                 {filteredCustomers.map((customer) => (
-                  <tr key={customer.id}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-moto-accent/15 text-moto-accent flex items-center justify-center font-bold text-[13px]">
+                  <tr key={customer.id} className="transition hover:bg-moto-dark/40">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-moto-accent/10 text-sm font-bold text-moto-accent">
                           {customer.name?.charAt(0)?.toUpperCase()}
                         </div>
-                        <span className="font-semibold text-slate-100 text-sm">
+                        <span className="text-[13px] font-semibold text-moto-light">
                           {customer.name}
                         </span>
                       </div>
                     </td>
-                    <td className="text-slate-300 text-[13px]">
+                    <td className="px-3 py-4 text-xs text-moto-light">
                       <div className="flex items-center gap-1.5">
                         <Mail size={15} className="text-slate-400" />
                         {customer.email}
                       </div>
                     </td>
-                    <td className="text-slate-300 text-[13px]">
+                    <td className="px-3 py-4 text-xs text-moto-light">
                       {customer.phone ? (
                         <div className="flex items-center gap-1.5">
                           <Phone size={15} className="text-slate-400" />
                           {customer.phone}
                         </div>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-moto-muted">—</span>
                       )}
                     </td>
-                    <td className="text-slate-300 text-[13px]">
+                    <td className="px-3 py-4 text-xs text-moto-light">
                       {customer.city || customer.address ? (
                         <div className="flex items-center gap-1.5">
                           <MapPin size={15} className="text-slate-400" />
                           {customer.city || customer.address}
                         </div>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-moto-muted">—</span>
                       )}
                     </td>
-                    <td className="text-right font-bold text-emerald-400 tabular-nums text-sm">
+                    <td className="px-3 py-4 text-right text-[13px] font-semibold tabular-nums text-emerald-500">
                       ₱{(customer.total_spent || 0).toLocaleString()}
                     </td>
-                    <td className="text-right text-slate-300 text-[13px] tabular-nums">
+                    <td className="px-3 py-4 text-right text-xs tabular-nums text-moto-muted">
                       {customer.created_at
                         ? new Date(customer.created_at).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="text-right">
+                    <td className="px-4 py-4 text-right">
                       <button
                         onClick={() => setDeleteConfirm(customer)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/15 transition"
@@ -479,14 +508,16 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-16">
-            <Users className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-            <p className="text-slate-300 text-sm font-semibold">
-              {searchTerm ? "No customers found matching search" : "No customers registered yet"}
+          <div className="flex min-h-56 flex-col items-center justify-center px-6 text-center">
+            <Users className="mb-3 h-10 w-10 text-moto-muted" />
+            <p className="text-sm font-semibold text-moto-light">
+              {error ? "Could not load customers" : searchTerm ? "No customers match this search" : "No customers yet"}
             </p>
+            <p className="mt-1 max-w-lg text-xs text-moto-muted">{error || "Customers with bookings, completed jobs, or part reservations will appear here."}</p>
           </div>
         )}
       </motion.div>
+      </main>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
