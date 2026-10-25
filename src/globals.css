@@ -516,17 +516,16 @@ textarea:focus {
 }
 
 .light {
-  /* Glacier aqua palette — a cool, lightly-tinted light mode (no pure whites)
-     that complements the blue-charcoal dark mode + teal/cyan accent. */
-  --moto-dark: 233 243 248; /* #e9f3f8 body mist */
-  --moto-darker: 244 250 252; /* #f4fafc aqua frost surfaces */
-  --moto-gray: 205 224 234; /* #cde0ea */
-  --moto-gray-light: 188 212 224; /* #bcd4e0 */
+  /* Quiet porcelain/slate base; reserve saturated teal for meaningful actions. */
+  --moto-dark: 244 246 249; /* #f4f6f9 app canvas */
+  --moto-darker: 255 255 255; /* white raised surface */
+  --moto-gray: 222 228 236; /* #dee4ec hairline borders */
+  --moto-gray-light: 197 207 220; /* #c5cfdd stronger borders */
   --moto-gray-muted: 100 116 139; /* #64748b */
-  --moto-side: 241 248 251; /* #f1f8fb */
-  --moto-muted: 100 116 139; /* #64748b */
-  --moto-ink: 15 23 42; /* #0f172a */
-  --moto-light: 15 23 42; /* #0f172a */
+  --moto-side: 255 255 255; /* white navigation rail */
+  --moto-muted: 82 96 115; /* #526073 secondary copy */
+  --moto-ink: 24 35 51; /* #182333 primary ink */
+  --moto-light: 24 35 51; /* #182333 */
   color-scheme: light;
 }
 
@@ -627,86 +626,116 @@ html.light .text-red-500:not(.keep-dark):not(.keep-dark *) {
 /* ── Light theme: hardcoded dark surfaces inside modals/cards ── */
 html.light [class~="bg-[#0d1420]"]:not(.keep-dark):not(.keep-dark *),
 html.light [class~="bg-[#1C1B24]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #f4fafc;
+  background-color: #ffffff;
 }
 html.light [class~="bg-[#090d16]"]:not(.keep-dark):not(.keep-dark *),
 html.light [class~="bg-[#0a0f1d]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #e2edf4;
+  background-color: #f1f5f9;
 }
 html.light [class~="bg-[#14131A]"]:not(.keep-dark):not(.keep-dark *) {
-  background-color: #eff8fb;
+  background-color: #f5f7fa;
 }
 html.light [class~="border-[#2B2A37]"]:not(.keep-dark):not(.keep-dark *) {
-  border-color: #cde0ea;
+  border-color: #e2e8f0;
 }
 html.light [class~="text-[#F3F1F7]"]:not(.keep-dark):not(.keep-dark *) {
   color: #0f172a;
 }
 html.light [class~="text-[#948FA3]"]:not(.keep-dark):not(.keep-dark *) {
-  color: #64748b;
+  color: #475569;
 }
 html.light [class~="text-[#6B6879]"]:not(.keep-dark):not(.keep-dark *) {
-  color: #475569;
+  color: #64748b;
 }
 
 /* ── Light theme: semantic dashboard surfaces ── */
 html.light body {
+  color: #182333;
   background-image:
-    radial-gradient(circle at top left, rgba(53, 208, 192, 0.14), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(53, 208, 192, 0.08), transparent 30%);
+    radial-gradient(ellipse at 4% 0%, rgba(15, 118, 110, 0.045), transparent 30rem),
+    radial-gradient(ellipse at 96% 100%, rgba(148, 163, 184, 0.06), transparent 34rem);
+  background-color: #f4f6f9;
 }
 
 html.light .sidebar-dark:not(.keep-dark),
 html.light .sidebar-dark-violet:not(.keep-dark) {
-  background: #f1f8fb;
-  border-right-color: #cde0ea;
+  background: #ffffff;
+  border-right-color: #dee4ec;
+  box-shadow: 1px 0 0 rgba(24, 35, 51, 0.015);
 }
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item {
-  color: #64748b;
+  color: #475569;
 }
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-item:hover,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-item:hover {
-  color: #0f172a;
-  background: #e5f2f7;
+  color: #182333;
+  background: #f3f6f9;
 }
 html.light .sidebar-dark:not(.keep-dark) .sidebar-nav-active,
 html.light .sidebar-dark-violet:not(.keep-dark) .sidebar-nav-active {
-  background: rgba(53, 208, 192, 0.14);
-  color: #0f766e;
+  background: #e8f4f2;
+  color: #0f6c64;
+  box-shadow: inset 3px 0 0 #15988c;
 }
 html.light .sidebar-dark-violet:not(.keep-dark) [class*="text-white/"] {
-  color: #64748b;
+  color: #475569;
 }
 html.light .sidebar-dark-violet:not(.keep-dark) [class*="hover:text-white/"]:hover {
   color: #0f172a;
 }
 html.light .sidebar-dark-violet:not(.keep-dark) [class*="border-white/"] {
-  border-color: #cde0ea;
+  border-color: #e2e8f0;
 }
 html.light .dashboard-card,
 html.light .stat-card {
-  background: #f4fafc;
-  border-color: #cde0ea;
+  background: #ffffff;
+  border-color: #e1e6ed;
+  box-shadow: 0 1px 2px rgba(24, 35, 51, 0.035), 0 10px 26px -22px rgba(24, 35, 51, 0.22);
 }
 html.light .dashboard-card:hover,
 html.light .stat-card:hover {
-  border-color: #b8cfdd;
+  border-color: #c5cfdd;
 }
 html.light .dashboard-header {
-  background: #f4fafc;
-  border-bottom-color: #cde0ea;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom-color: #e1e6ed;
+  box-shadow: 0 5px 20px -18px rgba(24, 35, 51, 0.35);
+  backdrop-filter: blur(14px);
 }
 html.light .chart-container {
-  background: #f4fafc;
-  border-color: #cde0ea;
+  background: #ffffff;
+  border-color: #e1e6ed;
 }
 html.light .dashboard-table th {
-  color: #64748b;
-  border-bottom-color: #cde0ea;
+  color: #526073;
+  border-bottom-color: #e1e6ed;
 }
 html.light .dashboard-table td {
-  border-bottom-color: #cde0ea;
+  border-bottom-color: #e9edf2;
+}
+
+/* Inputs and select controls should read as intentional, inset controls rather
+   than dark-mode leftovers on the brighter neutral surfaces. */
+html.light :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  border-color: #d7dee7;
+  background-color: #ffffff;
+  color: #182333;
+  box-shadow: 0 1px 2px rgba(24, 35, 51, 0.025);
+}
+html.light :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select):focus {
+  border-color: #15988c;
+  box-shadow: 0 0 0 3px rgba(21, 152, 140, 0.12);
+}
+html.light :is(input, textarea, select)::placeholder {
+  color: #778497;
+  opacity: 1;
+}
+html.light .bg-moto-accent:not(.keep-dark):not(.keep-dark *) {
+  background-color: #15988c;
+}
+html.light .hover\:bg-moto-accent-dark:hover:not(.keep-dark):not(.keep-dark *) {
+  background-color: #0f766e;
 }
 
 /* Owner dashboard: keep legacy fixed-color panels and charts readable in light mode. */
@@ -729,13 +758,13 @@ html.light .owner-dashboard [class~="text-[#FF5C7A]"] {
   color: #be123c;
 }
 html.light .owner-dashboard [class~="border-[#2B2A37]"] {
-  border-color: #c5d7e2;
+  border-color: #e1e6ed;
 }
 html.light .owner-dashboard [class~="bg-[#1C1B24]"] {
-  background-color: #f4fafc;
+  background-color: #ffffff;
 }
 html.light .owner-dashboard [class~="bg-[#14131A]"] {
-  background-color: #e9f3f8;
+  background-color: #f1f5f9;
 }
 html.light .owner-dashboard [class~="text-[#64748b]"] {
   color: #475569;
@@ -744,7 +773,7 @@ html.light .owner-dashboard .recharts-cartesian-axis-tick-value {
   fill: #475569;
 }
 html.light .owner-dashboard .recharts-cartesian-grid line {
-  stroke: #c5d7e2;
+  stroke: #e1e6ed;
 }
 html.light .owner-dashboard input::placeholder,
 html.light .owner-dashboard textarea::placeholder {
@@ -786,8 +815,8 @@ html.light .profile-page .profile-panel {
 
 /* ── Light theme: charts & selection ── */
 html.light .recharts-tooltip {
-  background-color: #f4fafc !important;
-  border-color: #cde0ea !important;
+  background-color: #ffffff !important;
+  border-color: #e1e6ed !important;
 }
 html.light .recharts-tooltip-label {
   color: #334155 !important;
@@ -796,25 +825,37 @@ html.light .recharts-tooltip-item {
   color: #475569 !important;
 }
 html.light .recharts-cartesian-grid line {
-  stroke: #cde0ea;
+  stroke: #e1e6ed;
 }
 html.light .recharts-cartesian-axis-tick-value,
 html.light .recharts-text {
   fill: #475569;
 }
 
+/* Consistent browser-native controls and interaction accents in light mode. */
+html.light :is(input, textarea, select) {
+  color-scheme: light;
+}
+html.light ::selection {
+  color: #104e49;
+  background: rgba(45, 212, 191, 0.22);
+}
+html.light :is(button, a, input, textarea, select):focus-visible {
+  outline-color: #0f766e;
+}
+
 /* ── Light theme: the landing hero keeps a medium-dark scrim so its white copy
    stays readable while the photo remains visible (a touch lighter than the
    full dark-mode treatment). Hero text stays light via `.keep-dark`. ── */
-html.light .bg-gradient-overlay {
+html.light .bg-gradient-overlay:not(.keep-dark):not(.keep-dark *) {
   background-image: linear-gradient(
     to bottom,
-    rgba(15, 23, 42, 0.15),
-    rgba(15, 23, 42, 0.4)
+    rgba(15, 23, 42, 0.24),
+    rgba(15, 23, 42, 0.68)
   );
 }
-html.light [class~="bg-moto-dark/70"] {
-  background-color: rgba(15, 23, 42, 0.18);
+html.light [class~="bg-moto-dark/70"]:not(.keep-dark):not(.keep-dark *) {
+  background-color: rgba(15, 23, 42, 0.3);
 }
 
 /* Light theme: hero is lighter now, so the white copy gets a dark soft shadow
@@ -831,7 +872,9 @@ html.light .hero-content p {
    scrolled past (`nav-scrolled`) it drops to dark ink on the light glass and
    the white logo wordmark gains a dark halo. */
 html.light .nav-scrolled {
-  background-color: #eef6fa;
+  background-color: rgba(255, 255, 255, 0.92);
+  border-bottom-color: #e1e6ed;
+  box-shadow: 0 8px 24px -20px rgba(24, 35, 51, 0.38);
 }
 html.light .moto-logo:not(.keep-dark):not(.keep-dark *) {
   filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.9))
@@ -844,4 +887,60 @@ html.light .nav-scrolled .text-emerald-300 {
 /* Accent text needs a deeper teal to stay legible on light surfaces */
 html.light .text-moto-accent:not(.keep-dark):not(.keep-dark *) {
   color: #0d9488;
+}
+
+/* Landing page light mode: a softly layered canvas, crisp cards, and restrained
+   teal detail rather than dark-mode panels simply recolored white. */
+html.light .landing-page {
+  color: #182333;
+  background-color: #f4f6f9;
+}
+html.light .landing-page .landing-section--white {
+  background-color: #ffffff;
+}
+html.light .landing-page .landing-section--soft {
+  background-color: #f4f6f9;
+}
+html.light .landing-page .landing-feature-card {
+  border-color: #e1e6ed;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(24, 35, 51, 0.035), 0 12px 30px -24px rgba(24, 35, 51, 0.24);
+}
+html.light .landing-page .landing-feature-card:hover {
+  border-color: #b9d9d4;
+  box-shadow: 0 16px 34px -24px rgba(15, 118, 110, 0.28);
+}
+html.light .landing-page .landing-cta-panel {
+  border-color: #cfe5e1;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f8f7 56%, #eaf4f2 100%);
+  box-shadow: 0 20px 55px -38px rgba(15, 118, 110, 0.26);
+}
+html.light .landing-page .landing-shop-card {
+  border-color: #e1e6ed;
+  background: #ffffff;
+  box-shadow: 0 18px 42px -30px rgba(24, 35, 51, 0.38);
+}
+html.light .landing-page .landing-shop-card:hover {
+  border-color: #9ecfc8;
+  box-shadow: 0 20px 48px -28px rgba(15, 118, 110, 0.28);
+}
+html.light .landing-page .landing-shop-card [class~="bg-moto-darker"],
+html.light .landing-page .landing-shop-card [class~="bg-moto-darker/80"] {
+  background-color: #f7f9fb;
+}
+html.light .landing-page .landing-shop-card [class~="border-moto-gray/40"],
+html.light .landing-page .landing-shop-card [class~="border-moto-gray/60"] {
+  border-color: #e7ebf0;
+}
+html.light .landing-page .landing-shop-card [class~="text-slate-200"] {
+  color: #334155;
+}
+html.light .landing-page .landing-shop-card [class~="text-slate-400"] {
+  color: #64748b;
+}
+html.light .landing-page .landing-shop-card [class~="text-white"] {
+  color: #334155;
+}
+html.light .landing-page .landing-shop-card [class~="bg-moto-gray"] {
+  background-color: #eef2f6;
 }

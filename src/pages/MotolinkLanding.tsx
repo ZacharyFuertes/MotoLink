@@ -234,7 +234,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
 
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (shop.is_open === false) { if (onViewShop) onViewShop(shop); return; } if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
 
-  return <div className="min-h-screen bg-moto-dark text-slate-100">
+  return <div className="landing-page min-h-screen bg-moto-dark text-slate-100">
     <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onShopOwnerLogin={onShopOwnerLogin} onOpenProfile={onOpenProfile} />
     <main>
       {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
@@ -313,7 +313,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--soft scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
       >
         <div className="mx-auto max-w-7xl">
           <motion.div
@@ -334,7 +334,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 { number: "02", icon: CalendarCheck, title: "Book Instantly", description: "Connect with the shop and book your service or appointment right away." },
                 { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
               ].map((step) => (
-                <motion.div key={step.number} variants={itemVariants} style={{ contain: "content" }} className="relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                <motion.div key={step.number} variants={itemVariants} style={{ contain: "content" }} className="landing-feature-card relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
                   <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-moto-ink/10">{step.number}</span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
                     <step.icon size={22} />
@@ -345,7 +345,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               ))}
             </motion.div>
 
-            <motion.div variants={itemVariants} className="mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
+            <motion.div variants={itemVariants} className="landing-feature-card mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2.5">
                   {stats.topRiders.slice(0, 5).map((name) => (
@@ -379,7 +379,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--white scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
       >
         <div className="mx-auto max-w-7xl">
           <motion.div
@@ -410,7 +410,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--soft scroll-mt-20 bg-moto-dark px-4 py-16 sm:px-6 lg:px-8"
       >
         <div className="mx-auto max-w-7xl">
           <motion.div
@@ -457,7 +457,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--white scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
       >
         <div className="mx-auto max-w-7xl">
           <motion.div
@@ -482,7 +482,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 { title: "Simple & Convenient", description: "Find and discover motor shops without the hassle." },
                 { title: "Built for Riders & Shops", description: "A platform designed to connect both sides of the motorcycle community." },
               ].map((item) => (
-                <div key={item.title} style={{ contain: "content" }} className="rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
+                <div key={item.title} style={{ contain: "content" }} className="landing-feature-card rounded-2xl border border-moto-gray bg-moto-dark p-6 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">{item.title.split(" ")[0].padEnd(2, " ")}</div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-100">{item.title}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-300">{item.description}</p>
@@ -500,7 +500,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--soft scroll-mt-20 bg-moto-darker px-4 py-16 sm:px-6 lg:px-8"
       >
         <motion.div
           variants={containerStagger}
@@ -508,7 +508,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
           whileInView="visible"
           viewport={REVEAL_VIEWPORT}
           style={{ contain: "content" }}
-          className={`mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center ${isMobile ? "border-moto-accent/30" : "shadow-lg shadow-moto-accent/5"}`}
+          className={`landing-cta-panel mx-auto max-w-5xl overflow-hidden rounded-3xl border border-moto-accent/20 bg-gradient-to-br from-moto-darker via-moto-dark to-moto-darker p-8 sm:p-12 text-center ${isMobile ? "border-moto-accent/30" : "shadow-lg shadow-moto-accent/5"}`}
         >
           <motion.span variants={itemVariants} className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-moto-accent/15 text-moto-accent">
             <Store size={28} />
@@ -547,7 +547,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         initial="hidden"
         whileInView="visible"
         viewport={REVEAL_VIEWPORT}
-        className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"
+        className="landing-section landing-section--white scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8"
       >
         <motion.div
           variants={containerStagger}
@@ -571,7 +571,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               <p className="mt-3 text-slate-300">Register your motor shop, create a business profile, and reach more riders in your area. Showcase your services, location, and contact details so customers can discover your shop easily.</p>
             </div>
           </motion.div>
-          <motion.div variants={itemVariants} style={{ contain: "content" }} className="rounded-2xl bg-moto-darker p-6 text-slate-300">
+          <motion.div variants={itemVariants} style={{ contain: "content" }} className="landing-feature-card rounded-2xl bg-moto-darker p-6 text-slate-300">
             <p className="font-semibold text-slate-100">Why MotoLink works</p>
             <ul className="mt-4 space-y-2 list-disc pl-5 text-slate-300">
               <li>Showcase your business online and reach more customers.</li>
