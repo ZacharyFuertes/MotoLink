@@ -379,7 +379,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
         {filteredCustomers.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] border-collapse text-left">
-              <thead className="bg-moto-dark/70 text-[10px] uppercase tracking-wider text-moto-muted">
+              <thead className="bg-moto-dark/30 text-[10px] uppercase tracking-wider text-moto-muted">
                 <tr>
                   <th className="px-4 py-4 text-[11px] font-semibold">Customer</th>
                   <th className="px-3 py-4 text-[11px] font-semibold">Email</th>
