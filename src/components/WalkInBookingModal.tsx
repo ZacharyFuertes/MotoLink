@@ -534,7 +534,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Book walk-in"
-        className="dashboard-card my-auto max-h-[92vh] w-full max-w-lg overflow-y-auto p-6 shadow-2xl"
+        className="dashboard-card my-auto max-h-[92vh] w-full max-w-lg space-y-5 overflow-y-auto p-5 shadow-2xl sm:p-6"
       >
         {/* ── Confirmation ─────────────────────────────────────────────── */}
         {confirmed ? (
@@ -780,9 +780,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
+                  <label className="mb-1.5 block text-xs font-bold text-slate-200">
                     Customer Name
                   </label>
                   <input
@@ -796,7 +796,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
+                  <label className="mb-1.5 block text-xs font-bold text-slate-200">
                     Phone Number
                   </label>
                   <input
@@ -809,8 +809,8 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     className={inputClass}
                   />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-bold text-slate-200">
                     Email for Notifications (Optional)
                   </label>
                   <input
@@ -827,7 +827,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
             )}
 
             {/* When + what */}
-            <div className="space-y-3">
+            <div className="space-y-5">
               <DateStrip
                 value={selectedDate}
                 onChange={setSelectedDate}
@@ -845,9 +845,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 emptyMessage="No time slots left on this date — pick another day."
               />
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="walk-in-vehicle-make" className="mb-1 block text-xs font-bold text-slate-200">
+                  <label htmlFor="walk-in-vehicle-make" className="mb-1.5 block text-xs font-bold text-slate-200">
                     Vehicle Make
                   </label>
                   <input
@@ -868,7 +868,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                   </datalist>
                 </div>
                 <div>
-                  <label htmlFor="walk-in-vehicle-model" className="mb-1 block text-xs font-bold text-slate-200">
+                  <label htmlFor="walk-in-vehicle-model" className="mb-1.5 block text-xs font-bold text-slate-200">
                     Vehicle Model
                   </label>
                   <input
@@ -891,14 +891,14 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               </div>
 
               <fieldset>
-                <legend className="mb-2 block text-xs font-bold text-slate-200">
+                <legend className="mb-3 block text-xs font-bold text-slate-200">
                   Service Type (Choose all that apply)
                 </legend>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {SERVICE_TYPES.map((service) => (
                     <label
                       key={service}
-                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-moto-gray bg-moto-darker px-3 py-2 text-xs text-slate-200"
+                      className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-moto-gray bg-moto-darker px-3.5 py-3 text-xs text-slate-200 transition-colors hover:border-moto-accent/50"
                     >
                       <input
                         type="checkbox"
@@ -921,7 +921,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
               {mechanics.length > 0 && (
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-200">
+                  <label className="mb-1.5 block text-xs font-bold text-slate-200">
                     Assign Mechanic (Optional)
                   </label>
                   <select

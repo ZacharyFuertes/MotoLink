@@ -588,7 +588,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
     </main>
     <BackToTop />
     <button onClick={() => setShowAIChat(true)} aria-label="Open MotoLink AI chat" className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-xl shadow-moto-accent/30 transition hover:-translate-y-1 hover:bg-moto-accent-dark">
-      <img src={chatbotIcon} alt="" className="h-9 w-9 rounded-full bg-white p-1" />
+      <img src={chatbotIcon} alt="" className="h-9 w-9 rounded-full bg-moto-accent p-1" />
     </button>
     <Footer />
     <AIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />

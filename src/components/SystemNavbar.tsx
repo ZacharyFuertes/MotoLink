@@ -274,7 +274,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
               <img
                 src={chatbotIcon}
                 alt=""
-                className="h-4 w-4 rounded-full bg-white p-0.5"
+                className="h-4 w-4 rounded-full bg-moto-accent p-0.5"
               />
               <span className="hidden sm:inline">AI CHAT</span>
             </motion.button>

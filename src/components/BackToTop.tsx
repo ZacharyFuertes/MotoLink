@@ -33,7 +33,7 @@ const BackToTop: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           onClick={scrollToTop}
-          className="fixed bottom-24 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/30 transition hover:bg-moto-accent-dark focus:outline-none focus:ring-2 focus:ring-moto-accent/40"
+          className="fixed bottom-24 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/30 transition hover:bg-moto-accent-dark focus:outline-none focus:ring-2 focus:ring-moto-accent/40"
           aria-label="Back to top"
         >
           <ArrowUp size={22} />
