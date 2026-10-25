@@ -813,7 +813,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead className="bg-moto-dark/70 text-[10px] uppercase tracking-wider text-moto-muted">
+                <thead className="bg-moto-dark/30 text-[10px] uppercase tracking-wider text-moto-muted">
                   <tr><th className="px-4 py-4 text-[11px] font-semibold">Item name</th><th className="px-3 py-4 text-[11px] font-semibold">SKU / Category</th><th className="px-3 py-4 text-[11px] font-semibold">Unit price</th><th className="px-3 py-4 text-[11px] font-semibold">Quantity</th><th className="px-3 py-4 text-[11px] font-semibold">Status</th><th className="px-4 py-4 text-right text-[11px] font-semibold">Actions</th></tr>
                 </thead>
                 <tbody className="divide-y divide-moto-gray/70">

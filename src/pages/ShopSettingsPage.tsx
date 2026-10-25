@@ -547,6 +547,47 @@ const [loading, setLoading] = useState(true);
             </motion.div>
           )}
 
+          {/* Customer-facing listing preview — shop overview lives in Profile. */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="dashboard-card overflow-hidden"
+          >
+            <div className="flex flex-col gap-4 border-b border-moto-gray px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
+                  Customer-facing listing
+                </h2>
+                <p className="mt-1 text-[13px] text-slate-400">
+                  Preview the shop details customers see on MotoLink.
+                </p>
+              </div>
+              <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${shop.is_active ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400"}`}>
+                <span className={`h-2 w-2 rounded-full ${shop.is_active ? "bg-emerald-400" : "bg-amber-400"}`} />
+                {shop.is_active ? "Live on MotoLink" : "Awaiting approval"}
+              </span>
+            </div>
+            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:p-6">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-moto-gray bg-moto-dark">
+                {shop.logo_url ? (
+                  <img src={shop.logo_url} alt={`${shop.name} logo`} className="h-full w-full object-cover" />
+                ) : (
+                  <Store className="h-7 w-7 text-moto-accent" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="break-words text-lg font-bold text-slate-100">{shop.name || "Unnamed shop"}</h3>
+                <p className="mt-2 flex min-w-0 items-start gap-2 text-[13px] text-slate-300">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-moto-accent" />
+                  <span className="break-words">{[shop.address, shop.city].filter((part) => typeof part === "string" && part.trim()).join(", ") || "No address set — add it below."}</span>
+                </p>
+                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
+                  {shop.description?.trim() || "No description yet. Add a short description below to introduce your shop to customers."}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Identity Section */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}

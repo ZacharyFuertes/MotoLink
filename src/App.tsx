@@ -531,6 +531,7 @@ const AppContent: React.FC = () => {
     "services",
     "mechanic-availability",
     "low-stock",
+    "ai-assistant",
     "settings",
   ];
   const isOwnerLayout =
@@ -614,7 +615,6 @@ const AppContent: React.FC = () => {
         <OwnerPlatformDashboard
           onNavigate={(page: string) => handlePageChange(page as PageType)}
           currentPage={currentPage}
-          onOpenAI={() => setShowAIChat(true)}
         >
           {currentPage === "shop-settings" && (
             <ShopSettingsPage
@@ -656,18 +656,19 @@ const AppContent: React.FC = () => {
               onNavigate={(page: string) => handlePageChange(page as PageType)}
             />
           )}
+          {currentPage === "ai-assistant" && (
+            <AdminChatbot
+              isOpen
+              inline
+              onClose={() => handlePageChange("dashboard")}
+            />
+          )}
           {currentPage === "settings" && (
             <SettingsPage
               onNavigate={(page: string) => handlePageChange(page as PageType)}
             />
           )}
         </OwnerPlatformDashboard>
-        {user?.role === "owner" && (
-          <AdminChatbot
-            isOpen={showAIChat}
-            onClose={() => setShowAIChat(false)}
-          />
-        )}
       </div>
     );
   }

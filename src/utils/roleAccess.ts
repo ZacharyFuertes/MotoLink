@@ -15,6 +15,7 @@ export type AppPage =
   | "mechanic-availability"
   | "services"
   | "low-stock"
+  | "ai-assistant"
   | "settings"
   | "shop-settings"
   | "user-profile";
@@ -35,6 +36,7 @@ export const rolePagesMapping: Record<UserRole, AppPage[]> = {
     "services",
     "mechanic-availability",
     "low-stock",
+    "ai-assistant",
     "settings",
     "shop-settings",
   ],

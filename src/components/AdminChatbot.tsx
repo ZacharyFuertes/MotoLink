@@ -44,6 +44,7 @@ interface ChatMessage {
 interface AdminChatbotProps {
   isOpen: boolean;
   onClose: () => void;
+  inline?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -81,7 +82,7 @@ const QUICK_PROMPTS = [
 /*  COMPONENT                                                          */
 /* ------------------------------------------------------------------ */
 
-const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose }) => {
+const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose, inline = false }) => {
   const { user } = useAuth();
   // This chatbot serves SHOP OWNERS ONLY — always scoped to their own shop.
   const role: "admin" | "owner" = "owner";
@@ -510,7 +511,11 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 24, scale: 0.96 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className="ai-chat fixed bottom-4 right-4 z-50 flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/60 w-[clamp(320px,40vw,620px)] max-w-[94vw] h-[clamp(420px,80vh,820px)]"
+          className={`ai-chat flex flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl shadow-black/30 ${
+            inline
+              ? "relative h-[calc(100dvh-8rem)] min-h-[520px] w-full"
+              : "fixed bottom-4 right-4 z-50 h-[clamp(420px,80vh,820px)] w-[clamp(320px,40vw,620px)] max-w-[94vw]"
+          }`}
         >
           {/* ── Header ── */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-moto-gray bg-moto-dark/90 flex-shrink-0">
