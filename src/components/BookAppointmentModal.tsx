@@ -20,6 +20,7 @@ import {
   Sparkles,
   Package,
   Plus,
+  Loader2,
   Banknote,
   QrCode,
 } from "lucide-react";
@@ -41,13 +42,6 @@ import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import DateStrip from "./DateStrip";
 import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
 import { normalizeTime } from "../utils/dateTime";
-
-interface Mechanic {
-  id: string;
-  name: string;
-  email: string;
-  shop_id?: string;
-}
 
 interface VehicleData {
   id: string;
@@ -140,7 +134,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
-  const [selectedMechanic, setSelectedMechanic] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
@@ -148,18 +141,17 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [notes, setNotes] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [dynamicServices, setDynamicServices] = useState<any[]>(SERVICE_TYPES);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const [mechanicAvailability, setMechanicAvailability] = useState<any[]>([]);
-  const [, setLoadingMechanics] = useState(false);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [hasActiveAppointment, setHasActiveAppointment] = useState(false);
+  const [activeAppointmentCheckError, setActiveAppointmentCheckError] = useState("");
+  const [activeAppointmentChecking, setActiveAppointmentChecking] = useState(false);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
@@ -210,7 +202,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         shopId,
         services: selectedServices,
         servicePrice: selectedServicePrice,
-        mechanicId: selectedMechanic,
         date: selectedDate,
         time: selectedTime,
         vehicleId: selectedVehicleId,
@@ -239,7 +230,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (snap.shopId && snap.shopId !== shopId) return;
       setSelectedServices(snap.services || []);
       setSelectedServicePrice(snap.servicePrice || 0);
-      setSelectedMechanic(snap.mechanicId || "");
       setSelectedDate(snap.date || "");
       setSelectedTime(snap.time || "");
       setSelectedVehicleId(snap.vehicleId || "");
@@ -271,12 +261,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      fetchMechanics();
+      resolveDefaultShop();
       fetchVehicles();
-      checkActiveAppointment();
+      void checkActiveAppointment();
       restorePendingBooking();
     }
-  }, [isOpen, shopId]);
+  }, [isOpen, shopId, user?.id]);
 
   // Keep the prefill correct when the caller rebooks a different bike without
   // closing the modal first.
@@ -285,8 +275,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   }, [isOpen, initialVehicleId, vehicles]);
 
   // Services & parts depend on `defaultShopId`, which is resolved asynchronously
-  // inside fetchMechanics() (a React state setter). Calling fetchServices() in the
-  // same tick as fetchMechanics() reads the stale empty value, so on the first open
+  // inside resolveDefaultShop() (a React state setter). Calling fetchServices() in the
+  // same tick as resolveDefaultShop() reads the stale empty value, so on the first open
   // it would early-return and keep stale/static services until a second open. Keying
   // on defaultShopId + isOpen guarantees a fresh fetch as soon as the shop resolves
   // and on every reopen, and refires when a different shop is opened.
@@ -334,7 +324,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setTimeout(() => {
         setCurrentStep(0);
         setSelectedServices([]);
-        setSelectedMechanic("");
         setSelectedDate("");
         setSelectedTime("");
         setSelectedVehicleId("");
@@ -343,8 +332,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setTermsAccepted(false);
         setSuccess(false);
         setErrorMsg("");
+        setHasActiveAppointment(false);
+        setActiveAppointmentCheckError("");
         setBookedSlots([]);
-        setMechanicAvailability([]);
         setSelectedParts([]);
         setLastBookingId("");
         setCopied(false);
@@ -360,44 +350,32 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   }, [isOpen]);
 
-  // Fetch booked slots when date or mechanic changes
+  // Fetch booked slots for the selected date. Mechanics are assigned by the
+  // shop after confirming the appointment.
   useEffect(() => {
     if (selectedDate) {
       fetchBookedSlots();
-      fetchMechanicAvailability();
     }
-  }, [selectedDate, selectedMechanic]);
+  }, [selectedDate, defaultShopId, shopId]);
 
-  const fetchMechanics = async () => {
+  const resolveDefaultShop = async () => {
     try {
-      setLoadingMechanics(true);
+      if (shopId) {
+        setDefaultShopId(shopId);
+        return;
+      }
       let query = supabase
         .from("users")
-        .select("id, name, email, role, shop_id")
-        .in("role", ["mechanic", "owner"]);
-      if (shopId) query = query.eq("shop_id", shopId);
+        .select("id, role, shop_id")
+        .eq("role", "owner");
+      if (user?.id) query = query.eq("id", user.id);
       const { data, error } = await query;
       if (error) throw error;
 
-      const mechanicsList = (data || []).filter(
-        (u: any) => u.role === "mechanic",
-      );
-      setMechanics(mechanicsList);
-
-      const owner = (data || []).find(
-        (u: any) => u.role === "owner" && u.shop_id,
-      );
-      if (shopId) {
-        setDefaultShopId(shopId);
-      } else if (owner) {
-        setDefaultShopId(owner.shop_id);
-      } else if (mechanicsList.length > 0 && mechanicsList[0].shop_id) {
-        setDefaultShopId(mechanicsList[0].shop_id);
-      }
+      const ownerShopId = data?.[0]?.shop_id;
+      if (ownerShopId) setDefaultShopId(ownerShopId);
     } catch {
-      setMechanics([]);
-    } finally {
-      setLoadingMechanics(false);
+      setDefaultShopId("");
     }
   };
 
@@ -498,19 +476,38 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     setAddingVehicle(false);
   };
 
-  const checkActiveAppointment = async () => {
-    if (!user?.id) return;
+  const checkActiveAppointment = async (): Promise<boolean> => {
+    if (!user?.id) {
+      setHasActiveAppointment(false);
+      setActiveAppointmentCheckError("");
+      return false;
+    }
+    setActiveAppointmentChecking(true);
+    setActiveAppointmentCheckError("");
     try {
       const { data, error } = await supabase
         .from("appointments")
         .select("id")
         .eq("customer_id", user.id)
-        .in("status", ["pending", "confirmed"])
+        .in("status", ["pending", "confirmed", "in_progress"])
         .limit(1);
       if (error) throw error;
-      setHasActiveAppointment((data || []).length > 0);
-    } catch {
-      setHasActiveAppointment(false);
+      const hasActive = (data || []).length > 0;
+      setHasActiveAppointment(hasActive);
+      setActiveAppointmentCheckError("");
+      setErrorMsg(hasActive
+        ? "You already have an active appointment. Please complete it before booking another."
+        : "");
+      return hasActive;
+    } catch (error) {
+      console.error("Could not check active customer appointments:", error);
+      setHasActiveAppointment(true);
+      const message = "We couldn’t verify your booking history. Please retry before placing another appointment.";
+      setActiveAppointmentCheckError(message);
+      setErrorMsg(message);
+      return true;
+    } finally {
+      setActiveAppointmentChecking(false);
     }
   };
 
@@ -576,9 +573,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .eq("scheduled_date", selectedDate)
         .in("status", ["pending", "confirmed", "in_progress"]);
 
-      if (selectedMechanic) {
-        query = query.eq("mechanic_id", selectedMechanic);
-      }
+      const resolvedShopId = shopId || defaultShopId;
+      if (resolvedShopId) query = query.eq("shop_id", resolvedShopId);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -588,41 +584,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-  const fetchMechanicAvailability = async () => {
-    setMechanicAvailability([]);
-    if (!selectedMechanic || !selectedDate) return;
-    try {
-      // day_of_week convention: Monday=0 ... Sunday=6
-      const dayIdx = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
-      const { data, error } = await supabase
-        .from("mechanic_availability")
-        .select("day_of_week, start_time, end_time, is_available")
-        .eq("mechanic_id", selectedMechanic)
-        .eq("day_of_week", dayIdx);
-      if (error) throw error;
-      setMechanicAvailability(data || []);
-    } catch {
-      setMechanicAvailability([]);
-    }
-  };
-
-  const isSlotAvailable = (time: string) => {
-    const schedule = mechanicAvailability.find((a) => a.is_available);
-    // No schedule set for this day — treat as open (backwards compatible)
-    if (!schedule) return true;
-    const slot = normalizeTime(time);
-    return slot >= normalizeTime(schedule.start_time) && slot <= normalizeTime(schedule.end_time);
-  };
-
-  // Slots the shared TimeSlotGrid should render as unavailable: already booked,
-  // or outside the selected mechanic's availability window for that day.
+  // Slots the shared TimeSlotGrid should render as unavailable.
   const unavailableSlots = useMemo(
-    () =>
-      BOOKING_TIME_SLOTS.filter(
-        (t) => bookedSlots.includes(t) || !isSlotAvailable(t),
-      ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bookedSlots, mechanicAvailability, selectedDate],
+    () => BOOKING_TIME_SLOTS.filter((time) => bookedSlots.includes(time)),
+    [bookedSlots],
   );
 
   const partsTotal = useMemo(
@@ -668,9 +633,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       return;
     }
 
-    if (hasActiveAppointment) {
+    if (hasActiveAppointment || activeAppointmentChecking) {
       setErrorMsg(
-        "You already have an active appointment. Please complete it before booking another.",
+        activeAppointmentCheckError || "You already have an active appointment. Please wait until it is completed before booking another.",
       );
       return;
     }
@@ -678,6 +643,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     try {
       setSubmitting(true);
       setErrorMsg("");
+
+      // Recheck at submit time; the initial modal check can become stale while
+      // a customer is selecting services and a time slot.
+      if (await checkActiveAppointment()) {
+        setErrorMsg(
+          activeAppointmentCheckError || "You already have an active appointment. Please wait until it is completed before booking another.",
+        );
+        return;
+      }
 
       // Build vehicle description
       let vehicleDesc = vehicleInfo;
@@ -688,11 +662,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       }
 
       // Determine shop_id
-      let shopIdToUse = shopId || defaultShopId;
-      if (selectedMechanic) {
-        const mech = mechanics.find((m) => m.id === selectedMechanic);
-        if (mech && mech.shop_id) shopIdToUse = mech.shop_id;
-      }
+      const shopIdToUse = shopId || defaultShopId;
       if (!shopIdToUse) {
         setErrorMsg(
           "Unable to determine your shop. Please close and reopen the booking form.",
@@ -725,7 +695,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         service_type: serviceLabels,
         description: `${vehicleDesc} - ${serviceLabels}`,
         status: "pending",
-        mechanic_id: selectedMechanic || null,
         notes: notes || null,
         estimated_price: selectedServicePrice,
         vehicle_id:
@@ -750,17 +719,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (data && data.length > 0) {
         const appointment = data[0];
 
-        // Fetch mechanic details if selected
-        let mechanicName = null;
-        if (selectedMechanic) {
-          const mech = mechanics.find((m) => m.id === selectedMechanic);
-          mechanicName = mech?.name || null;
-        }
-
         const appointmentData = {
           ...appointment,
           booking_id: appointment.booking_id,
-          mechanic_name: mechanicName,
+          mechanic_name: null,
           parts: partsForStorage,
           total_amount: selectedServicePrice + partsTotal,
         };
@@ -979,12 +941,28 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="mb-6 px-4 py-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-red-300 text-xs sm:text-sm font-semibold"
+                          className="mb-6 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-4 text-xs font-semibold text-red-300 sm:text-sm"
                         >
-                          <AlertTriangle size={16} /> You already have an active
-                          appointment. You cannot book another until it's
-                          completed.
+                          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                          <span className="flex-1">
+                            {activeAppointmentCheckError || "You already have an active appointment. You can book again once it is completed."}
+                            {activeAppointmentCheckError && (
+                              <button
+                                type="button"
+                                onClick={() => void checkActiveAppointment()}
+                                disabled={activeAppointmentChecking}
+                                className="ml-2 underline decoration-red-300/50 underline-offset-2 hover:text-white disabled:opacity-60"
+                              >
+                                {activeAppointmentChecking ? "Checking…" : "Try again"}
+                              </button>
+                            )}
+                          </span>
                         </motion.div>
+                      )}
+                      {!hasActiveAppointment && activeAppointmentChecking && user?.id && (
+                        <div className="mb-6 flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker/70 px-4 py-3 text-xs text-slate-400">
+                          <Loader2 size={15} className="animate-spin text-moto-accent" /> Checking your active bookings…
+                        </div>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {dynamicServices.map((svc) => {
@@ -993,8 +971,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           return (
                             <motion.button
                               key={svc.id}
-                              whileHover={hasActiveAppointment ? undefined : { y: -3 }}
-                              whileTap={hasActiveAppointment ? undefined : { scale: 0.98 }}
+                              whileHover={hasActiveAppointment || activeAppointmentChecking ? undefined : { y: -3 }}
+                              whileTap={hasActiveAppointment || activeAppointmentChecking ? undefined : { scale: 0.98 }}
                               transition={{ type: "spring", stiffness: 400, damping: 22 }}
                               onClick={() => {
                                 if (isActive) {
@@ -1023,12 +1001,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 });
                                 setSelectedServicePrice(totalPrice);
                               }}
-                              disabled={hasActiveAppointment}
+                              disabled={hasActiveAppointment || activeAppointmentChecking}
                               className={`group relative flex flex-col p-5 sm:p-6 text-left rounded-2xl border transition-all duration-200 ${
                                 isActive
                                   ? "bg-moto-accent/[0.07] border-moto-accent ring-1 ring-moto-accent/40 shadow-lg shadow-moto-accent/10"
                                   : "bg-moto-darker border-moto-gray hover:border-moto-accent/60 hover:shadow-lg hover:shadow-moto-accent/5"
-                              } ${hasActiveAppointment ? "opacity-50 cursor-not-allowed" : ""}`}
+                              } ${hasActiveAppointment || activeAppointmentChecking ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                               <div className="flex justify-between items-start mb-5">
                                 <div
@@ -1570,8 +1548,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               Mechanic
                             </span>
                             <span className="text-slate-100 font-medium text-sm">
-                              {mechanics.find((m) => m.id === selectedMechanic)
-                                ?.name || "Any Available"}
+                              Assigned by the shop after confirmation
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
@@ -1954,13 +1931,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   <motion.button
                     whileHover={
                       canGoNext() &&
-                      !(currentStep === 0 && hasActiveAppointment)
+                      !(currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                         ? { y: -2, scale: 1.02 }
                         : undefined
                     }
                     whileTap={
                       canGoNext() &&
-                      !(currentStep === 0 && hasActiveAppointment)
+                      !(currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                         ? { scale: 0.98 }
                         : undefined
                     }
@@ -1968,11 +1945,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     onClick={() => goStep(1)}
                     disabled={
                       !canGoNext() ||
-                      (currentStep === 0 && hasActiveAppointment)
+                      (currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                     }
                     className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() &&
-                      !(currentStep === 0 && hasActiveAppointment)
+                      !(currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                         ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}
@@ -2022,9 +1999,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     }
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     onClick={handleSubmit}
-                    disabled={!canGoNext() || submitting}
+                    disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking}
                     className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
-                      canGoNext() && !submitting
+                      canGoNext() && !submitting && !hasActiveAppointment && !activeAppointmentChecking
                         ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}

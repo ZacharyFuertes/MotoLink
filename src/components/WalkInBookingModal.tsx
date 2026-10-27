@@ -39,12 +39,6 @@ import {
   useMinuteClock,
 } from "../utils/dateTime";
 
-interface Mechanic {
-  id: string;
-  name: string;
-  email: string;
-}
-
 /** Debounce for the registered-customer search box, in ms. */
 const CUSTOMER_SEARCH_DEBOUNCE_MS = 250;
 /** How many matches the search box shows. The RPC hard-caps at 25. */
@@ -101,7 +95,6 @@ const emptyForm = {
   vehicle_make: "",
   vehicle_model: "",
   service_type: [] as string[],
-  mechanic_id: "",
 };
 
 const inputClass =
@@ -151,7 +144,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [formData, setFormData] = useState(emptyForm);
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [selectedSlot, setSelectedSlot] = useState("");
-  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
@@ -238,24 +230,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     if (isSlotPast(selectedDate, selectedSlot, now)) setSelectedSlot("");
   }, [selectedDate, selectedSlot, isOpen, now]);
 
-  const loadMechanics = useCallback(async () => {
-    try {
-      const shopId = await resolveShopId();
-      let query = supabase
-        .from("users")
-        .select("id, name, email")
-        .eq("role", "mechanic");
-      if (user?.role === "owner" && shopId) {
-        query = query.eq("shop_id", shopId);
-      }
-      const { data, error: qErr } = await query;
-      if (qErr) throw qErr;
-      setMechanics(data || []);
-    } catch {
-      setMechanics([]);
-    }
-  }, [resolveShopId, user?.role]);
-
   // Registered-customer search: server-side, debounced, platform-wide.
   //
   // Replaces a one-shot `.from("users")` fetch scoped to `.eq("shop_id")`, which
@@ -291,11 +265,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       clearTimeout(handle);
     };
   }, [isOpen, identityMode, customerQuery]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    loadMechanics();
-  }, [isOpen, loadMechanics]);
 
   // Slots already taken on the chosen date so the booking can't double-book.
   // Scoped to the resolved shop: an owner can belong to more than one shop, and
@@ -361,7 +330,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     // Refresh the slot list: the one we just took is now unavailable. The
     // customer list is not refetched — the search effect re-runs when the owner
     // switches back to Registered, because identityMode changes.
-    loadMechanics();
     void loadBookedSlots(todayKey(), justBooked);
   };
 
@@ -461,7 +429,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         service_type: serviceDescription,
         description: `${vehicleDescription} - ${serviceDescription}`,
         status: "pending",
-        mechanic_id: formData.mechanic_id || null,
         // Identity columns are populated only when there is no account to point
         // at. This is the insert that fails with PGRST204 if the 20261003
         // migration has not been applied — hence the preflight above.
@@ -918,28 +885,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                   ))}
                 </div>
               </fieldset>
-
-              {mechanics.length > 0 && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-200">
-                    Assign Mechanic (Optional)
-                  </label>
-                  <select
-                    value={formData.mechanic_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, mechanic_id: e.target.value })
-                    }
-                    className={inputClass}
-                  >
-                    <option value="">Unassigned</option>
-                    {mechanics.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               {formData.vehicle_make.trim() && (
                 <p className="flex items-center gap-1.5 text-[11px] text-slate-400">

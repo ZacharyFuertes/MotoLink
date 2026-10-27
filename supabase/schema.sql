@@ -962,9 +962,192 @@ GRANT EXECUTE ON FUNCTION public.claim_walk_in_appointment(TEXT) TO authenticate
 COMMENT ON FUNCTION public.claim_walk_in_appointment(TEXT) IS
   'Links an unlinked walk-in appointment to the calling user''s account using its booking reference.';
 
+CREATE OR REPLACE FUNCTION public.validate_appointment_mechanic_assignment()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_weekday INTEGER;
+  v_has_shift BOOLEAN;
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.mechanic_id IS NOT DISTINCT FROM OLD.mechanic_id THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' AND NEW.mechanic_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  IF auth.uid() IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.shops s WHERE s.id = NEW.shop_id AND s.owner_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Only this shop owner can assign its mechanics.';
+  END IF;
+  IF NEW.status <> 'confirmed' THEN
+    RAISE EXCEPTION 'Mechanics can only be assigned to confirmed appointments.';
+  END IF;
+  IF NEW.scheduled_time IS NULL THEN
+    RAISE EXCEPTION 'This appointment has no scheduled time.';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(
+    hashtext(NEW.shop_id::TEXT),
+    hashtext(NEW.scheduled_date::TEXT || ':' || NEW.scheduled_time::TEXT)
+  );
+
+  IF NEW.mechanic_id IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = NEW.mechanic_id AND u.role = 'mechanic' AND u.shop_id = NEW.shop_id
+    ) THEN
+      RAISE EXCEPTION 'Choose a mechanic from your shop.';
+    END IF;
+    v_weekday := EXTRACT(ISODOW FROM NEW.scheduled_date)::INTEGER - 1;
+    SELECT EXISTS (
+      SELECT 1 FROM public.mechanic_availability ma
+      WHERE ma.mechanic_id = NEW.mechanic_id
+        AND ma.shop_id = NEW.shop_id
+        AND ma.day_of_week = v_weekday
+        AND ma.is_available = true
+        AND NEW.scheduled_time >= ma.start_time
+        AND NEW.scheduled_time <= ma.end_time
+    ) INTO v_has_shift;
+    IF NOT v_has_shift THEN
+      RAISE EXCEPTION 'This mechanic has no available shift covering the appointment time.';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM public.appointments other
+      WHERE other.shop_id = NEW.shop_id
+        AND other.id <> NEW.id
+        AND other.mechanic_id = NEW.mechanic_id
+        AND other.scheduled_date = NEW.scheduled_date
+        AND other.scheduled_time = NEW.scheduled_time
+        AND other.status IN ('pending', 'confirmed', 'in_progress')
+    ) THEN
+      RAISE EXCEPTION 'This mechanic is already assigned to another appointment at that time.';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE' THEN
+    UPDATE public.job_orders jo
+    SET mechanic_id = NEW.mechanic_id, updated_at = now()
+    WHERE jo.appointment_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS validate_appointment_mechanic_assignment ON public.appointments;
+CREATE TRIGGER validate_appointment_mechanic_assignment
+  BEFORE INSERT OR UPDATE OF mechanic_id ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.validate_appointment_mechanic_assignment();
+REVOKE EXECUTE ON FUNCTION public.validate_appointment_mechanic_assignment() FROM PUBLIC, anon, authenticated;
+
+-- Assign a same-shop mechanic to a confirmed appointment only when an enabled
+-- weekly shift covers the appointment time and no active booking conflicts.
+-- The transaction-scoped advisory lock prevents concurrent double assignment.
+CREATE OR REPLACE FUNCTION public.assign_mechanic_to_appointment(
+  p_appointment_id UUID,
+  p_mechanic_id UUID
+)
+RETURNS TABLE (appointment_id UUID, mechanic_id UUID)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_appointment public.appointments%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'You must be signed in to assign a mechanic.';
+  END IF;
+
+  SELECT a.* INTO v_appointment
+  FROM public.appointments AS a
+  WHERE a.id = p_appointment_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Appointment not found.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.shops AS s
+    WHERE s.id = v_appointment.shop_id AND s.owner_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'You can only assign mechanics to appointments at your shop.';
+  END IF;
+
+  IF v_appointment.status <> 'confirmed' THEN
+    RAISE EXCEPTION 'Mechanics can only be assigned to confirmed appointments.';
+  END IF;
+
+  IF v_appointment.scheduled_time IS NULL THEN
+    RAISE EXCEPTION 'This appointment has no scheduled time.';
+  END IF;
+
+  UPDATE public.appointments AS a
+  SET mechanic_id = p_mechanic_id, updated_at = now()
+  WHERE a.id = v_appointment.id;
+
+  RETURN QUERY
+  SELECT a.id, a.mechanic_id
+  FROM public.appointments AS a
+  WHERE a.id = v_appointment.id;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.assign_mechanic_to_appointment(UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assign_mechanic_to_appointment(UUID, UUID) TO authenticated;
+
 -- ============================================================================
 -- PHASE 11: SEED DATA (optional defaults)
 -- ============================================================================
+
+-- Customer accounts may have only one active appointment at a time. Completed
+-- and cancelled appointments do not block a future customer booking.
+CREATE OR REPLACE FUNCTION public.prevent_customer_multiple_active_appointments()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NEW.customer_id IS NULL
+     OR NEW.status NOT IN ('pending', 'confirmed', 'in_progress') THEN
+    RETURN NEW;
+  END IF;
+
+  IF auth.uid() IS NULL
+     OR auth.uid() IS DISTINCT FROM NEW.customer_id
+     OR NOT EXISTS (
+       SELECT 1 FROM public.users u
+       WHERE u.id = auth.uid() AND u.role = 'customer'
+     ) THEN
+    RETURN NEW;
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(NEW.customer_id::TEXT));
+
+  IF EXISTS (
+    SELECT 1 FROM public.appointments existing
+    WHERE existing.customer_id = NEW.customer_id
+      AND existing.status IN ('pending', 'confirmed', 'in_progress')
+      AND existing.id IS DISTINCT FROM NEW.id
+  ) THEN
+    RAISE EXCEPTION 'You already have an active appointment. Please complete it before booking another.'
+      USING ERRCODE = '23505';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_customer_multiple_active_appointments ON public.appointments;
+CREATE TRIGGER prevent_customer_multiple_active_appointments
+  BEFORE INSERT OR UPDATE OF customer_id, status ON public.appointments
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_customer_multiple_active_appointments();
+REVOKE EXECUTE ON FUNCTION public.prevent_customer_multiple_active_appointments() FROM PUBLIC, anon, authenticated;
 
 -- Default services pricing
 INSERT INTO public.services_pricing (label, description, icon, price, is_active) VALUES

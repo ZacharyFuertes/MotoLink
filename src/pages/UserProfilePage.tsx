@@ -21,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   Store,
+  Star,
   Tag,
   Trash2,
   User,
@@ -55,6 +56,7 @@ import { sendBookingCancelledEmail } from "../services/notificationService";
 
 interface HistoryRecord {
   id: string;
+  booking_id?: string | null;
   shop_id: string | null;
   vehicle_id: string | null;
   service_type: string;
@@ -66,6 +68,7 @@ interface HistoryRecord {
   total_amount?: number | null;
   estimated_price?: number | null;
   status: string;
+  has_review?: boolean;
   shop_name?: string;
   vehicle_name?: string;
 }
@@ -132,6 +135,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
   const [stats, setStats] = useState<Record<string, VehicleStats>>({});
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [reviewingBooking, setReviewingBooking] = useState<HistoryRecord | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
@@ -193,7 +202,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         supabase
           .from("appointments")
           .select(
-            "id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, estimated_price, total_amount, status, created_at",
+            "id, booking_id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, estimated_price, total_amount, status, created_at",
           )
           .eq("customer_id", user.id)
           .order("scheduled_date", { ascending: false }),
@@ -221,6 +230,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       if (appointmentsResult.status === "fulfilled" && appointmentsResult.value.data) {
         records = appointmentsResult.value.data.map((a: any) => ({
           id: a.id,
+          booking_id: a.booking_id ?? null,
           shop_id: a.shop_id ?? null,
           vehicle_id: a.vehicle_id ?? null,
           service_type: a.service_type,
@@ -233,6 +243,23 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           estimated_price: a.estimated_price ?? null,
           status: a.status,
         }));
+      }
+
+      const appointmentIds = records.map((record) => record.id);
+      let reviewedAppointmentIds = new Set<string>();
+      if (appointmentIds.length > 0) {
+        const { data: reviews, error: reviewsError } = await supabase
+          .from("shop_reviews")
+          .select("appointment_id")
+          .eq("customer_id", user.id)
+          .in("appointment_id", appointmentIds);
+        if (reviewsError) {
+          console.warn("Could not load reviewed bookings:", reviewsError.message);
+        } else {
+          reviewedAppointmentIds = new Set(
+            (reviews || []).map((review: any) => review.appointment_id).filter(Boolean),
+          );
+        }
       }
 
       // Resolve shop names for the history table
@@ -252,6 +279,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       setHistory(
         records.map((r) => ({
           ...r,
+          has_review: reviewedAppointmentIds.has(r.id),
           shop_name: r.shop_id ? shopMap[r.shop_id] : undefined,
           vehicle_name: r.vehicle_id
             ? vehicleNames[r.vehicle_id]
@@ -590,6 +618,51 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       alert("Failed to cancel appointment. Please try again.");
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleSubmitBookingReview = async () => {
+    if (!user?.id || !reviewingBooking?.shop_id) return;
+    if (reviewingBooking.status !== "completed" || reviewingBooking.has_review) {
+      setReviewError("Only completed bookings without a review can be reviewed.");
+      return;
+    }
+    if (reviewRating < 1 || reviewRating > 5 || !reviewComment.trim()) {
+      setReviewError("Select a star rating and share a few words about your service.");
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewError("");
+    try {
+      const { error } = await supabase.from("shop_reviews").insert({
+        shop_id: reviewingBooking.shop_id,
+        customer_id: user.id,
+        appointment_id: reviewingBooking.id,
+        rating: reviewRating,
+        title: reviewTitle.trim() || null,
+        comment: reviewComment.trim(),
+        is_verified: true,
+        is_visible: true,
+      });
+      if (error) throw error;
+
+      setHistory((current) => current.map((booking) =>
+        booking.id === reviewingBooking.id ? { ...booking, has_review: true } : booking,
+      ));
+      setReviewingBooking(null);
+      setReviewRating(0);
+      setReviewTitle("");
+      setReviewComment("");
+    } catch (error: any) {
+      console.error("Could not submit booking review:", error);
+      setReviewError(
+        error?.code === "23505"
+          ? "This booking already has a review. Refresh your booking history."
+          : error?.message || "Could not save your review. Please try again.",
+      );
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -996,6 +1069,28 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                             >
                               <RotateCcw size={12} /> Rebook
                             </button>
+
+                            {h.status === "completed" && h.shop_id && (
+                              h.has_review ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                                  <ShieldCheck size={13} /> Reviewed
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReviewingBooking(h);
+                                    setReviewRating(0);
+                                    setReviewTitle("");
+                                    setReviewComment("");
+                                    setReviewError("");
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/20"
+                                >
+                                  <Star size={13} /> Review booking
+                                </button>
+                              )
+                            )}
 
                             {canCancelBooking(h) && (
                               <button
@@ -1697,6 +1792,94 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Review Booking Modal ── */}
+      {reviewingBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReviewingBooking(null);
+          }}
+        >
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+                  <Star size={22} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-100">
+                    Review: {reviewingBooking.service_type}
+                  </h3>
+                  <p className="truncate text-xs text-slate-400">
+                    {reviewingBooking.shop_name || "Motor repair shop"} ·{" "}
+                    {formatDate(reviewingBooking.scheduled_date)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReviewingBooking(null)}
+                className="rounded-lg p-1 text-slate-400 transition hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Your rating
+            </p>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setReviewRating(star)}
+                  aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                  className="transition hover:scale-110"
+                >
+                  <Star
+                    size={22}
+                    className={star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-600"}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <input
+              value={reviewTitle}
+              onChange={(e) => setReviewTitle(e.target.value)}
+              placeholder="Review title (optional)"
+              className="mt-4 w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
+            />
+
+            <textarea
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              rows={4}
+              placeholder="Share your experience with this booking..."
+              className="mt-3 w-full resize-none rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-moto-accent/50 focus:outline-none"
+            />
+
+            {reviewError && <p className="mt-2 text-xs text-rose-300">{reviewError}</p>}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setReviewingBooking(null)}
+                className="inline-flex items-center justify-center rounded-full border border-moto-gray px-5 py-2 text-xs font-semibold text-slate-300 transition hover:bg-moto-gray/40"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitBookingReview}
+                disabled={reviewSubmitting || !reviewComment.trim() || reviewRating === 0}
+                className="inline-flex items-center justify-center rounded-full bg-moto-accent px-5 py-2 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {reviewSubmitting ? "Posting..." : "Post Review"}
+              </button>
             </div>
           </div>
         </div>

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, Clock, Plus, Trash2, X, UserPlus, Mail, User } from 'lucide-react'
+import { Calendar, Clock, Plus, Trash2, X, UserPlus, Mail, User, Search, Users, CheckCircle2 } from 'lucide-react'
 
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../services/supabaseClient'
+import { getShopByOwnerId } from '../services/shopService'
+import { normalizeTime } from '../utils/dateTime'
 
 interface Mechanic {
   id: string
@@ -21,18 +23,38 @@ interface Availability {
   is_available: boolean
 }
 
+interface AssignedAppointment {
+  id: string
+  booking_id?: string | null
+  mechanic_id: string | null
+  scheduled_date: string
+  scheduled_time: string | null
+  service_type: string
+  status: string
+}
+
 interface AdminMechanicAvailabilityProps {
   onNavigate?: (page: string) => void
 }
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const formatTime = (time: string) => {
+  const [hours = '0', minutes = '00'] = time.split(':')
+  const hour = Number(hours)
+  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`
+}
 
 const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ onNavigate }) => {
   const { user } = useAuth()
   const [mechanics, setMechanics] = useState<Mechanic[]>([])
   const [availability, setAvailability] = useState<Availability[]>([])
+  const [assignedAppointments, setAssignedAppointments] = useState<AssignedAppointment[]>([])
+  const [resolvedShopId, setResolvedShopId] = useState<string | null>(user?.shop_id || null)
   const [loading, setLoading] = useState(true)
   const [selectedMechanic, setSelectedMechanic] = useState<string | null>(null)
+  const [mechanicSearch, setMechanicSearch] = useState('')
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [dayFilter, setDayFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showAddMechanic, setShowAddMechanic] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<Mechanic | null>(null)
@@ -62,20 +84,43 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   }, [user?.role])
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user?.id) void fetchData()
+  }, [user?.id, user?.shop_id])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const channel = supabase
+      .channel(`mechanic-assignment-changes-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        void fetchData()
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [user?.id, user?.shop_id])
 
   const fetchData = async () => {
     try {
       setLoading(true)
+      let ownerShopId = user?.shop_id || null
+      if (!ownerShopId && user?.id) {
+        const ownerShop = await getShopByOwnerId(user.id)
+        ownerShopId = ownerShop?.id || null
+      }
+      setResolvedShopId(ownerShopId)
+      if (!ownerShopId) {
+        setMechanics([])
+        setAvailability([])
+        setAssignedAppointments([])
+        return
+      }
 
       let mechQuery = supabase
         .from('users')
         .select('id, name, email')
         .eq('role', 'mechanic')
 
-      if (user?.shop_id) {
-        mechQuery = mechQuery.eq('shop_id', user.shop_id)
+      if (ownerShopId) {
+        mechQuery = mechQuery.eq('shop_id', ownerShopId)
       }
 
       const { data: mechanicsData, error: mechanicsError } = await mechQuery
@@ -113,6 +158,16 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
       })
 
       setAvailability(enhancedAvailability)
+
+      const { data: bookings, error: bookingError } = await supabase
+        .from('appointments')
+        .select('id, booking_id, mechanic_id, scheduled_date, scheduled_time, service_type, status')
+        .eq('shop_id', ownerShopId)
+        .not('mechanic_id', 'is', null)
+        .in('status', ['pending', 'confirmed', 'in_progress'])
+        .order('scheduled_date', { ascending: true })
+      if (bookingError) throw bookingError
+      setAssignedAppointments((bookings || []) as AssignedAppointment[])
     } catch (err) {
       console.error('Error fetching data:', err)
     } finally {
@@ -123,6 +178,10 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   const handleAddAvailability = async () => {
     if (!formData.mechanic_id) {
       alert('Please select a mechanic')
+      return
+    }
+    if (formData.end_time <= formData.start_time) {
+      alert('End time must be later than start time.')
       return
     }
 
@@ -136,7 +195,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
             start_time: formData.start_time,
             end_time: formData.end_time,
             is_available: true,
-            shop_id: user?.shop_id || null,
+            shop_id: resolvedShopId || user?.shop_id || null,
           },
         ])
         .select()
@@ -160,6 +219,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
         end_time: '17:00',
       })
       setShowAddForm(false)
+      setSelectedMechanic(formData.mechanic_id)
     } catch (err) {
       console.error('Error adding availability:', err)
       alert('Failed to add availability')
@@ -191,7 +251,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     }
 
     setCreatingMechanic(true)
-    const ownerShopId = user?.shop_id || null
+    const ownerShopId = resolvedShopId || user?.shop_id || null
     try {
       // Capture the owner's session BEFORE signUp — creating the mechanic's
       // auth account swaps the active session to the new user, so we restore
@@ -334,9 +394,26 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   }
 
   const selectedMechanicData = mechanics.find((m) => m.id === selectedMechanic)
-  const filteredAvailability = selectedMechanic
+  const visibleMechanics = mechanics.filter((mechanic) =>
+    `${mechanic.name} ${mechanic.email}`.toLowerCase().includes(mechanicSearch.toLowerCase()),
+  )
+  const mechanicAvailability = selectedMechanic
     ? availability.filter((a) => a.mechanic_id === selectedMechanic)
     : availability
+  const filteredAvailability = mechanicAvailability.filter((slot) => {
+    const dayName = typeof slot.day_of_week === 'number'
+      ? daysOfWeek[slot.day_of_week]
+      : slot.day_of_week
+    const matchesAvailability = availabilityFilter === 'all' ||
+      (availabilityFilter === 'available' ? slot.is_available : !slot.is_available)
+    return matchesAvailability && (dayFilter === 'all' || dayName === dayFilter)
+  }).sort((a, b) => {
+    const dayA = typeof a.day_of_week === 'number' ? a.day_of_week : daysOfWeek.indexOf(a.day_of_week)
+    const dayB = typeof b.day_of_week === 'number' ? b.day_of_week : daysOfWeek.indexOf(b.day_of_week)
+    return dayA - dayB || a.start_time.localeCompare(b.start_time)
+  })
+  const availableCount = availability.filter((slot) => slot.is_available).length
+  const unavailableCount = availability.length - availableCount
 
   const inputClass =
     "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
@@ -353,7 +430,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -382,48 +459,90 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
             onClick={() => {
               setShowAddForm(!showAddForm)
               setShowAddMechanic(false)
+              setFormData((current) => ({ ...current, mechanic_id: selectedMechanic || current.mechanic_id }))
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-moto-gray hover:bg-moto-darker text-white text-[13px] font-bold rounded-xl transition shadow-sm shadow-slate-800/20"
+            disabled={mechanics.length === 0}
+            title={mechanics.length === 0 ? 'Add a mechanic before creating a shift' : undefined}
+            className="flex items-center gap-2 rounded-xl bg-moto-gray px-4 py-2 text-[13px] font-bold text-white shadow-sm shadow-slate-800/20 transition hover:bg-moto-darker disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus size={16} /> Add Shift Schedule
           </button>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Team members', value: mechanics.length, icon: Users, tone: 'text-moto-accent bg-moto-accent/10' },
+          { label: 'Available shifts', value: availableCount, icon: CheckCircle2, tone: 'text-emerald-400 bg-emerald-500/10' },
+          { label: 'Unavailable shifts', value: unavailableCount, icon: Clock, tone: 'text-amber-300 bg-amber-500/10' },
+        ].map((stat) => (
+          <div key={stat.label} className="dashboard-card flex items-center gap-3 p-4">
+            <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.tone}`}><stat.icon size={18} /></span>
+            <div>
+              <p className="text-xl font-black leading-none text-slate-100">{stat.value}</p>
+              <p className="mt-1 text-xs font-medium text-slate-400">{stat.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* Mechanics Sidebar */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className="dashboard-card p-4 h-fit"
+          className="dashboard-card p-4 h-fit lg:sticky lg:top-4"
         >
-          <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-3 px-2">
-            Team Members ({mechanics.length})
-          </h2>
+          <div className="mb-3 flex items-center justify-between px-1">
+            <h2 className="text-sm font-bold text-slate-200">Team members</h2>
+            <span className="rounded-full bg-moto-gray/50 px-2 py-0.5 text-xs font-bold text-slate-300">{mechanics.length}</span>
+          </div>
 
-          <div className="space-y-1.5 mb-4">
+          <label className="relative mb-3 block">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              value={mechanicSearch}
+              onChange={(event) => setMechanicSearch(event.target.value)}
+              placeholder="Find a mechanic"
+              aria-label="Search mechanics"
+              className={`${inputClass} py-2 pl-9 text-xs`}
+            />
+          </label>
+
+          <div className="max-h-[360px] space-y-1.5 overflow-y-auto pr-1">
             <button
               onClick={() => setSelectedMechanic(null)}
-              className={`w-full p-2.5 rounded-xl text-[13px] font-bold text-left transition ${
+              className={`w-full rounded-xl border p-2.5 text-left text-[13px] font-bold transition ${
                 selectedMechanic === null
                   ? 'bg-moto-accent/15 text-moto-accent border border-moto-accent/30'
-                  : 'text-slate-300 hover:bg-moto-gray/40'
+                  : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
               }`}
             >
-              All Mechanics
+              <span className="flex items-center justify-between">All mechanics <span className="text-[11px] opacity-70">{availability.length} shifts</span></span>
             </button>
-            {mechanics.map((mechanic) => (
+            {visibleMechanics.map((mechanic) => {
+              const shiftCount = availability.filter((slot) => slot.mechanic_id === mechanic.id).length
+              const bookingCount = assignedAppointments.filter((booking) => booking.mechanic_id === mechanic.id).length
+              const isSelected = selectedMechanic === mechanic.id
+              return (
               <div key={mechanic.id} className="flex items-center gap-1.5">
                 <button
                   onClick={() => setSelectedMechanic(mechanic.id)}
-                  className={`flex-1 p-2.5 rounded-xl text-left transition border ${
-                    selectedMechanic === mechanic.id
+                  className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border p-2.5 text-left transition ${
+                    isSelected
                       ? 'bg-moto-accent/15 text-moto-accent border-moto-accent/30 font-bold'
                       : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
                   }`}
                 >
-                  <p className="text-[13px] font-semibold text-slate-100 truncate">{mechanic.name}</p>
-                  <p className="text-xs text-slate-300 truncate mt-0.5">{mechanic.email}</p>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-moto-accent/15 text-xs font-black uppercase text-moto-accent">{mechanic.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2)}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-slate-100">{mechanic.name}</span>
+                    <span className="mt-0.5 block truncate text-[11px] text-slate-400">{mechanic.email}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block rounded-full bg-moto-gray/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{shiftCount} shifts</span>
+                    <span className={`mt-1 block text-[9px] font-semibold ${bookingCount ? 'text-amber-300' : 'text-slate-500'}`}>{bookingCount} assigned</span>
+                  </span>
                 </button>
                 <button
                   onClick={(e) => {
@@ -436,12 +555,15 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   <Trash2 size={14} />
                 </button>
               </div>
-            ))}
+            )})}
+            {visibleMechanics.length === 0 && (
+              <p className="rounded-lg px-3 py-5 text-center text-xs text-slate-400">No mechanics match that search.</p>
+            )}
           </div>
         </motion.div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Add New Mechanic Form */}
           <AnimatePresence>
             {showAddMechanic && (
@@ -655,13 +777,58 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
             )}
           </AnimatePresence>
 
+          {/* Schedule filters */}
+          <div className="dashboard-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-slate-100">{selectedMechanicData ? `${selectedMechanicData.name}'s schedule` : 'Weekly schedule'}</h2>
+              <p className="mt-0.5 text-xs text-slate-400">{filteredAvailability.length} of {mechanicAvailability.length} shifts shown</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={availabilityFilter}
+                onChange={(event) => setAvailabilityFilter(event.target.value as typeof availabilityFilter)}
+                aria-label="Filter by availability"
+                className="rounded-lg border border-moto-gray bg-moto-darker px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-moto-accent"
+              >
+                <option value="all">All statuses</option>
+                <option value="available">Available</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+              <select
+                value={dayFilter}
+                onChange={(event) => setDayFilter(event.target.value)}
+                aria-label="Filter by weekday"
+                className="rounded-lg border border-moto-gray bg-moto-darker px-3 py-2 text-xs font-semibold text-slate-200 outline-none focus:border-moto-accent"
+              >
+                <option value="all">All days</option>
+                {daysOfWeek.map((day) => <option key={day} value={day}>{day}</option>)}
+              </select>
+            </div>
+          </div>
+
           {/* Availability Cards */}
           {filteredAvailability.length === 0 ? (
-            <div className="dashboard-card p-12 text-center">
-              <Calendar className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-              <p className="text-slate-300 text-sm font-semibold">
-                {selectedMechanic ? `No shift schedules set for ${selectedMechanicData?.name}` : 'No mechanic shift schedules added yet'}
+            <div className="dashboard-card p-8 text-center sm:p-12">
+              <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 text-moto-accent"><Calendar size={23} /></span>
+              <p className="text-sm font-bold text-slate-100">
+                {mechanicAvailability.length === 0
+                  ? selectedMechanic ? `No shifts for ${selectedMechanicData?.name}` : 'No shift schedules yet'
+                  : 'No shifts match these filters'}
               </p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-slate-400">
+                {mechanicAvailability.length === 0
+                  ? 'Create a weekly shift so customers can see when your mechanics are available.'
+                  : 'Try a different day or availability status.'}
+              </p>
+              {mechanicAvailability.length === 0 && mechanics.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => { setShowAddForm(true); setShowAddMechanic(false); if (selectedMechanic) setFormData((current) => ({ ...current, mechanic_id: selectedMechanic })) }}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark"
+                >
+                  <Plus size={15} /> Add a shift
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -691,19 +858,65 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                       </span>
                     </div>
 
-                    <p className="text-[13px] text-slate-300 font-medium mb-3">
-                      Mechanic: <span className="font-semibold text-slate-200">{slot.mechanic_name}</span>
+                    <p className="mb-3 text-[13px] font-medium text-slate-300">
+                      Mechanic: <span className="font-semibold text-slate-100">{slot.mechanic_name}</span>
                     </p>
 
-                    <div className="flex items-center gap-2 p-3 bg-moto-gray/40 rounded-xl text-[13px] font-bold text-slate-200 tabular-nums">
-                      <Clock className="w-4 h-4 text-slate-300" />
-                      {slot.start_time} {slot.end_time}
+                    <div className="flex items-center gap-2 rounded-xl bg-moto-gray/40 p-3 text-[13px] font-bold text-slate-200 tabular-nums">
+                      <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span>{formatTime(slot.start_time)} <span className="mx-1 text-slate-500">to</span> {formatTime(slot.end_time)}</span>
                     </div>
+
+                    {(() => {
+                      const slotDay = typeof slot.day_of_week === 'number'
+                        ? slot.day_of_week
+                        : daysOfWeek.indexOf(slot.day_of_week)
+                      const mechanicBookings = assignedAppointments.filter((booking) => {
+                        if (booking.mechanic_id !== slot.mechanic_id || !booking.scheduled_time) return false
+                        const bookingDay = (new Date(`${booking.scheduled_date}T00:00:00`).getDay() + 6) % 7
+                        const bookingTime = normalizeTime(booking.scheduled_time)
+                        return bookingDay === slotDay &&
+                          bookingTime >= normalizeTime(slot.start_time) &&
+                          bookingTime <= normalizeTime(slot.end_time)
+                      })
+                      return (
+                        <div className="mt-3 rounded-xl border border-moto-gray/70 bg-moto-darker/50 p-3">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active assignments</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${mechanicBookings.length ? 'bg-amber-500/10 text-amber-300' : 'bg-moto-gray/60 text-slate-400'}`}>
+                              {mechanicBookings.length}
+                            </span>
+                          </div>
+                          {mechanicBookings.length ? (
+                            <div className="space-y-2">
+                              {mechanicBookings.slice(0, 2).map((booking) => (
+                                <div key={booking.id} className="flex items-start justify-between gap-2 text-[11px]">
+                                  <span className="min-w-0">
+                                    <span className="block truncate font-semibold text-slate-200">{booking.service_type || 'Service appointment'}</span>
+                                    <span className="mt-0.5 block text-slate-400">
+                                      {new Date(`${booking.scheduled_date}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                                      {booking.scheduled_time ? ` · ${formatTime(booking.scheduled_time)}` : ''}
+                                    </span>
+                                  </span>
+                                  <span className="shrink-0 rounded-md bg-moto-gray/60 px-1.5 py-0.5 font-semibold text-slate-300">
+                                    {booking.status.replace('_', ' ')}
+                                  </span>
+                                </div>
+                              ))}
+                              {mechanicBookings.length > 2 && <p className="text-[10px] text-slate-500">+{mechanicBookings.length - 2} more active booking(s)</p>}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-500">No active appointments assigned.</p>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <div className="flex gap-2 pt-4 mt-4 border-t border-moto-gray">
                     <button
                       onClick={() => handleToggleAvailability(slot.id, slot.is_available)}
+                      aria-label={`${slot.is_available ? 'Mark unavailable' : 'Mark available'} shift for ${slot.mechanic_name}`}
                       className={`flex-1 py-1.5 rounded-xl text-[13px] font-bold transition ${
                         slot.is_available
                           ? 'bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200'
@@ -714,6 +927,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                     </button>
                     <button
                       onClick={() => handleDeleteAvailability(slot.id)}
+                      aria-label={`Delete ${typeof slot.day_of_week === 'number' ? daysOfWeek[slot.day_of_week] : slot.day_of_week} shift for ${slot.mechanic_name}`}
                       className="p-2 rounded-xl hover:bg-red-500/15 text-slate-300 hover:text-red-400 transition"
                       title="Delete shift"
                     >

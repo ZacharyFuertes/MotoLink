@@ -19,6 +19,8 @@ import BookAppointmentModal from "./BookAppointmentModal";
 
 interface AppointmentItem {
   id: string;
+  shop_id: string;
+  vehicle_id?: string | null;
   booking_id?: string;
   scheduled_date: string;
   scheduled_time: string;
@@ -90,7 +92,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
-  const [, setRebookingAptId] = useState<string | null>(null);
+  const [rebookingAppointment, setRebookingAppointment] = useState<AppointmentItem | null>(null);
 
   useEffect(() => {
     if (isOpen && user?.id) fetchAppointments();
@@ -131,6 +133,8 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
 
       const enriched: AppointmentItem[] = (aptData || []).map((apt: any) => ({
         id: apt.id,
+        shop_id: apt.shop_id,
+        vehicle_id: apt.vehicle_id ?? null,
         booking_id: apt.booking_id,
         scheduled_date: apt.scheduled_date,
         scheduled_time: apt.scheduled_time,
@@ -467,7 +471,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
                         {canRebook(apt) && !isConfirmingCancel && (
                           <button
                             onClick={() => {
-                              setRebookingAptId(apt.id);
+                              setRebookingAppointment(apt);
                               setShowBookModal(true);
                             }}
                             className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-moto-accent hover:text-white transition px-3 py-1.5 rounded-full bg-moto-accent/10 hover:bg-moto-accent"
@@ -531,8 +535,10 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
           isOpen={showBookModal}
           onClose={() => {
             setShowBookModal(false);
-            setRebookingAptId(null);
+            setRebookingAppointment(null);
           }}
+          shopId={rebookingAppointment?.shop_id}
+          initialVehicleId={rebookingAppointment?.vehicle_id ?? null}
           onAppointmentBooked={() => {
             fetchAppointments();
             setShowBookModal(false);

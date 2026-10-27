@@ -47,7 +47,10 @@ const localEmailApi = {
         if (!res.headersSent) {
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json; charset=utf-8');
-          res.end(JSON.stringify({ success: false, error: 'Local API failed. Check the Vite terminal for details.' }));
+          res.end(JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : 'Local API failed. Check the Vite terminal for details.',
+          }));
         }
       }
     });

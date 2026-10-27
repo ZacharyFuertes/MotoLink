@@ -65,7 +65,7 @@ export interface Appointment {
   scheduled_time: string;
   service_type: string;
   description?: string;
-  mechanic_id?: string;
+  mechanic_id?: string | null;
   status: AppointmentStatus;
   notes?: string;
   walk_in_name?: string | null;
@@ -96,7 +96,7 @@ export interface JobOrder {
   appointment_id: string;
   /** NULL when the source appointment is a walk-in with no registered account. */
   customer_id: string | null;
-  mechanic_id: string;
+  mechanic_id: string | null;
   shop_id: string;
   vehicle_id: string;
   status: "draft" | "in_progress" | "completed" | "cancelled" | "pending" | "billed";

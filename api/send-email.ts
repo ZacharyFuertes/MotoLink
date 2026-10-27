@@ -62,6 +62,15 @@ const fmtDate = (iso: string) => {
   }
 };
 
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character] || character);
+
 interface PartRow {
   part_id?: string;
   part_name?: string;
@@ -87,6 +96,7 @@ interface EmailContext {
   partsTotal: number;
   totalAmount: number;
   customer?: Entity;
+  mechanic?: { name: string };
   shop?: { id: string; name: string; city?: string; address?: string; phone?: string; owner_id?: string };
   vehicle?: { make?: string; model?: string; year?: number | string };
 }
@@ -151,8 +161,8 @@ const emailLayout = (opts: {
 
 const detailRow = (label: string, value: string) => `
   <tr>
-    <td style="padding:10px 16px;color:#64748b;font-size:13px;width:38%;">${label}</td>
-    <td style="padding:10px 16px;color:#0f172a;font-size:14px;font-weight:700;">${value}</td>
+    <td style="padding:10px 16px;color:#64748b;font-size:13px;width:38%;">${escapeHtml(label)}</td>
+    <td style="padding:10px 16px;color:#0f172a;font-size:14px;font-weight:700;">${escapeHtml(value)}</td>
   </tr>`;
 
 const detailsTable = (rows: string) => `
@@ -216,6 +226,9 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
     detailRow("Shop", shopLine),
     detailRow("Service", ctx.serviceType),
     detailRow("Schedule", when),
+    ...(ctx.mechanic && ["booking-confirmation", "service-in-progress", "booking-updated"].includes(template)
+      ? [detailRow("Assigned mechanic", ctx.mechanic.name)]
+      : []),
     detailRow("Reference", ctx.bookingRef),
   ].join("");
 
@@ -241,8 +254,8 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
         ${detailsTable(baseRows)}
         ${partsBlock}
         <div style="margin-top:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:20px;">
-          <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#22c55e;">We received your booking request!</p>
-          <p style="margin:0;font-size:13px;color:#64748b;">Our team will review your request and confirm shortly. You can track it anytime in your MotoLink account.</p>
+          <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#22c55e;">Your appointment is confirmed!</p>
+          <p style="margin:0;font-size:13px;color:#64748b;">${ctx.mechanic ? `Your assigned mechanic is ${escapeHtml(ctx.mechanic.name)}.` : "The shop will assign a mechanic and send you an update."} You can track your appointment anytime in your MotoLink account.</p>
         </div>`;
     case "service-in-progress":
       return `
@@ -250,7 +263,7 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
         ${partsBlock}
         <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
           <p style="margin:0 0 6px;font-size:15px;font-weight:800;color:#1d4ed8;">Work on your vehicle is now in progress.</p>
-          <p style="margin:0;font-size:13px;color:#64748b;">The shop has started your service. You can track the appointment status in your MotoLink account.</p>
+          <p style="margin:0;font-size:13px;color:#64748b;">${ctx.mechanic ? `${escapeHtml(ctx.mechanic.name)} is assigned to your service.` : "The shop team is handling your service."} You can track the appointment status in your MotoLink account.</p>
         </div>`;
     case "service-completion":
       return `
@@ -295,6 +308,7 @@ const buildText = (ctx: EmailContext): string => {
     `Shop      : ${shopLine}`,
     `Service   : ${ctx.serviceType}`,
     `Schedule  : ${fmtDate(ctx.scheduledDate)} at ${ctx.scheduledTime}`,
+    ...(ctx.mechanic ? [`Mechanic  : ${ctx.mechanic.name}`] : []),
     "",
     ctx.parts.length
       ? `Parts:\n${ctx.parts.map((p) => `  - ${p.part_name || "Part"} x${p.quantity ?? 0} @ ${fmtPeso(p.unit_price ?? 0)}`).join("\n")}\n`
@@ -380,22 +394,65 @@ export default async function handler(req: any, res: any) {
   });
 
   // 2) Resolve the appointment + related rows server-side.
-  const { data: appointmentData, error: apptError } = await db
+  let { data: appointmentData, error: apptError } = await db
     .from("appointments")
-    .select(
-      "id, booking_id, customer_id, walk_in_name, walk_in_email, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, customer:users!customer_id(id, name, email), shop:shops(id, name, city, address, phone, owner_id)",
-    )
+    .select("*")
     .eq("id", appointmentId)
     .maybeSingle();
 
+  // `walk_in_email` was added by a later migration and may not exist in every
+  // deployed database. Retry without that optional field if PostgREST reports
+  // a stale/missing schema-cache column rather than failing every status email.
+  if (
+    apptError &&
+    /walk_in_email/i.test(apptError.message || "") &&
+    /column|schema cache|not found|PGRST20[24]/i.test(apptError.message || "")
+  ) {
+    const fallback = await db
+      .from("appointments")
+      .select("id, booking_id, customer_id, mechanic_id, walk_in_name, shop_id, vehicle_id, scheduled_date, scheduled_time, service_type, description, status, notes, parts, total_amount, estimated_price")
+      .eq("id", appointmentId)
+      .maybeSingle();
+    appointmentData = fallback.data;
+    apptError = fallback.error;
+  }
+
   if (apptError) {
     console.error("Error resolving appointment:", apptError);
-    return res.status(500).json({ success: false, error: "Could not resolve appointment." });
+    return res.status(500).json({ success: false, error: `Could not resolve appointment: ${apptError.message || "database query failed"}` });
   }
   if (!appointmentData) {
     return res.status(404).json({ success: false, error: "Appointment not found." });
   }
   const appointment = appointmentData as any;
+
+  let relatedCustomer: Entity | undefined;
+  if (appointment.customer_id) {
+    const { data: customerRow, error: customerError } = await db
+      .from("users")
+      .select("id, name, email")
+      .eq("id", appointment.customer_id)
+      .maybeSingle();
+    if (customerError) {
+      console.error("Error resolving appointment customer:", customerError);
+      return res.status(500).json({ success: false, error: `Could not resolve appointment customer: ${customerError.message || "database query failed"}` });
+    }
+    if (customerRow) relatedCustomer = customerRow as Entity;
+  }
+
+  let shop: EmailContext["shop"];
+  if (appointment.shop_id) {
+    const { data: shopRow, error: shopError } = await db
+      .from("shops")
+      .select("id, name, city, address, phone, owner_id")
+      .eq("id", appointment.shop_id)
+      .maybeSingle();
+    if (shopError) {
+      console.error("Error resolving appointment shop:", shopError);
+      return res.status(500).json({ success: false, error: `Could not resolve appointment shop: ${shopError.message || "database query failed"}` });
+    }
+    shop = shopRow || undefined;
+  }
 
   // 3) Authorization: caller must be the booking customer or shop owner/admin.
   const { data: caller } = await db
@@ -412,7 +469,7 @@ export default async function handler(req: any, res: any) {
     (caller.role === "admin" ||
       (caller.role === "owner" &&
         (caller.shop_id === appointment.shop_id ||
-          appointment.shop?.owner_id === caller.id)));
+          shop?.owner_id === caller.id)));
 
   if (!isCustomer && !isShopStaff) {
     return res.status(403).json({ success: false, error: "Not authorized for this appointment." });
@@ -420,8 +477,8 @@ export default async function handler(req: any, res: any) {
 
   // 4) Resolve customer/owner entity + vehicle + part names.
   let customer: Entity | undefined;
-  if (appointment.customer) {
-    customer = appointment.customer as Entity;
+  if (relatedCustomer) {
+    customer = relatedCustomer;
   } else if (!appointment.customer_id) {
     customer = {
       name: appointment.walk_in_name || "Walk-in customer",
@@ -430,16 +487,26 @@ export default async function handler(req: any, res: any) {
   }
 
   let owner: Entity | undefined;
-  if (template === "owner-booking" && appointment.shop?.owner_id) {
+  if (template === "owner-booking" && shop?.owner_id) {
     const { data: ownerRow } = await db
       .from("users")
       .select("id, name, email")
-      .eq("id", appointment.shop.owner_id)
+      .eq("id", shop.owner_id)
       .maybeSingle();
     owner = ownerRow as Entity | undefined;
   }
 
   let vehicle: { make?: string; model?: string; year?: number | string } | undefined;
+  let mechanic: { name: string } | undefined;
+  if (appointment.mechanic_id) {
+    const { data: mechanicRow } = await db
+      .from("users")
+      .select("name")
+      .eq("id", appointment.mechanic_id)
+      .eq("role", "mechanic")
+      .maybeSingle();
+    if (mechanicRow?.name) mechanic = { name: mechanicRow.name };
+  }
   const rawParts: PartRow[] = appointment.parts || [];
   if (appointment.vehicle_id) {
     const { data: vehicleRow } = await db
@@ -486,7 +553,8 @@ export default async function handler(req: any, res: any) {
     partsTotal,
     totalAmount: Number(appointment.total_amount) || partsTotal || 0,
     customer,
-    shop: appointment.shop || undefined,
+    mechanic,
+    shop,
     vehicle,
   };
 
