@@ -53,6 +53,7 @@ import {
   vehicleLabel,
 } from "../services/vehicleService";
 import { sendBookingCancelledEmail } from "../services/notificationService";
+import { getSavedShops, SavedShop, unsaveShop } from "../services/shopFavoritesService";
 
 interface HistoryRecord {
   id: string;
@@ -76,6 +77,7 @@ interface HistoryRecord {
 interface UserProfilePageProps {
   onBack: () => void;
   onLogout: () => void;
+  onOpenShop?: (shopId: string) => void;
 }
 
 type TabKey = "profile" | "history" | "saved" | "settings";
@@ -127,6 +129,7 @@ const emptyBikeForm = {
 const UserProfilePage: React.FC<UserProfilePageProps> = ({
   onBack,
   onLogout,
+  onOpenShop,
 }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
@@ -135,6 +138,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
   const [stats, setStats] = useState<Record<string, VehicleStats>>({});
   const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [savedShops, setSavedShops] = useState<SavedShop[]>([]);
+  const [savedShopsLoading, setSavedShopsLoading] = useState(false);
+  const [savedShopsError, setSavedShopsError] = useState("");
+  const [removingSavedShopId, setRemovingSavedShopId] = useState<string | null>(null);
   const [reviewingBooking, setReviewingBooking] = useState<HistoryRecord | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
@@ -288,6 +295,44 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       );
     } catch (err) {
       console.error("Error loading profile data:", err);
+    }
+  };
+
+  const refreshSavedShops = async () => {
+    if (!user?.id) {
+      setSavedShops([]);
+      return;
+    }
+    setSavedShopsLoading(true);
+    setSavedShopsError("");
+    try {
+      setSavedShops(await getSavedShops(user.id));
+    } catch (error) {
+      console.error("Could not load saved shops:", error);
+      setSavedShopsError("Could not load saved shops. Please try again.");
+    } finally {
+      setSavedShopsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshSavedShops();
+    // Load only for the current authenticated customer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleRemoveSavedShop = async (shopId: string) => {
+    if (!user?.id || removingSavedShopId) return;
+    setRemovingSavedShopId(shopId);
+    setSavedShopsError("");
+    try {
+      await unsaveShop(user.id, shopId);
+      setSavedShops((current) => current.filter((entry) => entry.shop.id !== shopId));
+    } catch (error) {
+      console.error("Could not remove saved shop:", error);
+      setSavedShopsError("Could not remove this shop. Please try again.");
+    } finally {
+      setRemovingSavedShopId(null);
     }
   };
 
@@ -1155,12 +1200,57 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               <p className="mt-1 text-sm text-slate-400">
                 Shops you follow will show up here.
               </p>
-              <div className="mt-8 rounded-xl border border-dashed border-moto-gray p-12 text-center">
-                <Store size={28} className="mx-auto mb-3 text-slate-400" />
-                <p className="font-semibold text-slate-300">
-                  No saved shops yet
-                </p>
-              </div>
+              {savedShopsError && (
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                  <p role="alert">{savedShopsError}</p>
+                  <button type="button" onClick={() => void refreshSavedShops()} className="font-semibold underline underline-offset-2">Try again</button>
+                </div>
+              )}
+              {savedShopsLoading ? (
+                <div className="mt-8 flex items-center justify-center gap-3 py-12 text-sm text-slate-400">
+                  <Loader2 size={18} className="animate-spin text-moto-accent" /> Loading saved shops…
+                </div>
+              ) : savedShops.length === 0 ? (
+                <div className="mt-8 rounded-xl border border-dashed border-moto-gray p-12 text-center">
+                  <Store size={28} className="mx-auto mb-3 text-slate-400" />
+                  <p className="font-semibold text-slate-300">No saved shops yet</p>
+                  <p className="mt-1 text-sm text-slate-500">Save a shop from its profile and it will appear here.</p>
+                </div>
+              ) : (
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {savedShops.map(({ shop, savedAt }) => (
+                    <article key={shop.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/45 p-3.5">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-moto-gray bg-moto-dark">
+                        {shop.logo_url ? (
+                          <img src={shop.logo_url} alt={`${shop.name} logo`} className="h-full w-full object-contain p-1" />
+                        ) : (
+                          <Store size={20} className="text-moto-accent" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-bold text-slate-100">{shop.name}</h3>
+                        <p className="mt-0.5 truncate text-xs text-slate-400">{[shop.city, shop.address].filter(Boolean).join(" · ")}</p>
+                        <p className="mt-1 text-[10px] text-slate-500">Saved {formatDate(savedAt.slice(0, 10))}</p>
+                      </div>
+                      <div className="flex shrink-0 flex-col gap-1.5">
+                        {onOpenShop && (
+                          <button type="button" onClick={() => onOpenShop(shop.id)} className="rounded-lg bg-moto-accent px-2.5 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark">
+                            View
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveSavedShop(shop.id)}
+                          disabled={removingSavedShopId === shop.id}
+                          className="rounded-lg border border-moto-gray px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-rose-400/50 hover:text-rose-300 disabled:opacity-50"
+                        >
+                          {removingSavedShopId === shop.id ? "Removing…" : "Remove"}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

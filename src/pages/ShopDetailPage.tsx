@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
+import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle, Bookmark, BookmarkCheck } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { inventoryService } from "../services/inventoryService";
@@ -9,6 +9,8 @@ import { getShopGallery, ShopPhoto } from "../services/galleryService";
 import { Shop } from "../types/shop";
 import NavigationModal from "../components/NavigationModal";
 import BookAppointmentModal from "../components/BookAppointmentModal";
+import { useAuth } from "../contexts/AuthContext";
+import { getSavedShopIds, saveShop, unsaveShop } from "../services/shopFavoritesService";
 
 interface ShopDetailPageProps {
   shopId: string;
@@ -144,8 +146,10 @@ const productFallbackIcon = (label: string) => {
 const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   shopId,
   onBack,
+  onConnect,
   onAuthRequired,
 }) => {
+  const { user } = useAuth();
   const [shop, setShop] = useState<Shop | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [mechanics, setMechanics] = useState<ShopMechanic[]>([]);
@@ -156,6 +160,10 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [error, setError] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
+  const [shopSaved, setShopSaved] = useState(false);
+  const [savingShop, setSavingShop] = useState(false);
+  const [checkingSavedShop, setCheckingSavedShop] = useState(false);
+  const [saveShopError, setSaveShopError] = useState("");
   const [activeTab, setActiveTab] = useState<"services" | "mechanics" | "products">("services");
   const [gallery, setGallery] = useState<ShopPhoto[]>([]);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -229,6 +237,57 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     if (!shopId) return;
     fetchShopDetail();
   }, [shopId]);
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.id || user.role !== "customer") {
+      setShopSaved(false);
+      setCheckingSavedShop(false);
+      return;
+    }
+
+    setCheckingSavedShop(true);
+    setSaveShopError("");
+    getSavedShopIds(user.id)
+      .then((savedIds) => {
+        if (active) setShopSaved(savedIds.includes(shopId));
+      })
+      .catch((error) => {
+        console.error("Could not check saved shop status:", error);
+        if (active) setSaveShopError("Could not load saved status.");
+      })
+      .finally(() => {
+        if (active) setCheckingSavedShop(false);
+      });
+
+    return () => { active = false; };
+  }, [shopId, user?.id, user?.role]);
+
+  const handleToggleSavedShop = async () => {
+    if (!user?.id || user.role !== "customer") {
+      if (onAuthRequired) onAuthRequired("login");
+      else onConnect?.(shopId);
+      return;
+    }
+    if (savingShop || checkingSavedShop) return;
+
+    setSavingShop(true);
+    setSaveShopError("");
+    try {
+      if (shopSaved) {
+        await unsaveShop(user.id, shopId);
+        setShopSaved(false);
+      } else {
+        await saveShop(user.id, shopId);
+        setShopSaved(true);
+      }
+    } catch (error) {
+      console.error("Could not update saved shop:", error);
+      setSaveShopError("Could not update saved shops. Please try again.");
+    } finally {
+      setSavingShop(false);
+    }
+  };
 
   const fetchReviews = async (shopIdValue: string) => {
     try {
@@ -479,6 +538,21 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               </a>
             )}
             </div>
+            {(!user || user.role === "customer") && (
+              <div className="mt-4 w-full">
+                <button
+                  type="button"
+                  onClick={() => void handleToggleSavedShop()}
+                  disabled={savingShop || checkingSavedShop}
+                  aria-pressed={shopSaved}
+                  className={`shop-save-button inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold transition disabled:cursor-wait disabled:opacity-65 ${shopSaved ? "is-saved" : ""}`}
+                >
+                  {shopSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                  {savingShop ? "Updating…" : checkingSavedShop ? "Checking…" : shopSaved ? "Saved shop" : "Save shop"}
+                </button>
+                {saveShopError && <p role="alert" className="mt-2 text-center text-xs text-rose-500">{saveShopError}</p>}
+              </div>
+            )}
           </motion.section>
 
           {/* ── Catalog Tabs & Lists ── */}
@@ -948,7 +1022,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               )}
 </div>
             {reviewPageCount > 1 && (
-              <nav className="shop-review-pagination mt-5 flex items-center justify-center gap-4 border-t pt-4" aria-label="Customer review pages">
+              <nav className="shop-review-pagination mt-5 flex flex-wrap items-center justify-center gap-2 border-t pt-4" aria-label="Customer review pages">
                 <button
                   type="button"
                   onClick={() => setReviewPage((page) => Math.max(0, page - 1))}
@@ -958,9 +1032,18 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 >
                   <ChevronLeft size={19} />
                 </button>
-                <span className="shop-review-page-label text-sm font-medium" aria-live="polite">
-                  {reviewPage * reviewsPerPage + 1}–{Math.min((reviewPage + 1) * reviewsPerPage, reviews.length)} of {reviews.length}
-                </span>
+                {Array.from({ length: reviewPageCount }, (_, page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setReviewPage(page)}
+                    aria-label={`Go to review page ${page + 1}`}
+                    aria-current={reviewPage === page ? "page" : undefined}
+                    className={`shop-review-page-number inline-flex h-10 min-w-10 items-center justify-center px-3 text-sm font-semibold transition ${reviewPage === page ? "is-current" : ""}`}
+                  >
+                    {page + 1}
+                  </button>
+                ))}
                 <button
                   type="button"
                   onClick={() => setReviewPage((page) => Math.min(reviewPageCount - 1, page + 1))}

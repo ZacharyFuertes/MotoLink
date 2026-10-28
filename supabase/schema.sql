@@ -54,6 +54,17 @@ CREATE INDEX IF NOT EXISTS idx_shops_owner_id ON public.shops(owner_id);
 CREATE INDEX IF NOT EXISTS idx_shops_active_city ON public.shops(is_active, city);
 CREATE INDEX IF NOT EXISTS idx_shops_slug ON public.shops(slug);
 
+-- Customer shops saved to their profile for quick access.
+CREATE TABLE IF NOT EXISTS public.shop_favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  shop_id UUID NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT shop_favorites_customer_shop_unique UNIQUE (customer_id, shop_id)
+);
+CREATE INDEX IF NOT EXISTS idx_shop_favorites_customer_created
+  ON public.shop_favorites(customer_id, created_at DESC);
+
 -- Now that both users and shops exist, link users.shop_id → shops.id
 ALTER TABLE public.users
   ADD CONSTRAINT fk_users_shop
@@ -393,6 +404,7 @@ ALTER TABLE public.reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mechanic_availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_notification_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shop_favorites ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- PHASE 8: RLS POLICIES
@@ -452,6 +464,37 @@ CREATE POLICY "Admin can update all shops"
 -- Admin can delete any shop (cascades to dependent rows; users.shop_id is SET NULL)
 CREATE POLICY "Admin can delete all shops"
   ON public.shops FOR DELETE USING (public.is_admin());
+
+-- SHOP FAVORITES: each customer can only list, save, and remove their own favorites.
+CREATE POLICY "Customers can view own saved shops"
+  ON public.shop_favorites FOR SELECT
+  USING (
+    auth.uid() = customer_id
+    AND EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() AND u.role = 'customer'
+    )
+  );
+
+CREATE POLICY "Customers can save own shops"
+  ON public.shop_favorites FOR INSERT
+  WITH CHECK (
+    auth.uid() = customer_id
+    AND EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() AND u.role = 'customer'
+    )
+  );
+
+CREATE POLICY "Customers can remove own saved shops"
+  ON public.shop_favorites FOR DELETE
+  USING (
+    auth.uid() = customer_id
+    AND EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() AND u.role = 'customer'
+    )
+  );
 
 -- CUSTOMERS
 CREATE POLICY "Users can view own customer profile"

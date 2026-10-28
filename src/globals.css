@@ -1116,6 +1116,18 @@ html.light .landing-page .landing-shop-card [class~="bg-moto-gray"] {
   border: 1px solid rgba(53, 208, 192, 0.3);
   background: rgba(53, 208, 192, 0.08);
 }
+.shop-save-button {
+  border: 1px solid rgba(53, 208, 192, 0.35);
+  border-radius: 0.55rem;
+  background: rgba(53, 208, 192, 0.08);
+  color: var(--shop-teal);
+}
+.shop-save-button:hover,
+.shop-save-button.is-saved {
+  border-color: rgba(53, 208, 192, 0.58);
+  background: rgba(53, 208, 192, 0.15);
+  box-shadow: 0 7px 20px -14px rgba(53, 208, 192, 0.45);
+}
 .shop-profile-contacts {
   z-index: 1;
   border-color: var(--shop-rule);
@@ -1462,6 +1474,18 @@ html.light .landing-page .landing-shop-card [class~="bg-moto-gray"] {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+.shop-review-page-number {
+  border: 1px solid transparent;
+  border-radius: 0.65rem;
+  color: #bac6d2;
+  font-variant-numeric: tabular-nums;
+}
+.shop-review-page-number:hover,
+.shop-review-page-number.is-current {
+  border-color: rgba(53, 208, 192, 0.36);
+  background: rgba(53, 208, 192, 0.1);
+  color: var(--shop-teal);
+}
 html.light .shop-detail-page {
   --shop-surface: #eff1f2;
   --shop-inset: #e6e9ea;
@@ -1545,6 +1569,15 @@ html.light .shop-detail-page .shop-review-page-button {
 html.light .shop-detail-page .shop-review-page-label {
   color: #536477;
 }
+html.light .shop-detail-page .shop-review-page-number {
+  color: #536477;
+}
+html.light .shop-detail-page .shop-review-page-number:hover,
+html.light .shop-detail-page .shop-review-page-number.is-current {
+  border-color: rgba(13, 136, 126, 0.22);
+  background: rgba(13, 136, 126, 0.1);
+  color: #087c72;
+}
 html.light .shop-detail-page .shop-booking-cta {
   border-color: rgba(186, 91, 35, 0.32);
   background-image: radial-gradient(ellipse at 86% 50%, rgba(201, 105, 48, 0.14), transparent 35%), linear-gradient(100deg, rgba(201, 105, 48, 0.08), transparent 60%), linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.55));
@@ -1572,6 +1605,17 @@ html.light .shop-detail-page .shop-directions-button {
 html.light .shop-detail-page .shop-directions-button:hover {
   border-color: rgba(13, 136, 126, 0.58);
   background: linear-gradient(120deg, rgba(13, 136, 126, 0.19), rgba(13, 136, 126, 0.075));
+}
+html.light .shop-detail-page .shop-save-button {
+  border-color: rgba(13, 136, 126, 0.26);
+  background: rgba(13, 136, 126, 0.08);
+  color: #087c72;
+}
+html.light .shop-detail-page .shop-save-button:hover,
+html.light .shop-detail-page .shop-save-button.is-saved {
+  border-color: rgba(13, 136, 126, 0.46);
+  background: rgba(13, 136, 126, 0.13);
+  box-shadow: 0 7px 18px -13px rgba(13, 136, 126, 0.32);
 }
 /* Light-mode shop surfaces need more separation from the pale canvas. */
 html.light .shop-detail-page .shop-profile-card,

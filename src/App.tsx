@@ -500,6 +500,10 @@ const AppContent: React.FC = () => {
     return (
       <UserProfilePage
         onBack={() => navigateTo("landing")}
+        onOpenShop={(shopId) => {
+          navigateTo("landing");
+          openShopDetail({ id: shopId } as ShopSearchResult);
+        }}
         onLogout={() => {
           logout().catch((error) => {
             console.error("Logout failed:", error);
