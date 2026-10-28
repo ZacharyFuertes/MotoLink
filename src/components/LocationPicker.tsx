@@ -191,7 +191,7 @@ const searchPlaces = async (query: string): Promise<SearchResult[]> => {
       const google = await searchGooglePlaces(query);
       if (google.length) return google;
     } catch {
-      // Google unavailable/offline — fall through to OSM geocoders.
+      // Google unavailable/offline fall through to OSM geocoders.
     }
   }
   const photon = await searchPhoton(query);
@@ -244,7 +244,7 @@ const LocationPicker = ({
         const found = await reverseGeocode(next.lat, next.lng);
         setDraftAddress(found);
       } catch {
-        // reverse geocoding is best-effort — leave the address untouched
+        // reverse geocoding is best-effort leave the address untouched
       } finally {
         setGeocoding(false);
       }
@@ -327,7 +327,7 @@ const LocationPicker = ({
         map.setView([lat, lng], 16);
       },
       () => {
-        // permission denied — stay where the user is
+        // permission denied stay where the user is
       },
       { timeout: 8000 },
     );

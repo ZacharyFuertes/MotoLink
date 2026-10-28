@@ -82,7 +82,7 @@ export const parseOperatingHoursString = (oh?: string) => {
   const parts = oh.split(";").map((p) => p.trim()).filter(Boolean);
   const schedule = emptySchedule.slice();
   parts.forEach((part) => {
-    // split at the first ':' only — times themselves contain ':' characters
+    // split at the first ':' only times themselves contain ':' characters
     const idx = part.indexOf(":");
     if (idx === -1) return;
     const dayLabel = part.slice(0, idx).trim();
@@ -261,7 +261,7 @@ export const updateShop = async (
     const { data, error } = await attempt(a.select, a.allowed);
     if (!error && data) {
       const normalized = normalizeShop(data as Record<string, unknown>);
-      // is_open migration not live yet — keep the requested value in memory so
+      // is_open migration not live yet keep the requested value in memory so
       // the UI reflects the intended state until the migration is applied.
       if (hasIsOpen && !a.select.includes("is_open")) {
         (normalized as any).is_open = updates.is_open;

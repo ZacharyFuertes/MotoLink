@@ -1,7 +1,7 @@
 /**
  * Client-side helpers for the email OTP login flow.
  *
- * The browser never talks to Gmail directly — it calls the serverless
+ * The browser never talks to Gmail directly it calls the serverless
  * endpoints in `api/` which own the SMTP credentials.
  */
 

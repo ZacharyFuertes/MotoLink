@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — MotoLink transactional email delivery.
+ * Vercel Serverless Function MotoLink transactional email delivery.
  *
  * The browser NEVER talks to SendGrid directly. The SendGrid API key lives here
  * (server env only) and all email content is resolved server-side from the
@@ -200,13 +200,13 @@ const partsTable = (parts: PartRow[]) => {
 const buildSubject = (template: EmailTemplate, ctx: EmailContext): string => {
   switch (template) {
     case "booking-request-received":
-      return `Booking Request Received — MotoLink [Ref: ${ctx.bookingRef}]`;
+      return `Booking Request Received MotoLink [Ref: ${ctx.bookingRef}]`;
     case "booking-confirmation":
-      return `Booking Confirmed — MotoLink [Ref: ${ctx.bookingRef}]`;
+      return `Booking Confirmed MotoLink [Ref: ${ctx.bookingRef}]`;
     case "service-in-progress":
-      return `Service In Progress — MotoLink [Ref: ${ctx.bookingRef}]`;
+      return `Service In Progress MotoLink [Ref: ${ctx.bookingRef}]`;
     case "service-completion":
-      return `Service Completed — Your Motorcycle is Ready for Pickup! 🏍️`;
+      return `Service Completed Your Motorcycle is Ready for Pickup! 🏍️`;
     case "booking-cancelled":
       return `Your appointment has been cancelled – MotoLink`;
     case "booking-updated":
@@ -285,7 +285,7 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
         ${detailsTable(baseRows)}
         ${partsBlock}
         <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
-          <p style="margin:0;font-size:14px;color:#1d4ed8;line-height:1.6;">Your appointment details have been updated. Review the schedule above — we look forward to seeing you${ctx.customer ? `, ${first}` : ""}!</p>
+          <p style="margin:0;font-size:14px;color:#1d4ed8;line-height:1.6;">Your appointment details have been updated. Review the schedule above we look forward to seeing you${ctx.customer ? `, ${first}` : ""}!</p>
         </div>`;
     case "owner-booking":
       return `
@@ -614,7 +614,7 @@ export default async function handler(req: any, res: any) {
               : "Your appointment details",
     subheading:
       template === "service-completion"
-        ? "Great news — your service appointment has been completed. Here is the full summary."
+        ? "Great news your service appointment has been completed. Here is the full summary."
         : template === "service-in-progress"
           ? "The shop has started working on your appointment. Here are the booking details."
         : template === "booking-request-received"

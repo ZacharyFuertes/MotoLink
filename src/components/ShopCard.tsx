@@ -69,9 +69,9 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
     >
       <div className="pointer-events-none absolute inset-0 z-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "radial-gradient(120% 90% at 50% 0%, rgba(53,208,192,0.12), transparent 60%)" }} />
 
-      {/* ── Profile header — left avatar, no background ─────────────────── */}
+      {/* ── Profile header left avatar, no background ─────────────────── */}
       <div className="relative z-10 flex items-center gap-4 px-5 pt-5 pb-4 border-b border-moto-gray/40 shrink-0">
-        {/* Circular avatar — left */}
+        {/* Circular avatar left */}
         <div className="relative h-16 w-16 shrink-0">
           {/* Glow ring on hover */}
           <div className="absolute inset-0 rounded-full bg-moto-accent/0 group-hover:bg-moto-accent/15 transition-all duration-300 scale-110 blur-sm" />
@@ -90,7 +90,7 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
           )}
         </div>
 
-        {/* Name + status — right of avatar */}
+        {/* Name + status right of avatar */}
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className={`self-start inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${status.background} ${status.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot} animate-pulse`} aria-hidden="true" />

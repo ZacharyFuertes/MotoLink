@@ -40,7 +40,7 @@ export interface Reservation {
 export const reservationService = {
   /**
    * Create a reservation for a part (customers only).
-   * shopId is the part's shop — stored on the reservation so owners can
+   * shopId is the part's shop stored on the reservation so owners can
    * query their own shop's reservations directly (instead of a parts join).
    */
   async createReservation(
@@ -86,7 +86,7 @@ export const reservationService = {
 
   /**
    * Fetch reservations for a shop (owner/admin view).
-   * Scoped by reservations.shop_id — the shop column added in the
+   * Scoped by reservations.shop_id the shop column added in the
    * 20260731_owner_data_isolation migration.
    */
   async getShopReservations(shopId: string): Promise<Reservation[]> {

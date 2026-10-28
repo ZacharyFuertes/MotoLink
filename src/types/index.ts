@@ -57,7 +57,7 @@ export type AppointmentStatus =
 export interface Appointment {
   id: string;
   booking_id?: string;
-  /** NULL for a walk-in booked by the shop — see walk_in_name / walk_in_phone. */
+  /** NULL for a walk-in booked by the shop see walk_in_name / walk_in_phone. */
   customer_id: string | null;
   vehicle_id: string;
   shop_id: string;

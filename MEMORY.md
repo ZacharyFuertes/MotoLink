@@ -1,12 +1,12 @@
-# MotoLink — Brain / Memory File
+# MotoLink Brain / Memory File
 
 RULE: Read this file FIRST before starting any task. Update it after every task. This is the persistent memory so context is never lost between sessions.
 
 ---
 
-## SYSTEM FLOW — ROLE WORKFLOWS (REVISED)
+## SYSTEM FLOW ROLE WORKFLOWS (REVISED)
 
-Mechanic POV removed as a top-level portal for simplicity. The system now runs on **three connected roles**: Customer, Shop Owner, and Admin. Owner sits at the center — receiving requests from customers and escalating platform-level issues to admin. Pattern: intake → approval → resolution (same shape used by Shopmonkey, Tekmetric, AutoLeap).
+Mechanic POV removed as a top-level portal for simplicity. The system now runs on **three connected roles**: Customer, Shop Owner, and Admin. Owner sits at the center receiving requests from customers and escalating platform-level issues to admin. Pattern: intake → approval → resolution (same shape used by Shopmonkey, Tekmetric, AutoLeap).
 
 ### 1. Customer Flow
 Sign up / Log in → Browse shops on map → Book appointment / reserve part → **Request sent → goes to Shop Owner** → Get notified of status (from Owner) → View invoice & pay → Returns for next service
@@ -21,8 +21,8 @@ Log in to Admin Dashboard → Monitor all shops & users (platform-wide view) →
 - **Customer → Owner**: every booking/reservation is a request that lands directly on the Owner's dashboard.
 - **Owner → Customer**: every status update and invoice flows back to the customer automatically via notifications (no manual calls).
 - **Owner → Admin**: account, role, or shop-linking problems (e.g. the FK-race bug, wrong-role users) get escalated up to Admin to fix at the platform/database level.
-- **Admin → Owner**: Admin can also proactively fix broken shop/owner accounts (e.g. shop-linking or wrong-role issues from the FK-race bug) without the owner needing to ask. Note: accounts like beloy123@gmail.com/jbmshop@gmail.com that ended up customer with NO shop row can't be patched via UPDATE — resolution is re-registration through the fixed atomic signup path.
-- **Mechanic role**: exists in the DB/roles system (mechanic_availability, job_order assignment) but is NOT a top-level POV — folded into the Owner's job-order management step. Mechanic portal REMOVED in the app (Phase 1, Option B): no MechanicLoginPage/dashboard; owners handle all job-order work in their own pages.
+- **Admin → Owner**: Admin can also proactively fix broken shop/owner accounts (e.g. shop-linking or wrong-role issues from the FK-race bug) without the owner needing to ask. Note: accounts like beloy123@gmail.com/jbmshop@gmail.com that ended up customer with NO shop row can't be patched via UPDATE resolution is re-registration through the fixed atomic signup path.
+- **Mechanic role**: exists in the DB/roles system (mechanic_availability, job_order assignment) but is NOT a top-level POV folded into the Owner's job-order management step. Mechanic portal REMOVED in the app (Phase 1, Option B): no MechanicLoginPage/dashboard; owners handle all job-order work in their own pages.
 
 ---
 
@@ -45,8 +45,8 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 - Supabase project ref: hrrjdeamvwncssaczqvz
 - URL: https://hrrjdeamvwncssaczqvz.supabase.co
 - Keys live in .env.local (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY)
-- DB password: Moto-Link123456 — NOTE: direct Postgres connection fails (host is IPv6-only, unreachable from this machine). Use REST API instead.
-- Admin account: admin@motolink.com / MotolinkAdmin123! — UUID cea04e43-44dc-4e35-b3c1-ef5ffc776193, role admin in auth.users + public.users
+- DB password: Moto-Link123456 NOTE: direct Postgres connection fails (host is IPv6-only, unreachable from this machine). Use REST API instead.
+- Admin account: admin@motolink.com / MotolinkAdmin123! UUID cea04e43-44dc-4e35-b3c1-ef5ffc776193, role admin in auth.users + public.users
 
 ---
 
@@ -55,45 +55,45 @@ MotoLink is a motorcycle shop marketplace/full-stack app.
 users, shops, vehicles, services_pricing, parts, products, featured_products, appointments, job_orders, job_order_items, invoices, part_sales, reservations, mechanic_availability, notifications, customer_notification_settings
 
 - customers table was DROPPED; 7 FKs re-pointed to users(id)
-- services_pricing now has shop_id (nullable, FK → shops, ON DELETE CASCADE) — CONFIRMED live
-- mechanic_availability now has shop_id (nullable, FK → shops, ON DELETE CASCADE) — CONFIRMED live
-- reservations shop_id — exists ONLY in migration `20260731_owner_data_isolation.sql`, NOT yet applied live (live columns: id, customer_id, part_id, status, quantity, created_at, updated_at)
+- services_pricing now has shop_id (nullable, FK → shops, ON DELETE CASCADE) CONFIRMED live
+- mechanic_availability now has shop_id (nullable, FK → shops, ON DELETE CASCADE) CONFIRMED live
+- reservations shop_id exists ONLY in migration `20260731_owner_data_isolation.sql`, NOT yet applied live (live columns: id, customer_id, part_id, status, quantity, created_at, updated_at)
 - Admin RLS policies applied across all tables (supabase/admin_rls.sql)
 
 ---
 
 ## DOCUMENTATION FILES (in repo root)
 
-- MEMORY.md — THIS FILE — persistent brain, read first. **Only .md file tracked in git** (.gitignore line 33 ignores `*.md`; all other notes below exist ONLY locally)
-- CONSOLIDATED DOCUMENTATION section (bottom of this file) — every other .md's content merged here (16 local notes + this head)
-- Info for DFD lvl 1.md — Full Level 1 DFD: 7 entities, 7 processes, 16 stores, 73 flows (local-only)
-- MOTOLINK_ERD_SCHEMA.sql — Clean 16-table ERD-ready schema (matches live DB)
-- COMPLETE_DATABASE_SCHEMA.sql — Aspirational 25+ table schema (many tables NOT in live DB)
-- supabase/schema.sql — 16-table schema matching live DB
-- audit.md — Multi-tenant migration audit findings (local-only)
-- MotoLink DFD Level 1 (Simplified).md — Plain-text (no diagrams) simplified DFD for AI prompts (local-only)
-- MotoLink_MEMORY_Revised.docx — Word export of the memory file + role-flow diagrams (generated, uploaded to Google Drive; NOT in repo)
-- MotoLink_Capstone_Documentation.docx — Full capstone-paper-ready chapter: intro, problem statement, objectives, scope/limitations, architecture, user roles, revised flowcharts, database design, features, methodology, testing, conclusion. Several sections (problem statement, formal objectives, methodology framing, title page) are DRAFTED and marked for verification — not yet confirmed against the actual capstone proposal/Chapter 1. (generated, uploaded to Drive; NOT in repo)
+- MEMORY.md THIS FILE persistent brain, read first. **Only .md file tracked in git** (.gitignore line 33 ignores `*.md`; all other notes below exist ONLY locally)
+- CONSOLIDATED DOCUMENTATION section (bottom of this file) every other .md's content merged here (16 local notes + this head)
+- Info for DFD lvl 1.md Full Level 1 DFD: 7 entities, 7 processes, 16 stores, 73 flows (local-only)
+- MOTOLINK_ERD_SCHEMA.sql Clean 16-table ERD-ready schema (matches live DB)
+- COMPLETE_DATABASE_SCHEMA.sql Aspirational 25+ table schema (many tables NOT in live DB)
+- supabase/schema.sql 16-table schema matching live DB
+- audit.md Multi-tenant migration audit findings (local-only)
+- MotoLink DFD Level 1 (Simplified).md Plain-text (no diagrams) simplified DFD for AI prompts (local-only)
+- MotoLink_MEMORY_Revised.docx Word export of the memory file + role-flow diagrams (generated, uploaded to Google Drive; NOT in repo)
+- MotoLink_Capstone_Documentation.docx Full capstone-paper-ready chapter: intro, problem statement, objectives, scope/limitations, architecture, user roles, revised flowcharts, database design, features, methodology, testing, conclusion. Several sections (problem statement, formal objectives, methodology framing, title page) are DRAFTED and marked for verification not yet confirmed against the actual capstone proposal/Chapter 1. (generated, uploaded to Drive; NOT in repo)
 
 ---
 
 ## COMPLETE TASK HISTORY (chronological)
 
 ### PRE-SESSION WORK (done before memory file existed)
-- Supabase setup — connected project, configured keys, .env.local
-- Admin dashboard — built AdminPlatformDashboard.tsx as Materio-style layout wrapper, restyled all 7 sub-pages dark → light theme, admin RBAC on owner pages
-- Role-based routing — rolePagesMapping in roleAccess.ts (admin → admin-dashboard, owner → dashboard)
-- Dropped customers table — live DB migration, 7 FKs re-pointed to users(id)
-- Schema docs — created COMPLETE_DATABASE_SCHEMA.sql, supabase/schema.sql, MOTOLINK_ERD_SCHEMA.sql
-- DFD doc — created Info for DFD lvl 1.md (66 flows at the time)
-- Migration audit — created audit.md
+- Supabase setup connected project, configured keys, .env.local
+- Admin dashboard built AdminPlatformDashboard.tsx as Materio-style layout wrapper, restyled all 7 sub-pages dark → light theme, admin RBAC on owner pages
+- Role-based routing rolePagesMapping in roleAccess.ts (admin → admin-dashboard, owner → dashboard)
+- Dropped customers table live DB migration, 7 FKs re-pointed to users(id)
+- Schema docs created COMPLETE_DATABASE_SCHEMA.sql, supabase/schema.sql, MOTOLINK_ERD_SCHEMA.sql
+- DFD doc created Info for DFD lvl 1.md (66 flows at the time)
+- Migration audit created audit.md
 
 ### TASK: Fix admin_rls.sql (P2 crash bug + schema gaps)
 - Removed 3 lines from supabase/admin_rls.sql referencing dropped customers table (was lines 53-55)
 - File now applies admin RLS cleanly
 
 ### TASK: Owner signup flow (P5)
-OwnerLoginPage.tsx — added signup tab:
+OwnerLoginPage.tsx added signup tab:
 - supabase.auth.signUp(email, password)
 - INSERT into shops with owner_id
 - INSERT into users with shop_id = new shop id
@@ -101,7 +101,7 @@ OwnerLoginPage.tsx — added signup tab:
 This is the ONLY path that creates a shop (no admin approval)
 
 ### TASK: Owner dashboard (P6)
-- Created src/pages/Dashboard.tsx — 5 metric cards (today's revenue, pending appts, customers, low stock, products) + pending appointments list + low stock alerts
+- Created src/pages/Dashboard.tsx 5 metric cards (today's revenue, pending appts, customers, low stock, products) + pending appointments list + low stock alerts
 - All 6 queries scoped by user.shop_id
 - Route added in App.tsx
 
@@ -114,13 +114,13 @@ This is the ONLY path that creates a shop (no admin approval)
 - AIChatModal.tsx (fetchShopContext scoped by shopId)
 
 ### TASK: Crash bug fix (P2)
-- AIChatModal.tsx:110 — .from("customers") → .from("users") (customers table no longer exists)
+- AIChatModal.tsx:110 .from("customers") → .from("users") (customers table no longer exists)
 
 ### TASK: Dead code removal (P8)
-- shopService.ts — removed demoShops fallback (returns [])
-- supabaseClient.ts — removed getUsers(), getParts(), getAppointments()
-- FeaturedSection.tsx (in Index.tsx) — removed localStorage booking pattern
-- Navbar.tsx + SystemNavbar.tsx — JBMS → "MotoLink" branding
+- shopService.ts removed demoShops fallback (returns [])
+- supabaseClient.ts removed getUsers(), getParts(), getAppointments()
+- FeaturedSection.tsx (in Index.tsx) removed localStorage booking pattern
+- Navbar.tsx + SystemNavbar.tsx JBMS → "MotoLink" branding
 - KEPT: SERVICE_TYPES + defaultProducts as fallbacks
 - demoShops.ts file still exists but is now UNUSED (still contains "JBMS(JOEYBOY MOTORCYCLE SHOP)")
 
@@ -138,13 +138,13 @@ This is the ONLY path that creates a shop (no admin approval)
 - Identified remaining gaps: AdminServicesPage, BookAppointmentModal, AdminMechanicAvailability lack shop_id filters
 
 ### TASK: Git push
-- Commit 75183d0 on main — 20 files, +1148/-268
+- Commit 75183d0 on main 20 files, +1148/-268
 - Had to git pull --rebase first (remote had new commits)
 - Pushed successfully
 
 ### TASK: Update documentation files
-- MOTOLINK_ERD_SCHEMA.sql — added shop_id to services_pricing + mechanic_availability + indexes
-- Info for DFD lvl 1.md — updated all 7 processes, 16 stores, expanded to 73 flows, documented owner dashboard + signup flow
+- MOTOLINK_ERD_SCHEMA.sql added shop_id to services_pricing + mechanic_availability + indexes
+- Info for DFD lvl 1.md updated all 7 processes, 16 stores, expanded to 73 flows, documented owner dashboard + signup flow
 
 ### TASK: Simplified DFD
 - Created MotoLink DFD Level 1 (Simplified).md
@@ -152,49 +152,49 @@ This is the ONLY path that creates a shop (no admin approval)
 - Rewrote as pure plain-text logic (entities, processes, stores, flows, isolation rules, signup sequence, file map)
 
 ### TASK: Memory file (THIS)
-- Created MEMORY.md as persistent brain — read first every session
+- Created MEMORY.md as persistent brain read first every session
 
 ### TASK: BookAppointmentModal shop_id filter
-- BookAppointmentModal.tsx:253-259 — fetchServices() now guards if (!defaultShopId) return; and filters .eq("shop_id", defaultShopId) matching fetchAvailableParts() pattern
+- BookAppointmentModal.tsx:253-259 fetchServices() now guards if (!defaultShopId) return; and filters .eq("shop_id", defaultShopId) matching fetchAvailableParts() pattern
 - No other functions in file touched
-- NEW ISSUE DISCOVERED: src/pages/MotolinkLanding.tsx has 3 unused imports (ArrowRight, CheckCircle2, MapPinned) that break tsc — came from remote commit 9382c9b navbar, NOT from this change. NOT yet fixed.
+- NEW ISSUE DISCOVERED: src/pages/MotolinkLanding.tsx has 3 unused imports (ArrowRight, CheckCircle2, MapPinned) that break tsc came from remote commit 9382c9b navbar, NOT from this change. NOT yet fixed.
 
 ### TASK: "Go all" queued-prompts batch (14-item todo list)
-1. BookAppointmentModal default-shop-id fix — removed shopIdToUse = "default-shop-id" fallback; now setErrorMsg + block when no valid shop_id; reset mechanicAvailability on close; availability shown when schedule exists OR bookings exist
-2. demoShops deletion — deleted src/data/demoShops.ts, jbms.png, pworks.jpg, kec.jpg; KEPT Motolink.svg (used by Footer/Navbar/LoginChoice); fixed stale comment in ShopMap.tsx:57
-3. AdminMechanicAvailability fixes — availability SELECT scoped via mechanicIds in-filter; INSERT includes shop_id: user?.shop_id || null; day_of_week stored as INTEGER (daysOfWeek.indexOf(...)) — page previously inserted day-name strings (latent bug, DB column is int 0-6); type widened to number | string; display maps int→name
-4. BookAppointmentModal slot computation — added mechanicAvailability state + fetchMechanicAvailability() (.eq("mechanic_id",...).eq("day_of_week", dayIdx) with dayIdx=(getDay()+6)%7); isSlotAvailable() = time within schedule bounds, no schedule → open; grid uses isBooked = bookedSlots.includes(time) || !isSlotAvailable(time)
-5. UpdatePartsPage scoping — CONFIRMED already scoped (Today's Sales .eq("shop_id",...) at :96); no fix needed
-6. Shop detail page — created src/pages/ShopDetailPage.tsx (shop info + services + mechanics + products, all shop-scoped); added getShopById to shopService.ts; wired "View shop" via onViewShop prop through ShopCard → ShopGallery → MotolinkLanding; App.tsx uses viewingShopId overlay state in BOTH unauthenticated + authenticated landing branches (no roleAccess change needed)
-7. Appointment status alignment (latent DB bug) — DB CHECK allows only pending,confirmed,in_progress,completed,cancelled; app used ready_for_finalization (would VIOLATE constraint). Replaced ready_for_finalization → in_progress in types/index.ts, AppointmentCalendarPage.tsx, MechanicDashboard.tsx, SENDGRID_SETUP.md. Live appointments/job_orders tables confirmed empty via REST
-8. Job order handoff — created src/services/jobOrderService.ts (ensure/get/logLabor/addPartUsed/completeJobOrder/getJobOrderById) + src/components/JobOrderModal.tsx (labor hours/rate logging + parts used picker, no stock deduction). AppointmentCalendarPage: auto-creates job order when status → confirmed/in_progress; completes job order at owner finalize; "Job Order" button on owner cards
-9. Invoice generation — created src/services/invoiceService.ts (createInvoiceForJobOrder idempotent per job_order_id, getInvoicesForCustomer, markInvoicePaid). Wired into finalize path in AppointmentCalendarPage. Customer view already exists in ServiceHistoryModal.tsx (line ~398). NOTE: invoices DB table has NO tax/subtotal/due_date/issued_date columns — TS Invoice type is aspirational; inserts use DB columns only
-10. Low-stock list — FIXED bug in inventoryService.getLowStockParts (was .lte('quantity_in_stock','reorder_level') comparing to STRING literal — PostgREST can't do column-to-column; now fetch-then-filter client-side). Built src/pages/LowStockPage.tsx (restock action via updatePartStock); registered as low-stock AppPage for owner+admin; added to roleAccess.ts, App.tsx (admin layout + main layout), admin sidebar, SystemNavbar
-11. Reservation flow — created src/services/reservationService.ts (create/getMy/getShop/updateStatus/fulfillReservation-deducts-stock). BrowsePartsPage: customer "Reserve Part" button + qty stepper in detail modal + "My Reservations" panel (statuses). CustomersListPage: owner/admin reservations panel with Confirm/Fulfill/Cancel actions. NOTE: reservations table has NO shop_id — scoping is via parts.shop_id join
-12. Owner dashboard reports — Dashboard.tsx: 30-day revenue trend (part_sales + completed job_orders daily, Recharts BarChart) + per-mechanic productivity (completed job orders grouped, name lookup via users join)
-13. Build verification — npm run build passes (tsc + vite, 2812 modules)
-14. TS JobOrder type — added total_cost?, widened status union to match DB (pending/billed)
+1. BookAppointmentModal default-shop-id fix removed shopIdToUse = "default-shop-id" fallback; now setErrorMsg + block when no valid shop_id; reset mechanicAvailability on close; availability shown when schedule exists OR bookings exist
+2. demoShops deletion deleted src/data/demoShops.ts, jbms.png, pworks.jpg, kec.jpg; KEPT Motolink.svg (used by Footer/Navbar/LoginChoice); fixed stale comment in ShopMap.tsx:57
+3. AdminMechanicAvailability fixes availability SELECT scoped via mechanicIds in-filter; INSERT includes shop_id: user?.shop_id || null; day_of_week stored as INTEGER (daysOfWeek.indexOf(...)) page previously inserted day-name strings (latent bug, DB column is int 0-6); type widened to number | string; display maps int→name
+4. BookAppointmentModal slot computation added mechanicAvailability state + fetchMechanicAvailability() (.eq("mechanic_id",...).eq("day_of_week", dayIdx) with dayIdx=(getDay()+6)%7); isSlotAvailable() = time within schedule bounds, no schedule → open; grid uses isBooked = bookedSlots.includes(time) || !isSlotAvailable(time)
+5. UpdatePartsPage scoping CONFIRMED already scoped (Today's Sales .eq("shop_id",...) at :96); no fix needed
+6. Shop detail page created src/pages/ShopDetailPage.tsx (shop info + services + mechanics + products, all shop-scoped); added getShopById to shopService.ts; wired "View shop" via onViewShop prop through ShopCard → ShopGallery → MotolinkLanding; App.tsx uses viewingShopId overlay state in BOTH unauthenticated + authenticated landing branches (no roleAccess change needed)
+7. Appointment status alignment (latent DB bug) DB CHECK allows only pending,confirmed,in_progress,completed,cancelled; app used ready_for_finalization (would VIOLATE constraint). Replaced ready_for_finalization → in_progress in types/index.ts, AppointmentCalendarPage.tsx, MechanicDashboard.tsx, SENDGRID_SETUP.md. Live appointments/job_orders tables confirmed empty via REST
+8. Job order handoff created src/services/jobOrderService.ts (ensure/get/logLabor/addPartUsed/completeJobOrder/getJobOrderById) + src/components/JobOrderModal.tsx (labor hours/rate logging + parts used picker, no stock deduction). AppointmentCalendarPage: auto-creates job order when status → confirmed/in_progress; completes job order at owner finalize; "Job Order" button on owner cards
+9. Invoice generation created src/services/invoiceService.ts (createInvoiceForJobOrder idempotent per job_order_id, getInvoicesForCustomer, markInvoicePaid). Wired into finalize path in AppointmentCalendarPage. Customer view already exists in ServiceHistoryModal.tsx (line ~398). NOTE: invoices DB table has NO tax/subtotal/due_date/issued_date columns TS Invoice type is aspirational; inserts use DB columns only
+10. Low-stock list FIXED bug in inventoryService.getLowStockParts (was .lte('quantity_in_stock','reorder_level') comparing to STRING literal PostgREST can't do column-to-column; now fetch-then-filter client-side). Built src/pages/LowStockPage.tsx (restock action via updatePartStock); registered as low-stock AppPage for owner+admin; added to roleAccess.ts, App.tsx (admin layout + main layout), admin sidebar, SystemNavbar
+11. Reservation flow created src/services/reservationService.ts (create/getMy/getShop/updateStatus/fulfillReservation-deducts-stock). BrowsePartsPage: customer "Reserve Part" button + qty stepper in detail modal + "My Reservations" panel (statuses). CustomersListPage: owner/admin reservations panel with Confirm/Fulfill/Cancel actions. NOTE: reservations table has NO shop_id scoping is via parts.shop_id join
+12. Owner dashboard reports Dashboard.tsx: 30-day revenue trend (part_sales + completed job_orders daily, Recharts BarChart) + per-mechanic productivity (completed job orders grouped, name lookup via users join)
+13. Build verification npm run build passes (tsc + vite, 2812 modules)
+14. TS JobOrder type added total_cost?, widened status union to match DB (pending/billed)
 
 ### TASK: Split Owner/Admin login into two portals (A-E)
 - AUDIT: OwnerLoginPage.tsx accepted both owner + admin (line 136) yet was admin-styled (adminIcon, "Admin Login Failed", red theme); LoginChoicePage.tsx had one combined "Owner/Admin" tile; no separate admin page existed
-- B: src/pages/ShopOwnerLoginPage.tsx — byte-for-byte copy of the old page's auth + signup/shop-creation logic; re-branded: lucide Store icon (replaces adminIcon), violet theme, "Shop Owner Login Failed"; role check now ONLY accepts owner; admin gets "Wrong Portal → use the Admin Portal" message
-- C: src/pages/AdminLoginPage.tsx — login-only (NO signup), red admin branding (adminIcon, "Admin Login Failed"); role check only accepts admin; owner rejected with "use the Shop Owner Portal" message
-- D: Wiring — LoginChoicePage.tsx: single tile split into "Shop Owner" (Store icon, violet) + "Platform Admin" (ShieldCheck icon, red); grid md:grid-cols-3 → md:grid-cols-2; new onChooseAdmin prop. App.tsx: LoginType union gained "admin"; onChooseAdmin → setCurrentLoginType("admin"); admin branch renders AdminLoginPage; else-branch renders ShopOwnerLoginPage
-- E: Cleanup — grep confirmed no src imports of the old page (only its own decl + historical docs); DELETED src/pages/OwnerLoginPage.tsx
+- B: src/pages/ShopOwnerLoginPage.tsx byte-for-byte copy of the old page's auth + signup/shop-creation logic; re-branded: lucide Store icon (replaces adminIcon), violet theme, "Shop Owner Login Failed"; role check now ONLY accepts owner; admin gets "Wrong Portal → use the Admin Portal" message
+- C: src/pages/AdminLoginPage.tsx login-only (NO signup), red admin branding (adminIcon, "Admin Login Failed"); role check only accepts admin; owner rejected with "use the Shop Owner Portal" message
+- D: Wiring LoginChoicePage.tsx: single tile split into "Shop Owner" (Store icon, violet) + "Platform Admin" (ShieldCheck icon, red); grid md:grid-cols-3 → md:grid-cols-2; new onChooseAdmin prop. App.tsx: LoginType union gained "admin"; onChooseAdmin → setCurrentLoginType("admin"); admin branch renders AdminLoginPage; else-branch renders ShopOwnerLoginPage
+- E: Cleanup grep confirmed no src imports of the old page (only its own decl + historical docs); DELETED src/pages/OwnerLoginPage.tsx
 - Verify: npx tsc --noEmit clean + npm run build passes (2813 modules)
 - NOTE: docs (audit.md, Info for DFD lvl 1.md, MotoLink DFD Level 1 (Simplified).md) still reference OwnerLoginPage.tsx as historical file paths
 
-### TASK: Redesign LoginChoicePage — tiers, neutral cards, Register shop action
-- LoginChoicePage.tsx rewritten: two labeled tiers ("Public access" → Customer/Mechanic; "Business and admin — verified access" → Shop Owner/Platform Admin); all four cards now ONE neutral style (bg-slate-50, border-slate-200, slate-600 icons) — per-role accent colors (green/blue/purple/red) removed
+### TASK: Redesign LoginChoicePage tiers, neutral cards, Register shop action
+- LoginChoicePage.tsx rewritten: two labeled tiers ("Public access" → Customer/Mechanic; "Business and admin verified access" → Shop Owner/Platform Admin); all four cards now ONE neutral style (bg-slate-50, border-slate-200, slate-600 icons) per-role accent colors (green/blue/purple/red) removed
 - Lock badges only on business tier: "Secured" (Shop Owner) + "Restricted" (Platform Admin), 11px, top-right
 - Shop Owner card is now a motion.div with two visible buttons: "Log in" (→ login) and "Register shop" (→ signup mode); the other 3 cards stay whole-card <button>s
-- ShopOwnerLoginPage.tsx: new initialIsSignup?: boolean prop seeds useState(initialIsSignup) — no auth logic changed
+- ShopOwnerLoginPage.tsx: new initialIsSignup?: boolean prop seeds useState(initialIsSignup) no auth logic changed
 - App.tsx: LoginType union gained "owner-signup"; onChooseRegister → setCurrentLoginType("owner-signup"); new branch renders ShopOwnerLoginPage with initialIsSignup={true} (mirrors existing customer-signup pattern)
-- DatabaseStatus.tsx: status dot is now a white pill (bg-white/90, border, rounded-full) with an adjacent text label — "System online" / "Checking connection…" / "Connection error" (dot rendered on all 4 App layouts)
+- DatabaseStatus.tsx: status dot is now a white pill (bg-white/90, border, rounded-full) with an adjacent text label "System online" / "Checking connection…" / "Connection error" (dot rendered on all 4 App layouts)
 - npx tsc --noEmit clean + npm run build passes
 
 ### TASK: Flat neutral redesign of all auth screens
-- Audit: only 4 files need restyling — LoginPage.tsx (customer), MechanicLoginPage.tsx, ShopOwnerLoginPage.tsx, AdminLoginPage.tsx. NO auth modals exist (glob found none). LoginChoicePage.tsx already neutral → excluded
+- Audit: only 4 files need restyling LoginPage.tsx (customer), MechanicLoginPage.tsx, ShopOwnerLoginPage.tsx, AdminLoginPage.tsx. NO auth modals exist (glob found none). LoginChoicePage.tsx already neutral → excluded
 - Design applied to all 4: white flat bg (already done), removed decorative blur blobs, dark gradient card → bg-white border-slate-200 shadow-sm (removed inline linear-gradient/backdropFilter + inner glow divs), icon tile → bg-slate-100 with muted PNG icon (brightness-0 opacity-60) or text-slate-500 lucide, headline text-slate-900 sentence-case, inputs → light (bg-white border-slate-300, muted text-slate-400 icons), primary buttons → solid bg-slate-900 hover:bg-slate-800 (no gradient), toggle links/divider slate-toned
 - Content/copy preserved EXCEPT "Open Your Shop" → "Open your shop" (sentence case)
 - Status-pill collision fix: Home button moved top-6 right-6 → bottom-6 right-6 on all 4 login pages so it no longer overlaps the DatabaseStatus pill (top-right)
@@ -203,73 +203,73 @@ This is the ONLY path that creates a shop (no admin approval)
 
 ### TASK: Fix 401 on shop registration
 - Root cause (3 parts):
-  1. RLS: live shops table had only "Anyone can browse active shops" (SELECT) + admin policies — NO INSERT policy → PostgREST 401 on .insert().select("id")
-  2. Email confirmation: project has "Confirm email" ENABLED (verified — signup hits over_email_send_rate_limit trying to send confirmation). signUp() returns NO session → profile/shop inserts run as anon → 401. App code (AuthContext + ShopOwnerLoginPage) signs in immediately after signup → designed for autoconfirm
+  1. RLS: live shops table had only "Anyone can browse active shops" (SELECT) + admin policies NO INSERT policy → PostgREST 401 on .insert().select("id")
+  2. Email confirmation: project has "Confirm email" ENABLED (verified signup hits over_email_send_rate_limit trying to send confirmation). signUp() returns NO session → profile/shop inserts run as anon → 401. App code (AuthContext + ShopOwnerLoginPage) signs in immediately after signup → designed for autoconfirm
   3. Schema: live shops requires slug, latitude, longitude NOT NULL; signup insert provided none (would 400 after RLS passes). slug only used for display in AdminPlatformDashboard (s.slug), not routing
 - Client fix (ShopOwnerLoginPage.tsx): generates slug (slugify shop name + 5-char random suffix); address/city fall back to "" (NOT NULL, form marks them optional); clear error if authData.session is null ("confirm your email then sign in") instead of cryptic 401
 - SQL migration supabase/migrations/20260731_owner_signup_rls_and_nullable_coords.sql: lat/lng DROP NOT NULL; INSERT policies for shops (WITH CHECK owner_id = auth.uid()), users (auth.uid() = id), vehicles (customer_id = auth.uid()); owner SELECT own shop
-- schema.sql updated — lat/lng now nullable (matches migration)
+- schema.sql updated lat/lng now nullable (matches migration)
 - USER MUST DO (not doable via API): (1) run the migration in Supabase SQL Editor; (2) disable "Confirm email" in Dashboard → Authentication → Email (autoconfirm)
-- Customer signup has the same latent anon-insert issue (AuthContext.signup) — fixed by same RLS + autoconfirm changes
+- Customer signup has the same latent anon-insert issue (AuthContext.signup) fixed by same RLS + autoconfirm changes
 - tsc --noEmit clean
 
 ### TASK: Owner portal scoping + shop profile editor
-- BUG FOUND: owner tools rendered EMPTY in main App layout — isAdminLayout only matched admin role, and the fallback layout only rendered dashboard/mechanic-portal/mechanic-dashboard/browse-parts/low-stock. So owner navigation to Inventory/Appointments/Customers/Services/Mechanic Availability/Settings showed a blank <main>
+- BUG FOUND: owner tools rendered EMPTY in main App layout isAdminLayout only matched admin role, and the fallback layout only rendered dashboard/mechanic-portal/mechanic-dashboard/browse-parts/low-stock. So owner navigation to Inventory/Appointments/Customers/Services/Mechanic Availability/Settings showed a blank <main>
 - FIX (App.tsx): added render cases for inventory, update-parts, appointments, customers, services, mechanic-availability, settings, shop-settings in the main (non-admin) layout so owners get them via SystemNavbar; admins still short-circuit through AdminPlatformDashboard
 - roleAccess.ts: new AppPage "shop-settings" added to owner only
 - SystemNavbar.tsx: new "Shop Profile" menu item (Store icon) for owner
-- shopService.ts: added updateShop(shopId, updates) — writes name/slug/logo_url/description/address/city/lat/lng/phone/email/specialties/operating_hours/is_active, returns refreshed Shop
+- shopService.ts: added updateShop(shopId, updates) writes name/slug/logo_url/description/address/city/lat/lng/phone/email/specialties/operating_hours/is_active, returns refreshed Shop
 - src/pages/ShopSettingsPage.tsx (NEW): owner-only page loading their shop via getShopById(user.shop_id); form for identity, location/contact, specialties (comma list → text[]), operating hours, plus "Public listing" toggle (is_active); saves via updateShop; shows "No shop linked" state when user.shop_id is missing. Changes feed getPublicShops → landing + getShopById → ShopDetailPage
 - SettingsPage.tsx: added "Shop Profile" card (owner only) → navigates to shop-settings
-- AdminServicesPage.tsx shop-scoping (confirmed live DB gap): REST-verified services_pricing HAS shop_id (migration applied live). fetch → .eq("shop_id", user.shop_id) for owners (admin stays global); upsert now includes shop_id for owners and OMITS the client-generated service_${Date.now()} id on new rows (was a latent UUID violation — id column is UUID, string id would 400); delete scoped by shop_id for owners
+- AdminServicesPage.tsx shop-scoping (confirmed live DB gap): REST-verified services_pricing HAS shop_id (migration applied live). fetch → .eq("shop_id", user.shop_id) for owners (admin stays global); upsert now includes shop_id for owners and OMITS the client-generated service_${Date.now()} id on new rows (was a latent UUID violation id column is UUID, string id would 400); delete scoped by shop_id for owners
 - supabase/schema.sql: synced services_pricing + mechanic_availability to include nullable shop_id + indexes (were missing despite live DB + migration having them)
 - Verify: npx tsc --noEmit clean + npm run build passes (2814 modules)
 
 ### TASK: Role-gated signup, owner dashboard shell, live shop info, post-registration redirect
 - Root cause of "owner registered as customer": auth-race. On signUp() (autoconfirm), the onAuthStateChange listener fires setUserProfileFromSession which, when public.users row not found yet (PGRST116), auto-inserted a customer profile. The signup handler then tried .insert() of the owner profile → duplicate-key failure OR (if the handler won) still raced. Net effect: shop owner account had role customer and/or registration failed
 - Fix (AuthContext.tsx + ShopOwnerLoginPage.tsx): listener auto-create now uses upsert(..., { onConflict: "id", ignoreDuplicates: true }) (never clobbers); AuthContext.signup customer profile uses upsert({ onConflict: "id" }); owner signup profile uses upsert({ onConflict: "id" }) (merge → forces role: "owner" + shop_id) PLUS a corrective update({ role: "owner", shop_id }) after shop insert. Owner role is now deterministic
-- Role labels: getRoleLabel() added to roleAccess.ts (owner → "Shop Owner", admin → "Platform Admin"); SystemNavbar + owner shell header display the label instead of raw role. Internal role value stays owner (DB/RLS/checks depend on it — NOT renamed to "Shop_Owner")
-- Post-registration/login redirect (App.tsx): handleLoginSuccess is now role-aware — owner → dashboard, mechanic → mechanic-dashboard, customer → landing (previously everyone → landing + effect redirect)
+- Role labels: getRoleLabel() added to roleAccess.ts (owner → "Shop Owner", admin → "Platform Admin"); SystemNavbar + owner shell header display the label instead of raw role. Internal role value stays owner (DB/RLS/checks depend on it NOT renamed to "Shop_Owner")
+- Post-registration/login redirect (App.tsx): handleLoginSuccess is now role-aware owner → dashboard, mechanic → mechanic-dashboard, customer → landing (previously everyone → landing + effect redirect)
 - src/pages/OwnerPlatformDashboard.tsx (NEW): sidebar dashboard shell mirroring AdminPlatformDashboard (collapsible sidebar + mobile overlay + sticky header), violet accent ("MOTO SHOP"); owner nav: Dashboard, Shop Profile, Inventory, Update Parts, Appointments, Customers, Services, Manage Mechanics, Low Stock, Settings; embeds the existing Dashboard component on the dashboard page; access-guard role !== "owner" → Access Denied
-- Live shop info: owner dashboard shows a "Live Shop Info" card fetching the shop via getShopById(user.shop_id) — same source the landing page uses — with logo/name/address/active pill/specialties/description, "Edit Shop Info" button → shop-settings; subscribes to a realtime channel on shops filtered by the owner's shop_id so edits reflect instantly
+- Live shop info: owner dashboard shows a "Live Shop Info" card fetching the shop via getShopById(user.shop_id) same source the landing page uses with logo/name/address/active pill/specialties/description, "Edit Shop Info" button → shop-settings; subscribes to a realtime channel on shops filtered by the owner's shop_id so edits reflect instantly
 - App.tsx wiring: ownerLayoutPages list + isOwnerLayout block renders OwnerPlatformDashboard wrapping all 9 owner pages (dashboard embedded); AccessDenied path for owners now renders inside the owner shell; owners no longer use SystemNavbar
 - Light-theme consistency: ShopSettingsPage.tsx + SettingsPage.tsx restyled from dark (#0f0f0f) to light (#f5f5f5 bg, white cards, violet accents) to match the owner shell (other embedded pages already light: Inventory/Dashboard/AdminServices/AdminMechanicAvailability)
 - Verify: npx tsc --noEmit clean + npm run build passes (2814 modules)
 
 ### TASK: Fix 406 on shop registration + owner-becomes-customer (auth-race round 2)
-- Live DB diagnostics (REST, anon + fresh auth token): users insert → 201, shops insert (name/slug/description/address/city/phone/email/owner_id/is_active) → 201, users upsert role:"owner" on_conflict=id → 200 with role:"owner". The 20260731 migration IS applied live; RLS INSERT policies + autoconfirm all work — the server side was never the problem this time
+- Live DB diagnostics (REST, anon + fresh auth token): users insert → 201, shops insert (name/slug/description/address/city/phone/email/owner_id/is_active) → 201, users upsert role:"owner" on_conflict=id → 200 with role:"owner". The 20260731 migration IS applied live; RLS INSERT policies + autoconfirm all work the server side was never the problem this time
 - Real root cause (client race): the onAuthStateChange listener fires setUserProfileFromSession during signUp → auto-creates a customer profile. That auto-create used upsert(..., { ignoreDuplicates: true }).select().single() → 406 when the ignored insert returns 0 rows. The stale customer user object from the same race then drove the redirect/Wrong Portal/UI role → owner appeared as customer
 - Fix (AuthContext.tsx): setUserProfileFromSession now uses .select().maybeSingle() (returns null instead of throwing 406 when ignoreDuplicates skips) and returns Promise<User | null>; login() now awaits setUserProfileFromSession(...) so user reflects the real DB role when login resolves; refreshUser() returns the fresh profile
 - Fix (ShopOwnerLoginPage.tsx): both login and signup paths await refreshUser() + reset roleCheckedRef before judging the portal; the role-check effect does a ONE-TIME re-fetch before showing "Wrong Portal" (previously it could sign out a valid owner whose role was merely stale); shops insert changed .select("id").single() → .maybeSingle() (no 406 on skipped insert) with an explicit "RLS INSERT policy missing" error message
-- Remaining .single() calls (getById fetches in customer/inventory/jobOrder/invoice/reservation/shop/product services) are legit — row expected to exist
+- Remaining .single() calls (getById fetches in customer/inventory/jobOrder/invoice/reservation/shop/product services) are legit row expected to exist
 - Verify: npx tsc --noEmit clean + npm run build passes (2814 modules)
 - STILL NEEDS MANUAL BROWSER TEST: register a new shop → expect role owner + straight to the owner dashboard, no 406 in console
 
-### TASK: THE REAL BUG — FK race on shop registration (owner still ends up customer)
+### TASK: THE REAL BUG FK race on shop registration (owner still ends up customer)
 - User reported registration still fails with an error and accounts end up customer. DB query showed both real attempts (beloy123@gmail.com, jbmshop@gmail.com) had role=customer AND shop_id empty; the shops table had NO shop owned by either → the shop INSERT itself was failing
 - Reproduced via REST with a fresh signup token: shop insert → 409 23503 "Key is not present in table users" (shops_owner_id_fkey). The app created the SHOP BEFORE the users row existed. shops.owner_id → users(id) is a hard FK; the signup handler only upserted the owner profile AFTER the shop insert, and the auth listener's async profile-create usually loses that race → shop insert 409 → "Registration failed" → account left as customer
 - Why my earlier isolated test passed: the diagnostic happened to insert the users row FIRST, then shop → 201. It never reproduced the app's real interleaving
-- Fix (ShopOwnerLoginPage.tsx handleSignup — REORDERED): (1) signUp → (2) users upsert role:"owner" WITHOUT shop_id (omitted because users.shop_id → shops.id must exist first) → (3) shops insert (FK now resolves) → (4) users update { role: "owner", shop_id: shop.id } → (5) login() + refreshUser()
+- Fix (ShopOwnerLoginPage.tsx handleSignup REORDERED): (1) signUp → (2) users upsert role:"owner" WITHOUT shop_id (omitted because users.shop_id → shops.id must exist first) → (3) shops insert (FK now resolves) → (4) users update { role: "owner", shop_id: shop.id } → (5) login() + refreshUser()
 - Proven end-to-end via REST (fresh account, exact app order incl. Prefer: return=representation): users upsert OK → shop insert OK (got id) → update shop_id OK → FINAL role=owner + shop linked
 - Test accounts created (owners with live shops): diag-register-7624@test.local / DiagOwner123! (Diag Test Shop); repro-1059798197@test.local / ReproTest123! (Repro Shop); e2e-1984807849@test.local / E2eTest123! (E2E Shop). The diag account's password was reset + shop linked via service role (it previously had role=owner but shop_id null)
-- Existing broken registrations: beloy123@gmail.com + jbmshop@gmail.com are stuck as customer AND have NO shop row (the shop INSERT itself failed) — they cannot be fixed via UPDATE (no shop_id to link). Correct resolution is re-registration through the fixed atomic signup path
+- Existing broken registrations: beloy123@gmail.com + jbmshop@gmail.com are stuck as customer AND have NO shop row (the shop INSERT itself failed) they cannot be fixed via UPDATE (no shop_id to link). Correct resolution is re-registration through the fixed atomic signup path
 - Verify: npx tsc --noEmit clean + npm run build passes
 - STILL NEEDS MANUAL BROWSER TEST: register a new shop → expect role owner + straight to the owner dashboard
 
 ### TASK: Per-shop data isolation audit + owner_data_isolation migration
 - Audit result: owner dashboard client queries were ALREADY scoped by .eq("shop_id", user.shop_id) in Dashboard/UpdateParts/Inventory/LowStock/AdminServices/AdminProducts/AppointmentCalendar/CustomersList/AdminMechanicAvailability. Most tables already have owner RLS policies (shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid()))
 - 2 real DB-layer leaks found (why owners didn't get truly separate data):
-  1. services_pricing had NO owner RLS policy — only "Anyone can view active services" + admin manage. Owner add/edit/delete of their shop's services was blocked at the DB level (the app scoped client-side but RLS rejected writes)
-  2. reservations had NO shop_id column and NO owner RLS policy — owner reads were attempted via a parts.shop_id join, which RLS blocked (only customer + admin policies existed). Owners literally couldn't see/act on their shop's reservations
-- Fix — supabase/migrations/20260731_owner_data_isolation.sql: adds reservations.shop_id (FK → shops, ON DELETE CASCADE) + backfills from parts.shop_id; owner SELECT + UPDATE policies on reservations; owner FOR ALL policy on services_pricing; keeps customer INSERT policy on reservations
-- Code changes: reservationService.ts — Reservation gains shop_id; createReservation(..., shopId?) stores the part's shop; getShopReservations scopes by reservations.shop_id (not the join). BrowsePartsPage.tsx passes selectedPart.shop_id + local Part interface gains shop_id. CustomersListPage.tsx reservation spend query scopes .eq("shop_id", user.shop_id) instead of .eq("parts.shop_id", ...)
+  1. services_pricing had NO owner RLS policy only "Anyone can view active services" + admin manage. Owner add/edit/delete of their shop's services was blocked at the DB level (the app scoped client-side but RLS rejected writes)
+  2. reservations had NO shop_id column and NO owner RLS policy owner reads were attempted via a parts.shop_id join, which RLS blocked (only customer + admin policies existed). Owners literally couldn't see/act on their shop's reservations
+- Fix supabase/migrations/20260731_owner_data_isolation.sql: adds reservations.shop_id (FK → shops, ON DELETE CASCADE) + backfills from parts.shop_id; owner SELECT + UPDATE policies on reservations; owner FOR ALL policy on services_pricing; keeps customer INSERT policy on reservations
+- Code changes: reservationService.ts Reservation gains shop_id; createReservation(..., shopId?) stores the part's shop; getShopReservations scopes by reservations.shop_id (not the join). BrowsePartsPage.tsx passes selectedPart.shop_id + local Part interface gains shop_id. CustomersListPage.tsx reservation spend query scopes .eq("shop_id", user.shop_id) instead of .eq("parts.shop_id", ...)
 - schema.sql synced with the new column/index + owner policies
-- USER MUST RUN 20260731_owner_data_isolation.sql in Supabase SQL Editor (direct Postgres unreachable — IPv6-only host). Verified live BEFORE migration: reservations columns are id, customer_id, part_id, status, quantity, created_at, updated_at (no shop_id yet)
+- USER MUST RUN 20260731_owner_data_isolation.sql in Supabase SQL Editor (direct Postgres unreachable IPv6-only host). Verified live BEFORE migration: reservations columns are id, customer_id, part_id, status, quantity, created_at, updated_at (no shop_id yet)
 - Verify: npx tsc --noEmit clean + npm run build passes
 
 ### TASK: Dead-code removal sweep (full re-sweep, 8 steps)
 - Group 3 (unused exports): removed vehicleService from customerService.ts (whole object) + its Vehicle import; removed withRetry + validateDatabaseConnection from dbHelper.ts (kept formatDatabaseError, used by AuthContext) + dropped now-unused supabase import; removed featuredProductService from productService.ts + FeaturedProduct interface from types/index.ts (only used by dead files)
-- Group 4 (dead whole files, 10): deleted AboutUs.tsx, FeaturedSection.tsx, Hero.tsx, Navbar.tsx, ServicesGrid.tsx, ViewPartsListModal.tsx, pages/AdminProductsPage.tsx (was never wired into App.tsx/roleAccess routing), pages/CustomerPortal.tsx (superseded by CustomerPortalModal), utils/vehicleCompatibility.ts, __tests__/notificationService.test.ts (imported vitest which is NOT installed — couldn't run)
+- Group 4 (dead whole files, 10): deleted AboutUs.tsx, FeaturedSection.tsx, Hero.tsx, Navbar.tsx, ServicesGrid.tsx, ViewPartsListModal.tsx, pages/AdminProductsPage.tsx (was never wired into App.tsx/roleAccess routing), pages/CustomerPortal.tsx (superseded by CustomerPortalModal), utils/vehicleCompatibility.ts, __tests__/notificationService.test.ts (imported vitest which is NOT installed couldn't run)
 - Group 2 (orphaned assets): deleted pictures/icons/logo.png (406KB) + entire about-us-pics/ folder (6 images, only used by dead AboutUs)
 - Group 1 (legacy branding): replaced JSBM/MotoShop → MotoLink in AIChatModal.tsx (greeting), sendgridClient.ts (FROM_NAME), notificationService.ts (email HTML/plain/subject), AdminChatbot.tsx (prompt+title), SystemNavbar.tsx (alt), Footer.tsx (social labels), MechanicDashboard.tsx (header), AddMechanicModal.tsx (placeholder). Kept AuthContext.tsx:259 motoshop_appointments localStorage cleanup (intentional legacy-key purge on logout). JBMS/JBSM/Joeyboy had ZERO hits in active code
 - Group 5 (scripts): deleted test_orders.js (queried dropped orders table), test_query.js, test_query_fixed.js, test_reservations.js, test_reservations_schema.js, test_supabase_connection.js (had stale anon JWT for dead project ref qscdmsfo…), tmp/check_parts.js + empty tmp/; removed broken "seed": "node seed-demo.js" script from package.json (file never existed)
@@ -277,45 +277,45 @@ This is the ONLY path that creates a shop (no admin approval)
 - Verify: npm run build passes clean (tsc + vite, 2815 modules, 10.3s). Zero dangling imports to any deleted file/export. No branding/corruption remnants in src
 
 ### TASK: White-slate theme + new logo + favicon (design/cleanup batch)
-- 981dd03 — landing + login unified to white-slate theme; new MotoLink logo; dev-only DB status pill
-- 57c7294 — favicon: replaced old logo.png with motolink-new-logo.svg (favicon.svg)
-- 9ae4562 + 2e1615d — removed orphaned components/pages/assets (AboutUs, FeaturedSection, Hero, Navbar, ServicesGrid, ViewPartsListModal, AdminProductsPage, CustomerPortal, vehicleCompatibility, unrunnable test; logo.png, about-us-pics)
-- e259629 — removed unused service exports (vehicleService, withRetry, validateDatabaseConnection, featuredProductService) + FeaturedProduct type
-- f6e53e8 — branding: replace legacy MotoShop/JSBM branding with MotoLink
-- 6fdafac — removed stale diagnostic scripts + broken seed script
-- 0149ccb — recorded the dead-code sweep in MEMORY.md
+- 981dd03 landing + login unified to white-slate theme; new MotoLink logo; dev-only DB status pill
+- 57c7294 favicon: replaced old logo.png with motolink-new-logo.svg (favicon.svg)
+- 9ae4562 + 2e1615d removed orphaned components/pages/assets (AboutUs, FeaturedSection, Hero, Navbar, ServicesGrid, ViewPartsListModal, AdminProductsPage, CustomerPortal, vehicleCompatibility, unrunnable test; logo.png, about-us-pics)
+- e259629 removed unused service exports (vehicleService, withRetry, validateDatabaseConnection, featuredProductService) + FeaturedProduct type
+- f6e53e8 branding: replace legacy MotoShop/JSBM branding with MotoLink
+- 6fdafac removed stale diagnostic scripts + broken seed script
+- 0149ccb recorded the dead-code sweep in MEMORY.md
 
 ### TASK: Bug fix + additional register action (2be0cc0, 6ff33de)
-- "fix" commit 2be0cc0 — bug fix
-- 6ff33de — bug fix, new logo, additional register flow updates
+- "fix" commit 2be0cc0 bug fix
+- 6ff33de bug fix, new logo, additional register flow updates
 
 ### TASK: Docs consolidation into MEMORY.md (3e05ff4, 525db1e)
-- 3e05ff4 — consolidated all markdown notes into MEMORY.md CONSOLIDATED DOCUMENTATION section; gitignore *.md except MEMORY.md (line 33)
-- 525db1e — synced the consolidated section with current obsidian notes (3887 insertions / 3824 deletions in MEMORY.md)
+- 3e05ff4 consolidated all markdown notes into MEMORY.md CONSOLIDATED DOCUMENTATION section; gitignore *.md except MEMORY.md (line 33)
+- 525db1e synced the consolidated section with current obsidian notes (3887 insertions / 3824 deletions in MEMORY.md)
 - Result: all other .md files are now local-only notes; MEMORY.md is the single source of truth
 
 ### TASK: Landing page photos update (c7ec157)
 - Updated photos in the landing page (HEAD commit on main)
 
 ### TASK: Revised role-flow diagrams (mechanic POV removed) + documentation exports
-- Simplified role model from 4 POVs (customer, owner, mechanic, admin) down to 3 connected top-level POVs (customer, owner, admin), based on research into comparable shop-management systems (Shopmonkey, Tekmetric, AutoLeap) — pattern: intake → approval → resolution
+- Simplified role model from 4 POVs (customer, owner, mechanic, admin) down to 3 connected top-level POVs (customer, owner, admin), based on research into comparable shop-management systems (Shopmonkey, Tekmetric, AutoLeap) pattern: intake → approval → resolution
 - Mechanic actions folded into the Owner's job-order management step rather than removed from the system entirely (DB layer unchanged: mechanic_availability, job order assignment still exist)
 - Built visual flowcharts (customer, owner, admin) showing the connected request lifecycle
-- Exported MotoLink_MEMORY_Revised.docx — Word version of the memory file + diagrams, for upload to Google Drive/Docs (uploaded; NOT in repo)
-- Exported MotoLink_Capstone_Documentation.docx — full capstone-paper-ready chapter covering intro, problem statement, objectives, scope/limitations, architecture, roles, flowcharts, database design, features, methodology, testing, conclusion (several sections drafted and flagged for verification — see Open Items; uploaded; NOT in repo)
+- Exported MotoLink_MEMORY_Revised.docx Word version of the memory file + diagrams, for upload to Google Drive/Docs (uploaded; NOT in repo)
+- Exported MotoLink_Capstone_Documentation.docx full capstone-paper-ready chapter covering intro, problem statement, objectives, scope/limitations, architecture, roles, flowcharts, database design, features, methodology, testing, conclusion (several sections drafted and flagged for verification see Open Items; uploaded; NOT in repo)
 
-### TASK: Phase 1 (3-POV flow) — remove mechanic as a top-level portal (Option B)
+### TASK: Phase 1 (3-POV flow) remove mechanic as a top-level portal (Option B)
 - Deleted src/pages/MechanicLoginPage.tsx, src/pages/MechanicDashboard.tsx, src/pages/MechanicPortal.tsx, src/pictures/icons/mechanic.png
-- App.tsx: removed "mechanic" from LoginType union; mechanic branch in handleLoginSuccess (mechanics now go to landing — no portal); onChooseMechanic prop; mechanic-dashboard SystemNavbar/margin special-casing; mechanic-portal + mechanic-dashboard render blocks; removed 3 imports
+- App.tsx: removed "mechanic" from LoginType union; mechanic branch in handleLoginSuccess (mechanics now go to landing no portal); onChooseMechanic prop; mechanic-dashboard SystemNavbar/margin special-casing; mechanic-portal + mechanic-dashboard render blocks; removed 3 imports
 - roleAccess.ts: removed "mechanic-portal" + "mechanic-dashboard" AppPages; mechanic rolePagesMapping → [] (owners manage all job work; mechanic role kept in DB for assignment/availability)
 - LoginChoicePage.tsx: removed the Mechanic card (Public access tier = Customer only, single centered card)
 - SystemNavbar.tsx: removed mechanic-dashboard menu item + mechanic role label branch; dashboard nav item now owner-only
 - AccessDenied.tsx: removed mechanic default page + permissions entry
-- Wrong-portal messages reworded in AdminLoginPage.tsx, ShopOwnerLoginPage.tsx, LoginPage.tsx — mechanics are told "accounts are managed by the shop owner"
+- Wrong-portal messages reworded in AdminLoginPage.tsx, ShopOwnerLoginPage.tsx, LoginPage.tsx mechanics are told "accounts are managed by the shop owner"
 - KEPT data layer (unchanged): mechanic role in DB, AddMechanicModal, AdminMechanicAvailability, mechanic_availability slot scheduling in BookAppointmentModal, job_order mechanic_id assignment, Dashboard mechanic productivity, AdminChatbot mechanic workload
 - Verify: npx tsc --noEmit clean + npm run build passes (2813 modules)
 
-### TASK: Phase 1 follow-up — purge lingering mechanic UI logic (owner dashboard + RBAC)
+### TASK: Phase 1 follow-up purge lingering mechanic UI logic (owner dashboard + RBAC)
 - AuthContext.tsx: removed `canRecordServiceProgress` (mechanic-only method); narrowed `canViewInventory`, `canViewOwnAppointments`, `canAccessAdminDashboard` to owner/admin only (dropped mechanic)
 - AppointmentCalendarPage.tsx: removed mechanic appointment filtering (was `apt.mechanic_id === user.id`), mechanic delete/status-update permission (`canUpdateStatus = isOwner || isMechanic` → owner only), `isMechanic` consts, the "Mechanic View" red banner, mechanic status-option hiding, and now-unused `Info` icon import
 - KEPT intentional data-layer mechanic references: BookAppointmentModal mechanic slot selection, AdminChatbot mechanic workload, AdminPlatformDashboard mechanic stats, wrong-portal messages in the 3 login pages
@@ -327,14 +327,14 @@ This is the ONLY path that creates a shop (no admin approval)
 - New src/pages/AdminShopsPage.tsx: list all shops w/ owner + appointment counts, tabs (All/Pending/Active), search, Approve / Deactivate / Delete (type DELETE confirm). Renders at page id "admin-shops" (was already in AppPage union)
 - App.tsx: adminLayoutPages trimmed to admin-dashboard/admin-shops/appointments/settings; admin render block now only renders AdminShopsPage/Appointments/Settings
 - Shop approval workflow: ShopOwnerLoginPage.tsx registers new shops with is_active:false (was true) + signup note "reviewed by platform admin before it goes live". Owners no longer self-publish: ShopSettingsPage.tsx "Public listing" toggle removed → read-only status badge ("Live on MotoLink" / "Awaiting platform approval"); OwnerPlatformDashboard.tsx "Hidden from MotoLink"/"Hidden from landing page" labels → "Awaiting platform approval"
-- admin_rls.sql: added "Admin can update all shops" (approve/deactivate) + "Admin can delete all shops" FOR UPDATE/DELETE policies — MUST be run in Supabase SQL Editor for the admin Approve/Deactivate/Delete buttons to work (existing "Admin can view all shops" SELECT already live)
+- admin_rls.sql: added "Admin can update all shops" (approve/deactivate) + "Admin can delete all shops" FOR UPDATE/DELETE policies MUST be run in Supabase SQL Editor for the admin Approve/Deactivate/Delete buttons to work (existing "Admin can view all shops" SELECT already live)
 - Verify: npx tsc --noEmit clean + npm run build passes (2814 modules)
 
 ---
 
 ### TASK: Empirically verified per-owner data isolation (cross-shop write test)
 - Ran a scripted end-to-end isolation test against the LIVE DB: created 2 throwaway owner accounts (iso-a/iso-b-<stamp>@test.local) + shops, seeded 9 rows under shop B (services_pricing, parts, products, featured_products, appointments, job_orders, part_sales, reservations, mechanic_availability), then signed in as owner A and attempted UPDATE + DELETE on every row owned by B
-- RESULT: all 9 WRITE probes + 5 DELETE probes returned 0 rows/blocked (ISOLATED); CONTROL test confirmed owner A CAN insert + read own shop data. RLS multitenancy confirmed working live — no 403/leak anywhere
+- RESULT: all 9 WRITE probes + 5 DELETE probes returned 0 rows/blocked (ISOLATED); CONTROL test confirmed owner A CAN insert + read own shop data. RLS multitenancy confirmed working live no 403/leak anywhere
 - Cleanup: test users + shops deleted via service role (cleanup filter bug caught + fixed: email is iso-a-<stamp>, filter was iso-<stamp>)
 - Note: reads on active services/parts/products are intentionally PUBLIC (marketplace browse, "Anyone can browse/create policy"); isolation is enforced on writes + owner-scoped rows
 - Removed temp test scripts (isolation_test_tmp.mjs, isolation_cleanup_tmp.mjs, isolation_tmp.mjs, isolation2_tmp.mjs)
@@ -346,58 +346,58 @@ This is the ONLY path that creates a shop (no admin approval)
 - Confirmed the full owner-edit → Explore-read wiring already points at the same live tables: ShopSettingsPage → shops (updateShop), AdminServicesPage → services_pricing (scoped), InventoryPage/UpdatePartsPage → parts, AddMechanicModal → users, AdminMechanicAvailability → mechanic_availability
 - Verify: npx tsc --noEmit clean + npm run build passes (built in 21.41s)
 
-### TASK: Fix owner signup — "Registration Failed" + owner becomes customer (the bug is BACK)
+### TASK: Fix owner signup "Registration Failed" + owner becomes customer (the bug is BACK)
 - User reported: shop owner registers → "Registration Failed" → trying the same email again says "already registered" → account ends up as customer, not owner
 - REPRODUCED live (scripted REST): signUp OK → users upsert role=owner OK → shops insert FAILS with `23502 null value in column "description" of relation "shops" violates not-null constraint` → catch block demoted profile to role=customer. Auth user already exists → retry = "email already registered". EXACT reported symptom chain
 - ROOT CAUSE (2 layers):
-  1. Client sent `description: signupData.shop_description || null` — when no specialty selected, shop_description is "" → `"" || null` = null → violates shops.description NOT NULL → shop insert fails
-  2. The old catch-block rollback set `role: "customer"` on ANY mid-flow failure — permanently corrupting failed registrations into customer accounts (irreversible since auth user can't be re-registered)
+  1. Client sent `description: signupData.shop_description || null` when no specialty selected, shop_description is "" → `"" || null` = null → violates shops.description NOT NULL → shop insert fails
+  2. The old catch-block rollback set `role: "customer"` on ANY mid-flow failure permanently corrupting failed registrations into customer accounts (irreversible since auth user can't be re-registered)
 - FIXES:
   - Client (ShopOwnerLoginPage.tsx): description now `signupData.shop_description || ""` (never null); REMOVED the customer-demotion rollback (profile stays owner if shop row missing, so admin can repair + user can retry login); signup now tries atomic `register_shop_owner` RPC first, falls back to step-by-step only on PGRST202 (function missing = migration not applied)
-  - Migration supabase/migrations/20260813_fix_owner_signup.sql: shops.description DROP NOT NULL + DEFAULT ''; `handle_new_user()` SECURITY DEFINER trigger auto-creates public.users on auth.users insert (kills the client auth-listener profile race permanently — profile exists before any client code); `register_shop_owner()` SECURITY DEFINER RPC = owner profile upsert + shop insert + shop_id link in ONE transaction (no partial state, no FK race, no demotion), GRANT EXECUTE to authenticated
+  - Migration supabase/migrations/20260813_fix_owner_signup.sql: shops.description DROP NOT NULL + DEFAULT ''; `handle_new_user()` SECURITY DEFINER trigger auto-creates public.users on auth.users insert (kills the client auth-listener profile race permanently profile exists before any client code); `register_shop_owner()` SECURITY DEFINER RPC = owner profile upsert + shop insert + shop_id link in ONE transaction (no partial state, no FK race, no demotion), GRANT EXECUTE to authenticated
   - schema.sql synced: shops.description now `TEXT DEFAULT ''`; added PHASE 10 with trigger + RPC
-- VERIFIED live: fixed fallback path passes end-to-end (signUp → owner profile → shop insert OK → role owner + shop_id linked, cleanup done); RPC returns PGRST202 on live DB (correct → client falls back) — USER MUST RUN 20260813_fix_owner_signup.sql in Supabase SQL Editor to activate the atomic path
+- VERIFIED live: fixed fallback path passes end-to-end (signUp → owner profile → shop insert OK → role owner + shop_id linked, cleanup done); RPC returns PGRST202 on live DB (correct → client falls back) USER MUST RUN 20260813_fix_owner_signup.sql in Supabase SQL Editor to activate the atomic path
 - Verify: npx tsc --noEmit clean + npm run build passes (7.27s)
 
 ### TASK: Move "Add mechanic" from Settings into Manage Mechanics (info + availability in one form)
 - SettingsPage.tsx: REMOVED the "Staff & Mechanics / Invite mechanics" quick-action card + its AddMechanicModal trigger + showInviteModal state + now-unused Users lucide import. Shop Profile card remains the only quick action for owners
-- DELETED src/components/AddMechanicModal.tsx (was only imported by SettingsPage) — mechanic creation now lives in the Manage Mechanics page
+- DELETED src/components/AddMechanicModal.tsx (was only imported by SettingsPage) mechanic creation now lives in the Manage Mechanics page
 - AdminMechanicAvailability.tsx (Manage Mechanics): added "Add New Mechanic" header button (UserPlus) that reveals an inline form collecting mechanic info (full name, email, temporary password ≥6 chars) AND initial availability (day of week, start time, end time) in one submit
   - handleCreateMechanic(): supabase.auth.signUp → users insert (role mechanic, shop_id) → mechanic_availability insert (day_of_week int, start/end, is_available true, shop_id) → fetchData() refresh; handles "User already registered" error; validates required fields + password length
   - New header buttons are mutually exclusive toggles (opening one closes the other); "Add Shift Schedule" (existing) unchanged for adding more shifts to existing mechanics
   - New icons imported: UserPlus, KeyRound, Mail, User
 - Verify: npx tsc --noEmit clean + npm run build passes (10.42s)
 
-### TASK: Fix mechanic registration — owner-adds-mechanic fails + mechanic ends up customer; removed password field
+### TASK: Fix mechanic registration owner-adds-mechanic fails + mechanic ends up customer; removed password field
 - User reported: shop owner adds a new mechanic → registration fails → the account gets created as role='customer' instead of 'mechanic'. Also asked to remove the password field from mechanic registration.
 - ROOT CAUSE (3 layers, reproduced live with disposable test accounts):
-  1. supabase.auth.signUp() while logged in swaps the session — after signUp the active session is the NEW mechanic, not the owner (owner would be silently logged out of their dashboard).
-  2. The handle_new_user trigger (migration 20260813) auto-inserts public.users with role='customer' the instant the auth user is created — so a plain client insert({role:'mechanic'}) then fails with 23505 duplicate key (users_pkey) and the mechanic stays 'customer'.
-  3. The trigger-created customer row also breaks the plain client insert at the RLS layer (owner can't UPDATE another user's row) — an upsert must run as the mechanic's own session to pass "update own profile".
-- VERIFIED live (scripted REST, cleanup done): upsert as the mechanic's OWN session bypasses the RLS wall — "update own profile" (auth.uid()=id) passes, forcing role='mechanic' + shop_id. Availability insert passes ("Mechanics can manage own availability"). Then restore the owner's session via setSession(owner tokens). Final state: role=mechanic, shop linked, availability row present.
-- FIX (AdminMechanicAvailability.tsx handleCreateMechanic): (1) capture ownerSession BEFORE signUp; (2) generate an autoPassword (never shown — mechanic is data-layer-only, no login portal); (3) signUp with options.data.full_name; (4) upsert users {onConflict:'id', role:'mechanic', shop_id: ownerShopId} while the mechanic session is active; (5) insert mechanic_availability; (6) restore the owner's session; (7) removed password field + KeyRound import + password validation from the Add New Mechanic form. No migration change needed — the fix is purely client-side.
+  1. supabase.auth.signUp() while logged in swaps the session after signUp the active session is the NEW mechanic, not the owner (owner would be silently logged out of their dashboard).
+  2. The handle_new_user trigger (migration 20260813) auto-inserts public.users with role='customer' the instant the auth user is created so a plain client insert({role:'mechanic'}) then fails with 23505 duplicate key (users_pkey) and the mechanic stays 'customer'.
+  3. The trigger-created customer row also breaks the plain client insert at the RLS layer (owner can't UPDATE another user's row) an upsert must run as the mechanic's own session to pass "update own profile".
+- VERIFIED live (scripted REST, cleanup done): upsert as the mechanic's OWN session bypasses the RLS wall "update own profile" (auth.uid()=id) passes, forcing role='mechanic' + shop_id. Availability insert passes ("Mechanics can manage own availability"). Then restore the owner's session via setSession(owner tokens). Final state: role=mechanic, shop linked, availability row present.
+- FIX (AdminMechanicAvailability.tsx handleCreateMechanic): (1) capture ownerSession BEFORE signUp; (2) generate an autoPassword (never shown mechanic is data-layer-only, no login portal); (3) signUp with options.data.full_name; (4) upsert users {onConflict:'id', role:'mechanic', shop_id: ownerShopId} while the mechanic session is active; (5) insert mechanic_availability; (6) restore the owner's session; (7) removed password field + KeyRound import + password validation from the Add New Mechanic form. No migration change needed the fix is purely client-side.
 - Verify: npx tsc --noEmit clean + npm run build passes (7.44s)
 
 ### TASK: Mechanics not visible on customer-facing shop page (RLS gap on users)
 - User reported: newly added mechanics (via owner's Add New Mechanic) don't show on the customer's shop POV (ShopDetailPage shows "No mechanics listed yet").
 - ShopDetailPage query is correct: users WHERE role='mechanic' AND shop_id=<shopId>. Verified live: mechanic jae@gmail.com EXISTS on shop new-SHOP-TEST-123456 (service role sees it), but an ANONYMOUS/customer client gets 0 rows → pure RLS block.
 - ROOT CAUSE: public.users SELECT policies were only "view own profile" (auth.uid()=id), "shop owners can view shop members", "admin can view all users". No policy lets customers/anon read mechanic profiles. Owners could see mechanics (owner policy) which is why it passed manual testing in Manage Mechanics but failed on the customer Explore→shop page.
-- FIX: added "Anyone can view shop mechanics" SELECT policy on public.users (role='mechanic' AND shop_id IN active shops) — mirrors "Anyone can browse active shops" / "Anyone can view mechanic availability". Applied to schema.sql + migration supabase/migrations/20260813_public_mechanic_view.sql (DROP IF EXISTS + CREATE). USER MUST RUN the migration in Supabase SQL Editor to activate live.
-- Also cleaned up BugHunt Shop + bughunt-owner-95163972@test.local (crash debris from the earlier mechanic-bug REST test session) — owner had been demoted to customer by the trigger when the test script crashed pre-cleanup.
+- FIX: added "Anyone can view shop mechanics" SELECT policy on public.users (role='mechanic' AND shop_id IN active shops) mirrors "Anyone can browse active shops" / "Anyone can view mechanic availability". Applied to schema.sql + migration supabase/migrations/20260813_public_mechanic_view.sql (DROP IF EXISTS + CREATE). USER MUST RUN the migration in Supabase SQL Editor to activate live.
+- Also cleaned up BugHunt Shop + bughunt-owner-95163972@test.local (crash debris from the earlier mechanic-bug REST test session) owner had been demoted to customer by the trigger when the test script crashed pre-cleanup.
 - Verify: npx tsc --noEmit clean + npm run build passes (8.61s)
 
-### TASK: Data audit + repair — accounts corrupted by the demote-rollback bug window
+### TASK: Data audit + repair accounts corrupted by the demote-rollback bug window
 - Bug window established via git: the demote rollback (`role: "customer", shop_id: null` catch block) was introduced in commit 18f87c1 (2026-08-10) and removed in the current uncommitted fix (2026-08-13). Window = 2026-08-10 → 2026-08-13.
 - Suspect rule: public.users WHERE role='customer' AND shop_id IS NULL AND created in window → 4 hits live: SHOP-TEST-677@motolink.com, SHOP-TEST-67@motolink.com, SHOP-TEST-123@motolink.com, nigga@gmail.com.
-- Cross-reference (STEP 3): the old signup wrote NO user_metadata (only email/email_verified/phone_verified/sub) so no signup-intent field exists to check; NONE of the 4 own a shop, have a reservation, appointment, job order, or part sale — zero activity/data. The 3 SHOP-TEST-* addresses are unambiguous test leftovers; nigga@gmail.com was also fully inactive/junk.
+- Cross-reference (STEP 3): the old signup wrote NO user_metadata (only email/email_verified/phone_verified/sub) so no signup-intent field exists to check; NONE of the 4 own a shop, have a reservation, appointment, job order, or part sale zero activity/data. The 3 SHOP-TEST-* addresses are unambiguous test leftovers; nigga@gmail.com was also fully inactive/junk.
 - REPAIRED (STEP 4, per user choice): deleted all 4 accounts from BOTH public.users and auth.users via service role. Post-delete: auth.users total 11, public.users total 10.
 - Post-delete state: no orphan shops remain (all 3 shops have role=owner owners); remaining customers (pre-window, NOT corrupted by rollback): zachfuertes@gmail.com, beloy123@gmail.com, jbmshop@gmail.com, alwyn@gmail.com, jae123@gmail.com.
-- CLOSING NOTE: all accounts flagged in this audit are now resolved — the 4 rollback-window accounts (SHOP-TEST-677/67/123 + nigga) were deleted, SHOP-TEST-1@motolink.com (owner, shop_id=NULL legacy test) was deleted, race-test-1786369115617@test.local (auth-only stray) was deleted, and beloy123/jbmshop were verified to have NO shop row and are explicitly LEFT for user re-registration via the now-fixed atomic register_shop_owner signup path (cannot be patched with UPDATE role='owner' since there is no shop to link — see open item below).
+- CLOSING NOTE: all accounts flagged in this audit are now resolved the 4 rollback-window accounts (SHOP-TEST-677/67/123 + nigga) were deleted, SHOP-TEST-1@motolink.com (owner, shop_id=NULL legacy test) was deleted, race-test-1786369115617@test.local (auth-only stray) was deleted, and beloy123/jbmshop were verified to have NO shop row and are explicitly LEFT for user re-registration via the now-fixed atomic register_shop_owner signup path (cannot be patched with UPDATE role='owner' since there is no shop to link see open item below).
 
 ### TASK: Store availability toggle + working owner notifications bell
-- User: add a store availability (open/closed) toggle in the store-admin panel; when closed, the shop shows unavailable in the customer POV but customers can still SEE services/mechanics/products — they just can't book appointments or buy items, with note "This shop is currently closed". Also make the top-bar notifications button on the shop admin page work — new shop notifs pop there when the owner is logged in.
+- User: add a store availability (open/closed) toggle in the store-admin panel; when closed, the shop shows unavailable in the customer POV but customers can still SEE services/mechanics/products they just can't book appointments or buy items, with note "This shop is currently closed". Also make the top-bar notifications button on the shop admin page work new shop notifs pop there when the owner is logged in.
 - DB: two new changes, both in schema.sql + new migration `supabase/migrations/20260813_shop_availability_and_notifications.sql` (USER MUST RUN in Supabase SQL Editor):
-  1. `shops.is_open BOOLEAN NOT NULL DEFAULT true` — owner-controlled availability. Kept SEPARATE from `is_active` (admin approval / directory listing), because setting is_active=false would remove the shop from the public browse entirely (RLS + getPublicShops filter on is_active=true), which is NOT the desired "closed but still browsable" behavior.
+  1. `shops.is_open BOOLEAN NOT NULL DEFAULT true` owner-controlled availability. Kept SEPARATE from `is_active` (admin approval / directory listing), because setting is_active=false would remove the shop from the public browse entirely (RLS + getPublicShops filter on is_active=true), which is NOT the desired "closed but still browsable" behavior.
   2. `notifications.read BOOLEAN NOT NULL DEFAULT false` + RLS policy "Recipients can mark own notifications read" (UPDATE using auth.uid()=recipient_id) for the in-app bell.
   3. Trigger `notify_shop_owner_on_appointment` (SECURITY DEFINER, AFTER INSERT on appointments) → inserts a notification for the shop owner (recipient_id = shops.owner_id) whenever a customer books. NOTE: appointments.shop_id is the booking target; the trigger resolves owner via shops.owner_id.
 - Code:
@@ -408,15 +408,15 @@ This is the ONLY path that creates a shop (no admin approval)
   - Landing connect flow: closed shops route to ShopDetailPage (view) instead of opening the booking modal; floating bottom-bar button shows "View shop".
   - App.tsx onBook: closed shop → openShopDetail instead of booking modal.
   - notificationService.ts added in-app helpers: getMyNotifications (RLS-scoped to auth.uid), getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead.
-  - OwnerPlatformDashboard: top-bar bell is now functional — unread count badge (Bell icon → BellRing when unread), dropdown panel (AnimatePresence) listing the 20 latest notifications with subject/message/timestamp, unread highlight, per-notification click-to-read, "Mark all read", empty state, realtime subscription (postgres_changes INSERT on notifications filtered by recipient_id=user.id), outside-click close overlay.
+  - OwnerPlatformDashboard: top-bar bell is now functional unread count badge (Bell icon → BellRing when unread), dropdown panel (AnimatePresence) listing the 20 latest notifications with subject/message/timestamp, unread highlight, per-notification click-to-read, "Mark all read", empty state, realtime subscription (postgres_changes INSERT on notifications filtered by recipient_id=user.id), outside-click close overlay.
 - Let/reuse: notifications table was previously ONLY an email-send audit log (notificationService logged sends). It's now dual-purpose: email audit + in-app owner bell rows via the appointment trigger.
 - Verify: npx tsc --noEmit clean + npm run build passes (16.9s).
 - LIVE DB ACTION REQUIRED (user must run in Supabase SQL Editor): execute `supabase/migrations/20260813_shop_availability_and_notifications.sql`. Until then is_open=undefined → treated as "open" (defaults), and the bell shows nothing.
 
-### TASK: Shop stuck in "Awaiting Admin Approval" — is_open migration not applied (BUGFIX)
+### TASK: Shop stuck in "Awaiting Admin Approval" is_open migration not applied (BUGFIX)
 - SYMPTOM: owner dashboard locked at "Awaiting Admin Approval" even though is_active=true live (verified via REST: all 4 shops have is_active=true). User explicitly did NOT deactivate via admin panel.
 - ROOT CAUSE (verified live): `shops.is_open` did NOT exist in the live DB (REST query `select=id,is_open` → 400 `42703 column shops.is_open does not exist`). The previous task added `is_open` to the shared SHOP_SELECT used by getPublicShops/getShopById/getShopByOwnerId/updateShop. PostgREST rejects a select referencing a nonexistent column with HTTP 400, so EVERY shop query failed → getShopByOwnerId returned null → OwnerPlatformDashboard set shopNotFound=true → isLocked=true → "Awaiting Admin Approval" screen. icon: the migration `20260813_shop_availability_and_notifications.sql` was never run live.
-- FIX (`src/services/shopService.ts`): made all 4 shop queries resilient — `runShopQuery` attempts the select WITH is_open and, on error code 42703 (or message matching is_open + column/schema-cache/not-found), retries once WITHOUT is_open. `updateShop` likewise: if the is_open column is missing it strips is_open from the UPDATE payload and returns the requested is_open in memory (so the toggle UI flips now and persists after the migration runs). Added `normalizeSpecialties` helper for safe casting.
+- FIX (`src/services/shopService.ts`): made all 4 shop queries resilient `runShopQuery` attempts the select WITH is_open and, on error code 42703 (or message matching is_open + column/schema-cache/not-found), retries once WITHOUT is_open. `updateShop` likewise: if the is_open column is missing it strips is_open from the UPDATE payload and returns the requested is_open in memory (so the toggle UI flips now and persists after the migration runs). Added `normalizeSpecialties` helper for safe casting.
 - ALSO VERIFIED: `notifications.read` is likewise missing live (same 42703). notificationService already degrades gracefully (getMyNotifications returns [] on error → empty bell, no crash), so no change needed there.
 - LESSON: never add a new column to a shared .select() list in app code until the migration is confirmed applied live, or add the auto-fallback like runShopQuery.
 - Verify: npx tsc --noEmit clean + npm run build passes (9s).
@@ -425,24 +425,24 @@ This is the ONLY path that creates a shop (no admin approval)
 ### TASK: Availability as real toggle UI + admin-panel availability control + dashboard toggle
 - User follow-up: (1) make availability a proper toggle switch (open/closed), (2) admins should also see/control store availability, (3) move the toggle onto the shop owner's DASHBOARD page (not just Shop Profile settings).
 - `src/pages/ShopSettingsPage.tsx`: replaced the "Open Shop"/"Close Shop" button with a compact toggle switch (`role="switch"`, emerald=open / slate=closed, thumb translate, Loader2 spinner while saving) + an inline Open/Closed status pill. Same handleToggleAvailability behind it.
-- `src/pages/OwnerPlatformDashboard.tsx` (the shop owner dashboard shell): dashboard page now has a Store Availability toggle card right under the welcome banner — green gradient card, toggle switch, open/closed pill, success/error message banner, and a status pill inside the welcome banner ("Open" / "Closed to bookings"). Uses updateShop (is_open) + local shop state via setShop.
-- `src/pages/AdminShopsPage.tsx`: shops table gained an "Availability" column with a READ-ONLY Open/Closed status badge (admin cannot toggle — availability is owner-controlled; the badge title notes "Set by the shop owner"). The previous admin toggle (setShopOpen → shops update) was REMOVED on user request: only shop owners control availability. Query still selects is_open with a resilient fallback (same 42703 detection → retry without is_open) so the admin page keeps working before the migration is applied; is_open defaults to true when absent.
-- IMPORTANT: live DB still does NOT have shops.is_open (migration `20260813_shop_availability_and_notifications.sql` not yet run). Until applied: owner/admin toggle switches flip the UI momentarily (in-memory only) and won't persist — the column must exist for persistence. All shopService queries are already resilient so nothing 400s pre-migration.
+- `src/pages/OwnerPlatformDashboard.tsx` (the shop owner dashboard shell): dashboard page now has a Store Availability toggle card right under the welcome banner green gradient card, toggle switch, open/closed pill, success/error message banner, and a status pill inside the welcome banner ("Open" / "Closed to bookings"). Uses updateShop (is_open) + local shop state via setShop.
+- `src/pages/AdminShopsPage.tsx`: shops table gained an "Availability" column with a READ-ONLY Open/Closed status badge (admin cannot toggle availability is owner-controlled; the badge title notes "Set by the shop owner"). The previous admin toggle (setShopOpen → shops update) was REMOVED on user request: only shop owners control availability. Query still selects is_open with a resilient fallback (same 42703 detection → retry without is_open) so the admin page keeps working before the migration is applied; is_open defaults to true when absent.
+- IMPORTANT: live DB still does NOT have shops.is_open (migration `20260813_shop_availability_and_notifications.sql` not yet run). Until applied: owner/admin toggle switches flip the UI momentarily (in-memory only) and won't persist the column must exist for persistence. All shopService queries are already resilient so nothing 400s pre-migration.
 - Verify: npx tsc --noEmit clean + npm run build passes (8s).
 
 ### TASK: Map pin-picker replaces manual Latitude/Longitude inputs (registration + settings)
-- User request: during shop registration, remove the manual "Latitude, Longitude" text field (with the "copy from Google Maps" hint) — owners instead pin their shop on a map; the system captures lat/lng automatically.
+- User request: during shop registration, remove the manual "Latitude, Longitude" text field (with the "copy from Google Maps" hint) owners instead pin their shop on a map; the system captures lat/lng automatically.
 - Decisions (user-confirmed): (1) apply to BOTH registration (ShopOwnerLoginPage) AND Shop Profile settings (ShopSettingsPage); (2) auto-fill the shop address from the pin via free OpenStreetMap Nominatim reverse geocoding (best-effort, skips if address already filled); (3) map centers on browser geolocation when granted, else falls back to Manila default (14.5712, 121.1051).
 - NEW `src/components/LocationPicker.tsx`: Leaflet map (OSM tiles, same as ShopMap; L is global via index.html CDN). Click or drag a draggable marker → onDragend/onClick reads lat/lng and fires onChange({lat,lng}). Live coordinate chip readout (6 decimals), "Finding address…" spinner while reverse-geocoding, "Locating you…" chip during geolocation attempt. Props: value?: LocationValue|null, onChange, onReverseGeocode(address), heightClass.
 - `src/pages/ShopOwnerLoginPage.tsx`: signupData now stores shop_latitude/shop_longitude (numbers|null) instead of shop_coordinates string; the coords text input block replaced with LocationPicker (label "Shop Location"); onReverseGeocode prefills shop_address ONLY if empty; handleSignup throws "Please pin your shop location on the map before registering." if no pin; removed parseCoordinates, coordsCheck/coordsTouched, and unused MapPin/Info/CheckCircle2/AlertCircle imports.
 - `src/pages/ShopSettingsPage.tsx`: the two Latitude/Longitude number inputs replaced with a single full-width LocationPicker (label "Location"), initialized from shop.latitude/longitude; onChange sets both fields via handleField; onReverseGeocode fills address only when empty.
-- Caveats: Nominatim is a free public API — rate-limited (~1 req/sec) and may occasionally fail; reverse geocode is best-effort and the address stays editable. Geolocation is optional: if denied, map just starts at Manila center and the owner pins manually.
+- Caveats: Nominatim is a free public API rate-limited (~1 req/sec) and may occasionally fail; reverse geocode is best-effort and the address stays editable. Geolocation is optional: if denied, map just starts at Manila center and the owner pins manually.
 - Verify: npx tsc --noEmit clean + npm run build passes (13.6s).
 
 ### TASK: Modernized map pin-picker UI (Grab/Foodpanda/Lalamove style)
 - User request: make the map pin-picker look/feel modern and simple like the ride-hailing/delivery apps (Lalamove, Foodpanda, Grab), still free-only tools.
 - REDESIGNED `src/components/LocationPicker.tsx` (API unchanged: value/onChange/onReverseGeocode/heightClass; default height h-80):
-  - Full-bleed map (rounded-2xl, shadow) with NO marker dragging — instead a FIXED CENTER DROP-PIN overlay (animated pin-drop on mount, pointer-events-none) + you PAN THE MAP to place the pin (Grab pattern). moveend → onChange({lat,lng}) + reverse geocode.
+  - Full-bleed map (rounded-2xl, shadow) with NO marker dragging instead a FIXED CENTER DROP-PIN overlay (animated pin-drop on mount, pointer-events-none) + you PAN THE MAP to place the pin (Grab pattern). moveend → onChange({lat,lng}) + reverse geocode.
   - Top search bar (white pill): Nominatim free search API (debounced 500ms, limit 5), dropdown results, tap to fly map there. Clear (X) button.
   - Locate-me FAB (Crosshair, bottom-right): navigator.geolocation → setView(zoom 16).
   - Bottom address card: rose check chip + live address (reverse-geocoded, "Finding address…" spinner) + mono coords + "Pinned"/"Place pin" status pill.
@@ -452,87 +452,87 @@ This is the ONLY path that creates a shop (no admin approval)
 - Verify: npx tsc --noEmit clean + npm run build passes (8.1s).
 
 ### TASK: 3-step registration wizard (Details → Location → Hours)
-- User request: convert the single-page "Open Your Shop" registration form into a 3-step wizard with a step progress indicator, per-step validation, persistent state across steps, keyboard-navigable, final submit only on step 3. Presentation/flow change only — submission logic untouched.
+- User request: convert the single-page "Open Your Shop" registration form into a 3-step wizard with a step progress indicator, per-step validation, persistent state across steps, keyboard-navigable, final submit only on step 3. Presentation/flow change only submission logic untouched.
 - Inspection confirmed (before implementation): form is `ShopOwnerLoginPage.tsx` (login+signup dual mode); single `signupData` object + separate `formData{email,password}`; map = `LocationPicker.tsx` (Leaflet via CDN, fixed-center-pin + drag-map, Nominatim search, geolocation FAB); schedule = REAL model `operating_schedule[7]{open,openTime,closeTime}` (Sun..Sat) → `operating_hours` string → DB. No migration needed.
 - Implementation:
   - `currentStep` state (0/1/2) + `STEPS=["Details","Location","Hours"]`; `Fragment` import.
   - Step progress indicator: numbered circles (completed=emerald+Check, current=slate-900, upcoming=slate-300) + labels + connector lines; completed steps are clickable to jump back; `aria-current` for accessibility.
   - Step 0 = Account (email/password) + Shop details (shop name/your name/phone/specialty); Step 1 = Location (address + LocationPicker); Step 2 = Hours (schedule, default-open now).
-  - `validateStep(step)` validates ONLY that step's fields (step0: email/password/name/shop_name; step1: lat/lng pinned). `handleNext`/`handleBack` use functional setState — state persists across navigation (data never cleared).
+  - `validateStep(step)` validates ONLY that step's fields (step0: email/password/name/shop_name; step1: lat/lng pinned). `handleNext`/`handleBack` use functional setState state persists across navigation (data never cleared).
   - Form `noValidate` + onSubmit: if currentStep===2 → `handleSignup(e)` (unchanged full submission); else `handleNext()`. Next/Back are real buttons (keyboard/Tab navigable); final "Register Shop" submit button only on step 3.
   - Chosen (specialty) plugin effect now keyed on `[isSignup, currentStep]` so it re-initializes when returning to step 0.
-  - LocationPicker already implements fixed-center-pin + drag-map natively via Leaflet (no custom drag math) — reused unchanged.
+  - LocationPicker already implements fixed-center-pin + drag-map natively via Leaflet (no custom drag math) reused unchanged.
 - Self-check: [x] submission outcome unchanged (handleSignup untouched) [x] state persists across steps [x] map behavior unchanged [x] per-step validation [x] keyboard navigable [x] only ShopOwnerLoginPage.tsx edited.
 - Verify: npx tsc --noEmit clean + npm run build passes (7.3s).
 
 ### TASK: Shop-admin look adapted to Customer + Main Admin UI (charcoal sweep, round 1→2)
-- User reported round-1 recolor "nothing changed, both UIs still look the same". Root cause: customer UI + auth screens + shared modals were built on Tailwind's DEFAULT slate palette (bg-slate-950/900/800, border-slate-800/700) — not `moto.*` tokens — so re-pointing tokens barely touched their surfaces. Owner pages are fully moto-token + charcoal, hence only those looked "changed".
+- User reported round-1 recolor "nothing changed, both UIs still look the same". Root cause: customer UI + auth screens + shared modals were built on Tailwind's DEFAULT slate palette (bg-slate-950/900/800, border-slate-800/700) not `moto.*` tokens so re-pointing tokens barely touched their surfaces. Owner pages are fully moto-token + charcoal, hence only those looked "changed".
 - USER DECISIONS: (1) Main admin = EXACT match to shop admin → drop the indigo pass, admin goes teal accent + sidebar-dark-violet identical to owner; (2) Customer = "charcoal sweep" of surfaces (no dashboard shell); (3) headings = clean non-uppercase Inter (tracking-tight), no wide-tracked uppercase display text on customer screens.
 - ROUND-2 CHANGES:
   - Phase 1 (admin → owner look): reversed all indigo in AdminPlatformDashboard/AdminShopsPage/AdminAppointmentsPage/AdminLoginPage/AdminChatbot → moto teal (text/bg/border/ring/shadow; #6366f1→#35D0C0 incl. chart stops/strokes/status color; nav-active → teal sidebar-nav-active; brand tile + avatar gradients copied from OwnerPlatformDashboard); AdminLoginPage + AdminChatbot accent buttons text-white → text-slate-950 (teal buttons need dark text); removed unused `.sidebar-nav-active-indigo` CSS.
   - Phase 2 (globals.css): navy hardcodes → charcoal/teal (#0f1723→#14131A chart bg; #25334e→#2B2A37 table/chart borders; #94a3b8→#948FA3 th; rgba(37,51,78,.55)→rgba(43,42,55,.55); stat-card default #38b6c4→#35D0C0; table hover rgba(56,182,196,.06)→rgba(53,208,192,.06)).
-  - Phase 3 (charcoal sweep — the "nothing changed" fix): bulk surface map over 38 customer/shared/owner files: bg-slate-950→bg-moto-dark, bg-slate-900→bg-moto-darker, bg-slate-800→bg-moto-gray, border-slate-800/700→border-moto-gray, hover:border-slate-700/600→hover:border-moto-gray-light, from/via/to-slate-*→moto gradient equivalents, divide/ring/border-t-slate-800→moto, heavy-cyan rgba/hex (#38b6c4, rgba(56,182,196), #0f1723, #25334e, #0b1526) → teal/charcoal. Intentional KEEPS: text-slate-* gray text, bg-white/border-slate-? in light "white-sheet" modals (CustomerSettings/CustomerPortal/BrowseParts/Receipt/ServiceHistory/JobOrder/NotificationPreferences/ErrorModal = legit light documents), SystemNavbar light navbar, dark navy buttons on white sheets shifted to moto-darker (hue-only). **[SUPERSEDED 2026-09-26: the "white-sheet" convention is no longer the rule — `ServiceHistoryModal` + `CustomerSettingsModal` have since been converted to the dark moto theme at the user's request, matching the newer `TermsModal` precedent. Still light: CustomerPortal/BrowseParts/JobOrder/NotificationPreferences/ErrorModal/SystemNavbar/LocationPicker.]**
+  - Phase 3 (charcoal sweep the "nothing changed" fix): bulk surface map over 38 customer/shared/owner files: bg-slate-950→bg-moto-dark, bg-slate-900→bg-moto-darker, bg-slate-800→bg-moto-gray, border-slate-800/700→border-moto-gray, hover:border-slate-700/600→hover:border-moto-gray-light, from/via/to-slate-*→moto gradient equivalents, divide/ring/border-t-slate-800→moto, heavy-cyan rgba/hex (#38b6c4, rgba(56,182,196), #0f1723, #25334e, #0b1526) → teal/charcoal. Intentional KEEPS: text-slate-* gray text, bg-white/border-slate-? in light "white-sheet" modals (CustomerSettings/CustomerPortal/BrowseParts/Receipt/ServiceHistory/JobOrder/NotificationPreferences/ErrorModal = legit light documents), SystemNavbar light navbar, dark navy buttons on white sheets shifted to moto-darker (hue-only). **[SUPERSEDED 2026-09-26: the "white-sheet" convention is no longer the rule `ServiceHistoryModal` + `CustomerSettingsModal` have since been converted to the dark moto theme at the user's request, matching the newer `TermsModal` precedent. Still light: CustomerPortal/BrowseParts/JobOrder/NotificationPreferences/ErrorModal/SystemNavbar/LocationPicker.]**
   - Phase 4 (clean headings): MotolinkLanding hero h1 + section h2s and ShopDetailPage shop-name/price drop `uppercase tracking-wide` → `font-black tracking-tight`; also ShopCard name, BookAppointmentModal success title, LoginChoicePage title. Brand wordmarks + tiny eyebrow labels kept uppercase; owner/admin sub-page headers (the shop-admin style) intentionally untouched.
   - Phase 5 (chrome): App.tsx loading/fallback wrappers + inline spinners bg-[#f5f5f5]→bg-moto-dark, border-blue-500→border-moto-accent; AccessDenied wrapper → bg-moto-dark; DatabaseStatus pill → moto-darker; SettingsPage lingering indigo (owner page) → teal; AdminPlatformDashboard chart grid #25334e→#2B2A37 + tooltip cursor cyan→teal.
 - Verify: `npx tsc --noEmit` clean + `npm run build` passes (7.04s, only pre-existing >500kB chunk warning). Grep-final: ZERO `indigo`/`#6366f1`/`#25334e`/`#0f1723`/`#38b6c4`/`rgba(56,182,196)`/`cyan-`/`Bebas` anywhere in src.
-- NOTE for user: hard-refresh the browser / rebuild dev server — stale cache is part of why round 1 "looked the same".
+- NOTE for user: hard-refresh the browser / rebuild dev server stale cache is part of why round 1 "looked the same".
 
 ### TASK: Password show/hide eye toggle on all auth screens + Terms & Conditions popup
 - User request: (1) password eye icon so a person logging in can verify what they typed; (2) the footer's dead "Terms" link should pop up the site's Terms & Conditions. USER DECISIONS: eye toggle on ALL auth screens; terms reachable from footer + all 3 login/signup screens; dark charcoal modal matching the site theme; leave the dead "Privacy" link untouched.
 - NEW `src/components/TermsModal.tsx`: props `{ isOpen, onClose }` (same contract as NotificationPreferencesModal/ErrorModal). Content is a module-level `SECTIONS: { heading, body }[]` array (10 sections) so it renders via `.map()` instead of JSX blobs; paragraphs split on `\n\n`. Shell copied from BrowsePartsModal (AnimatePresence → `fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm` overlay with `e.target === e.currentTarget` backdrop-close → inner `motion.div` spring scale-in, `bg-moto-darker border-moto-gray rounded-2xl max-w-2xl max-h-[85vh]`). Header = FileText icon tile (moto-accent/15) + "Terms and Conditions" + "Last Updated: September 26, 2026" + X. Body scrolls; footer has mailto:support@motolink.com + the vercel URL. Extra: closes on Escape, locks `document.body.style.overflow` while open, `role="dialog" aria-modal="true"`.
-- Password eye toggle added to 4 fields, all following the existing CustomerSettingsModal.tsx:691-710 pattern (Eye/EyeOff from lucide, `type={showPassword ? "text" : "password"}`, `type="button"` + aria-label/title, absolute right-centered toggle). Each page got a `passwordInputClass = \`${inputClass} pr-11\`` (pr-10 in ShopOwnerLoginPage) variant so the eye never overlaps typed text — the shared `inputClass` itself was left untouched:
-  - `src/pages/LoginPage.tsx` — password field (:387) + `passwordInputClass` (:272)
-  - `src/pages/ShopOwnerLoginPage.tsx` — owner login (:814) AND the signup wizard step-1 "Create a password" field (:559); also a shared `passwordToggleClass` since the two toggles are identical
-  - `src/pages/AdminLoginPage.tsx` — admin login (:191)
+- Password eye toggle added to 4 fields, all following the existing CustomerSettingsModal.tsx:691-710 pattern (Eye/EyeOff from lucide, `type={showPassword ? "text" : "password"}`, `type="button"` + aria-label/title, absolute right-centered toggle). Each page got a `passwordInputClass = \`${inputClass} pr-11\`` (pr-10 in ShopOwnerLoginPage) variant so the eye never overlaps typed text the shared `inputClass` itself was left untouched:
+  - `src/pages/LoginPage.tsx` password field (:387) + `passwordInputClass` (:272)
+  - `src/pages/ShopOwnerLoginPage.tsx` owner login (:814) AND the signup wizard step-1 "Create a password" field (:559); also a shared `passwordToggleClass` since the two toggles are identical
+  - `src/pages/AdminLoginPage.tsx` admin login (:191)
 - `showPassword` resets to false when flipping login↔signup on LoginPage and ShopOwnerLoginPage so a revealed password never carries into the other form.
 - Terms links: Footer.tsx dead `<a href="#">Terms</a>` → `<button type="button">` opening the modal (Privacy link intentionally left as a dead `#` anchor per user choice). Each of the 3 login pages got a "By continuing, you agree to MotoLink's Terms & Conditions" line (placed AFTER the submit button, and OUTSIDE the `<form>` on the owner page so it can't submit).
-- No auth/DB logic touched — purely presentational. New deps: none (framer-motion + lucide-react already installed).
+- No auth/DB logic touched purely presentational. New deps: none (framer-motion + lucide-react already installed).
 - Verify: `tsc --noEmit` clean + `npm run build` passes (2817 modules, 6.16s). No eslint config exists in the repo, so `npm run lint` is not runnable.
 
 - Build: passes clean (tsc + vite build) ✅
 - Git: branch main; working tree currently has availability-toggle + notifications-bell changes UNCOMMITTED (new uncommitted work on top of the previously-pushed 5 commits)
 - Code: multi-tenant migration complete; shop detail page, job orders, invoices, low-stock list, reservations, owner dashboard reports, owner sidebar shell + Shop Profile editor all built; landing/login white-slate theme + new logo + favicon done
-- Admin portal: pure platform oversight — sidebar = Dashboard / Shops / Appointments / Settings; new shop registrations land as PENDING (is_active:false) and must be approved by admin (Shops page or dashboard "New Shop Approvals" card); admin can deactivate + delete shops; no owner operational tools in admin UI
-- Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert — was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar; shop NOT live until platform admin approves
-- DB: 20260731 migration CONFIRMED applied live — reservations.shop_id column EXISTS live (verified via REST column check); services_pricing/mechanic_availability confirmed to have shop_id live; owner RLS policies for services_pricing + reservations CONFIRMED live via empirical cross-shop write test (all 9 tables write-isolated per owner); admin UPDATE/DELETE shop policies in admin_rls.sql applied in schema (owner/admin flows verified)
-- Owner data isolation: PROVEN live — empirical cross-shop test (owner A vs owner B) showed 0 cross-shop writes across services_pricing/parts/products/featured_products/appointments/job_orders/part_sales/reservations/mechanic_availability; owner CRUD on own shop confirmed working
-- Role model: 3 connected top-level POVs (customer, owner, admin) now IMPLEMENTED in app routing — mechanic portal (login/dashboard) REMOVED (Phase 1, Option B); mechanic role remains only at the data layer (mechanic_availability, job_order assignment) managed by owners
+- Admin portal: pure platform oversight sidebar = Dashboard / Shops / Appointments / Settings; new shop registrations land as PENDING (is_active:false) and must be approved by admin (Shops page or dashboard "New Shop Approvals" card); admin can deactivate + delete shops; no owner operational tools in admin UI
+- Owner portal: owners register → role: owner (deterministic, no customer-race); registration FK race fixed (users row created BEFORE shop insert was 409 shops_owner_id_fkey); redirected straight to violet sidebar dashboard; own 9 tools + Shop Profile + live shop-info preview; no SystemNavbar; shop NOT live until platform admin approves
+- DB: 20260731 migration CONFIRMED applied live reservations.shop_id column EXISTS live (verified via REST column check); services_pricing/mechanic_availability confirmed to have shop_id live; owner RLS policies for services_pricing + reservations CONFIRMED live via empirical cross-shop write test (all 9 tables write-isolated per owner); admin UPDATE/DELETE shop policies in admin_rls.sql applied in schema (owner/admin flows verified)
+- Owner data isolation: PROVEN live empirical cross-shop test (owner A vs owner B) showed 0 cross-shop writes across services_pricing/parts/products/featured_products/appointments/job_orders/part_sales/reservations/mechanic_availability; owner CRUD on own shop confirmed working
+- Role model: 3 connected top-level POVs (customer, owner, admin) now IMPLEMENTED in app routing mechanic portal (login/dashboard) REMOVED (Phase 1, Option B); mechanic role remains only at the data layer (mechanic_availability, job_order assignment) managed by owners
 - Docs: MEMORY.md updated with full merged history + revised role-flow diagrams + consolidated documentation (this file); all other .md files are gitignored/local-only
 
 ---
 
 ### TASK: Merged customer Bookings + Service History tab (with Vehicle column) + required T&C tickbox on both registration flows
-- User request: (1) the customer profile's "My Bookings" and "Service History" tabs show the same data — merge them, keeping the service-history rebook function; (2) the merged table gets a Vehicle column; (3) shop registration + customer signup need a required Terms & Conditions tickbox.
-- CONFIRMED both tabs already rendered the same `history` state array (`UserProfilePage.tsx` bookings tab mapped `history`, history tab mapped `history`) — pure duplication, no query difference.
+- User request: (1) the customer profile's "My Bookings" and "Service History" tabs show the same data merge them, keeping the service-history rebook function; (2) the merged table gets a Vehicle column; (3) shop registration + customer signup need a required Terms & Conditions tickbox.
+- CONFIRMED both tabs already rendered the same `history` state array (`UserProfilePage.tsx` bookings tab mapped `history`, history tab mapped `history`) pure duplication, no query difference.
 - **User decisions (asked before implementing):** one table with BOTH Rebook and Cancel actions; Rebook opens the booking modal prefilled with the same shop + same motorcycle; unlinked appointments show "—"; the T&C tickbox is a UI gate only (no DB column, no migration).
 - `src/pages/UserProfilePage.tsx`:
   - `TabKey` dropped `"bookings"`; `NAV_TABS` now profile / **"Bookings & History"** / saved / settings. The two tab bodies collapsed into ONE table: `Service | Vehicle | Shop | Date | Cost | Status | Actions`.
   - `HistoryRecord` gained real `shop_id` / `vehicle_id` / `vehicle_name` fields (shop_id was previously smuggled through `as any` casts) and the appointments `.select()` now names `vehicle_id`.
   - Vehicle labels are built from the garage rows already returned by the same `Promise.allSettled` in `refreshData()` (map vehicle_id → `vehicleLabel(v)` + year), so the new column costs ZERO extra round trips. No vehicle_id → "—".
-  - Actions cell: Rebook (always) + Cancel (only when `canCancelBooking`) reusing the existing `handleCancelBooking`; the cancel confirmation is now an INLINE expanding block in the cell instead of an absolute popover — the old popover would have been clipped by the table's `overflow-x-auto` wrapper (per spec `overflow-x:auto` forces the block axis to clip too).
+  - Actions cell: Rebook (always) + Cancel (only when `canCancelBooking`) reusing the existing `handleCancelBooking`; the cancel confirmation is now an INLINE expanding block in the cell instead of an absolute popover the old popover would have been clipped by the table's `overflow-x-auto` wrapper (per spec `overflow-x:auto` forces the block axis to clip too).
   - Added `All | Upcoming | Past` filter chips with counts (Upcoming = date ≥ today and status not completed/cancelled), which preserves the filtering the two separate surfaces had.
   - Status cell now renders the canonical `getAppointmentStatus(status).label` ("In Progress") instead of the raw lowercase DB value + `capitalize`.
-  - Per-vehicle drill-down (`ServiceHistoryModal` from a garage card) is UNCHANGED — only the top-level tabs merged.
+  - Per-vehicle drill-down (`ServiceHistoryModal` from a garage card) is UNCHANGED only the top-level tabs merged.
 - `src/components/BookAppointmentModal.tsx`: new optional prop `initialVehicleId`. `fetchVehicles()` now calls `applyInitialVehicle()` after `setVehicles`, plus an effect keyed on `[isOpen, initialVehicleId, vehicles]` so rebooking a different bike without closing works. Service/date are deliberately NOT prefilled. Submit path untouched.
-- NEW `src/components/TermsCheckbox.tsx`: shared required tickbox ("I have read and agree to MotoLink's Terms and Conditions" + link that opens the caller's existing `TermsModal`), `role="checkbox"` + `aria-checked` on a `type="button"` so Space/Enter work. Client-side gate only — no `accepted_terms` column, no migration to run.
+- NEW `src/components/TermsCheckbox.tsx`: shared required tickbox ("I have read and agree to MotoLink's Terms and Conditions" + link that opens the caller's existing `TermsModal`), `role="checkbox"` + `aria-checked` on a `type="button"` so Space/Enter work. Client-side gate only no `accepted_terms` column, no migration to run.
   - `src/pages/LoginPage.tsx` (customer): tickbox rendered signup-only above the Create Account button; `handleSubmit` blocks with an error when unticked; `acceptedTerms` resets on login↔signup toggle; the passive "By continuing…" line is now login-only.
-  - `src/pages/ShopOwnerLoginPage.tsx` (3-step wizard): tickbox on the FINAL step (Hours) directly above "Register Shop"; `validateStep()` gained a `step === 2` case, and the wizard `onSubmit` now runs `validateStep(2)` before `handleSignup` so pressing Enter can't skip it. `acceptedTerms` is deliberately EXCLUDED from the `moto_owner_signup_draft` localStorage payload — agreement must be re-given at submit time, not restored from a draft. `handleSignup` itself untouched.
-- Verify: `npx tsc --noEmit` clean + `npm run build` passes (2821 modules, 7.12s). No DB/migration needed — `appointments.vehicle_id` already exists (schema.sql:159, nullable).
-- NOTE: `src/components/ViewAppointmentsModal.tsx` is confirmed DEAD CODE (no importer anywhere) — its richer card + Upcoming/Past/All filter patterns were the reference for the merged table. Left in place rather than deleted without being asked.
+  - `src/pages/ShopOwnerLoginPage.tsx` (3-step wizard): tickbox on the FINAL step (Hours) directly above "Register Shop"; `validateStep()` gained a `step === 2` case, and the wizard `onSubmit` now runs `validateStep(2)` before `handleSignup` so pressing Enter can't skip it. `acceptedTerms` is deliberately EXCLUDED from the `moto_owner_signup_draft` localStorage payload agreement must be re-given at submit time, not restored from a draft. `handleSignup` itself untouched.
+- Verify: `npx tsc --noEmit` clean + `npm run build` passes (2821 modules, 7.12s). No DB/migration needed `appointments.vehicle_id` already exists (schema.sql:159, nullable).
+- NOTE: `src/components/ViewAppointmentsModal.tsx` is confirmed DEAD CODE (no importer anywhere) its richer card + Upcoming/Past/All filter patterns were the reference for the merged table. Left in place rather than deleted without being asked.
 
 ---
 
 ## OPEN ITEMS / GAPS (still pending)
 
-- Backfill decision: existing services_pricing/mechanic_availability rows have shop_id = NULL — pick option A/B/C from migration file
+- Backfill decision: existing services_pricing/mechanic_availability rows have shop_id = NULL pick option A/B/C from migration file
 - NOT NULL decision: optional ALTER TABLE ... SET NOT NULL on the two new shop_id columns after backfill
-- Run supabase/migrations/20260731_owner_data_isolation.sql in Supabase SQL Editor — REQUIRED before owner reservations/services CRUD works (adds reservations.shop_id + owner RLS policies)
-- Runtime verification: ~~browser testing of cross-shop isolation~~ RESOLVED — scripted cross-shop write test against live DB (all tables ISOLATED, owner control CRUD OK)
-- Run `supabase/migrations/20260813_shop_availability_and_notifications.sql` in Supabase SQL Editor — REQUIRED for shop open/closed toggle + owner notification bell to work live (adds shops.is_open, notifications.read, mark-read RLS policy, appointment→owner notification trigger). Same pending-apply status as the previously-committed 20260813_public_mechanic_view.sql + 20260813_fix_owner_signup.sql.
-- ~~Reservations scoping: reservations table has NO shop_id column live yet~~ RESOLVED — reservations.shop_id CONFIRMED live + empirically write-isolated
-- Seed data: no job_orders/part_sales yet (tables empty) — dashboard trend/productivity charts show empty states until real data exists
-- Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug and have NO shop row — they CANNOT be patched (no shop_id to link). Correct resolution: the owners re-register through the now-fixed atomic signup path (register_shop_owner RPC), which creates a fresh, correctly-linked owner account. Accounts left untouched pending that.
-- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED — Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. Mechanic auth account uses an auto-generated never-used password (password field REMOVED from the Add New Mechanic form 2026-08-13, see task below)
+- Run supabase/migrations/20260731_owner_data_isolation.sql in Supabase SQL Editor REQUIRED before owner reservations/services CRUD works (adds reservations.shop_id + owner RLS policies)
+- Runtime verification: ~~browser testing of cross-shop isolation~~ RESOLVED scripted cross-shop write test against live DB (all tables ISOLATED, owner control CRUD OK)
+- Run `supabase/migrations/20260813_shop_availability_and_notifications.sql` in Supabase SQL Editor REQUIRED for shop open/closed toggle + owner notification bell to work live (adds shops.is_open, notifications.read, mark-read RLS policy, appointment→owner notification trigger). Same pending-apply status as the previously-committed 20260813_public_mechanic_view.sql + 20260813_fix_owner_signup.sql.
+- ~~Reservations scoping: reservations table has NO shop_id column live yet~~ RESOLVED reservations.shop_id CONFIRMED live + empirically write-isolated
+- Seed data: no job_orders/part_sales yet (tables empty) dashboard trend/productivity charts show empty states until real data exists
+- Existing wrong-role users: beloy123@gmail.com + jbmshop@gmail.com were created as customer by the FK-race bug and have NO shop row they CANNOT be patched (no shop_id to link). Correct resolution: the owners re-register through the now-fixed atomic signup path (register_shop_owner RPC), which creates a fresh, correctly-linked owner account. Accounts left untouched pending that.
+- ~~Decide whether to formally drop 'mechanic' as a top-level portal/role in the actual UI/routing~~ RESOLVED Phase 1 Option B implemented: mechanic login/dashboard removed from routing; mechanic role stays in DB + owner-managed job tools. Mechanic auth account uses an auto-generated never-used password (password field REMOVED from the Add New Mechanic form 2026-08-13, see task below)
 - Capstone doc: verify/replace the DRAFTED sections in MotoLink_Capstone_Documentation.docx (title page, problem statement, formal objectives, methodology framing) against the actual capstone proposal before submission
 
 ---
@@ -547,14 +547,14 @@ REST test (PowerShell):
 $headers = @{apikey=$anonKey; Authorization="Bearer $anonKey"}
 Invoke-RestMethod -Uri "$url/rest/v1/services_pricing?limit=1" -Headers $headers -Method Get
 ```
-(Keys from .env.local; anon key and service role key differ — use the exact strings from the file)
+(Keys from .env.local; anon key and service role key differ use the exact strings from the file)
 
 ---
 
 ## LESSONS / CONVENTIONS
 
-- PowerShell 5.1 has NO -SkipCertificateCheck flag — don't use it
-- head/tail/&& don't work in PowerShell — use Select-Object/full commands
+- PowerShell 5.1 has NO -SkipCertificateCheck flag don't use it
+- head/tail/&& don't work in PowerShell use Select-Object/full commands
 - Keys in .env.local are the source of truth (session context copies were stale/mangled)
 - .env.local file has encoding issues with comments (UTF-8 comments render as ??), but key VALUES are fine
 - Always verify live DB state via REST API (direct Postgres is unreachable)
@@ -562,7 +562,7 @@ Invoke-RestMethod -Uri "$url/rest/v1/services_pricing?limit=1" -Headers $headers
 - When user says "push", commit all staged changes with a descriptive message then git pull --rebase then push
 - Docs updates must trace to real file paths + line numbers, never guesses
 - ALWAYS do string replacements via the edit tool, never $string[i] indexing on a string in PowerShell (indexes chars → corrupts files)
-- Only MEMORY.md is tracked; *.md is gitignored — other .md files are local-only notes, keep their content synced into the CONSOLIDATED DOCUMENTATION section
+- Only MEMORY.md is tracked; *.md is gitignored other .md files are local-only notes, keep their content synced into the CONSOLIDATED DOCUMENTATION section
 - .docx exports (capstone / memory doc) are generated on demand and uploaded to Drive; never committed to git
 
 ---
@@ -681,13 +681,13 @@ Enjoy your free AI mechanic! 🏍️⚡
 
 ## ===== audit.md =====
 
-# Multi-Tenant Migration Audit — MotoLink
+# Multi-Tenant Migration Audit MotoLink
 
-> Audit only — no changes made. All findings are read-only.
+> Audit only no changes made. All findings are read-only.
 
 ---
 
-## STEP 1 — Schema vs Frontend Gap Check
+## STEP 1 Schema vs Frontend Gap Check
 
 ### Old Table Name Mismatches
 
@@ -697,9 +697,9 @@ Enjoy your free AI mechanic! 🏍️⚡
 
 | # | Table | Issue | Files Affected |
 |---|-------|-------|----------------|
-| G1 | `customers` | **Table dropped from live DB** — only reference remains in frontend | `src/components/AIChatModal.tsx:110` — `.from("customers")` will throw "relation does not exist" at runtime |
-| G2 | `services_pricing` | **No `shop_id` column** in schema — services are global, not per-shop. `BookAppointmentModal` fetches all active services across all shops. | `src/pages/AdminServicesPage.tsx` (CRUD, no shop filter), `src/components/BookAppointmentModal.tsx:255` (read, no shop filter) |
-| G3 | `mechanic_availability` | **No `shop_id` column** in schema — availability data is global, not per-shop | `src/pages/AdminMechanicAvailability.tsx` (CRUD, no shop filter), `src/components/AIChatModal.tsx:77` (read, no shop filter) |
+| G1 | `customers` | **Table dropped from live DB** only reference remains in frontend | `src/components/AIChatModal.tsx:110` `.from("customers")` will throw "relation does not exist" at runtime |
+| G2 | `services_pricing` | **No `shop_id` column** in schema services are global, not per-shop. `BookAppointmentModal` fetches all active services across all shops. | `src/pages/AdminServicesPage.tsx` (CRUD, no shop filter), `src/components/BookAppointmentModal.tsx:255` (read, no shop filter) |
+| G3 | `mechanic_availability` | **No `shop_id` column** in schema availability data is global, not per-shop | `src/pages/AdminMechanicAvailability.tsx` (CRUD, no shop filter), `src/components/AIChatModal.tsx:77` (read, no shop filter) |
 | G4 | `users` | Shop-owner/mechanic queries lack `shop_id` filter across 6 files. `AddMechanicModal` creates mechanics **without assigning `shop_id`**. | `src/pages/AppointmentCalendarPage.tsx` (mechanics fetch), `src/pages/AdminMechanicAvailability.tsx` (mechanics fetch), `src/pages/CustomersListPage.tsx` (customers fetch), `src/components/AddMechanicModal.tsx` (mechanics fetch + insert), `src/components/AIChatModal.tsx` (mechanics fetch), `src/components/AdminChatbot.tsx` (all users fetch) |
 | G5 | `appointments` | SELECT queries lack `shop_id` filter across 8 files. INSERT queries correctly include `shop_id`. | `src/pages/AppointmentCalendarPage.tsx`, `src/pages/MechanicDashboard.tsx`, `src/pages/MechanicPortal.tsx`, `src/pages/CustomerPortal.tsx`, `src/components/ViewAppointmentsModal.tsx`, `src/components/ServiceHistoryModal.tsx`, `src/pages/CustomersListPage.tsx`, `src/pages/AdminMechanicAvailability.tsx` |
 | G6 | `parts` | Some queries lack `shop_id` filter. `BrowsePartsPage` intentionally shows all parts (public gallery). AI chat queries leak all shops' data. | `src/pages/BrowsePartsPage.tsx:87` (intentional public), `src/components/AIChatModal.tsx:72`, `src/components/AdminChatbot.tsx:133`, `src/pages/AppointmentCalendarPage.tsx:186` |
@@ -712,7 +712,7 @@ Enjoy your free AI mechanic! 🏍️⚡
 | `users` | `customerService.ts:18`, `BookAppointmentModal.tsx:193` (conditional) | `AppointmentCalendarPage.tsx` (mechanics), `AdminMechanicAvailability.tsx` (mechanics), `CustomersListPage.tsx` (customers), `AddMechanicModal.tsx` (mechanics + insert), `AIChatModal.tsx` (mechanics), `AdminChatbot.tsx` |
 | `parts` | `inventoryService.ts:18,37`, `BookAppointmentModal.tsx:292`, `UpdatePartsPage.tsx:76`, `MechanicDashboard.tsx:116` | `BrowsePartsPage.tsx:87` (intentional), `AIChatModal.tsx:72`, `AdminChatbot.tsx:133`, `AppointmentCalendarPage.tsx:186` |
 | `products` | `productService.ts:19,136,165` | `AIChatModal.tsx:66`, `AdminChatbot.tsx:137` |
-| `featured_products` | `productService.ts` (all queries) | None — fully scoped |
+| `featured_products` | `productService.ts` (all queries) | None fully scoped |
 | `appointments` | INSERT only (`BookAppointmentModal.tsx:395`, `AppointmentCalendarPage.tsx:330`) | All SELECT queries (8 files) |
 | `job_orders` | None | All 6 files that query it |
 | `invoices` | None | All 3 files that query it |
@@ -723,7 +723,7 @@ Enjoy your free AI mechanic! 🏍️⚡
 
 ---
 
-## STEP 2 — Feature Gap Check
+## STEP 2 Feature Gap Check
 
 ### Shop Owner Flows
 
@@ -731,12 +731,12 @@ Enjoy your free AI mechanic! 🏍️⚡
 |---|------|----------------------|-----|
 | M1 | **Signup/login creating a shop record** | `OwnerLoginPage.tsx` handles login + role redirect | **No signup flow** that creates a `shops` row, sets `owner_id`, and assigns `shop_id` to the owner's `users` record |
 | M2 | **Analytics dashboard** | `AdminPlatformDashboard.tsx` exists (admin-only, cross-shop). RLS not yet applied. | **Owner has no dashboard page.** Old `Dashboard.tsx` was deleted. `rolePagesMapping` points owner to `"dashboard"` but no route exists. Owner would hit a 404. |
-| M3 | **Inventory management** | `InventoryPage.tsx` + `UpdatePartsPage.tsx` — CRUD with `shop_id` scoping via service layer | `UpdatePartsPage` "Today's Sales" summary fetches ALL `part_sales` globally (no `shop_id` filter) — data leak |
-| M4 | **Appointment management** | `AppointmentCalendarPage.tsx` — create/update/cancel | **SELECT fetches ALL appointments globally.** No `shop_id` filter despite role-based logic. An owner sees every shop's appointments. |
-| M5 | **Product listing/advertising** | `AdminProductsPage.tsx` — fully `shop_id`-scoped via `productService.ts` | None — this is the most complete feature |
-| M6 | **Mechanic creation** | `AddMechanicModal.tsx` — creates `users` row with `role: "mechanic"` | **Does NOT set `shop_id`** on the new mechanic. Lists ALL mechanics globally. Mechanic is orphaned — no association to any shop. |
-| M7 | **Mechanic availability management** | `AdminMechanicAvailability.tsx` — set weekly schedules | **Fetches ALL mechanics and ALL availability globally.** No `shop_id` filter on any query. An owner can see/edit mechanics from other shops. |
-| M8 | **Service pricing management** | `AdminServicesPage.tsx` — CRUD on `services_pricing` | **Schema gap:** `services_pricing` has no `shop_id` column. All shops share one service menu. No per-shop customization. |
+| M3 | **Inventory management** | `InventoryPage.tsx` + `UpdatePartsPage.tsx` CRUD with `shop_id` scoping via service layer | `UpdatePartsPage` "Today's Sales" summary fetches ALL `part_sales` globally (no `shop_id` filter) data leak |
+| M4 | **Appointment management** | `AppointmentCalendarPage.tsx` create/update/cancel | **SELECT fetches ALL appointments globally.** No `shop_id` filter despite role-based logic. An owner sees every shop's appointments. |
+| M5 | **Product listing/advertising** | `AdminProductsPage.tsx` fully `shop_id`-scoped via `productService.ts` | None this is the most complete feature |
+| M6 | **Mechanic creation** | `AddMechanicModal.tsx` creates `users` row with `role: "mechanic"` | **Does NOT set `shop_id`** on the new mechanic. Lists ALL mechanics globally. Mechanic is orphaned no association to any shop. |
+| M7 | **Mechanic availability management** | `AdminMechanicAvailability.tsx` set weekly schedules | **Fetches ALL mechanics and ALL availability globally.** No `shop_id` filter on any query. An owner can see/edit mechanics from other shops. |
+| M8 | **Service pricing management** | `AdminServicesPage.tsx` CRUD on `services_pricing` | **Schema gap:** `services_pricing` has no `shop_id` column. All shops share one service menu. No per-shop customization. |
 
 ### Customer Flows
 
@@ -746,38 +746,38 @@ Enjoy your free AI mechanic! 🏍️⚡
 | C2 | **View a shop's products** | `BrowsePartsPage.tsx` (public, all shops globally) | No way to browse a **specific shop's** products in isolation |
 | C3 | **View a shop's mechanics** | Not implemented anywhere | No UI to see which mechanics work at a specific shop |
 | C4 | **View a shop's services** | `ServicesGrid.tsx` (hardcoded static data, 6 services) | No dynamic per-shop service menu display |
-| C5 | **Book a specific mechanic** | `BookAppointmentModal.tsx` — mechanic selection exists | Hardcoded `"default-shop-id"` fallback (line 370). `services_pricing` fetched globally — shows all shops' services to a customer booking at one shop. |
-| C6 | **Customer portal** | `CustomerPortal.tsx` — own appointments, vehicles, invoices | Scoped by `customer_id` only — no shop awareness needed for this view |
+| C5 | **Book a specific mechanic** | `BookAppointmentModal.tsx` mechanic selection exists | Hardcoded `"default-shop-id"` fallback (line 370). `services_pricing` fetched globally shows all shops' services to a customer booking at one shop. |
+| C6 | **Customer portal** | `CustomerPortal.tsx` own appointments, vehicles, invoices | Scoped by `customer_id` only no shop awareness needed for this view |
 
 ### Platform Admin
 
 | # | Item | Status |
 |---|------|--------|
-| A1 | **Cross-shop dashboard** | `AdminPlatformDashboard.tsx` — fully multi-shop aware, queries all data, per-shop breakdowns. **RLS policies NOT YET APPLIED** in Supabase (blocking real data). |
+| A1 | **Cross-shop dashboard** | `AdminPlatformDashboard.tsx` fully multi-shop aware, queries all data, per-shop breakdowns. **RLS policies NOT YET APPLIED** in Supabase (blocking real data). |
 | A2 | **Cross-shop AI chatbot** | `AdminChatbot.tsx` exists but fetches ALL data with NO `shop_id` filters (intentional for admin, but any admin sees everything) |
-| A3 | **Admin isolation from owner panels** | Already separate — admin has own page set (`admin-dashboard`, `admin-shops`, `admin-users`) plus access to all owner pages. `AdminPlatformDashboard.tsx` is a layout wrapper. |
-| A4 | **Owner should have separate dashboard** | Yes — admin and owner panels should remain separate. Owner needs a `Dashboard.tsx` restored or rebuilt. |
+| A3 | **Admin isolation from owner panels** | Already separate admin has own page set (`admin-dashboard`, `admin-shops`, `admin-users`) plus access to all owner pages. `AdminPlatformDashboard.tsx` is a layout wrapper. |
+| A4 | **Owner should have separate dashboard** | Yes admin and owner panels should remain separate. Owner needs a `Dashboard.tsx` restored or rebuilt. |
 
 ---
 
-## STEP 3 — Dead Code Candidates (10 total)
+## STEP 3 Dead Code Candidates (10 total)
 
 | # | File & Line | Code | Why Obsolete |
 |---|-------------|------|-------------|
 | D1 | `src/components/AIChatModal.tsx:110` | `.from("customers")` | `customers` table was **dropped** from live DB. 7 FK references re-pointed to `users(id)`. This will throw "relation does not exist" at runtime. |
 | D2 | `src/components/Navbar.tsx:187` | Hardcoded `"JBMS MOTOSHOP"` brand text | Pre-multi-tenant brand name. Post-migration should display the actual shop name from DB or "MotoLink". |
-| D3 | `src/components/SystemNavbar.tsx:199` | Hardcoded `"JBMS MOTOSHOP"` brand text | Same as D2 — duplicate legacy branding in the system navbar. |
+| D3 | `src/components/SystemNavbar.tsx:199` | Hardcoded `"JBMS MOTOSHOP"` brand text | Same as D2 duplicate legacy branding in the system navbar. |
 | D4 | `src/data/demoShops.ts` (entire file) | Hardcoded demo shops: `jbms-joeyboy-motorcycle-shop`, `p-works-racing-team`, `kec-motorshop-1st-branch` | Used as fallback in `shopService.ts:27` when DB is empty/unreachable. Post-migration, shops always come from DB. |
 | D5 | `src/data/demoShops.ts:1` | `import jbmsLogo from "../pictures/public/jbms.png"` | Legacy logo asset for old single-tenant brand. |
 | D6 | `src/components/FeaturedSection.tsx:149-181` | localStorage-based appointment booking under key `"motoshop_appointments"` | Saves to `localStorage` instead of Supabase. Disconnected from real `appointments` table. Leftover demo code. |
-| D7 | `src/services/supabaseClient.ts:54-88` | `getUsers()`, `getParts()`, `getAppointments()` — global unbounded `SELECT *` | **Never imported anywhere.** Verified by grep. All callers use dedicated service layer (`inventoryService`, `productService`, etc.) with proper filtering. |
+| D7 | `src/services/supabaseClient.ts:54-88` | `getUsers()`, `getParts()`, `getAppointments()` global unbounded `SELECT *` | **Never imported anywhere.** Verified by grep. All callers use dedicated service layer (`inventoryService`, `productService`, etc.) with proper filtering. |
 | D8 | `src/components/BookAppointmentModal.tsx:60-97` | Hardcoded `SERVICE_TYPES` array (fallback) | Shadowed by dynamic `services_pricing` fetch at line 255. Only used if DB query fails. Post-migration dynamic services should always load. |
 | D9 | `src/components/FeaturedSection.tsx:54-121` | Hardcoded `defaultProducts` array (3 products with prices, images) | Fallback when `featuredProductService.getFeaturedProducts()` returns empty. Post-migration only DB products should display. |
 | D10 | `src/pages/Dashboard.tsx` | **Already deleted** (confirmed in session history) | `rolePagesMapping` still references `"dashboard"` for `owner` role. No page exists to route to. Owner hits 404 or redirect loop. |
 
 ---
 
-## STEP 4 — Self-Check
+## STEP 4 Self-Check
 
 - [x] Every gap cited references an actual file (line numbers provided where specific)
 - [x] Every dead-code candidate includes a reason, not a guess
@@ -800,16 +800,16 @@ Enjoy your free AI mechanic! 🏍️⚡
 - `users`: shop-scoped in `customerService.ts`, orphaned everywhere else
 
 ### ❌ Not Working / Missing
-- **Owner dashboard** — deleted with no replacement
-- **Owner signup/shop creation** — no flow exists
-- **Mechanic creation** — no `shop_id` assigned
-- **`services_pricing`** — no `shop_id` column (schema gap)
-- **`mechanic_availability`** — no `shop_id` column (schema gap)
-- **`customers` table reference** — dead query, will crash at runtime
-- **Admin RLS policies** — exist in file but not applied to live DB
+- **Owner dashboard** deleted with no replacement
+- **Owner signup/shop creation** no flow exists
+- **Mechanic creation** no `shop_id` assigned
+- **`services_pricing`** no `shop_id` column (schema gap)
+- **`mechanic_availability`** no `shop_id` column (schema gap)
+- **`customers` table reference** dead query, will crash at runtime
+- **Admin RLS policies** exist in file but not applied to live DB
 
 ### Blockers for Real-World Use
-1. **Apply RLS policies** — `supabase/admin_rls.sql` must run in Supabase SQL Editor
+1. **Apply RLS policies** `supabase/admin_rls.sql` must run in Supabase SQL Editor
 2. **Fix `shop_id` filters** on ~30+ SELECT queries across the codebase
 3. **Add `shop_id` to `services_pricing` and `mechanic_availability`** schemas
 4. **Create owner dashboard page** (replace deleted `Dashboard.tsx`)
@@ -1806,7 +1806,7 @@ This produces a local discovery sequence such as:
 - availability filter second
 - city search last
 
-> As of Oct 03, 2026 the former "specialty match" step is **removed** — `shops.specialties` was
+> As of Oct 03, 2026 the former "specialty match" step is **removed** `shops.specialties` was
 > dropped from the database and the whole system. Nearest → availability → city is now the
 > complete discovery order.
 
@@ -2231,7 +2231,7 @@ This is the basic operating pattern behind MotoLink: the UI triggers a request, 
 
 ## ===== Info for DFD lvl 1.md =====
 
-# MotoLink — Level 1 Data Flow Diagram Components
+# MotoLink Level 1 Data Flow Diagram Components
 
 ---
 
@@ -2253,13 +2253,13 @@ This is the basic operating pattern behind MotoLink: the UI triggers a request, 
 
 | # | Process | Files Implementing It | External Entities Interacting |
 |---|---------|---------------------|------------------------------|
-| **1.0** | **User & Authentication Management** | `AuthContext.tsx` (login/signup/logout/profile), `LoginPage.tsx:121-243` (signup form + notification prefs), `OwnerLoginPage.tsx:60-80` (owner/admin login), **`OwnerLoginPage.tsx:72-114` (owner signup — creates shops row + user profile with shop_id)**, `customerService.ts:13-158` (customer CRUD), `AddMechanicModal.tsx` | E1 Customer, E2 Owner, E3 Mechanic, E4 Admin, E7 Supabase Auth |
+| **1.0** | **User & Authentication Management** | `AuthContext.tsx` (login/signup/logout/profile), `LoginPage.tsx:121-243` (signup form + notification prefs), `OwnerLoginPage.tsx:60-80` (owner/admin login), **`OwnerLoginPage.tsx:72-114` (owner signup creates shops row + user profile with shop_id)**, `customerService.ts:13-158` (customer CRUD), `AddMechanicModal.tsx` | E1 Customer, E2 Owner, E3 Mechanic, E4 Admin, E7 Supabase Auth |
 | **2.0** | **Appointment & Job Order Management** | `BookAppointmentModal.tsx:342-450` (create), `AppointmentCalendarPage.tsx:87-350` (view **scoped by user.shop_id**, update status, stock deduct, trigger email), `MechanicDashboard.tsx:92-293` (view assigned, update status), `MechanicPortal.tsx:53-108` (view), `customerService.ts:94-126` (delete on customer removal) | E1 Customer, E2 Owner, E3 Mechanic |
 | **3.0** | **Inventory & Parts Sales** | `inventoryService.ts:13-146` (CRUD), `UpdatePartsPage.tsx:67-270` (POS checkout **scoped by user.shop_id**, stock adjust, mark sold out), `BrowsePartsPage.tsx:86-98` (public browse), `AppointmentCalendarPage.tsx:184-210` (auto-deduct on completion), **`CustomersListPage.tsx:50-89` (customer list + spending history scoped by user.shop_id)** | E2 Owner, E1 Customer (browse only) |
-| **4.0** | **Shop & Product Catalog** | `productService.ts:14-284` (products + featured CRUD), `shopService.ts:21-33` (public shop list), `AdminServicesPage.tsx:35-95` (service pricing CRUD), `AdminMechanicAvailability.tsx:79-239` (mechanic schedules), **`Dashboard.tsx:38-113` (owner dashboard — 5 metric cards, pending appointments, low stock alerts scoped by shop_id)** | E2 Owner, E1 Customer (browse shops/services) |
+| **4.0** | **Shop & Product Catalog** | `productService.ts:14-284` (products + featured CRUD), `shopService.ts:21-33` (public shop list), `AdminServicesPage.tsx:35-95` (service pricing CRUD), `AdminMechanicAvailability.tsx:79-239` (mechanic schedules), **`Dashboard.tsx:38-113` (owner dashboard 5 metric cards, pending appointments, low stock alerts scoped by shop_id)** | E2 Owner, E1 Customer (browse shops/services) |
 | **5.0** | **AI Chat Assistant** | `AIChatModal.tsx:63-433` (gather context via **shop_id-scoped fetches** -> query Groq -> optional appointment booking tool call), `AdminChatbot.tsx:106-425` (gather all business data -> query Groq -> stream response) | E1 Customer, E4 Admin, E6 Groq API |
 | **6.0** | **Notification System** | `notificationService.ts:278-400` (log notification + send via SendGrid), `sendgridClient.ts:31-97` (HTTP call), `NotificationPreferencesModal.tsx:28-89` (preference CRUD), `LoginPage.tsx:222-243` (set default on signup) | E5 SendGrid API, E1 Customer (receives email) |
-| **7.0** | **Admin Analytics Dashboard** | `AdminPlatformDashboard.tsx:128-160` (aggregate queries across shops/users/appointments/parts/job_orders/part_sales — **now groups per-shop using shop_id columns**) | E4 Admin |
+| **7.0** | **Admin Analytics Dashboard** | `AdminPlatformDashboard.tsx:128-160` (aggregate queries across shops/users/appointments/parts/job_orders/part_sales **now groups per-shop using shop_id columns**) | E4 Admin |
 
 ---
 
@@ -2270,7 +2270,7 @@ Mapping to actual Supabase tables:
 | # | Data Store | Read By Processes | Written By Processes |
 |---|-----------|------------------|---------------------|
 | D1 | **users** | 1.0 (profile lookup, role check), 2.0 (mechanics **scoped by shop_id**, customers **scoped by shop_id**), 3.0 (customer list **scoped by shop_id**), 4.0 (mechanics **scoped by shop_id**, owner dashboard customer count **scoped by shop_id**), 5.0 (customer context, mechanics **scoped by shop_id**), 7.0 (user metrics) | 1.0 (signup insert, profile update, customer CRUD), 2.0 (delete cascade) |
-| D2 | **shops** | 4.0 (public shop list), 7.0 (shop metrics) | **1.0 (owner signup — INSERT on OwnerLoginPage.tsx:86-99)** |
+| D2 | **shops** | 4.0 (public shop list), 7.0 (shop metrics) | **1.0 (owner signup INSERT on OwnerLoginPage.tsx:86-99)** |
 | D3 | **vehicles** | 2.0 (appointment creation), 5.0 (customer context), E1 (vehicle list) | 1.0 (signup create), 2.0 (appointment references) |
 | D4 | **services_pricing** | 2.0 (price lookup), 4.0 (service listing) | 4.0 (upsert, delete) |
 | D5 | **parts** | 2.0 (auto-deduct stock, check availability), 3.0 (CRUD, browse, stock check **scoped by shop_id**), 4.0 (owner dashboard low stock **scoped by shop_id**), 5.0 (shop context **scoped by shop_id**), 7.0 (inventory metrics) | 2.0 (stock deduct on completion), 3.0 (create, update stock, delete) |
@@ -2385,7 +2385,7 @@ Mapping to actual Supabase tables:
 - [x] Every process cited traces to real code (file path + line numbers in sections above)
 - [x] Every data store maps to an actual table in the schema (MOTOLINK_ERD_SCHEMA.sql)
 - [x] Every data flow identifies source, destination, and the actual data that moves
-- [x] No processes invented — only the 7 functional groupings the code actually implements
+- [x] No processes invented only the 7 functional groupings the code actually implements
 - [x] 73 data flows documented across all entity<->process, process<->store, and process<->process connections
 - [x] D4 services_pricing and D14 mechanic_availability include shop_id column (ERD and migration applied)
 - [x] D2 shops is now written by 1.0 User Mgmt (owner signup flow)
@@ -2699,50 +2699,50 @@ export default DashboardExample
 
 ## ===== MotoLink DFD Level 1 (Simplified).md =====
 
-# MotoLink — Level 1 DFD (Simplified)
+# MotoLink Level 1 DFD (Simplified)
 
 ---
 
 ## EXTERNAL ENTITIES
 
-1. Customer — browses shops, books appointments, chats with AI, buys parts
-2. Shop Owner — runs a shop, manages inventory/appointments/services/mechanics/products
-3. Mechanic — views assigned jobs, updates appointment status, sets availability
-4. Platform Admin — sees everything across all shops, views analytics
-5. SendGrid API — sends email notifications
-6. Groq AI API — powers the chatbot
-7. Supabase Auth — handles login, signup, session management
+1. Customer browses shops, books appointments, chats with AI, buys parts
+2. Shop Owner runs a shop, manages inventory/appointments/services/mechanics/products
+3. Mechanic views assigned jobs, updates appointment status, sets availability
+4. Platform Admin sees everything across all shops, views analytics
+5. SendGrid API sends email notifications
+6. Groq AI API powers the chatbot
+7. Supabase Auth handles login, signup, session management
 
 ---
 
 ## CORE PROCESSES
 
-1. Auth & User Management — login, signup, profile, roles, mechanic creation, owner signup includes shop creation
-2. Shop & Catalog — shop CRUD, service pricing, products, featured items, owner dashboard with metrics
-3. Appointment & Job Management — book appointments, calendar view scoped by shop, status tracking, job orders, auto stock deduction on completion
-4. Inventory & Sales — parts CRUD, POS checkout, stock adjustment, customer list with spending history, all scoped by shop
-5. AI Chat Assistant — customer chat fetches context scoped by shop, admin chat is cross-shop, can book appointments via tool calls
-6. Notification System — sends email via SendGrid, checks opt-out preferences, logs to audit store
-7. Admin Analytics Dashboard — aggregates all shops data, groups by shop_id for per-shop breakdown
+1. Auth & User Management login, signup, profile, roles, mechanic creation, owner signup includes shop creation
+2. Shop & Catalog shop CRUD, service pricing, products, featured items, owner dashboard with metrics
+3. Appointment & Job Management book appointments, calendar view scoped by shop, status tracking, job orders, auto stock deduction on completion
+4. Inventory & Sales parts CRUD, POS checkout, stock adjustment, customer list with spending history, all scoped by shop
+5. AI Chat Assistant customer chat fetches context scoped by shop, admin chat is cross-shop, can book appointments via tool calls
+6. Notification System sends email via SendGrid, checks opt-out preferences, logs to audit store
+7. Admin Analytics Dashboard aggregates all shops data, groups by shop_id for per-shop breakdown
 
 ---
 
 ## DATA STORES
 
-1. Users — all profiles (customers, owners, mechanics, admin)
-2. Shops — shop info, location, contact, owner_id
-3. Services (services_pricing) — service menu per shop, has shop_id
-4. Parts — inventory per shop, has shop_id
-5. Products — shop products for sale, has shop_id
-6. Appointments — bookings with status/dates/pricing, has shop_id
-7. Job Orders — work orders linked to appointments, has shop_id
-8. Part Sales — POS checkout records, has shop_id
-9. Vehicles — customer vehicles
-10. Notifications — email audit log
-11. Reservations — walk-in/hold orders
-12. Mechanic Availability — mechanic schedules per shop, has shop_id
-13. Invoices — billing records
-14. Customer Notification Settings — opt-out preferences
+1. Users all profiles (customers, owners, mechanics, admin)
+2. Shops shop info, location, contact, owner_id
+3. Services (services_pricing) service menu per shop, has shop_id
+4. Parts inventory per shop, has shop_id
+5. Products shop products for sale, has shop_id
+6. Appointments bookings with status/dates/pricing, has shop_id
+7. Job Orders work orders linked to appointments, has shop_id
+8. Part Sales POS checkout records, has shop_id
+9. Vehicles customer vehicles
+10. Notifications email audit log
+11. Reservations walk-in/hold orders
+12. Mechanic Availability mechanic schedules per shop, has shop_id
+13. Invoices billing records
+14. Customer Notification Settings opt-out preferences
 
 ---
 
@@ -2777,7 +2777,7 @@ export default DashboardExample
 - Customer list and spending history queries are scoped by shop_id
 
 ### AI Chat
-- Customer chat gathers context from Parts, Products, Users (mechanics), Mechanic Availability — all scoped by shop_id
+- Customer chat gathers context from Parts, Products, Users (mechanics), Mechanic Availability all scoped by shop_id
 - Admin chat gathers data across all shops (no shop filter)
 - Both send user message to Groq API and stream response back
 
@@ -4052,7 +4052,7 @@ This project is open-source and ready for deployment to production Philippine au
 
 ## ===== SENDGRID_SETUP.md =====
 
-# SendGrid Email Notifications — Setup Guide
+# SendGrid Email Notifications Setup Guide
 
 > **For:** MotoShop AutoCare Capstone Project  
 > **Feature:** Automated service-completion emails to customers
@@ -4070,16 +4070,16 @@ When an **owner/admin** finalises an appointment by clicking **"Finalize Revenue
 
 ---
 
-## Step 1 — Create a SendGrid Account
+## Step 1 Create a SendGrid Account
 
 1. Go to [https://signup.sendgrid.com](https://signup.sendgrid.com) and register a free account.
 2. Complete your sender identity verification (single sender or domain authentication).
 
-> **Free tier:** 100 emails/day — more than enough for a capstone demo.
+> **Free tier:** 100 emails/day more than enough for a capstone demo.
 
 ---
 
-## Step 2 — Create an API Key
+## Step 2 Create an API Key
 
 1. Log into [SendGrid Dashboard](https://app.sendgrid.com)
 2. Navigate to **Settings → API Keys**
@@ -4092,7 +4092,7 @@ When an **owner/admin** finalises an appointment by clicking **"Finalize Revenue
 
 ---
 
-## Step 3 — Verify a Sender Email
+## Step 3 Verify a Sender Email
 
 1. In SendGrid, go to **Settings → Sender Authentication**
 2. Under **Single Sender Verification**, click **Get Started**
@@ -4101,7 +4101,7 @@ When an **owner/admin** finalises an appointment by clicking **"Finalize Revenue
 
 ---
 
-## Step 4 — Configure Environment Variables
+## Step 4 Configure Environment Variables
 
 Edit your `.env.local` file:
 
@@ -4118,7 +4118,7 @@ npm run dev
 
 ---
 
-## Step 5 — Create Supabase Tables
+## Step 5 Create Supabase Tables
 
 Run the following SQL in **Supabase → SQL Editor**:
 
@@ -4183,12 +4183,12 @@ CREATE POLICY "Users can manage own notification settings"
 
 ---
 
-## Step 6 — Test End-to-End
+## Step 6 Test End-to-End
 
 1. **Open** the app and log in as an **owner**
 2. Navigate to **Appointments**
 3. Find an appointment with status `In Progress` (in_progress)
-4. Click **"Finalize Revenue"** — this triggers the email
+4. Click **"Finalize Revenue"** this triggers the email
 5. A **toast notification** appears in the top-right corner confirming delivery
 6. Check **SendGrid Activity Feed**: [https://app.sendgrid.com/email_activity](https://app.sendgrid.com/email_activity)
 7. Check the `notifications` table in Supabase for the logged record
@@ -4217,7 +4217,7 @@ The service gracefully degrades when no API key is set:
 ⚠️  VITE_SENDGRID_API_KEY not set – email NOT sent.
 ```
 
-This means the app won't crash — it just skips the email and logs `failed` in the DB.
+This means the app won't crash it just skips the email and logs `failed` in the DB.
 
 ---
 
@@ -6091,7 +6091,7 @@ For issues or questions about compatibility checking:
 
 ---
 
-## TASK LOG — End-to-End Book Now + Admin Appointments Page
+## TASK LOG End-to-End Book Now + Admin Appointments Page
 
 Date: Aug 31, 2026
 
@@ -6099,7 +6099,7 @@ Date: Aug 31, 2026
 Make the ShopDetailPage "Book Now" button fully end-to-end (writes to the `appointments` table, notifies the shop owner, and reflects platform-wide on a new Admin Appointments page).
 
 ### What was found
-- ShopDetailPage previously had its OWN inline booking modal that only stored the customer's selection in local React state (an `AppointmentDraft`) — it never wrote to the `appointments` table.
+- ShopDetailPage previously had its OWN inline booking modal that only stored the customer's selection in local React state (an `AppointmentDraft`) it never wrote to the `appointments` table.
 - There is a reusable `BookAppointmentModal` that DOES correctly `INSERT` into `appointments` (customer_id, shop_id, scheduled_date, scheduled_time, service_type, description, status="pending", mechanic_id, notes, estimated_price).
 - There was NO owner notification on new booking, and the admin sidebar had NO Appointments page (admin = Dashboard/Shops/Settings only).
 
@@ -6110,11 +6110,11 @@ Make the ShopDetailPage "Book Now" button fully end-to-end (writes to the `appoi
    - Both Book Now buttons (desktop line ~831, mobile sticky line ~860) now call `openBooking` and stay `disabled` when `shop.is_open === false`.
    - Replaced the entire inline booking modal (previously lines ~979-1216) with `<BookAppointmentModal isOpen={showBookingModal} onClose={...} shopId={shopId} />` (lines 868-873).
    - Removed now-unused inline modal state/helpers: `AppointmentDraft`, `appointment`, `bookingMechanic`, `modalServices/modalMake/modalModel/modalYear`, make/model suggestions state, `toggleModalService`, `modalTotal`, `handleMakeChange/SelectMake/ModelChange/SelectModel`, `canConfirmBooking`, `confirmBooking`, `inputClass`; dropped `filterPhMakes/filterPhModels` and `X`/`Check` icon imports.
-   - `status` is hardcoded to `"pending"` inside BookAppointmentModal — booking INSERT includes all required fields.
+   - `status` is hardcoded to `"pending"` inside BookAppointmentModal booking INSERT includes all required fields.
 
 2. **`src/components/BookAppointmentModal.tsx`**
    - Imported `notifyOwnerOfNewAppointment` (line 21).
-   - Called it after a successful appointment INSERT (line ~484) with shopId, appointmentId, customer name, service type, date, time. Best-effort — RLS may block the cross-user owner notification row; failures are logged as warnings and never break the booking.
+   - Called it after a successful appointment INSERT (line ~484) with shopId, appointmentId, customer name, service type, date, time. Best-effort RLS may block the cross-user owner notification row; failures are logged as warnings and never break the booking.
 
 3. **`src/services/notificationService.ts`**
    - Added `OwnerBookingNotificationData` interface (line 454) and `notifyOwnerOfNewAppointment()` (line 469): looks up the shop owner (`role=owner`, matching `shop_id`), inserts an in-app `notifications` row (recipient_id, appointment_id, type "booking", subject, message, status "sent", read=false) so it shows in the owner's bell.
@@ -6144,7 +6144,7 @@ Make the ShopDetailPage "Book Now" button fully end-to-end (writes to the `appoi
 
 ---
 
-## TASK LOG — Human-Readable booking_id (server-generated)
+## TASK LOG Human-Readable booking_id (server-generated)
 
 Date: Aug 31, 2026
 
@@ -6152,7 +6152,7 @@ Date: Aug 31, 2026
 Give every appointment a short, human-readable `booking_id` so customers, owners, and admins can reference a booking by a simple code instead of a UUID. Generate it **server-side** so it is created exactly once, at the moment the appointment row is actually written.
 
 ### Design decision
-- Format: `MTL-YYYYMMDD-XXXXXX` — `MTL` prefix + booking's scheduled date + a unique 6-char uppercase hex suffix.
+- Format: `MTL-YYYYMMDD-XXXXXX` `MTL` prefix + booking's scheduled date + a unique 6-char uppercase hex suffix.
 - The suffix is deterministically derived from the appointment's own `id` UUID (`substr(replace(id,'-',''),6,6)`), guaranteeing uniqueness forever without any client involvement and without extra per-date sequences/concurrency concerns.
 - Generation happens in a `BEFORE INSERT` trigger: it fires exactly once per successful insert and is never skipped on failed submissions or generated twice.
 
@@ -6175,13 +6175,13 @@ Give every appointment a short, human-readable `booking_id` so customers, owners
 4. **`src/components/ReceiptModal.tsx`**
    - `ReceiptData` gained `booking_id?` (line 11); receipt number shows `booking_id` when present, else falls back to truncated UUID.
 
-5. **`src/pages/AdminAppointmentsPage.tsx`** — added a "Booking ID" first column (interface field + `<th>` + `<td>`).
+5. **`src/pages/AdminAppointmentsPage.tsx`** added a "Booking ID" first column (interface field + `<th>` + `<td>`).
 
-6. **`src/pages/AppointmentCalendarPage.tsx`** — owner cards show `booking_id` as a tag; imported `Tag` from lucide.
+6. **`src/pages/AppointmentCalendarPage.tsx`** owner cards show `booking_id` as a tag; imported `Tag` from lucide.
 
-7. **`src/components/ViewAppointmentsModal.tsx`** — interface + enrichment map + "Ref:" line on each appointment card.
+7. **`src/components/ViewAppointmentsModal.tsx`** interface + enrichment map + "Ref:" line on each appointment card.
 
-8. **`src/components/ServiceHistoryModal.tsx`** — interface + select() + mapping + "Ref:" line on each service record.
+8. **`src/components/ServiceHistoryModal.tsx`** interface + select() + mapping + "Ref:" line on each service record.
 
 9. **booking_id added to `select()` of other appointment readers:** AIChatModal, AdminPlatformDashboard, Dashboard (recent list), CustomerPortalModal, AdminShopsPage, CustomersListPage. (AdminChatbot / select("*") files already return it automatically.)
 
@@ -6196,7 +6196,7 @@ Give every appointment a short, human-readable `booking_id` so customers, owners
 
 ---
 
-## TASK LOG — Guest booking gate (Sign-Up To Confirm Your Booking)
+## TASK LOG Guest booking gate (Sign-Up To Confirm Your Booking)
 
 Date: Aug 31, 2026
 
@@ -6209,7 +6209,7 @@ step, pre-filled, once they authenticate.
 
 ### Root cause this addresses
 - Previously, a guest on `ShopDetailPage` could open the booking modal, complete all steps, and
-  click **Confirm** — which silently hit `handleSubmit`'s `if (!user?.id) return;` and did
+  click **Confirm** which silently hit `handleSubmit`'s `if (!user?.id) return;` and did
   nothing (no error shown). Guests could reach the modal because ShopDetailPage's Book Now opens
   its own `BookAppointmentModal` regardless of auth state.
 
@@ -6254,7 +6254,7 @@ step, pre-filled, once they authenticate.
 
 ---
 
-## TASK LOG — Stale shop services/parts in booking modal (data-freshness fix)
+## TASK LOG Stale shop services/parts in booking modal (data-freshness fix)
 
 Date: Aug 31, 2026
 
@@ -6265,14 +6265,14 @@ refresh or a second "Book Now" click.
 
 ### Root cause
 - The booking modal is **always mounted** in the tree (rendered unconditionally, only toggled via
-  the `isOpen` prop — e.g. `App.tsx` and `ShopDetailPage.tsx` render `<BookAppointmentModal isOpen=... />`
+  the `isOpen` prop e.g. `App.tsx` and `ShopDetailPage.tsx` render `<BookAppointmentModal isOpen=... />`
   without `{isOpen && ...}`), so it does NOT unmount/remount on reopen.
 - `fetchServices()` and `fetchAvailableParts()` both guard `if (!defaultShopId) return;`, and
   `defaultShopId` is resolved **asynchronously** inside `fetchMechanics()` (a React `setState`).
 - The `isOpen` effect called `fetchMechanics()` then `fetchServices()` synchronously in the same
   tick. On the **first** open, `defaultShopId` was still `""` when `fetchServices` ran, so it
   early-returned and the modal kept stale/static `SERVICE_TYPES`. On a **second** open,
-  `defaultShopId` was already populated, so the fetch worked — matching the "second click fixes it"
+  `defaultShopId` was already populated, so the fetch worked matching the "second click fixes it"
   symptom.
 - `fetchAvailableParts()` was keyed only on `[defaultShopId]` (not `isOpen`), so parts also went
   stale across reopens.
@@ -6293,7 +6293,7 @@ refresh or a second "Book Now" click.
 
 ### Notes
 - `fetchBookedSlots()` / `fetchMechanicAvailability()` are keyed on `[selectedDate, selectedMechanic]`
-  and fetch data tied to the current selection, so they refetch correctly on selection change — no
+  and fetch data tied to the current selection, so they refetch correctly on selection change no
   change needed.
 - No booking flow/layout/theme changes. Authenticated and guest behavior otherwise unchanged.
 
@@ -6301,11 +6301,11 @@ refresh or a second "Book Now" click.
 - `npx tsc --noEmit` passes (exit 0).
 - `npm run build` passes (Vite + Tailwind); only the pre-existing chunk-size warning.
 - Manual test plan: add/edit a service for a shop, then open that shop's "Book Now" modal without
-  refreshing — the new/updated service appears on first open.
+  refreshing the new/updated service appears on first open.
 
 ---
 
-## TASK LOG — Booking modal visual polish & animation pass
+## TASK LOG Booking modal visual polish & animation pass
 
 Date: Aug 31, 2026
 
@@ -6318,7 +6318,7 @@ ShopDetailPage's "Book Now"). No booking logic/steps/validation/data flow change
   rest of the app's owner/booking-adjacent surfaces (AdminServicesPage, AdminPlatformDashboard)
   already use **violet** accents and **emerald** for success/completed states.
 - Framer Motion (`motion`, `AnimatePresence`) was already imported and used (modal open/close,
-  step slide transitions, error banners) — reused it, added no new animation library.
+  step slide transitions, error banners) reused it, added no new animation library.
 - **Bug fixed opportunistically:** `if (!isOpen) return null;` meant the modal unmounted instantly
   on close, so the `AnimatePresence` exit animation never actually played. Restructured so the
   tree renders only when `isOpen` inside `AnimatePresence`, making the close animation work.
@@ -6361,7 +6361,7 @@ ShopDetailPage's "Book Now"). No booking logic/steps/validation/data flow change
 
 ---
 
-## TASK LOG — Booking receipt: save/screenshot tip + Copy button
+## TASK LOG Booking receipt: save/screenshot tip + Copy button
 
 Date: Aug 31, 2026
 
@@ -6382,13 +6382,13 @@ No booking-ID generation, layout structure, or Done-button behavior changed.
   - Added `Copy` and `Camera` to the lucide import list.
 - **Helpful note** below the confirmation sentence:
   - Camera icon (`Camera`, slate-400) + slate-500 muted text:
-    "Please save this Booking ID or take a screenshot — you'll need to show it at the shop
+    "Please save this Booking ID or take a screenshot you'll need to show it at the shop
     counter when you arrive."
   - Styled as a subtle tip (slate-500/600, `font-light`, centered, `max-w-md`), NOT an
-    error/warning — does not clash with the emerald success theme.
+    error/warning does not clash with the emerald success theme.
 
 ### Scope / preserved
-- Note + copy button appear **only** on the success/confirmation screen — nowhere else in the
+- Note + copy button appear **only** on the success/confirmation screen nowhere else in the
   booking flow.
 - Booking-ID generation logic, layout structure, and DONE button behavior untouched.
 - Responsive: text uses `max-w-md` + leading-relaxed and wraps on mobile; copy button flexes
@@ -6403,7 +6403,7 @@ No booking-ID generation, layout structure, or Done-button behavior changed.
 
 ---
 
-## TASK LOG — Align booking modal with landing page (dark "moto" theme)
+## TASK LOG Align booking modal with landing page (dark "moto" theme)
 
 Date: Aug 31, 2026
 
@@ -6418,7 +6418,7 @@ converted to the landing's dark-moto+cyan system.
 ### Landing tokens extracted & applied (source: MotolinkLanding.tsx / MotolinkNavbar.tsx / tailwind.config.ts)
 - Backgrounds: `bg-moto-dark` (`#0f1723`, shells/header/footer), `bg-moto-darker` (`#0b1526`,
   panel/step content/success), `bg-moto-gray` (`#25334e`, selected part-card bg / muted fills).
-- Accent: `moto-accent` (`#38b6c4` cyan) — primary buttons (`bg-moto-accent text-slate-950
+- Accent: `moto-accent` (`#38b6c4` cyan) primary buttons (`bg-moto-accent text-slate-950
   hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25`), selected states
   (`bg-moto-accent/10 border-moto-accent text-moto-accent`), icon tiles
   (`bg-moto-accent/15 text-moto-accent`), check marks, focus rings, eyebrow line, top border.
@@ -6435,9 +6435,9 @@ converted to the landing's dark-moto+cyan system.
   focus:border-moto-accent`. Select chevron SVG re-stroked to `%2338b6c4`.
 
 ### Files touched
-- `src/components/BookAppointmentModal.tsx` — visual-only conversion across every step
+- `src/components/BookAppointmentModal.tsx` visual-only conversion across every step
   (service, parts, date/time, confirm) + footer + success screen. No logic/step/behavior changed.
-- `MEMORY.md` — updated.
+- `MEMORY.md` updated.
 
 ### Notes
 - All violet tokens removed from the modal (grep-verified: none remain).
@@ -6455,7 +6455,7 @@ converted to the landing's dark-moto+cyan system.
 
 ---
 
-## TASK LOG — Add price disclaimer note in booking step 1
+## TASK LOG Add price disclaimer note in booking step 1
 
 Date: Aug 31, 2026
 
@@ -6473,7 +6473,7 @@ step 1 (service selection), always visible (below the selected-services box, ins
   `flex items-start gap-2 ... text-slate-400`, with a Lucide `Info` icon (`size={15}`,
   `shrink-0 mt-0.5`) prefix and `text-sm font-light leading-relaxed` copy.
 - Muted `text-slate-400` (landing dark-moto theme, not the previously-assumed white-slate
-  slate-500/600) — consistent with the current modal look from the prior theming task.
+  slate-500/600) consistent with the current modal look from the prior theming task.
 - `Info` added to the Lucide icon import block.
 - Wraps naturally on mobile (icon `shrink-0`, `leading-relaxed`, `items-start`).
 
@@ -6484,7 +6484,7 @@ step 1 (service selection), always visible (below the selected-services box, ins
 
 ---
 
-## TASK LOG — Roll selected parts into booking total + show part names in confirm/review
+## TASK LOG Roll selected parts into booking total + show part names in confirm/review
 
 Date: Aug 31, 2026
 
@@ -6496,7 +6496,7 @@ Before changing anything, the booking flow already persisted parts and a combine
   `insertData.total_amount = selectedServicePrice + partsTotal`, and returns `parts` +
   `total_amount` to `onAppointmentBooked`.
 - The `appointments` table ALREADY has `parts JSONB DEFAULT '[]'` and `total_amount
-  NUMERIC(10,2)` columns (also `estimated_price` = service subtotal) — so NO schema change
+  NUMERIC(10,2)` columns (also `estimated_price` = service subtotal) so NO schema change
   was needed.
 - `ReceiptModal.tsx` (the final confirmation/receipt, fed by `onAppointmentBooked`
   `appointmentData`) ALREADY lists each part by name + qty + line price ("PARTS INCLUDED")
@@ -6508,7 +6508,7 @@ Before changing anything, the booking flow already persisted parts and a combine
 The **in-modal confirm/review step (step 4)** box only showed Services chips + a "Total
 Cost" that equaled `selectedServicePrice`; it did NOT show parts or include their cost.
 Changed `src/components/BookAppointmentModal.tsx` confirm review box to add:
-- A "Parts" line-item block (name `x`qty → ₱ line price) — only when parts are selected.
+- A "Parts" line-item block (name `x`qty → ₱ line price) only when parts are selected.
 - A combined "Total Cost" breakdown: Service subtotal, Parts subtotal, and an
   "Estimated Total" (accent cyan) = service + Σ(quantity × unit_price), matching the
   job-order cost pattern (`Σ quantity × unit_price`).
@@ -6516,12 +6516,12 @@ Changed `src/components/BookAppointmentModal.tsx` confirm review box to add:
   motorcycle's overall condition and assessment." (matches the step-1 note pattern, `Info`
   icon prefix, `text-slate-400 text-xs font-light`).
 - Styled to the current dark-moto theme (the modal was thematically converted earlier; the
-  task's "white-slate" note is stale — used the modal's actual dark-moto treatment).
+  task's "white-slate" note is stale used the modal's actual dark-moto treatment).
 
 ### Stock / costing notes (for future reference)
 - `src/services/jobOrderService.ts` `completeJobOrder` is where quantity_in_stock is
   DEDUCTED from parts. `addPartUsed` does NOT deduct stock. Booking records parts only as a
-  customer pre-selection / request and does not touch inventory — consistent and correct;
+  customer pre-selection / request and does not touch inventory consistent and correct;
   no change made. Parts selected at booking could feed job-order creation later, but that is
   a separate decision (currently a "customer request" field on the appointment).
 
@@ -6537,7 +6537,7 @@ Changed `src/components/BookAppointmentModal.tsx` confirm review box to add:
 
 ---
 
-## TASK LOG — Remove manual "Job Order" button/modal from Owner Appointments page (option a)
+## TASK LOG Remove manual "Job Order" button/modal from Owner Appointments page (option a)
 
 Date: Aug 31, 2026
 
@@ -6562,10 +6562,10 @@ without requiring manual owner interaction.
 
 ### Notes / impact
 - Admin cross-shop Appointments page (`AdminAppointmentsPage.tsx`) already had NO Job Order
-  button (separate table view, no shared card) — Owner-only removal, not a repeat.
+  button (separate table view, no shared card) Owner-only removal, not a repeat.
 - `JobOrderModal.tsx` and `jobOrderService.ts` internals + `job_orders` schema untouched (now
   `JobOrderModal` is no longer imported anywhere, but the file was left in place per the
-  task's "do not touch" instruction — a candidate for later cleanup if desired).
+  task's "do not touch" instruction a candidate for later cleanup if desired).
 - No other owner-side UI (Dashboard.tsx, OwnerPlatformDashboard.tsx) references the removed
   button/modal. (ServiceHistoryModal's "Job Order Details" label is a display label, not a
   link to the removed button.)
@@ -6581,7 +6581,7 @@ without requiring manual owner interaction.
 
 ---
 
-## TASK LOG — Global UI restyle: Shop Admin look for Customer + Main Admin
+## TASK LOG Global UI restyle: Shop Admin look for Customer + Main Admin
 
 Date: Sep 12, 2026
 
@@ -6613,22 +6613,22 @@ Styled via a token re-point so it applies app-wide, then per-file role accent ov
 - Inline `Bebas Neue, sans-serif` fontFamily → `Inter, system-ui, sans-serif` everywhere.
 
 ### Notes
-- `LoginChoicePage` is dead code (never imported outside its own file) — restyled anyway for consistency.
-- `SystemNavbar` (light) only renders on the rarely-reachable customer AccessDenied fallback — left as-is.
+- `LoginChoicePage` is dead code (never imported outside its own file) restyled anyway for consistency.
+- `SystemNavbar` (light) only renders on the rarely-reachable customer AccessDenied fallback left as-is.
 - `font-display` classes now render as Inter; uppercase/tracking headings keep their style.
 
 ### Verified
 - `npx tsc --noEmit` passes (exit 0); `npm run build` passes (only pre-existing chunk-size warning).
 - No `Bebas`/`cyan-` class tokens remain in src (only comments).
 
-## TASK LOG — Booking modal redesign to match landing page polish
+## TASK LOG Booking modal redesign to match landing page polish
 
 Date: Sep 25, 2026
 
 ### Decision
-Redesigned the entire **"Book A Service" booking modal** (`BookAppointmentModal.tsx`) — all 4 steps
+Redesigned the entire **"Book A Service" booking modal** (`BookAppointmentModal.tsx`) all 4 steps
 (Service, Parts, Date & Time, Confirm) plus vehicle selection, "Add a different motorcycle" form, and
-success screen — as a pure visual/UX pass to match the landing page design language. NO changes to booking
+success screen as a pure visual/UX pass to match the landing page design language. NO changes to booking
 logic, validation, Supabase calls, or state management (the prior `savingVehicle` split + 10s timeout
 behavior is preserved untouched). Mirrors `MotolinkLanding.tsx`: big `font-display font-black` step
 headlines with teal accent period, solid teal primary buttons / ghost bordered secondary buttons,
@@ -6669,7 +6669,7 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 - Second (refined) pass additions: header X close button → motion (scale/rotate on hover, tap 0.9,
   rounded-lg + hover border accent); Step 2 empty state → dashed rounded-2xl panel with teal Wrench tile
   + display headline ("No parts available." / restocking note); Step 4 now shows a **Vehicle summary
-  block** (Car tile + name, derived from existing `selectedVehicleId`/`vehicleInfo` state — display
+  block** (Car tile + name, derived from existing `selectedVehicleId`/`vehicleInfo` state display
   only, no data-flow change) at the top of the review grid; Step 4 Services chips → rounded-full pill
   treatment matching Step 1's selected chips; Step 4 price disclaimer → bordered `bg-moto-darker/60`
   panel matching Step 1; "Save to my account" now shows an inline spinner (same as Confirm button)
@@ -6684,7 +6684,7 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 
 ---
 
-## TASK LOG — Shared motorcycle make/model autocomplete + interactive Profile & Garage cards
+## TASK LOG Shared motorcycle make/model autocomplete + interactive Profile & Garage cards
 
 ### What was asked
 - Add the motorcycle make/model suggestion feature to customer signup and to the customer profile
@@ -6719,41 +6719,41 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 - `UserProfilePage` and `BookAppointmentModal` had NO suggestions at all.
 
 ### Files changed
-- `src/utils/vehicleData.ts` — deleted `vehicleDatabase` (24-make car list, 0 live users) and the
+- `src/utils/vehicleData.ts` deleted `vehicleDatabase` (24-make car list, 0 live users) and the
   4 redundant `getPhMoto*`/`filterPh*` aliases. Primary functions now read
   `philippineMotorcycles`. `resolveMakeKey` is module-private.
-- `src/components/VehicleMakeModelFields.tsx` (NEW) — one combobox pair. Keyboard
+- `src/components/VehicleMakeModelFields.tsx` (NEW) one combobox pair. Keyboard
   (ArrowUp/Down/Enter/Escape), `role=listbox`/`option` + `aria-activedescendant`, matched-substring
   highlight, outside-click close, make-scoped model reset on make selection. Takes a
   `containerClassName` (BookAppointment passes `contents` so the year input joins the same grid)
   and renders `children` after the model field so callers keep their own year/engine inputs.
-- `src/pages/LoginPage.tsx` — dropped 4 suggestion state hooks, 2 select handlers, and both
+- `src/pages/LoginPage.tsx` dropped 4 suggestion state hooks, 2 select handlers, and both
   dropdown JSX blocks. Removed the now-unused `Truck` icon; added `vehicleInputClass` (the shared
   `inputClass` had `pl-11` for an icon that no longer exists there).
-- `src/components/CustomerSettingsModal.tsx` — same removal; **`year` was hardcoded to
+- `src/components/CustomerSettingsModal.tsx` same removal; **`year` was hardcoded to
   `getFullYear()`** (line ~231) and is now a real validated input, plus an optional engine number.
   Delete is now blocked for bikes with service records (see below).
-- `src/components/BookAppointmentModal.tsx` — add-motorcycle row gained suggestions; make/model/year
+- `src/components/BookAppointmentModal.tsx` add-motorcycle row gained suggestions; make/model/year
   sit in the original 3-column grid via `containerClassName="contents"`.
-- `src/services/vehicleService.ts` (NEW) — the codebase had NO vehicle service layer; all 4 create
+- `src/services/vehicleService.ts` (NEW) the codebase had NO vehicle service layer; all 4 create
   sites hit Supabase inline. `getMyVehicles`, `addVehicle`, `updateVehicle`, `deleteVehicle`,
   `setPrimaryVehicle`, `getVehicleStats` (one `.in("vehicle_id", ids)` query, no N+1),
   `hasServiceActivity`, `isVehicleLocked`, `requestVehicleEdit`, `resolveVehicleEditRequest`,
   `findDuplicateVehicle`, `vehicleLabel`.
-- `src/components/ServiceHistoryModal.tsx` — optional `vehicleId` / `vehicleLabel` /
+- `src/components/ServiceHistoryModal.tsx` optional `vehicleId` / `vehicleLabel` /
   `onClearVehicle` props. When scoped it adds `.eq("vehicle_id", …)`, shows the bike in the header
   instead of "SERVICE HISTORY", and offers a "View all vehicles" chip. **No new modal file, and no
-  migration needed** — the existing appointment → job_orders → invoices chain already works.
-- `src/pages/UserProfilePage.tsx` — vehicles now typed `VehicleRecord`; `refreshData` loads
+  migration needed** the existing appointment → job_orders → invoices chain already works.
+- `src/pages/UserProfilePage.tsx` vehicles now typed `VehicleRecord`; `refreshData` loads
   vehicles + the per-bike stats map; cards are interactive (click title → scoped history), show the
   3 stats, and gained Edit / Set primary / Remove with the lock + request states. Added an edit
   modal reusing `VehicleMakeModelFields`, and mounted its own `ServiceHistoryModal` instance (this
   page returns standalone, so nothing is threaded through App.tsx).
-- `src/pages/AdminAppointmentsPage.tsx` — "Vehicle Change Requests" card above the status filters.
+- `src/pages/AdminAppointmentsPage.tsx` "Vehicle Change Requests" card above the status filters.
   Rows join `vehicles → users(name, email)`; actions are **Unlock editing** (stamps
   `edit_approved_at`, clears `edit_requested`) and **Dismiss**. Also subscribes to `vehicles`
   postgres_changes so the queue updates live.
-- `supabase/migrations/20260926_vehicle_edit_lock.sql` (NEW) + `supabase/admin_rls.sql` — see below.
+- `supabase/migrations/20260926_vehicle_edit_lock.sql` (NEW) + `supabase/admin_rls.sql` see below.
 - `src/types/index.ts` `Vehicle` was left alone: only `AuthContext` uses it, and the garage now uses
   `VehicleRecord` which carries `year`/`engine_number` (the old local `ProfileVehicle` had them as
   loose optionals).
@@ -6761,7 +6761,7 @@ tactile rounded-2xl selection cards with teal ring + glow, ambient teal/violet r
 ### Migration the user must run (Supabase SQL Editor)
 `supabase/migrations/20260926_vehicle_edit_lock.sql` adds `vehicles.is_primary`,
 `edit_requested`, `edit_approved_at`, `edit_note`; indexes `appointments.vehicle_id`; adds
-`"Admin can update all vehicles"` (FOR UPDATE USING `public.is_admin()`) — vehicles previously had
+`"Admin can update all vehicles"` (FOR UPDATE USING `public.is_admin()`) vehicles previously had
 ONLY an admin SELECT policy, so the Approve button would have failed silently, the same trap as
 `20260816_admin_shop_update_delete.sql`; backfills the oldest bike per customer as primary; and adds
 a partial unique index for one primary per customer.
@@ -6780,7 +6780,7 @@ than silently no-op, and `AdminAppointmentsPage` hides the whole queue card
 `isVehicleLocked(vehicle, stats)` = `activeCount > 0 && !edit_approved_at`. `activeCount` comes from
 the stats map (any non-cancelled appointment), so the profile tab and the customer history tab can
 never disagree. A locked bike shows a read-only lock note, a "Request a change" button (then a
-"waiting for admin approval" pill), and its Remove is replaced with a "Locked" hint — removing a
+"waiting for admin approval" pill), and its Remove is replaced with a "Locked" hint removing a
 serviced bike would orphan the service history shops and invoices reference. `updateVehicle` clears
 `edit_requested`/`edit_approved_at`, so an admin approval covers exactly one change.
 
@@ -6788,7 +6788,7 @@ serviced bike would orphan the service history shops and invoices reference. `up
 - **No UNIQUE constraint on (customer_id, make, model).** Live data already has 3 duplicate pairs
   (`honda|click 125i`, `yamaha|sniper 155`, `yamaha|aerox 155`) and 2 genuinely identical bikes are
   legal, so a constraint would fail today. `findDuplicateVehicle` warns in the UI instead. The 3
-  existing duplicates were NOT auto-deleted — destructive, needs the user's call.
+  existing duplicates were NOT auto-deleted destructive, needs the user's call.
 - The positional `idx === 0` "Primary Bike" badge is gone, replaced by the real `is_primary` column.
 - `CustomerSettingsModal` delete now calls `hasServiceActivity` first, so the lock cannot be
   bypassed by deleting from settings instead of the garage.
@@ -6806,7 +6806,7 @@ serviced bike would orphan the service history shops and invoices reference. `up
   `appointments?select=vehicle_id,status,total_amount,estimated_price,scheduled_date` → HTTP 200
   (so `getVehicleStats` needs no migration).
 - Ran the `filterMakes`/`filterModels` logic standalone over `yamaha`, `Yamaha`, `"  honda  "`,
-  `Toyota`, `aero`, `NMAX` — all correct.
+  `Toyota`, `aero`, `NMAX` all correct.
 - Not verified in a browser: dropdown focus/click-outside feel, per-bike stat totals against real
   rows, and the full request → approve → save round trip (needs the migration applied first).
 
@@ -6814,14 +6814,14 @@ serviced bike would orphan the service history shops and invoices reference. `up
 **Last Updated**: Sep 26, 2026
 **Compatibility Version**: 1.0
 
-## TASK LOG — Dark restyle of the repair history popup + customer settings (white-sheet → moto dark)
+## TASK LOG Dark restyle of the repair history popup + customer settings (white-sheet → moto dark)
 
 ### Why
-- User: the repair history popup "currently uses the legacy UI" — restyle it to complement the new
+- User: the repair history popup "currently uses the legacy UI" restyle it to complement the new
   UI used everywhere else. Chose scope = **ServiceHistoryModal + CustomerSettingsModal** (the other
   vehicle-facing modal); layout = **keep the accordion**, just restyle it; status colours =
   **consolidate into one shared palette**.
-- IMPORTANT — this reverses a recorded earlier decision. The charcoal sweep in the recolor task
+- IMPORTANT this reverses a recorded earlier decision. The charcoal sweep in the recolor task
   (see the line above) deliberately KEPT `bg-white` "white-sheet" modals, naming
   `CustomerSettings`/`ServiceHistory`/CustomerPortal/BrowseParts/Receipt/JobOrder/
   NotificationPreferences/ErrorModal as "legit light documents". The newer `TermsModal` was then
@@ -6829,12 +6829,12 @@ serviced bike would orphan the service history shops and invoices reference. `up
   note has been corrected to record the two files that have since moved to dark.
 
 ### New shared file
-- `src/utils/appointmentStatus.ts` — single source of truth for status colours. Exports
+- `src/utils/appointmentStatus.ts` single source of truth for status colours. Exports
   `AppointmentStatusStyle` (`label`/`pill`/`soft`/`dot`), `APPOINTMENT_STATUS`, the neutral
   `UNKNOWN_APPOINTMENT_STATUS` ("Recorded"), the `getAppointmentStatus(status)` lookup, and
   `PAYMENT_STATUS_TONE`. Replaces THREE separate `STATUS_STYLES` consts that had drifted: the
   modal's light one, `UserProfilePage`'s pill map, and `AdminAppointmentsPage`'s `{label, classes,
-  dot}` map — which even disagreed on `cancelled` (slate vs rose vs red). Canonical:
+  dot}` map which even disagreed on `cancelled` (slate vs rose vs red). Canonical:
   pending amber, confirmed moto-accent, in_progress sky, completed emerald, declined red,
   cancelled rose, draft slate. `PAYMENT_STATUS_TONE` covers every value the schema CHECK allows
   (unpaid/paid/overdue/cancelled) plus `partial`, which the app also uses.
@@ -6889,7 +6889,7 @@ serviced bike would orphan the service history shops and invoices reference. `up
   `TABS` also moved to module scope (it was being rebuilt every render).
 - `VehicleMakeModelFields` (found while restyling the vehicles tab): its suggestion dropdown panel
   and highlighted row were hardcoded LIGHT (`bg-white`, `border-slate-200`, `bg-slate-100
-  text-slate-900`) even though all four call sites are dark — so the list flashed white over the
+  text-slate-900`) even though all four call sites are dark so the list flashed white over the
   dark UIs. Panel → `border-moto-gray bg-moto-dark`, active row → `bg-moto-accent/15
   text-moto-accent`, idle → `text-slate-300`, and the light default `inputClassName` is now dark.
 - Fixed a stray `};;` double semicolon in `UserProfilePage.tsx` `openHistory`.
@@ -6897,7 +6897,7 @@ serviced bike would orphan the service history shops and invoices reference. `up
 ### Bug fix: dead exit animations
 - `ServiceHistoryModal` and `CustomerSettingsModal` both did `if (!isOpen) return null` BEFORE their
   `AnimatePresence`, which unmounts the child immediately and means framer-motion's `exit` never
-  runs — both modals popped out with no scale/fade. Verified both are unconditionally mounted by
+  runs both modals popped out with no scale/fade. Verified both are unconditionally mounted by
   their parents (`App.tsx` ×2, `UserProfilePage.tsx` ×1) and neither is conditionally rendered, so
   the fix is the safe `{isOpen && <motion.div key=...>}` inside the existing `AnimatePresence`
   (added `key` props so the children are identifiable). This matches `BookAppointmentModal`, which
@@ -6910,7 +6910,7 @@ serviced bike would orphan the service history shops and invoices reference. `up
   (the only `text-slate-95*` hits are the intended `text-slate-950` on teal accent buttons).
 - Not verified in a browser: the history modal unscoped + scoped, expanded accordion, filter
   counts, empty states, long vehicle names, mobile widths, and the settings modal on all 3 tabs.
-  Recommend a hard refresh — stale cache previously made a restyle look like a no-op.
+  Recommend a hard refresh stale cache previously made a restyle look like a no-op.
 
 ### Known follow-ups (not done, deliberately out of scope)
 - Still light "white sheets": `CustomerPortalModal`, `BrowsePartsModal`, `JobOrderModal`,
@@ -6921,13 +6921,13 @@ serviced bike would orphan the service history shops and invoices reference. `up
 
 ---
 
-## TASK LOG — Transactional email notifications (secure serverless SendGrid)
+## TASK LOG Transactional email notifications (secure serverless SendGrid)
 
 Date: Sep 26, 2026
 
 ### Decision
 Implemented the email-notifications plan: **booking confirmation**, **service completion**,
-**owner new-booking**, and **cancel/update** emails to customers + owners — with all SendGrid
+**owner new-booking**, and **cancel/update** emails to customers + owners with all SendGrid
 sending moved server-side. Previously the browser held `VITE_SENDGRID_API_KEY` and POSTed
 straight to `https://api.sendgrid.com` via a Vercel rewrite (key exposed in the public bundle).
 That whole insecure path is now gone.
@@ -6947,7 +6947,7 @@ That whole insecure path is now gone.
 - `vercel.json`: `/api/sendgrid/:path*` rewrite **removed** (closes the key-leak proxy); the
   `/(.*)` SPA fallback remains (Vercel resolves `/api/send-email` before rewrites).
 - Migration `supabase/migrations/20260926_notifications_status_skipped.sql` (USER MUST RUN):
-  adds `'skipped'` to the `notifications.status` CHECK — before this, opt-out audit rows failed the
+  adds `'skipped'` to the `notifications.status` CHECK before this, opt-out audit rows failed the
   CHECK silently and were dropped.
 - `.env.example`: SendGrid vars moved to a server-side section; `VITE_SENDGRID_*` removed.
 
@@ -6960,13 +6960,13 @@ That whole insecure path is now gone.
   `sendBookingConfirmationEmail`, `sendBookingUpdatedEmail`, `sendBookingCancelledEmail`,
   `sendOwnerBookingEmail` (all call `requestEmail`). In-app bell helpers unchanged.
 - Hooks:
-  - `BookAppointmentModal` — booking-confirmation + owner-booking email after insert (beside the
+  - `BookAppointmentModal` booking-confirmation + owner-booking email after insert (beside the
     existing in-app `notifyOwnerOfNewAppointment`).
-  - `AppointmentCalendarPage` — completion email now `sendServiceCompletionEmail(appointment.id)`
+  - `AppointmentCalendarPage` completion email now `sendServiceCompletionEmail(appointment.id)`
     (server re-resolves parts/vehicle, so the old client payload table was removed); status→confirmed
     fires booking-updated, status→cancelled fires booking-cancelled; quick-add fires
     booking-confirmation when a customer_id exists.
-  - `ViewAppointmentsModal` + `UserProfilePage` — customer cancel fires booking-cancelled.
+  - `ViewAppointmentsModal` + `UserProfilePage` customer cancel fires booking-cancelled.
 
 ### Setup (deployment)
 - Set server env vars in the Vercel dashboard (NOT .env.local): SENDGRID_API_KEY,
@@ -6977,12 +6977,12 @@ That whole insecure path is now gone.
 
 ### Verified
 - `npm run build` passes (tsc + vite; only pre-existing chunk-size warning). Lint script exists
-  but eslint isn't installed as a dependency — build is the gate.
+  but eslint isn't installed as a dependency build is the gate.
 - Not yet committed/pushed (waiting on user).
 
 ---
 
-## TASK LOG — Required Terms & Conditions agreement (booking / register / login)
+## TASK LOG Required Terms & Conditions agreement (booking / register / login)
 
 Date: Oct 03, 2026
 
@@ -6993,23 +6993,23 @@ owner signup wizard) and logging in (customer, shop owner, admin). The checkbox 
 ticked before the user can continue or submit.
 
 ### Implementation
-- New reusable `src/components/TermsCheckbox.tsx` — checkbox + "I agree to the Terms &
+- New reusable `src/components/TermsCheckbox.tsx` checkbox + "I agree to the Terms &
   Conditions of MotoLink." label; the Terms & Conditions link is a placeholder (`href="#"`
   with `preventDefault`) since no T&C page exists yet.
-- `BookAppointmentModal.tsx` — `termsAccepted` state; checkbox rendered on Step 4 (Confirm),
+- `BookAppointmentModal.tsx` `termsAccepted` state; checkbox rendered on Step 4 (Confirm),
   after the Notes section; `canGoNext()` case 3 now requires `termsAccepted` (gates the
   authenticated Confirm button + NEXT disabled styling); `handleSubmit` guard
   ("Please agree to the Terms & Conditions to continue."); the guest **Sign Up / Log In**
   footer buttons are disabled until checked (conditional styling); state resets in the
   existing on-close reset effect (line ~290).
-- `LoginPage.tsx` — `termsAccepted` state; checkbox above the primary button (visible in both
+- `LoginPage.tsx` `termsAccepted` state; checkbox above the primary button (visible in both
   login and signup modes); `handleSubmit` guard; submit button disabled until checked;
   reset on mode toggle.
-- `ShopOwnerLoginPage.tsx` — `termsAccepted` state; checkbox in the login form (gates Sign In)
+- `ShopOwnerLoginPage.tsx` `termsAccepted` state; checkbox in the login form (gates Sign In)
   and on wizard Step 3 / final step (gates the "Register Shop" submit); `handleSubmit` +
   `handleSignup` guards; Register Shop + Sign In buttons disabled until checked; reset on
   mode toggle.
-- `AdminLoginPage.tsx` — `termsAccepted` state; checkbox above Sign In; `handleSubmit` guard;
+- `AdminLoginPage.tsx` `termsAccepted` state; checkbox above Sign In; `handleSubmit` guard;
   submit disabled until checked.
 
 ### Verified
@@ -7018,7 +7018,7 @@ ticked before the user can continue or submit.
 
 ---
 
-## TASK LOG — Remove the shop-level "Speciality" field (shops.specialties)
+## TASK LOG Remove the shop-level "Speciality" field (shops.specialties)
 
 Date: Oct 03, 2026
 
@@ -7030,30 +7030,30 @@ The field duplicated the shop description and was only ever used for a discovery
 cosmetic tag chips.
 
 **`shop_mechanics.specialty` was INTENTIONALLY LEFT UNTOUCHED.** That is a *mechanic's own*
-speciality — a different table, a different column, unrelated behaviour, and out of scope. No
+speciality a different table, a different column, unrelated behaviour, and out of scope. No
 mechanic UI, service or data path was modified.
 
 ### Database
-- NEW `supabase/migrations/20261003_drop_shop_specialties.sql` — `ALTER TABLE public.shops DROP
+- NEW `supabase/migrations/20261003_drop_shop_specialties.sql` `ALTER TABLE public.shops DROP
   COLUMN IF EXISTS specialties;`. Verified beforehand that **no view, function, index or FK**
   references the column (only two historical seed INSERTs do), so nothing cascade-breaks.
   `register_shop_owner()` never listed the column in its INSERT (it relied on `DEFAULT '{}'`), so
   the signup RPC is unaffected.
-- `MOTOLINK_ERD_SCHEMA.sql` + `supabase/schema.sql` — `specialties TEXT[] NOT NULL DEFAULT '{}'`
+- `MOTOLINK_ERD_SCHEMA.sql` + `supabase/schema.sql` `specialties TEXT[] NOT NULL DEFAULT '{}'`
   removed from the `shops` CREATE TABLE baseline. `COMPLETE_DATABASE_SCHEMA.sql:223`
   (`shop_mechanics.specialty TEXT`) deliberately kept.
 - Historical migrations `20260725_create_public_shops.sql`, `20260819_demo_shop_seed.sql`,
   `20260831_nathan_drake_test_shop.sql` left as-is (applied history); the new migration's header
   notes that replaying the seeds afterwards requires dropping the value from their column lists.
 
-### The `shops.description` NOT NULL history (important — do not "fix" this)
+### The `shops.description` NOT NULL history (important do not "fix" this)
 - The old signup bug (see the 23502 entry above) was caused by `description: shop_description ||
   null`. It was already fixed twice: the client now sends `|| ""`, and
   `20260813_fix_owner_signup.sql` **deliberately dropped NOT NULL** on `shops.description` (with
   `DEFAULT ''`) so a signup can never 23502. The RPC also wraps it in
   `COALESCE(NULLIF(p_description,''),'')`.
 - So `description` is nullable-with-default in the live DB. The new migration deliberately does
-  **NOT** re-add `NOT NULL` — doing so would resurrect the original failure. `description` is
+  **NOT** re-add `NOT NULL` doing so would resurrect the original failure. `description` is
   otherwise unchanged and still independently required in the ERD baseline.
 - The registration wizard's speciality chips used to be the *only* writer of
   `signupData.shop_description` (`setSignupData(prev => ({...prev, shop_description: newText}))`).
@@ -7062,37 +7062,37 @@ mechanic UI, service or data path was modified.
   original bug can no longer occur.
 
 ### Code changes
-- `src/services/shopService.ts` — `specialties` removed from `SHOP_SELECT` and
+- `src/services/shopService.ts` `specialties` removed from `SHOP_SELECT` and
   `SHOP_SELECT_NO_IS_OPEN` (the shared field list behind `getPublicShops` / `getShopById` /
   `getShopByOwnerId`, i.e. the F39 catalog select) and from `updateShop`'s `Pick<Shop, ...>` write
-  payload. `normalizeSpecialties` was **renamed to `normalizeShop` rather than deleted** — it also
+  payload. `normalizeSpecialties` was **renamed to `normalizeShop` rather than deleted** it also
   carries the `is_open` inference fallback from `operating_hours` used by the pre-migration
   `is_open` resilience path, which is still needed.
-- `src/types/shop.ts` — `specialties: string[]` removed from the `Shop` interface.
-- `src/pages/ShopOwnerLoginPage.tsx` — removed the `specialtiesText` state + its draft-persistence
+- `src/types/shop.ts` `specialties: string[]` removed from the `Shop` interface.
+- `src/pages/ShopOwnerLoginPage.tsx` removed the `specialtiesText` state + its draft-persistence
   key and effect dependency, the `SPECIALTY_OPTIONS` constant, and the whole "Specialty Services"
   chip block in Step 0; replaced with the independent Shop Description textarea.
   `validateStep()` never referenced specialty (verified), so it is unchanged.
-- `src/pages/ShopSettingsPage.tsx` — removed the comma-list Specialties input, `specialtiesText`
+- `src/pages/ShopSettingsPage.tsx` removed the comma-list Specialties input, `specialtiesText`
   state, the load/save re-population, the `specialtyList` parse and the `specialties` key in the
   `updateShop` payload.
-- `src/pages/OwnerPlatformDashboard.tsx` — removed the specialty tag row from the Live Shop Info card.
-- `src/components/ShopCard.tsx` — card body is now description, else the "Full-service motorcycle
+- `src/pages/OwnerPlatformDashboard.tsx` removed the specialty tag row from the Live Shop Info card.
+- `src/components/ShopCard.tsx` card body is now description, else the "Full-service motorcycle
   shop" fallback (the specialty-tag branch was only a fallback when description was empty).
-- `src/pages/ShopDetailPage.tsx` — removed the specialty pill row under the contact details.
-- `src/components/ShopFilters.tsx` — the "All specialties" select is gone; the component is now
+- `src/pages/ShopDetailPage.tsx` removed the specialty pill row under the contact details.
+- `src/components/ShopFilters.tsx` the "All specialties" select is gone; the component is now
   availability-only (`availabilityOnly` / `onAvailabilityChange` props only).
-- `src/pages/MotolinkLanding.tsx` — removed the `specialty` state, the
+- `src/pages/MotolinkLanding.tsx` removed the `specialty` state, the
   `shop.specialties.includes(specialty)` filter clause, the `DEFAULT_SPECIALTIES` list, the derived
   `specialties` memo and the `<ShopFilters>` specialty props. Discovery order is unchanged and still
   **nearest-shop-first (sortByDistance) → availability filter → city search**.
-- `src/components/AdminShopReviewModal.tsx` — found by grep, not in the original brief: it selected
+- `src/components/AdminShopReviewModal.tsx` found by grep, not in the original brief: it selected
   `specialties` in its shop-detail query (which would 400 after the drop) and rendered a Specialties
   block. Both removed.
-- `src/components/AIChatModal.tsx` — found by grep: shop-recommendation query select, the
+- `src/components/AIChatModal.tsx` found by grep: shop-recommendation query select, the
   "Specialties:" line in the rendered `<shop_recommendations>` block, and the prompt wording
   ("match against each shop's description, city/proximity, and services") updated.
-- `index.html` — the global Chosen (jQuery) plugin CSS, the `chosen.min.css` link and the
+- `index.html` the global Chosen (jQuery) plugin CSS, the `chosen.min.css` link and the
   jQuery + `chosen.jquery.min.js` scripts were loaded *solely* for the specialty selector (see the
   comment on the old line 49). Verified nothing in `src/` uses jQuery or `.chosen-*`, then removed
   the dead assets (~90 lines).
@@ -7103,32 +7103,32 @@ mechanic UI, service or data path was modified.
 - Repo-wide grep for `specialt` now returns only: the preserved `shop_mechanics.specialty` in
   `COMPLETE_DATABASE_SCHEMA.sql`, the three untouched historical migrations, and this migration's
   own comments. No app code references remain.
-- NOT YET RUN against a live database — run `20261003_drop_shop_specialties.sql` in the Supabase
+- NOT YET RUN against a live database run `20261003_drop_shop_specialties.sql` in the Supabase
   SQL Editor. Note the app reads `specialties`-free selects now, so the column must be dropped
   before/with deploy (the selects only fail once the column is gone, never before).
 - Not yet committed/pushed (waiting on user).
 
 ---
 
-## TASK LOG — Remove the description line from customer-facing shop cards (display only)
+## TASK LOG Remove the description line from customer-facing shop cards (display only)
 
 Date: Oct 03, 2026
 
 ### Decision
 Hide the shop description / "Full-service motorcycle shop" line from **customer-facing shop cards**
 only. This is a pure UI display removal. `shops.description` is **completely untouched in the data
-layer** — still the column, still selected, still required, still editable.
+layer** still the column, still selected, still required, still editable.
 
 The line in the screenshot was the `<ShopCard>` block that rendered `shop.description`, falling back
 to the italic *"Full-service motorcycle shop"* placeholder whenever the description was empty
 (shop cards with no description yet therefore showed the italic line).
 
 ### Files where the line was removed
-- `src/components/ShopCard.tsx` — **the only live card change.** Deleted the whole
+- `src/components/ShopCard.tsx` **the only live card change.** Deleted the whole
   `<div className="min-h-[2.5rem] flex flex-col justify-center">` block (description → italic
   fallback). Card flow is now address → rating/distance badges → SCHEDULE grid.
-- `src/components/HeaderCard.tsx` — a second shop card that rendered `<p>{shop.description}</p>`.
-  NOTE: this component is **dead code — it is not imported anywhere in the app**; it was changed
+- `src/components/HeaderCard.tsx` a second shop card that rendered `<p>{shop.description}</p>`.
+  NOTE: this component is **dead code it is not imported anywhere in the app**; it was changed
   only for consistency with "no shop card shows description". Its now-unused
   `description?: string` prop was removed from `HeaderCardProps` too.
 
@@ -7140,21 +7140,21 @@ address (`min-h-[2.25rem]`) and badges (`min-h-[1.5rem]`) rows keep their min-he
 the carousel stay vertically aligned.
 
 ### Verified as ALREADY not rendering description (no change needed)
-- `ShopDetailPage.tsx` — the "Shop Profile Card" sidebar never rendered `shop.description`
+- `ShopDetailPage.tsx` the "Shop Profile Card" sidebar never rendered `shop.description`
   (confirmed by grep); the only `.description` hits there are **service/part** descriptions.
-- `ShopMap.tsx` — the shop list card shows name / rating / distance+address only, no description.
+- `ShopMap.tsx` the shop list card shows name / rating / distance+address only, no description.
 - Card render path is `MotolinkLanding` → `ShopGallery` (carousel) → `ShopCard`; `ShopGallery` is
   only used by the landing page, so this one edit covers every customer-facing shop card.
 
 ### Deliberately KEPT (description still meaningful here)
-- `src/services/shopService.ts` — `description` stays in `SHOP_SELECT` / `SHOP_SELECT_NO_IS_OPEN`.
-- `src/types/shop.ts` — `description: string` stays on the `Shop` interface.
-- `src/pages/ShopOwnerLoginPage.tsx` — registration still collects `shop_description` and submits
+- `src/services/shopService.ts` `description` stays in `SHOP_SELECT` / `SHOP_SELECT_NO_IS_OPEN`.
+- `src/types/shop.ts` `description: string` stays on the `Shop` interface.
+- `src/pages/ShopOwnerLoginPage.tsx` registration still collects `shop_description` and submits
   it (`p_description` to `register_shop_owner`, plus the fallback insert).
-- `src/pages/ShopSettingsPage.tsx` — owner still edits the description and saves it via `updateShop`.
-- `src/components/AdminShopReviewModal.tsx:147` — admin shop review still shows it.
-- `src/pages/OwnerPlatformDashboard.tsx:777` — owner "Live Shop Info" card still shows it.
-- `src/components/AIChatModal.tsx:203` — the description is still fed into the assistant's
+- `src/pages/ShopSettingsPage.tsx` owner still edits the description and saves it via `updateShop`.
+- `src/components/AdminShopReviewModal.tsx:147` admin shop review still shows it.
+- `src/pages/OwnerPlatformDashboard.tsx:777` owner "Live Shop Info" card still shows it.
+- `src/components/AIChatModal.tsx:203` the description is still fed into the assistant's
   `<shop_recommendations>` context so it can match shops to a customer's need.
 
 ### Verified
@@ -7166,7 +7166,7 @@ the carousel stay vertically aligned.
 
 ---
 
-## TASK LOG — Per-day Operating Hours editor in owner Shop Settings
+## TASK LOG Per-day Operating Hours editor in owner Shop Settings
 
 Date: Oct 03, 2026
 
@@ -7177,12 +7177,12 @@ closeTime}` model from the registration wizard (Step 2 "Hours") instead of inven
 The stored `shops.operating_hours` VARCHAR format is **unchanged**.
 
 ### Files touched
-- `src/pages/ShopSettingsPage.tsx` — the only file changed.
+- `src/pages/ShopSettingsPage.tsx` the only file changed.
 
 ### Implementation
 - **Model**: module-level `type DaySchedule = { open, openTime, closeTime }` + `WEEK_DAYS`
   (index 0 = Sunday), mirroring the wizard. `scheduleToOperatingHours()` is a byte-for-byte copy of
-  the wizard's `generateOperatingHoursString` — it emits `"Sun: closed; Mon: 08:00-19:30; ..."`.
+  the wizard's `generateOperatingHoursString` it emits `"Sun: closed; Mon: 08:00-19:30; ..."`.
 - **Load**: `parseOperatingHoursString()` (already exported from `shopService.ts`) hydrates the
   7-day state on load, so the owner sees current hours pre-filled. `"Hours unavailable"` /
   `""` / unparseable text degrade to all-closed.
@@ -7191,20 +7191,20 @@ The stored `shops.operating_hours` VARCHAR format is **unchanged**.
   always mirrors the canonical string.
 - **UI**: new full-width `dashboard-card` "Operating Hours" section (the old field was a
   `md:col-span-2` input at the end of Location & Contact; that section's subtitle was updated too).
-  Each day row = toggle button (teal `Check` when open / grey `X` when closed — matching
+  Each day row = toggle button (teal `Check` when open / grey `X` when closed matching
   ShopDetailPage's open-dot vs closed-dot language), day name with a "Today" marker, and two
   `type="time"` inputs that only render when the day is open. Closed days show a "Closed" label.
   Added a `timeInputClass` with `[color-scheme:dark]` so the native clock glyphs are legible.
 - **Convenience**: "Apply to all open days" copies the first open day's times onto every other open
   day (same semantics as the wizard's button); closed days stay closed.
 - **Theme note**: the brief described ShopSettingsPage as "light theme, white cards, violet
-  accents". It is actually **dark** (`bg-moto-darker`, `moto-accent`, `dashboard-card`) — the new
+  accents". It is actually **dark** (`bg-moto-darker`, `moto-accent`, `dashboard-card`) the new
   section matches the real page theme rather than the description in the brief.
 
 ### Validation
 - `getScheduleIssues()` flags only: missing open/close time, and `openTime === closeTime`.
 - **Overnight shifts are deliberately allowed.** `closeTime < openTime` is annotated
-  ("Overnight shift — closes the next day") instead of blocked, because
+  ("Overnight shift closes the next day") instead of blocked, because
   `isOpenNowFromOperatingHours()` in `shopService.ts` explicitly supports it
   (`closeMin <= openMin` → "now >= open OR now < close"). Blocking close<open would have made
   overnight shops unsavable and broken the shared parser's contract.
@@ -7212,7 +7212,7 @@ The stored `shops.operating_hours` VARCHAR format is **unchanged**.
   blocked with an explicit message rather than failing silently.
 
 ### Legacy-data safety (found while verifying)
-A shop may already hold hours this model can't represent — the old field accepted arbitrary text
+A shop may already hold hours this model can't represent the old field accepted arbitrary text
 (e.g. `"Mon–Sat 8:00 AM – 6:00 PM"`), which parses to **zero open days**. Without a guard, opening
 settings and hitting Save would silently overwrite those hours with an all-closed string.
 Added: `legacyHoursUnmapped` memo (stored string is non-empty but yields no open day) → shows an
@@ -7226,7 +7226,7 @@ the owner actually edited the schedule** (`scheduleTouched` flag, reset after ea
 - `npx tsc --noEmit` clean; `npm run build` passes (only the pre-existing chunk-size warning).
 - Owner Dashboard "Live Shop Info" realtime still fires: its channel subscribes
   `event: "*"` on `shops` filtered by `id=eq.${shop.id}` → `fetchShop()`, so any `operating_hours`
-  UPDATE refetches the card. (The card itself doesn't display hours — it shows logo/name/address/
+  UPDATE refetches the card. (The card itself doesn't display hours it shows logo/name/address/
   active pill/description.) Customer-facing `ShopDetailPage` SCHEDULE card and the landing "Open
   now" pill read the same unchanged string via the same parser.
 - Registration wizard Step 2 was **not** modified (referenced only).
@@ -7235,22 +7235,22 @@ the owner actually edited the schedule** (`scheduleTouched` flag, reset after ea
 
 ---
 
-## TASK LOG — Admin "Import CSV" bulk creation of shop owners
+## TASK LOG Admin "Import CSV" bulk creation of shop owners
 
 Date: Oct 03, 2026
 
 ### Decision
 Let an admin bulk-create shop owner accounts from a CSV on the Admin Shops page
 (`AdminShopsPage.tsx`) instead of registering them one by one. New dependency: **`papaparse@^5.7.0`**
-(+ `@types/papaparse@^5.5.2`) — the project's first CSV library. No `specialties` column (that field
+(+ `@types/papaparse@^5.5.2`) the project's first CSV library. No `specialties` column (that field
 is being removed in a separate task).
 
-### The registration path — and why it's server-side
+### The registration path and why it's server-side
 The brief said to reuse the `register_shop_owner` RPC per row. **That is not possible**, for three
 reasons found in the existing code:
 
 1. `register_shop_owner` (`supabase/migrations/20260813_fix_owner_signup.sql`) begins with
-   `IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN RAISE EXCEPTION 'Not allowed'` — it only
+   `IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN RAISE EXCEPTION 'Not allowed'` it only
    lets a user register **themselves**, so an admin cannot call it for other owners.
 2. `supabase/admin_rls.sql` grants admins only **SELECT / UPDATE / DELETE** on `shops`. There is no
    admin INSERT policy, so a browser-only import would be rejected by RLS on the shop insert.
@@ -7263,7 +7263,7 @@ as the existing `api/send-email.ts`), and it reproduces the manual signup flow s
 ```
 auth.admin.createUser({ email, password, email_confirm: true })   // no confirmation loop
   -> users upsert role='owner'      (same as RPC step 1; handle_new_user may have made them 'customer')
-  -> shops insert, is_active=false   (same as RPC step 2 — PENDING, so admin still Approves)
+  -> shops insert, is_active=false   (same as RPC step 2 PENDING, so admin still Approves)
   -> users.shop_id = shops.id        (same as RPC step 3)
 ```
 
@@ -7296,7 +7296,7 @@ Optional: `password, latitude, longitude`
 
 ### Client-side validation (PapaParse, `src/utils/shopImportCsv.ts`)
 Header keys are normalised (`"Shop Name"` → `shop_name`, BOM/case/space tolerant), then every row
-is validated and **all** problems are collected — nothing is silently skipped:
+is validated and **all** problems are collected nothing is silently skipped:
 missing required field (per field), invalid email, duplicate email inside the file (case-insensitive,
 reported against the first occurrence), password under 8 chars, non-numeric/out-of-range
 coordinates, and rows with **more values than the header**.
@@ -7315,12 +7315,12 @@ lines.
 Row limit: **100 per import**, enforced client-side (clear "split it into smaller files" message) and
 again server-side. Rows are processed **sequentially** server-side to avoid hammering auth signup.
 
-### Admin UX (3 steps, all in the existing dark Admin theme — no new design system)
-1. **Upload** — "Download template" button + `.csv` file picker.
-2. **Preview** — per-row table with Ready/Error state and the specific error text under each bad
+### Admin UX (3 steps, all in the existing dark Admin theme no new design system)
+1. **Upload** "Download template" button + `.csv` file picker.
+2. **Preview** per-row table with Ready/Error state and the specific error text under each bad
    row. Import is blocked while errors remain unless the admin explicitly ticks
    "import valid rows and skip N" (so skipping is always a conscious choice, never silent).
-3. **Results** — imported/failed/generated-password counters, per-row outcome with the real error
+3. **Results** imported/failed/generated-password counters, per-row outcome with the real error
    (e.g. "Email already registered"), the generated passwords inline, and a **Download results CSV**
    (email, name, shop_name, status, shop_id, temp_password, error).
 
@@ -7329,31 +7329,31 @@ The "Import CSV" entry point is a new card above the shops table; the existing t
 Approve/Deactivate/Delete actions and all table columns are untouched (37 insertions, 0 deletions).
 
 ### Files touched
-- `api/import-shop-owners.ts` — **new** serverless import route (service role + admin check).
-- `src/utils/shopImportCsv.ts` — **new** pure CSV constants/parse-validation/export helpers
+- `api/import-shop-owners.ts` **new** serverless import route (service role + admin check).
+- `src/utils/shopImportCsv.ts` **new** pure CSV constants/parse-validation/export helpers
   (React-free so they're unit-testable).
-- `src/components/AdminShopImportModal.tsx` — **new** the 3-step import modal.
-- `src/pages/AdminShopsPage.tsx` — +37 lines: button card, modal mount, `importingShops` state.
-- `package.json` / `package-lock.json` — `papaparse`, `@types/papaparse`.
-- `MEMORY.md` — this entry.
+- `src/components/AdminShopImportModal.tsx` **new** the 3-step import modal.
+- `src/pages/AdminShopsPage.tsx` +37 lines: button card, modal mount, `importingShops` state.
+- `package.json` / `package-lock.json` `papaparse`, `@types/papaparse`.
+- `MEMORY.md` this entry.
 
 ### Verified
 - `npx tsc --noEmit` clean; `npm run build` passes (only the pre-existing chunk-size warning).
 - `api/` is **not** in `tsconfig.json` (`include: ["src"]`), so `npm run build` does not typecheck
-  it — same pre-existing gap as `api/send-email.ts`. Typechecked it separately with
+  it same pre-existing gap as `api/send-email.ts`. Typechecked it separately with
   `tsc --strict` → clean.
 - 63 assertions over the real parsing/validation module (bundled with esbuild, run in Node) all
   pass: template round-trip, header normalisation, missing columns/fields, valid+invalid emails,
   duplicate detection, coordinate ranges, password length, quoted-comma/escaped-quote round-trip,
   unquoted-comma detection, blank-line handling, csvCell escaping, and the row-limit constant.
 - **Not verified:** no live Supabase run and no browser click-through. The route needs
-  `SUPABASE_SERVICE_ROLE_KEY` in the server env and must be exercised with `vercel dev` — plain
+  `SUPABASE_SERVICE_ROLE_KEY` in the server env and must be exercised with `vercel dev` plain
   `vite dev` does not serve `api/`, so the import button will fail to connect locally under Vite.
 - Not committed/pushed (waiting on user).
 
 ---
 
-## TASK: Walk-in appointments — owner books a service for a customer with no account
+## TASK: Walk-in appointments owner books a service for a customer with no account
 
 **Symptom:** a shop owner clicking "New Appointment" and filling the form always failed, with only
 the generic alert "Failed to book appointment."
@@ -7368,9 +7368,9 @@ DB constraint was left over from the previous schema, and the swallowed `.error`
 - `user.shop_id` is NULL for most owners, and the owner RLS policy keys off `shops.owner_id =
   auth.uid()`. The page used `user.shop_id` directly for the insert's `shop_id` and for scoping its
   queries, so booking silently failed RLS. Now falls back to `getShopByOwnerId()`.
-- `scheduled_time` was hardcoded to `"09:00 AM"` — there was no way to pick a slot. Replaced with a
+- `scheduled_time` was hardcoded to `"09:00 AM"` there was no way to pick a slot. Replaced with a
   real slot grid (`08:00`–`17:00`, hourly), disabling slots already taken that day.
-- Walk-ins weren't searchable — owner search now covers `walk_in_name`, `walk_in_phone`, `booking_id`.
+- Walk-ins weren't searchable owner search now covers `walk_in_name`, `walk_in_phone`, `booking_id`.
 - `job_orders.customer_id` and `invoices.customer_id` were also `NOT NULL`. Because both are fed
   straight from the parent appointment's `customer_id`, confirming a walk-in appointment would fail
   to create its job order, and completing it would fail to create its invoice. Both dropped to
@@ -7390,7 +7390,7 @@ DB constraint was left over from the previous schema, and the swallowed `.error`
 
 **Why the claim is an RPC and not a client `UPDATE`**
 A direct `.update()` would need an RLS policy loose enough for any signed-in user to attach an
-unlinked appointment to themselves — and any policy that loose also lets one customer hijack another
+unlinked appointment to themselves and any policy that loose also lets one customer hijack another
 customer's walk-in by guessing a reference. `claim_walk_in_appointment(booking_id)` instead validates
 the reference server-side inside one transaction as `SECURITY DEFINER`: not-found / already-claimed /
 already-yours are three distinct human-readable errors, and the walk-in fields are cleared on success.
@@ -7409,43 +7409,43 @@ already-yours are three distinct human-readable errors, and the walk-in fields a
 Both `SECURITY DEFINER` functions use `SET search_path = public, pg_temp` (leaving `pg_temp` implicit
 would search it *first*, which is the hijack the clause exists to prevent).
 
-**Owner UI** (`AppointmentCalendarPage.tsx`) — "Book Walk-in" button, modal retitled to make clear
+**Owner UI** (`AppointmentCalendarPage.tsx`) "Book Walk-in" button, modal retitled to make clear
 the shop is booking on someone else's behalf, slot grid with taken slots disabled, dedicated name +
 phone fields, and a post-booking banner showing the generated reference with a Copy button (same
 `MTL-…` copy affordance the customer modal already had).
 
-**Customer UI** (`UserProfilePage.tsx`) — new "Served before you had an account?" card in Bookings &
+**Customer UI** (`UserProfilePage.tsx`) new "Served before you had an account?" card in Bookings &
 Service History: paste the reference, inline validation, per-error feedback, success line naming the
 linked service and date. `refreshData()` already scopes on `customer_id`, so a claimed booking
 appears in the history table with no extra query. Empty-state text unchanged so the card is the
 discoverable path.
 
-**Type changes** — `Appointment.customer_id`, `JobOrder.customer_id`, `Invoice.customer_id` are now
+**Type changes** `Appointment.customer_id`, `JobOrder.customer_id`, `Invoice.customer_id` are now
 `string | null`; `Appointment.walk_in_name` / `walk_in_phone` added as nullable. `Vehicle`/`Shop`
 `customer_id`-style fields left alone (not nullable in practice).
 
 ### Files touched
-- `supabase/migrations/20261003_walk_in_appointments.sql` — **new**: nullability on appointments /
+- `supabase/migrations/20261003_walk_in_appointments.sql` **new**: nullability on appointments /
   job_orders / invoices, `walk_in_name` + `walk_in_phone` + phone index, column and function
   comments, `claim_walk_in_appointment()`, patched `notify_shop_owner_on_appointment()`.
-- `src/services/appointmentService.ts` — **new** `claimWalkInAppointment()` + `ClaimedAppointment`.
+- `src/services/appointmentService.ts` **new** `claimWalkInAppointment()` + `ClaimedAppointment`.
   Surfaces the RPC's exception text verbatim so the customer sees "already claimed" rather than a
   generic database error.
-- `src/pages/AppointmentCalendarPage.tsx` — shop_id fallback, nullable customer_id, walk-in fields,
+- `src/pages/AppointmentCalendarPage.tsx` shop_id fallback, nullable customer_id, walk-in fields,
   slot picker, search, copyable reference, toast errors replacing `alert()`, walk-in badge.
-- `src/pages/UserProfilePage.tsx` — claim card + `handleClaimWalkIn`.
-- `src/types/index.ts` — nullability and walk-in fields.
-- `supabase/schema.sql` — synced. Note it had **already drifted**: it never had `booking_id` at all,
+- `src/pages/UserProfilePage.tsx` claim card + `handleClaimWalkIn`.
+- `src/types/index.ts` nullability and walk-in fields.
+- `supabase/schema.sql` synced. Note it had **already drifted**: it never had `booking_id` at all,
   which the claim RPC depends on, so a fresh install would have had a broken claim flow. Added
   `booking_id VARCHAR(40) NOT NULL` + its unique index + generator trigger, the walk-in columns,
   the nullable customer IDs on job_orders/invoices, the claim RPC, and the walk-in branch in
   `notify_shop_owner_on_appointment()`.
-- `MEMORY.md` — this entry.
+- `MEMORY.md` this entry.
 
 ### Verified
 - `npx tsc --noEmit` clean. `npm run build` passes (2825 modules, 18.5s; only the pre-existing
   chunk-size warning).
-- `npm run lint` is **not runnable** — `eslint` is not installed and there is no eslint config in the
+- `npm run lint` is **not runnable** `eslint` is not installed and there is no eslint config in the
   repo (already noted earlier in this file). `tsc` + `build` are the gate.
 - Had to run `npm install` first: `papaparse` / `@types/papaparse` were in `package.json` but missing
   from `node_modules`, so `tsc` reported a spurious `TS2307` in `AdminShopImportModal.tsx` (a file
@@ -7454,16 +7454,16 @@ discoverable path.
   so the claim's `UPDATE` deliberately does not set it. `booking_id` is uniquely indexed
   (`20260831`), so the reference lookup can match at most one row.
 - **Not verified:** no live Supabase run and no browser click-through. The migration is **not
-  applied** — per the DB-access rule near the top of this file it has to be run by the user in the
+  applied** per the DB-access rule near the top of this file it has to be run by the user in the
   Supabase SQL Editor. Until then the owner booking insert still hits the old `NOT NULL` constraint
   and the claim RPC does not exist.
 - Root-level `COMPLETE_DATABASE_SCHEMA.sql` and `MOTOLINK_ERD_SCHEMA.sql` still declare these
-  customer IDs `NOT NULL` — flagged as stale, left untouched (they are reference docs, not applied).
+  customer IDs `NOT NULL` flagged as stale, left untouched (they are reference docs, not applied).
 - Not committed/pushed (waiting on user).
 
 ---
 
-## TASK: Walk-in booking follow-up — future-only slots, uniform picker, reference confirmation, shop-member linking, dashboard entry
+## TASK: Walk-in booking follow-up future-only slots, uniform picker, reference confirmation, shop-member linking, dashboard entry
 
 Five follow-up items on the walk-in flow, all frontend-only. **No new migration** was written: the
 previous `20261003_walk_in_appointments.sql` still has to be applied first.
@@ -7471,16 +7471,16 @@ previous `20261003_walk_in_appointments.sql` still has to be applied first.
 ### 1. Past date/time can no longer be booked
 
 **Bug:** the owner walk-in form defaulted to today and its slot grid disabled only slots that were
-*already booked* — never slots whose time had passed. At 16:00 an owner could still book 09:00, and
+*already booked* never slots whose time had passed. At 16:00 an owner could still book 09:00, and
 `handleBook` sent it straight to the DB.
 
 **Fix:** `isSlotPast(dateKey, slot, now)` in the new `src/utils/dateTime.ts`. A slot is unavailable
-once the day is in the past, or — on the current day — once `slot <= nowHHMM()`. `<=` not `<`: at
+once the day is in the past, or on the current day once `slot <= nowHHMM()`. `<=` not `<`: at
 09:00 sharp an 09:00 slot can no longer be serviced.
 
 **The underlying timezone defect:** every booking screen built its "YYYY-MM-DD" key with
 `new Date().toISOString().slice(0, 10)`. `toISOString()` is **UTC**, so for a PHT (UTC+8) user any
-time between 00:00 and 08:00 local resolved to *yesterday* — cosmetic on a date label, but wrong for
+time between 00:00 and 08:00 local resolved to *yesterday* cosmetic on a date label, but wrong for
 logic deciding what is still bookable, and it made the "today" appointment counter in
 `AppointmentCalendarPage` wrong every morning. All booking paths now go through `localDateKey()` /
 `todayKey()`. Fixed the same UTC bug in `Dashboard.tsx`'s `TODAY()`.
@@ -7493,16 +7493,16 @@ elapsed. The walk-in modal now holds a `Date` that ticks every 60s and feeds bot
 ### 2. One uniform time/date picker, shared by owner and customer
 
 `BookAppointmentModal` and the owner walk-in form each had their own copy of the slot list and date
-strip, and they rendered differently — the customer grid put "8:00 AM" on one line, so the wide "12:00
+strip, and they rendered differently the customer grid put "8:00 AM" on one line, so the wide "12:00
 PM" labels wrapped and cells ended up **different heights**.
 
 Extracted two components:
-- **`src/components/TimeSlotGrid.tsx`** — owns `BOOKING_TIME_SLOTS` (`08:00`–`17:00`, the single source
+- **`src/components/TimeSlotGrid.tsx`** owns `BOOKING_TIME_SLOTS` (`08:00`–`17:00`, the single source
   of truth for both flows) and renders fixed `h-12` cells, splitting the label into hour + meridiem so
   an "8 AM" cell and a "12 PM" cell are identical. `takenSlots` and `pastSlots` are separate props and
   both render struck-through, so the legend is honest. Exports an `emptyMessage` shown when a date is
   full.
-- **`src/components/DateStrip.tsx`** — `includeToday` / `skipSundays` props. Owner: today + Sundays.
+- **`src/components/DateStrip.tsx`** `includeToday` / `skipSundays` props. Owner: today + Sundays.
   Customer: tomorrow onward, no Sundays (preserves the previous behaviour of `getAvailableDates()`,
   whose `for (let i = 1; …)` loop skipped today by construction).
 
@@ -7528,7 +7528,7 @@ used for the insert.
 
 **Deliberate limitation, no migration written:** the existing RLS policy `"Shop owners can view shop
 members"` only exposes users whose `shop_id` matches the owner's. A customer who registered *before*
-they had shop business has `shop_id = NULL` and therefore **will not appear** — that is exactly the
+they had shop business has `shop_id = NULL` and therefore **will not appear** that is exactly the
 audience the reference-claim flow exists for. Adding a cross-shop search RPC was considered and
 declined (it would need a security-definer function to bypass RLS, which is a wider blast radius than
 this fix warrants). Resolves to "shop members + reference".
@@ -7543,12 +7543,12 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
 > Banner lives in the **parent** `OwnerPlatformDashboard.tsx`, while `Dashboard.tsx` is the child, so the
 > button could not reach the modal's `showWalkIn` state where it sat. The modal and its state were lifted
 > up to `OwnerPlatformDashboard`, which renders a solid `#35D0C0` **Book Walk-in appointment** CTA in its
-> own row between the description text and the city/Live/Open chips — a separate row because an accent
+> own row between the description text and the city/Live/Open chips a separate row because an accent
 > button sitting inside that `flex-wrap` row reads as just another chip. The chip row's `mt-5` became
 > `mt-3` to keep the block tight. The panel-header button was removed.
 >
 > **The refresh hand-off.** `Dashboard` owns `load()` internally and only received `onNavigate`, so the
-> parent had no way to tell it to refetch — a booking made from the banner would not have appeared in the
+> parent had no way to tell it to refetch a booking made from the banner would not have appeared in the
 > pending list or the stat cards. Fixed with one prop rather than lifting `load` itself:
 > `refreshSignal?: number` on `DashboardProps`, added to the existing load effect's deps
 > (`[user?.shop_id, refreshSignal]`). `onBooked` bumps `setDashboardRefresh((n) => n + 1)`. The modal is
@@ -7566,25 +7566,25 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
   realtime delivered the change.
 
 ### Files touched
-- `src/utils/dateTime.ts` — **new**: `localDateKey`, `todayKey`, `nowHHMM`, `normalizeTime`,
+- `src/utils/dateTime.ts` **new**: `localDateKey`, `todayKey`, `nowHHMM`, `normalizeTime`,
   `isSlotPast`, `splitSlotLabel`, `formatSlotTime`, `useMinuteClock`.
-- `src/components/TimeSlotGrid.tsx` — **new**: shared uniform slot picker + `BOOKING_TIME_SLOTS`.
-- `src/components/DateStrip.tsx` — **new**: shared date strip.
-- `src/components/WalkInBookingModal.tsx` — **new**: extracted from `AppointmentCalendarPage`, plus
+- `src/components/TimeSlotGrid.tsx` **new**: shared uniform slot picker + `BOOKING_TIME_SLOTS`.
+- `src/components/DateStrip.tsx` **new**: shared date strip.
+- `src/components/WalkInBookingModal.tsx` **new**: extracted from `AppointmentCalendarPage`, plus
   identity toggle, shop-customer search, confirmation screen, future-slot enforcement.
-- `src/pages/AppointmentCalendarPage.tsx` — mounts the modal; ~300 lines of inline form/state removed
+- `src/pages/AppointmentCalendarPage.tsx` mounts the modal; ~300 lines of inline form/state removed
   (form state, slot fetch, mechanic fetch, reference banner); `todayKey()` used for the today count.
-- `src/components/BookAppointmentModal.tsx` — step 3 grid + date strip swapped for the shared
+- `src/components/BookAppointmentModal.tsx` step 3 grid + date strip swapped for the shared
   components; `unavailableSlots` memo added.
-- `src/pages/Dashboard.tsx` — walk-in button + modal, `load()` on success, `TODAY()` UTC fix.
-- `src/pages/OwnerPlatformDashboard.tsx` — hosts the walk-in modal and the banner CTA; `UserPlus` import;
+- `src/pages/Dashboard.tsx` walk-in button + modal, `load()` on success, `TODAY()` UTC fix.
+- `src/pages/OwnerPlatformDashboard.tsx` hosts the walk-in modal and the banner CTA; `UserPlus` import;
   `showWalkIn` + `dashboardRefresh` state; passes `refreshSignal` to `<Dashboard>`.
-- `MEMORY.md` — this entry.
+- `MEMORY.md` this entry.
 
 ### Verified
 - `npx tsc --noEmit` clean. `npm run build` passes (2829 modules, 11.6s; only the pre-existing chunk-size
   warning).
-- `npm run lint` still **not runnable** — ESLint is not installed and there is no eslint config. `tsc` +
+- `npm run lint` still **not runnable** ESLint is not installed and there is no eslint config. `tsc` +
   `build` are the gate.
 - **Not verified:** no live Supabase run and no browser click-through.
 - **Blocker for runtime testing:** `20261003_walk_in_appointments.sql` is still **not applied**. The
@@ -7597,17 +7597,17 @@ shows up behind it. No new route; the owner flow stays on the dashboard.
   beside it reads "Closed to bookings" (`shop.is_open === false`). Matches the behaviour of the panel-header
   button it replaced; gating it was raised and deliberately deferred.
 - **`Dashboard.load()` early-returns on `!user?.shop_id`.** Owners with a NULL `shop_id` (registered before
-  the atomic signup fix) therefore see an empty dashboard — stats and pending list never load — even though
+  the atomic signup fix) therefore see an empty dashboard stats and pending list never load even though
   the walk-in modal *does* handle that case via the `getShopByOwnerId()` fallback. Same root cause fixed in
   `AppointmentCalendarPage`; fixing the dashboard's load was flagged and deferred as out of scope.
-- `AppointmentCalendarPage.tsx` keeps its own "Book Walk-in" button. That is intentional — a different page,
+- `AppointmentCalendarPage.tsx` keeps its own "Book Walk-in" button. That is intentional a different page,
   and a legitimate second entry point next to the list it affects.
 
 ---
 
 ## ONLINE PAYMENTS (GCash / Maya via PayMongo)
 
-Status: **code complete, NOT yet run live** — migration `20261011_online_payments.sql` must be applied
+Status: **code complete, NOT yet run live** migration `20261011_online_payments.sql` must be applied
 and the two PayMongo server env vars set in Vercel. `tsc --noEmit` + `npm run build` pass.
 
 ### Model (locked with product owner)
@@ -7615,7 +7615,7 @@ and the two PayMongo server env vars set in Vercel. `tsc --noEmit` + `npm run bu
 - Per-shop **on/off toggle** + a shop-configurable **reservation/downpayment** (fixed ₱ or % of estimate).
 - Only online bookings can pay online; **walk-ins stay cash-only**.
 - HARD RULE: when online payment is off / provider unconfigured, the UI shows **"Unavailable"** and
-  renders **NO QR** — never a fake/placeholder QR. `api/create-payment` is the source of truth: a QR
+  renders **NO QR** never a fake/placeholder QR. `api/create-payment` is the source of truth: a QR
   exists only if PayMongo returned a real `next_action.redirect.url`.
 
 ### Flow
@@ -7630,18 +7630,18 @@ and the two PayMongo server env vars set in Vercel. `tsc --noEmit` + `npm run bu
    set to `payment_status='deposit_paid'` + `amount_paid`, in-app notifications sent to customer + owner.
 
 ### Serverless functions (`api/`, NOT covered by tsconfig `include: ["src"]`)
-- `api/payment-config.ts` — GET → `{ providerConfigured: Boolean(process.env.PAYMONGO_SECRET_KEY) }`.
-- `api/create-payment.ts` — guards: `not_configured` (503), unknown method (400), `online_disabled` (409),
+- `api/payment-config.ts` GET → `{ providerConfigured: Boolean(process.env.PAYMONGO_SECRET_KEY) }`.
+- `api/create-payment.ts` guards: `not_configured` (503), unknown method (400), `online_disabled` (409),
   `amount_too_low` (<₱1.00) / `amount_too_high` (>₱100k) (400), `provider_error` (502). Method maps
   internal `maya` → PayMongo `paymaya`, `gcash` → `gcash` (do NOT send "maya" to PayMongo). Basic auth
   `base64("SK:")`.
-- `api/payment-status.ts` — GET `?id=&accessToken=`; authorizes owner/shop-staff or the paying customer,
+- `api/payment-status.ts` GET `?id=&accessToken=`; authorizes owner/shop-staff or the paying customer,
   returns `{id, appointmentId, method, amount, status, paidAt}`.
-- `api/payment-webhook.ts` — verifies `Paymongo-Signature` (`t` + HMAC-SHA256 of `t.<rawBody>` with
-  `PAYMONGO_WEBHOOK_SECRET` via Node `crypto`; if unset, logs + accepts — dev only). Idempotent on
+- `api/payment-webhook.ts` verifies `Paymongo-Signature` (`t` + HMAC-SHA256 of `t.<rawBody>` with
+  `PAYMONGO_WEBHOOK_SECRET` via Node `crypto`; if unset, logs + accepts dev only). Idempotent on
   `provider_intent_id`. Handles `payment.paid`/`payment_intent.succeeded`,
   `payment.failed`/`payment_intent.cancelled`, `payment.expired`/`payment_intent.expired`.
-- Env (server-only, never `VITE_*`): `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` — documented in
+- Env (server-only, never `VITE_*`): `PAYMONGO_SECRET_KEY`, `PAYMONGO_WEBHOOK_SECRET` documented in
   `.env.example`.
 
 ### DB (migration `20261011_online_payments.sql`, mirrored into `supabase/schema.sql`)
@@ -7655,22 +7655,22 @@ and the two PayMongo server env vars set in Vercel. `tsc --noEmit` + `npm run bu
   SELECT own/shop/admin only; writes are service-role (functions) only.
 
 ### Client
-- `src/services/paymentService.ts` — `getPaymentConfig`, `startOnlinePayment`, `getPaymentStatus`,
+- `src/services/paymentService.ts` `getPaymentConfig`, `startOnlinePayment`, `getPaymentStatus`,
   `computeDeposit` (mirrors the server math).
-- `src/components/OnlinePaymentModal.tsx` — QR only when `qrValue` present; else "Online payment isn't
+- `src/components/OnlinePaymentModal.tsx` QR only when `qrValue` present; else "Online payment isn't
   available" state; polls to paid; "pay later" dismiss keeps the booking with deposit pending.
-- `BookAppointmentModal.tsx` — payment-method cards, deposit summary, and a **receipt hold**: for online
+- `BookAppointmentModal.tsx` payment-method cards, deposit summary, and a **receipt hold**: for online
   bookings the `onAppointmentBooked` callback (which `App.tsx` uses to close the modal + show the receipt)
   is deferred via `receiptRef` until the QR modal closes, so the QR isn't unmounted mid-pay. On any
   provider failure the booking falls back to cash with an amber notice (no QR).
-- `ShopSettingsPage.tsx` — "Online Payments" card: toggle (blocked unless `providerConfigured`), deposit
+- `ShopSettingsPage.tsx` "Online Payments" card: toggle (blocked unless `providerConfigured`), deposit
   type/value, validation before save. Saved with the form (not instantly like availability).
 - Badges: `AppointmentCalendarPage.tsx` + `ServiceHistoryModal.tsx` show method + deposit state.
 - Dep: `qrcode.react@^4.2.0` added to `package.json` + installed.
 
 ### Verified / not verified
 - Verified: `npx tsc --noEmit` clean; `npm run build` passes. `npm run lint` still **not runnable**
-  (eslint not installed — pre-existing).
+  (eslint not installed pre-existing).
 - NOT verified: no live Supabase run, no real PayMongo sandbox charge, migration not applied, webhook not
   registered. Runtime testing blocked until migration + env vars are in place.
 

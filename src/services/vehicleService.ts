@@ -26,7 +26,7 @@ export interface VehicleRecord {
 export interface VehicleStats {
   /** Appointments in a completed state. */
   completedCount: number;
-  /** Appointments that are not cancelled — this is what locks customer edits. */
+  /** Appointments that are not cancelled this is what locks customer edits. */
   activeCount: number;
   totalSpent: number;
   lastServiceDate: string | null;

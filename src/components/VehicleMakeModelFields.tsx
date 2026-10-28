@@ -276,7 +276,7 @@ const VehicleMakeModelFields: React.FC<VehicleMakeModelFieldsProps> = ({
           disabled={disabled || !make.trim()}
           hint={make.trim() ? undefined : "Select Make First"}
           emptyMessage={
-            makeIsKnown ? "No matches" : "Unknown make — type any model"
+            makeIsKnown ? "No matches" : "Unknown make type any model"
           }
           uppercaseOptions={uppercaseOptions}
           onChange={onModelChange}

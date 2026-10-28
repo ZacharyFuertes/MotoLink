@@ -285,7 +285,7 @@ const AppContent: React.FC = () => {
 
   // If auth loading and we're NOT on a login screen, show a spinner placeholder.
   // On a login screen we let the login page manage its own loading UI so it stays
-  // mounted through login — this lets its role guard + onLoginSuccess fire (the
+  // mounted through login this lets its role guard + onLoginSuccess fire (the
   // wrong-portal guard is dead code if the login page unmounts mid-login).
   if (isLoading && !isLoginScreen) {
     return (

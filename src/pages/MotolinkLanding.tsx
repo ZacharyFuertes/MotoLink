@@ -239,7 +239,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   return <div className="landing-page min-h-screen bg-moto-dark text-slate-100">
     <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onShopOwnerLogin={onShopOwnerLogin} onOpenProfile={onOpenProfile} />
     <main>
-      {/* Hero — full-bleed photo, bold headline, search bar, stats bar */}
+      {/* Hero full-bleed photo, bold headline, search bar, stats bar */}
       <motion.section
         id="hero"
         variants={sectionVariants}
@@ -268,7 +268,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             </button>
           </motion.div>
 
-          {/* Stats bar — compact responsive layout */}
+          {/* Stats bar compact responsive layout */}
           <motion.div
             initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -495,7 +495,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
         </div>
       </motion.section>
 
-      {/* 5. REGISTER YOUR SHOP CTA — only for visitors (hidden when signed in) */}
+      {/* 5. REGISTER YOUR SHOP CTA only for visitors (hidden when signed in) */}
       {!isAuthenticated && (
       <motion.section
         variants={sectionVariants}

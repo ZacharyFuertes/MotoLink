@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — daily shop-retention jobs.
+ * Vercel Serverless Function daily shop-retention jobs.
  *
  * Combines reminder delivery and purge processing under one route to stay
  * within Vercel Hobby's serverless-function limit. POST { action: "reminders" }
@@ -128,7 +128,7 @@ export default async function handler(req: any, res: any) {
       const { archiveRef, snapshotErrors: errors } = await performPurge(db, shop.id, shop.name, { retentionDays });
       for (const error of errors) snapshotErrors.push({ shopId: shop.id, ...error });
       purged.push(shop.id);
-      console.log(`[shop-retention] Purged ${shop.id} (${shop.name}) — export ${archiveRef}`);
+      console.log(`[shop-retention] Purged ${shop.id} (${shop.name}) export ${archiveRef}`);
     } catch (err: any) {
       console.error(`[shop-retention] Failed for ${shop.id}:`, err?.message || err);
       skipped.push({ shopId: shop.id, reason: err?.message || "unknown error" });

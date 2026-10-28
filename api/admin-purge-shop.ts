@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — manual "Purge now" for a held shop.
+ * Vercel Serverless Function manual "Purge now" for a held shop.
  *
  * Admin-triggered (the session JWT is verified and the caller must have the
  * admin role). Holding a shop normally starts an automatic 45-day retention
@@ -85,7 +85,7 @@ export default async function handler(req: any, res: any) {
   if (shop.legal_hold) {
     return res.status(409).json({
       success: false,
-      error: "This shop is under a legal hold — purge is blocked.",
+      error: "This shop is under a legal hold purge is blocked.",
     });
   }
 
@@ -97,7 +97,7 @@ export default async function handler(req: any, res: any) {
       retentionDays,
       force: true,
     });
-    console.log(`[admin-purge-shop] Purged ${shop.id} (${shop.name}) — export ${archiveRef}`);
+    console.log(`[admin-purge-shop] Purged ${shop.id} (${shop.name}) export ${archiveRef}`);
     return res.status(200).json({
       success: true,
       shopId: shop.id,

@@ -1,5 +1,5 @@
 -- ============================================================================
--- MOTOLINK NEW ARCHITECTURE — COMPLETE DATABASE SCHEMA
+-- MOTOLINK NEW ARCHITECTURE COMPLETE DATABASE SCHEMA
 -- Built from actual frontend code analysis (17 tables)
 -- Run this entire script in Supabase SQL Editor
 -- ============================================================================
@@ -663,7 +663,7 @@ CREATE POLICY "Users can update own notification settings"
   ON public.customer_notification_settings FOR UPDATE USING (auth.uid() = user_id);
 
 -- ============================================================================
--- PHASE 9: TRIGGER — auto-set updated_at
+-- PHASE 9: TRIGGER auto-set updated_at
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.set_updated_at()
@@ -872,7 +872,7 @@ CREATE TRIGGER trg_appointment_generate_booking_id
 COMMENT ON COLUMN public.appointments.booking_id IS
   'Short human-readable booking reference (MTL-YYYYMMDD-XXXXXX). Server-generated on insert.';
 COMMENT ON COLUMN public.appointments.customer_id IS
-  'Registered customer. NULL for a walk-in — see walk_in_name / walk_in_phone. Linkable later via claim_walk_in_appointment(booking_id).';
+  'Registered customer. NULL for a walk-in see walk_in_name / walk_in_phone. Linkable later via claim_walk_in_appointment(booking_id).';
 COMMENT ON COLUMN public.job_orders.customer_id IS
   'Registered customer, or NULL when the source appointment is a walk-in.';
 COMMENT ON COLUMN public.invoices.customer_id IS
@@ -1182,7 +1182,7 @@ ORDER BY table_name;
 --   users.shop_id = NULL and was invisible, even though the booking API would
 --   have accepted their ID happily.
 --
---   The shop_id filter is not the only thing in the way — it is the only thing
+--   The shop_id filter is not the only thing in the way it is the only thing
 --   the *RLS* allows. Policy "Shop owners can view shop members"
 --   (supabase/schema.sql) is:
 --     USING (shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid()))
@@ -1190,7 +1190,7 @@ ORDER BY table_name;
 --   from the client query would just trade "no customers" for "no customers".
 --
 -- This migration:
---   A. Adds search_registered_customers() — a SECURITY DEFINER function that
+--   A. Adds search_registered_customers() a SECURITY DEFINER function that
 --      searches every role='customer' account on the platform and returns only
 --      id / name / phone / email / is_shop_member.
 --   B. Adds policy "Shop owners can view customers they serve", so a customer

@@ -42,7 +42,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
-      /* storage unavailable — ignore */
+      /* storage unavailable ignore */
     }
   }, [theme]);
 

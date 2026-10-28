@@ -327,7 +327,7 @@ const AdminShopsPage: React.FC = () => {
     const ok = await runAction(
       purgeTarget.shop.id,
       () => purgeShopNow(purgeTarget.shop.id),
-      `${purgeTarget.shop.name} was purged — data exported (encrypted) and PII anonymized.`,
+      `${purgeTarget.shop.name} was purged data exported (encrypted) and PII anonymized.`,
     );
     if (ok) setPurgeTarget(null);
   };
@@ -347,7 +347,7 @@ const AdminShopsPage: React.FC = () => {
           legalHoldTarget.reason.trim(),
         ),
       legalHoldTarget.active
-        ? `Legal hold placed on ${legalHoldTarget.shop.name} — purge is blocked.`
+        ? `Legal hold placed on ${legalHoldTarget.shop.name} purge is blocked.`
         : `Legal hold lifted on ${legalHoldTarget.shop.name}.`,
     );
     if (ok) setLegalHoldTarget(null);
@@ -689,9 +689,9 @@ const AdminShopsPage: React.FC = () => {
                           >
                             <CalendarClock className="w-3.5 h-3.5" />
                             {shop.legal_hold
-                              ? "Legal hold — purge blocked"
+                              ? "Legal hold purge blocked"
                               : shop.purge_scheduled_at == null
-                                ? "Retained — no purge scheduled"
+                                ? "Retained no purge scheduled"
                                 : daysUntilPurge(shop) === 0
                                   ? "Purge due"
                                   : `${daysUntilPurge(shop)} day${daysUntilPurge(shop) === 1 ? "" : "s"} left`}
@@ -1051,9 +1051,9 @@ const AdminShopsPage: React.FC = () => {
                   className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition"
                 >
                   <option value="TERMINATED">
-                    TERMINATED — subscription / payment not valid
+                    TERMINATED subscription / payment not valid
                   </option>
-                  <option value="ARCHIVED">ARCHIVED — soft deactivation</option>
+                  <option value="ARCHIVED">ARCHIVED soft deactivation</option>
                 </select>
                 {holdTarget.shop.status !== "PENDING" && (
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -1267,7 +1267,7 @@ const AdminShopsPage: React.FC = () => {
                         setLegalHoldTarget({ ...legalHoldTarget, reason: e.target.value })
                       }
                       rows={3}
-                      placeholder="e.g. Open litigation / subpoena — evidence must be preserved"
+                      placeholder="e.g. Open litigation / subpoena evidence must be preserved"
                       className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder:text-slate-500"
                     />
                   </>

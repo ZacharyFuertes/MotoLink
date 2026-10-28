@@ -20,13 +20,13 @@
 --
 -- This migration:
 --   A. Makes customer_id optional on appointments (and on job_orders /
---      invoices, which are fed straight from the appointment — otherwise
+--      invoices, which are fed straight from the appointment otherwise
 --      confirming a walk-in appointment would fail to create its job order,
 --      and completing it would fail to create its invoice).
 --   B. Adds dedicated walk_in_name / walk_in_phone columns so the walk-in's
 --      identity is first-class data rather than a packed "Customer: X, Phone: Y"
 --      string inside notes.
---   C. Adds claim_walk_in_appointment() — the customer later links the walk-in
+--   C. Adds claim_walk_in_appointment() the customer later links the walk-in
 --      service to their fresh account by entering the booking reference
 --      (booking_id, format MTL-YYYYMMDD-XXXXXX, already generated server-side by
 --      the 20260831_add_booking_id_to_appointments migration).
@@ -52,7 +52,7 @@ ALTER TABLE public.invoices
   ALTER COLUMN customer_id DROP NOT NULL;
 
 COMMENT ON COLUMN public.appointments.customer_id IS
-  'Registered customer. NULL for a walk-in — see walk_in_name / walk_in_phone. Linkable later via claim_walk_in_appointment(booking_id).';
+  'Registered customer. NULL for a walk-in see walk_in_name / walk_in_phone. Linkable later via claim_walk_in_appointment(booking_id).';
 COMMENT ON COLUMN public.job_orders.customer_id IS
   'Registered customer, or NULL when the source appointment is a walk-in.';
 COMMENT ON COLUMN public.invoices.customer_id IS
@@ -208,7 +208,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 --   users.shop_id = NULL and was invisible, even though the booking API would
 --   have accepted their ID happily.
 --
---   The shop_id filter is not the only thing in the way — it is the only thing
+--   The shop_id filter is not the only thing in the way it is the only thing
 --   the *RLS* allows. Policy "Shop owners can view shop members"
 --   (supabase/schema.sql) is:
 --     USING (shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid()))
@@ -216,7 +216,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 --   from the client query would just trade "no customers" for "no customers".
 --
 -- This migration:
---   A. Adds search_registered_customers() — a SECURITY DEFINER function that
+--   A. Adds search_registered_customers() a SECURITY DEFINER function that
 --      searches every role='customer' account on the platform and returns only
 --      id / name / phone / email / is_shop_member.
 --   B. Adds policy "Shop owners can view customers they serve", so a customer

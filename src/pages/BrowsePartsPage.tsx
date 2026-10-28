@@ -321,7 +321,7 @@ const BrowsePartsPage: React.FC<BrowsePartsPageProps> = ({ embedded = false }) =
         </section>
       )}
 
-      {/* Parts Grid (Gallery — view only) */}
+      {/* Parts Grid (Gallery view only) */}
       <section className="px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-6xl mx-auto">
           {loading ? (

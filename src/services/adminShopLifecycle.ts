@@ -43,7 +43,7 @@ export const holdShop = (
 export const reactivateShop = (shopId: string, note?: string): Promise<LifecycleResult> =>
   rpc("admin_reactivate_shop", { p_shop_id: shopId, p_note: note || null });
 
-/** ON_HOLD only — push purge_scheduled_at further out by N days. */
+/** ON_HOLD only push purge_scheduled_at further out by N days. */
 export const extendRetention = (
   shopId: string,
   days: number,
@@ -51,7 +51,7 @@ export const extendRetention = (
 ): Promise<LifecycleResult> =>
   rpc("admin_extend_retention", { p_shop_id: shopId, p_days: days, p_reason: reason });
 
-/** ON_HOLD only — raise (active=true, reason required) or lift a legal hold. */
+/** ON_HOLD only raise (active=true, reason required) or lift a legal hold. */
 export const toggleLegalHold = (
   shopId: string,
   active: boolean,
@@ -64,7 +64,7 @@ export const toggleLegalHold = (
   });
 
 /**
- * ON_HOLD only — export + encrypt + anonymize immediately (no timer). Runs
+ * ON_HOLD only export + encrypt + anonymize immediately (no timer). Runs
  * through the admin-authenticated /api/admin-purge-shop function so the
  * encryption key never leaves the server.
  */
@@ -130,7 +130,7 @@ export const lifecycleError = (error: unknown): string => {
     return "Only ON_HOLD shops can use this action.";
   }
   if (message.includes("legal hold")) {
-    return "This shop is under a legal hold — purge or status changes are blocked.";
+    return "This shop is under a legal hold purge or status changes are blocked.";
   }
   if (message.includes("missing column") || message.includes("42703")) {
     return "The shop lifecycle migration has not been applied to the database yet.";

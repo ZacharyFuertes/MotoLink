@@ -22,7 +22,7 @@ const results = [];
 const check = (name, ok, detail = "") => {
   if (ok) PASS++; else FAIL++;
   results.push({ name, ok, detail });
-  console.log(`${ok ? "✅ PASS" : "❌ FAIL"}  ${name}${detail ? "  — " + detail : ""}`);
+  console.log(`${ok ? "✅ PASS" : "❌ FAIL"}  ${name}${detail ? "  " + detail : ""}`);
 };
 
 // Cleanup helper
@@ -125,7 +125,7 @@ try {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 4) WRONG-PORTAL DETECTION — each portal must REJECT the other roles
+  // 4) WRONG-PORTAL DETECTION each portal must REJECT the other roles
   // ═══════════════════════════════════════════════════════════════════════
   console.log("\n=== 4) Wrong-portal detection (simulates each portal's role guard) ===");
   const portalGuard = (userRole, expectedRole) => userRole === expectedRole;
@@ -260,7 +260,7 @@ try {
     // owner should NOT see other shops' rows or other owners' data
     const sb = anon();
     await sb.auth.signInWithPassword({ email: OWNER_EMAIL, password: PASSWORD });
-    // owner can view active shops (marketplace) — fine. But cannot view inactive/other owner's shops
+    // owner can view active shops (marketplace) fine. But cannot view inactive/other owner's shops
     const { data: inact, error: inErr } = await sb.from("shops").select("id,name,owner_id,is_active").neq("is_active", true).limit(50);
     const leaked = (inact || []).filter((s) => s.is_active === false);
     check("Owner cannot see inactive shops of others", !inErr && leaked.length === 0,

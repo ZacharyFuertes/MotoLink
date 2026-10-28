@@ -48,7 +48,7 @@ interface ShopSettingsPageProps {
 }
 
 // One day's opening hours. Same shape as `operating_schedule` in the
-// registration wizard (ShopOwnerLoginPage, Step 2 "Hours") — index 0 = Sunday.
+// registration wizard (ShopOwnerLoginPage, Step 2 "Hours") index 0 = Sunday.
 type DaySchedule = { open: boolean; openTime: string; closeTime: string };
 
 const WEEK_DAYS = [
@@ -85,7 +85,7 @@ const clockToMinutes = (t: string): number => {
 };
 
 // Only a blank or zero-length day is an error. close < open is a legitimate
-// OVERNIGHT shift — isOpenNowFromOperatingHours() explicitly handles it
+// OVERNIGHT shift isOpenNowFromOperatingHours() explicitly handles it
 // (`closeMin <= openMin` → "now >= open OR now < close"), so it is allowed and
 // merely annotated instead of being blocked.
 const getScheduleIssues = (schedule: DaySchedule[]): Record<number, string> => {
@@ -334,7 +334,7 @@ const [loading, setLoading] = useState(true);
 
   const scheduleIssues = useMemo(() => getScheduleIssues(schedule), [schedule]);
 
-  // A shop may already hold hours this weekly model cannot represent — legacy free
+  // A shop may already hold hours this weekly model cannot represent legacy free
   // text like "Hours unavailable" or "Mon-Sat 8:00 AM - 6:00 PM" parses to zero
   // open days. Surfaced as a notice, and preserved verbatim on save unless the
   // owner actually edits the schedule, so nothing is silently wiped.
@@ -468,10 +468,10 @@ const [loading, setLoading] = useState(true);
   const handleToggleOnlinePayments = () => {
     if (!onlineEnabled && providerConfigured !== true) {
       // Guard: never let the owner flip this on when the payment provider
-      // isn't wired up — otherwise customers would see a QR that can't charge.
+      // isn't wired up otherwise customers would see a QR that can't charge.
       setMessage({
         type: "error",
-        text: "Online payments aren't set up on MotoLink yet — the payment provider has to be connected by a platform administrator first.",
+        text: "Online payments aren't set up on MotoLink yet the payment provider has to be connected by a platform administrator first.",
       });
       return;
     }
@@ -547,7 +547,7 @@ const [loading, setLoading] = useState(true);
             </motion.div>
           )}
 
-          {/* Customer-facing listing preview — shop overview lives in Profile. */}
+          {/* Customer-facing listing preview shop overview lives in Profile. */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -579,7 +579,7 @@ const [loading, setLoading] = useState(true);
                 <h3 className="break-words text-lg font-bold text-slate-100">{shop.name || "Unnamed shop"}</h3>
                 <p className="mt-2 flex min-w-0 items-start gap-2 text-[13px] text-slate-300">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-moto-accent" />
-                  <span className="break-words">{[shop.address, shop.city].filter((part) => typeof part === "string" && part.trim()).join(", ") || "No address set — add it below."}</span>
+                  <span className="break-words">{[shop.address, shop.city].filter((part) => typeof part === "string" && part.trim()).join(", ") || "No address set add it below."}</span>
                 </p>
                 <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-300">
                   {shop.description?.trim() || "No description yet. Add a short description below to introduce your shop to customers."}
@@ -830,7 +830,7 @@ const [loading, setLoading] = useState(true);
                     <> (<span className="font-semibold">{shop.operating_hours}</span>)</>
                   ) : null}{" "}
                   and could not be mapped to days automatically. Please re-enter your
-                  weekly hours below — they will be shown to customers as a schedule.
+                  weekly hours below they will be shown to customers as a schedule.
                 </span>
               </div>
             )}
@@ -919,7 +919,7 @@ const [loading, setLoading] = useState(true);
                     )}
                     {isOvernight && (
                       <p className="mt-2 text-xs text-slate-400">
-                        Overnight shift — closes the next day.
+                        Overnight shift closes the next day.
                       </p>
                     )}
                   </div>
@@ -931,7 +931,7 @@ const [loading, setLoading] = useState(true);
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-3.5 py-3 text-xs font-semibold text-red-300">
                 <AlertTriangle size={15} className="mt-px shrink-0" />
                 <span>
-                  Fix the highlighted day(s) above — every open day needs a valid time range.
+                  Fix the highlighted day(s) above every open day needs a valid time range.
                 </span>
               </div>
             )}
@@ -1067,7 +1067,7 @@ const [loading, setLoading] = useState(true);
               <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-3 text-xs text-amber-200">
                 <AlertTriangle size={15} className="mt-px shrink-0" />
                 <span>
-                  Online payments aren't available on MotoLink yet — a platform
+                  Online payments aren't available on MotoLink yet a platform
                   administrator needs to connect the payment provider first.
                 </span>
               </div>
@@ -1102,7 +1102,7 @@ const [loading, setLoading] = useState(true);
                     <p className="text-[13px] text-slate-400 mt-0.5">
                       {onlineEnabled
                         ? "Customers can pay a reservation deposit via GCash or Maya when booking. Changes apply after you hit Save Changes."
-                        : "Customers will only see 'Pay at shop' when booking — online will show as unavailable and no QR will be generated. Changes apply after you hit Save Changes."}
+                        : "Customers will only see 'Pay at shop' when booking online will show as unavailable and no QR will be generated. Changes apply after you hit Save Changes."}
                     </p>
                   </div>
                 </div>

@@ -48,7 +48,7 @@ export const SNAPSHOT_TABLES = [
   "shop_hold_reminders",
 ] as const;
 
-/** Service-role client — can write through RLS to run the lifecycle RPCs. */
+/** Service-role client can write through RLS to run the lifecycle RPCs. */
 export const createAdminClient = (): SdClient =>
   createClient<any>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -79,7 +79,7 @@ export const requireCron = (req: {
   return { ok: true };
 };
 
-/** The retention configured in platform_settings (default 45) — read live so
+/** The retention configured in platform_settings (default 45) read live so
  *  admins can change it without a deploy. */
 export const getRetentionDays = async (db: SdClient): Promise<number> => {
   const { data } = await db
@@ -486,8 +486,8 @@ export const sendHoldEmail = async (opts: {
     kind === "hold"
       ? "Your shop has been placed on hold"
       : kind === "purge-warning"
-        ? `Final notice — your shop data is being anonymized in ${daysLeft} days`
-        : `Reminder — ${shopName} will be archived in ${daysLeft} days`;
+        ? `Final notice your shop data is being anonymized in ${daysLeft} days`
+        : `Reminder ${shopName} will be archived in ${daysLeft} days`;
 
   const subheading =
     kind === "hold"

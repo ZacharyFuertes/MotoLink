@@ -17,9 +17,9 @@ import { supabase } from "./supabaseClient";
 /**
  * Shown when PostgREST says a column or function it expects is missing.
  *
- * Both unapplied migrations surface as the same thing — walk-in inserts fail
+ * Both unapplied migrations surface as the same thing walk-in inserts fail
  * with PGRST204 on walk-in identity columns, and the registered-customer search fails
- * with PGRST202 on `search_registered_customers` — and one file fixes both, so
+ * with PGRST202 on `search_registered_customers` and one file fixes both, so
  * both point at the same instruction.
  */
 export const SCHEMA_NOT_APPLIED_MESSAGE =

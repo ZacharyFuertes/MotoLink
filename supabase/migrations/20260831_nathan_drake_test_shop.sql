@@ -1,5 +1,5 @@
 -- ============================================================================
--- TEST SHOP: "NATHAN DRAKE" — fully-populated dummy shop for testers
+-- TEST SHOP: "NATHAN DRAKE" fully-populated dummy shop for testers
 -- Run this in the Supabase SQL Editor (after 20260819_shop_gallery.sql AND
 -- 20260819_shop_reviews.sql AND 20260819_demo_shop_seed.sql).
 --
@@ -16,7 +16,7 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- 0. PREREQUISITE CHECK — fails fast if the supporting migrations are missing
+-- 0. PREREQUISITE CHECK fails fast if the supporting migrations are missing
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
@@ -171,7 +171,7 @@ INSERT INTO public.shops (
   'NATHAN DRAKE',
   'nathan-drake',
   'https://picsum.photos/seed/nathan-drake-logo/200/200',
-  'Premium motorcycle workshop built for testing every MotoLink feature. Top-tier mechanics, full service menu, parts & products, and a photo gallery — everything a tester could need.',
+  'Premium motorcycle workshop built for testing every MotoLink feature. Top-tier mechanics, full service menu, parts & products, and a photo gallery everything a tester could need.',
   '789 Scout Rizal',
   'Manila',
   14.5995,

@@ -22,7 +22,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
   const rotate = useTransform(x, [-300, 0, 300], [desktop ? -5 : -8, 0, desktop ? 5 : 8]);
   const dragOpacity = useTransform(x, [-300, -100, 0, 100, 300], [0.4, 0.88, 1, 0.88, 0.4]);
 
-  // Wrap-around navigation — always loops
+  // Wrap-around navigation always loops
   const goTo = (index: number) => {
     setActiveIndex((index + shops.length) % shops.length);
   };
@@ -37,7 +37,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
   // Always compute prev, active, next via modulo so side cards always exist
   const prevIndex = (activeIndex - 1 + shops.length) % shops.length;
   const nextIndex = (activeIndex + 1) % shops.length;
-  // visibleCards: [{shopIndex, offset}] — skip sides if only 1 shop
+  // visibleCards: [{shopIndex, offset}] skip sides if only 1 shop
   const visibleCards = shops.length === 1
     ? [{ shopIndex: activeIndex, offset: 0 }]
     : [
@@ -66,7 +66,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
   // always carries the highest stacking priority (z-30) for its full lifecycle,
   // side cards sit below it (z-10), and cards that exit drop their z-index to
   // z-5 immediately (via the exit variant) so they slide behind the active card
-  // instead of clipping over it — regardless of swipe direction.
+  // instead of clipping over it regardless of swipe direction.
   const cardVariants = {
     center: {
       x: 0,
@@ -166,10 +166,10 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
           })}
         </AnimatePresence>
 
-        {/* Arrows — inside stage, pinned to absolute sides */}
+        {/* Arrows inside stage, pinned to absolute sides */}
         {shops.length > 1 && (
           <>
-            {/* Prev arrow — never disabled, loops around */}
+            {/* Prev arrow never disabled, loops around */}
             <motion.button
               onClick={() => goTo(activeIndex - 1)}
               whileHover={{ scale: 1.1 }}
@@ -179,7 +179,7 @@ const Carousel = ({ shops, onSelect, onConnect, onViewShop, desktop = false }: C
             >
               <ChevronLeft size={iconSize} />
             </motion.button>
-            {/* Next arrow — never disabled, loops around */}
+            {/* Next arrow never disabled, loops around */}
             <motion.button
               onClick={() => goTo(activeIndex + 1)}
               whileHover={{ scale: 1.1 }}

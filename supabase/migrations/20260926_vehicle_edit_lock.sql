@@ -3,10 +3,10 @@
 -- Run this in the Supabase SQL Editor.
 --
 -- Adds to public.vehicles:
---   is_primary        — the customer's default bike for bookings
---   edit_requested    — customer asked an admin to unlock the details
---   edit_approved_at  — one-time unlock granted by an admin; cleared on save
---   edit_note         — optional context on the request
+--   is_primary        the customer's default bike for bookings
+--   edit_requested    customer asked an admin to unlock the details
+--   edit_approved_at  one-time unlock granted by an admin; cleared on save
+--   edit_note         optional context on the request
 --
 -- Customer edits are locked by application logic (see vehicleService.ts):
 -- a bike with any non-cancelled appointment cannot have its make/model/year/

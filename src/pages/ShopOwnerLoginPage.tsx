@@ -166,7 +166,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     setLoading(true);
 
     try {
-      // The shop location is captured from the map pin — no manual coords typing.
+      // The shop location is captured from the map pin no manual coords typing.
       const latitude = signupData.shop_latitude;
       const longitude = signupData.shop_longitude;
       if (latitude === null || longitude === null) {
@@ -191,7 +191,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       // PREFERRED PATH: register the owner + shop in ONE server-side transaction
       // via the register_shop_owner RPC (supabase/migrations/20260813_*.sql).
       // The function upserts the profile as 'owner', inserts the shop, and links
-      // shop_id atomically — no partial state, no client race, no demotion.
+      // shop_id atomically no partial state, no client race, no demotion.
       const slug = `${signupData.shop_name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
@@ -284,7 +284,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       if (shopError) throw shopError;
       if (!shopData?.id) {
         throw new Error(
-          "Could not create the shop. The RLS INSERT policy for shops may not be applied — run the migration in Supabase.",
+          "Could not create the shop. The RLS INSERT policy for shops may not be applied run the migration in Supabase.",
         );
       }
 

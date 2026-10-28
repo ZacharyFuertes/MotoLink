@@ -7,7 +7,7 @@
 --   There was NO admin UPDATE or DELETE policy, so:
 --     • Approve/Deactivate (UPDATE is_active) returned 0 rows / failed silently —
 --       owners stayed locked in "Awaiting approval" forever.
---     • Delete returned 0 rows — the shop stayed in the DB and the owner could
+--     • Delete returned 0 rows the shop stayed in the DB and the owner could
 --       still log in.
 --   The old supabase/admin_rls.sql declared these policies but it was never
 --   applied against the live database.

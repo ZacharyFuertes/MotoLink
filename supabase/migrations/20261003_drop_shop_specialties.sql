@@ -7,7 +7,7 @@
 -- specialities were duplicated from the shop description and were never used
 -- for anything except a discovery filter and cosmetic tag rendering.
 --
--- SCOPE — READ BEFORE RUNNING
+-- SCOPE READ BEFORE RUNNING
 --   This drops ONLY public.shops.specialties (TEXT[]).
 --   public.shop_mechanics.specialty (TEXT) is a mechanic's OWN speciality and is
 --   a completely separate, unrelated field. It is NOT touched here and must
@@ -15,7 +15,7 @@
 --
 --   public.shops.description is also NOT touched. Note that
 --   20260813_fix_owner_signup.sql deliberately DROPPED NOT NULL on description
---   (and set DEFAULT '') so a signup could never 23502 — that fix stays in
+--   (and set DEFAULT '') so a signup could never 23502 that fix stays in
 --   place. This migration does not re-add the constraint, because doing so
 --   would resurrect the original "empty value in column description" failure.
 --

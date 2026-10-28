@@ -1,6 +1,6 @@
 /**
  * AdminChatbot.tsx
- * TODO: implemented — Powerful context-aware Admin AI Assistant (Groq-powered)
+ * TODO: implemented Powerful context-aware Admin AI Assistant (Groq-powered)
  *
  * This chatbot fetches full business data (revenue, inventory, appointments,
  * reservations) and injects it into the system prompt so
@@ -56,7 +56,7 @@ const QUICK_PROMPTS = [
     label: "Revenue Summary",
     icon: TrendingUp,
     prompt:
-      "Give me a revenue summary — total earnings, recent trends, and top-selling parts.",
+      "Give me a revenue summary total earnings, recent trends, and top-selling parts.",
   },
   {
     label: "Low Stock Alert",
@@ -74,7 +74,7 @@ const QUICK_PROMPTS = [
     label: "Business Insights",
     icon: BarChart3,
     prompt:
-      "Provide a quick business health overview — appointments, revenue, inventory status, and any concerns.",
+      "Provide a quick business health overview appointments, revenue, inventory status, and any concerns.",
   },
 ];
 
@@ -84,7 +84,7 @@ const QUICK_PROMPTS = [
 
 const AdminChatbot: React.FC<AdminChatbotProps> = ({ isOpen, onClose, inline = false }) => {
   const { user } = useAuth();
-  // This chatbot serves SHOP OWNERS ONLY — always scoped to their own shop.
+  // This chatbot serves SHOP OWNERS ONLY always scoped to their own shop.
   const role: "admin" | "owner" = "owner";
   const isAdmin = false;
   const shopId = user?.shop_id;
@@ -284,13 +284,13 @@ APPOINTMENTS:
 
 INVENTORY:
 - Low Stock Items (≤ min level): ${lowStockParts.length}
-${lowStockParts.map((p: any) => `  • ${p.name} — ${p.quantity_in_stock} left (min: ${p.min_stock_level || 5}), SKU: ${p.sku}`).join("\n")}
+${lowStockParts.map((p: any) => `  • ${p.name} ${p.quantity_in_stock} left (min: ${p.min_stock_level || 5}), SKU: ${p.sku}`).join("\n")}
 - Out of Stock: ${outOfStockParts.length}
 ${outOfStockParts.map((p: any) => `  • ${p.name} (SKU: ${p.sku})`).join("\n")}
 
 RESERVATIONS:
 - Pending Reservations: ${pendingReservations.length}
-${pendingReservations.map((r: any) => `  • Part: ${r.part?.name || "Unknown"} — Qty: ${r.quantity} — Price: ₱${r.part?.unit_price?.toLocaleString() || "N/A"}`).join("\n")}
+${pendingReservations.map((r: any) => `  • Part: ${r.part?.name || "Unknown"} Qty: ${r.quantity} Price: ₱${r.part?.unit_price?.toLocaleString() || "N/A"}`).join("\n")}
 
 MOST POPULAR PARTS (by usage in job orders):
 ${popularParts.length > 0 ? popularParts.map((p) => `  • ${p}`).join("\n") : "  No usage data available yet"}
@@ -592,8 +592,8 @@ ${parts.map((p: any) => `  • ${p.name} | Category: ${p.category || "N/A"} | Pr
                   <div className="bg-moto-dark border border-moto-gray px-3.5 py-2.5 rounded-2xl rounded-bl-md text-slate-200 max-w-[88%]">
                     <p className="chat-text font-light">
                       {isAdmin
-                        ? "Ask me anything about the MotoLink platform or any shop — revenue, inventory, appointments, and more."
-                        : "Ask me anything about your shop — revenue, inventory, appointments, and more."}
+                        ? "Ask me anything about the MotoLink platform or any shop revenue, inventory, appointments, and more."
+                        : "Ask me anything about your shop revenue, inventory, appointments, and more."}
                     </p>
                   </div>
                 </motion.div>

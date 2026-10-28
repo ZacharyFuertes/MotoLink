@@ -1,10 +1,10 @@
 /**
- * Vercel Serverless Function — bulk import of shop owners (admin only).
+ * Vercel Serverless Function bulk import of shop owners (admin only).
  *
  * Why this lives on the server instead of in AdminShopsPage:
  *   1) `register_shop_owner` (supabase/migrations/20260813_*.sql) is guarded by
  *      `IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN RAISE EXCEPTION
- *      'Not allowed'` — it only lets a user register *themselves*, so an admin
+ *      'Not allowed'` it only lets a user register *themselves*, so an admin
  *      cannot reuse it to create other owners.
  *   2) `supabase/admin_rls.sql` grants admins SELECT/UPDATE/DELETE on `shops`
  *      but there is NO admin INSERT policy, so a browser-only import would be
@@ -193,7 +193,7 @@ const importOne = async (
           longitude: lng,
           phone: phone || null,
           email,
-          is_active: false, // pending — admin still approves manually
+          is_active: false, // pending admin still approves manually
           operating_hours: "Hours unavailable",
         })
         .select("id")

@@ -1,6 +1,6 @@
 /**
  * BrowsePartsModal.tsx
- * Read-only gallery for customers — browse items, view prices & descriptions.
+ * Read-only gallery for customers browse items, view prices & descriptions.
  * No purchase / reserve / cart actions.
  */
 import React, { useState, useEffect } from "react";
@@ -362,7 +362,7 @@ const BrowsePartsModal: React.FC<BrowsePartsModalProps> = ({
             </div>
           </div>
 
-          {/* ── Product Grid (Gallery — view only) ── */}
+          {/* ── Product Grid (Gallery view only) ── */}
           <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-8 bg-white">
             {loading ? (
               <div className="flex items-center justify-center py-20">

@@ -114,8 +114,8 @@ export type ValidationResult = {
 };
 
 /**
- * Validates parsed CSV records. Every problem is collected per row — nothing is
- * silently dropped — so the admin sees the exact fix needed before importing.
+ * Validates parsed CSV records. Every problem is collected per row nothing is
+ * silently dropped so the admin sees the exact fix needed before importing.
  */
 export const validateRows = (
   raw: Record<string, string>[],
@@ -149,7 +149,7 @@ export const validateRows = (
     const extra = (record as Record<string, unknown>).__parsed_extra;
     if (Array.isArray(extra) && extra.length > 0) {
       errors.push(
-        `Row has ${extra.length} more value(s) than the header — check for an unquoted comma`,
+        `Row has ${extra.length} more value(s) than the header check for an unquoted comma`,
       );
     }
 

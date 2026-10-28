@@ -264,7 +264,7 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
               <div className="p-4 bg-moto-darker border border-moto-gray rounded-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[13px] font-bold text-slate-100">Step 1 — Get the template</p>
+                    <p className="text-[13px] font-bold text-slate-100">Step 1 Get the template</p>
                     <p className="text-xs text-slate-400 mt-0.5">
                       Columns: {TEMPLATE_COLUMNS.join(", ")}
                     </p>
@@ -277,19 +277,19 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
                   </button>
                 </div>
                 <p className="text-xs text-slate-400 mt-3 leading-relaxed">
-                  <span className="text-slate-300 font-semibold">password</span> is optional — leave it
+                  <span className="text-slate-300 font-semibold">password</span> is optional leave it
                   blank and a secure temporary password is generated and shown in the results
                   summary (and the results CSV) so you can pass it to the owner.
                   <br />
                   <span className="text-slate-300 font-semibold">latitude</span> /{" "}
-                  <span className="text-slate-300 font-semibold">longitude</span> are optional — without
+                  <span className="text-slate-300 font-semibold">longitude</span> are optional without
                   them the shop is created at 0,0 and the owner can drop a pin later in Shop Settings.
                 </p>
               </div>
 
               {/* Picker */}
               <div className="p-4 bg-moto-darker border border-moto-gray rounded-xl">
-                <p className="text-[13px] font-bold text-slate-100 mb-3">Step 2 — Choose your CSV</p>
+                <p className="text-[13px] font-bold text-slate-100 mb-3">Step 2 Choose your CSV</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -330,7 +330,7 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-[13px] font-bold text-slate-100">
-                    Step 3 — Review {rows.length} row{rows.length === 1 ? "" : "s"}
+                    Step 3 Review {rows.length} row{rows.length === 1 ? "" : "s"}
                   </p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     <span className="text-emerald-400 font-bold">{validRows.length} ready</span>
@@ -477,7 +477,7 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
                     Temporary passwords were generated for{" "}
                     {succeeded.filter((r) => r.generatedPassword).length} owner
                     {succeeded.filter((r) => r.generatedPassword).length === 1 ? "" : "s"}.
-                    Download the results CSV now and send each owner their password — it is not shown
+                    Download the results CSV now and send each owner their password it is not shown
                     anywhere else.
                   </span>
                 </div>

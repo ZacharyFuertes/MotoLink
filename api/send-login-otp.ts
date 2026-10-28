@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — Send login verification code via Gmail SMTP
+ * Vercel Serverless Function Send login verification code via Gmail SMTP
  */
 
 import { createClient } from "@supabase/supabase-js";

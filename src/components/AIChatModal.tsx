@@ -166,7 +166,7 @@ function buildSystemPrompt(
       ? ctx.services
           .map(
             (s) =>
-              `- **${s.name}**: ₱${Number(s.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}${s.description ? ` — ${s.description}` : ""}`,
+              `- **${s.name}**: ₱${Number(s.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}${s.description ? ` ${s.description}` : ""}`,
           )
           .join("\n")
       : "No services listed currently. Please invite the customer to call the shop.";
@@ -200,7 +200,7 @@ function buildSystemPrompt(
       ? ctx.shops
           .map(
             (s) =>
-              `- **${s.name}** — ${s.city ?? "N/A"}${s.operating_hours ? ` | Hours: ${s.operating_hours}` : ""}${s.description ? ` | ${s.description}` : ""}`,
+              `- **${s.name}** ${s.city ?? "N/A"}${s.operating_hours ? ` | Hours: ${s.operating_hours}` : ""}${s.description ? ` | ${s.description}` : ""}`,
           )
           .join("\n")
       : "No shops listed on the MotoLink directory.";
@@ -236,7 +236,7 @@ Recent Appointments:
 ${apptList}`;
   }
 
-  return `YOU ARE MOTOMECH AI — THE WARM, POLITE, AND HELPFUL VIRTUAL RECEPTIONIST FOR THE MOTOLINK MOTOR SHOP DIRECTORY. You help customers find the best MotoLink shop for their motorcycle needs.
+  return `YOU ARE MOTOMECH AI THE WARM, POLITE, AND HELPFUL VIRTUAL RECEPTIONIST FOR THE MOTOLINK MOTOR SHOP DIRECTORY. You help customers find the best MotoLink shop for their motorcycle needs.
 Today is ${today}. Live shop data loaded at ${ctx.loadedAt}.
 
 === SHOP DATA CONTEXT ===

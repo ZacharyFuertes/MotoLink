@@ -2,7 +2,7 @@
  * Pure shop-lifecycle domain rules for MotoLink's soft-delete feature.
  *
  * These functions are intentionally dependency-free (Date millis only) so they
- * are trivially unit-testable. All date math works on UTC instants — the
+ * are trivially unit-testable. All date math works on UTC instants the
  * database stores TIMESTAMPTZ (UTC), so "day N" is a fixed millisecond delta
  * and is never affected by local timezone / DST.
  */
@@ -42,7 +42,7 @@ const SHOP_STATUSES: ReadonlySet<string> = new Set([
   "PURGED",
 ]);
 
-/** ACTIVE only — ON_HOLD and PURGED shops are hidden from normal queries. */
+/** ACTIVE only ON_HOLD and PURGED shops are hidden from normal queries. */
 export const isShopAccessible = (status: ShopStatus | null | undefined): boolean =>
   status === "ACTIVE";
 

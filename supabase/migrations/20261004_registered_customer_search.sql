@@ -11,7 +11,7 @@
 --   users.shop_id = NULL and was invisible, even though the booking API would
 --   have accepted their ID happily.
 --
---   The shop_id filter is not the only thing in the way — it is the only thing
+--   The shop_id filter is not the only thing in the way it is the only thing
 --   the *RLS* allows. Policy "Shop owners can view shop members"
 --   (supabase/schema.sql) is:
 --     USING (shop_id IN (SELECT id FROM shops WHERE owner_id = auth.uid()))
@@ -19,7 +19,7 @@
 --   from the client query would just trade "no customers" for "no customers".
 --
 -- This migration:
---   A. Adds search_registered_customers() — a SECURITY DEFINER function that
+--   A. Adds search_registered_customers() a SECURITY DEFINER function that
 --      searches every role='customer' account on the platform and returns only
 --      id / name / phone / email / is_shop_member.
 --   B. Adds policy "Shop owners can view customers they serve", so a customer

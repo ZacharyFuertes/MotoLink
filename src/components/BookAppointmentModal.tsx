@@ -181,7 +181,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [paymentNotice, setPaymentNotice] = useState("");
   // Appointment snapshot produced by a successful online booking. The parent
   // (App.tsx) closes this modal to show the receipt, so we hold the callback
-  // until the QR modal is dismissed — otherwise the QR would unmount mid-pay.
+  // until the QR modal is dismissed otherwise the QR would unmount mid-pay.
   const receiptRef = useRef<any>(null);
 
   const onlinePaymentsAvailable = shopPaymentEnabled && providerReady === true;
@@ -255,7 +255,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard unavailable — screenshot tip still applies.
+      // Clipboard unavailable screenshot tip still applies.
     }
   };
 
@@ -758,14 +758,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             setQrPayment(created);
             setQrModalOpen(true);
           } catch (err) {
-            console.warn("Online payment not started — falling back to cash:", err);
+            console.warn("Online payment not started falling back to cash:", err);
             const e = err as OnlinePaymentError;
             receiptRef.current = null;
             setPaymentMethod("cash");
             setPaymentNotice(
               `We couldn't start your ${
                 paymentMethod === "gcash" ? "GCash" : "Maya"
-              } payment (${e?.message || "please try again"}). Your appointment is confirmed — please settle at the shop instead.`,
+              } payment (${e?.message || "please try again"}). Your appointment is confirmed please settle at the shop instead.`,
             );
             if (onAppointmentBooked) onAppointmentBooked(appointmentData);
           }
@@ -798,7 +798,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-3 z-50"
+          className="booking-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-3 z-50"
           onClick={(e) => {
             if (e.target === e.currentTarget) onClose();
           }}
@@ -808,23 +808,23 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 30 }}
             transition={{ type: "spring", damping: 26, stiffness: 320 }}
-            className="bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray shadow-2xl shadow-black/50 bg-[radial-gradient(circle_at_top_left,rgba(53,208,192,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.10),transparent_30%)] flex flex-col"
+            className="booking-modal-shell bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray shadow-2xl shadow-black/50 bg-[radial-gradient(circle_at_top_left,rgba(53,208,192,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.10),transparent_30%)] flex flex-col"
           >
           {/* ── Header ── */}
-          <div className="flex items-center justify-between px-6 sm:px-8 py-5 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
+          <div className="booking-modal-header flex items-center justify-between px-5 sm:px-8 py-5 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-moto-accent/15 border border-moto-accent/40 text-moto-accent flex items-center justify-center shrink-0 shadow-lg shadow-moto-accent/10">
+              <div className="booking-modal-icon w-11 h-11 rounded-2xl bg-moto-accent/15 border border-moto-accent/40 text-moto-accent flex items-center justify-center shrink-0 shadow-lg shadow-moto-accent/10">
                 <ClipboardList size={20} strokeWidth={1.75} />
               </div>
               <div className="flex flex-col">
-                <p className="text-[10px] font-bold tracking-widest text-moto-accent uppercase">
+                <p className="text-xs font-bold tracking-widest text-moto-accent uppercase">
                   Appointment
                 </p>
-                <h2 className="font-display font-black text-2xl text-slate-100 tracking-tight leading-none mt-0.5">
+                <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-100 tracking-tight leading-none mt-0.5">
                   {success ? "Appointment Booked" : "Book A Service"}
                   <span className="text-moto-accent">.</span>
                 </h2>
-                <p className="text-slate-400 text-xs mt-1">
+                <p className="text-slate-300 text-sm mt-1">
                   Scheduling takes less than 2 minutes
                 </p>
               </div>
@@ -835,7 +835,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               whileTap={{ scale: 0.9 }}
               transition={{ type: "spring", stiffness: 400, damping: 22 }}
               aria-label="Close booking"
-              className="p-2 rounded-lg border border-moto-gray bg-moto-darker hover:bg-moto-gray hover:border-moto-accent/40 transition-colors text-slate-400 hover:text-white shrink-0"
+              className="booking-modal-close p-2.5 rounded-lg border border-moto-gray bg-moto-darker hover:bg-moto-gray hover:border-moto-accent/40 transition-colors text-slate-300 hover:text-white shrink-0"
             >
               <X size={18} strokeWidth={1.75} />
             </motion.button>
@@ -844,7 +844,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="flex items-center px-6 sm:px-8 py-5 border-b border-moto-gray/80 bg-moto-darker/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
+              <div className="booking-modal-steps flex items-center px-5 sm:px-8 py-4 sm:py-5 border-b border-moto-gray/80 bg-moto-darker/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
                 {STEPS.map((step, i) => {
                   const done = i < currentStep;
                   const active = i === currentStep;
@@ -913,7 +913,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </AnimatePresence>
 
               {/* ── Step Content (scrollable) ── */}
-              <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-8 bg-moto-dark/40">
+              <div className="booking-modal-content flex-1 overflow-y-auto px-5 sm:px-8 py-6 sm:py-8 bg-moto-dark/40">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Select Service */}
                   {currentStep === 0 && (
@@ -932,7 +932,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Pick Your Services<span className="text-moto-accent">.</span>
                         </h3>
                         <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Select one or more services for your motorcycle — you can add
+                          Select one or more services for your motorcycle you can add
                           parts next.
                         </p>
                       </div>
@@ -1161,7 +1161,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Add Some Parts<span className="text-moto-accent">.</span>
                         </h3>
                         <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Optional — add parts so the shop has them ready when you arrive.
+                          Optional add parts so the shop has them ready when you arrive.
                         </p>
                       </div>
                       {loadingParts ? (
@@ -1177,7 +1177,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             No parts available.
                           </p>
                           <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
-                            We're restocking — check back soon or ask the shop for
+                            We're restocking check back soon or ask the shop for
                             the latest catalog.
                           </p>
                         </div>
@@ -1664,7 +1664,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <div className="flex items-start gap-2.5 rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-slate-400">
                             <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
                             <p className="text-xs font-light leading-relaxed">
-                              Online payment isn't available for this shop right now — you'll
+                              Online payment isn't available for this shop right now you'll
                               pay at the counter when you arrive. No QR will be shown.
                             </p>
                           </div>
@@ -1677,7 +1677,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               A reservation deposit of{" "}
                               <span className="font-bold">₱{depositAmount.toLocaleString()}</span>{" "}
                               via {paymentMethod === "gcash" ? "GCash" : "Maya"} is required to
-                              lock in your slot. After you confirm, scan the QR to pay — otherwise
+                              lock in your slot. After you confirm, scan the QR to pay otherwise
                               pay the balance at the shop.
                             </p>
                           </div>
@@ -1914,7 +1914,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               </div>
 
               {/* ── Footer ── */}
-              <div className="flex items-center justify-between px-6 sm:px-10 py-6 border-t border-moto-gray flex-shrink-0 bg-moto-dark/80">
+              <div className="booking-modal-footer flex items-center justify-between px-5 sm:px-10 py-4 sm:py-6 border-t border-moto-gray flex-shrink-0 bg-moto-dark/80">
                 <motion.button
                   onClick={() =>
                     currentStep > 0 ? goStep(-1) : onClose()
@@ -1947,7 +1947,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       !canGoNext() ||
                       (currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                     }
-                    className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() &&
                       !(currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                         ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
@@ -1964,7 +1964,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       transition={{ duration: 0.15, ease: "easeOut" }}
                       onClick={() => requireAuth("signup")}
                       disabled={!termsAccepted}
-                      className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                      className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                         termsAccepted
                           ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                           : "bg-moto-gray/40 border border-moto-gray text-slate-500 cursor-not-allowed"
@@ -2000,7 +2000,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     onClick={handleSubmit}
                     disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking}
-                    className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
                       canGoNext() && !submitting && !hasActiveAppointment && !activeAppointmentChecking
                         ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
@@ -2084,7 +2084,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               <div className="flex items-start justify-center gap-2 mb-10 px-6 py-3 max-w-md text-center">
                 <Camera size={15} className="text-slate-400 shrink-0 mt-0.5" />
                 <p className="text-slate-400 text-sm font-light leading-relaxed">
-                  Please save this Booking ID or take a screenshot — you'll need
+                  Please save this Booking ID or take a screenshot you'll need
                   to show it at the shop counter when you arrive.
                 </p>
               </div>

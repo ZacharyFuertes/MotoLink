@@ -145,7 +145,7 @@ const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
                   </button>
                 </div>
               ) : !hasRealQr || !payment ? (
-                // Guard: no real PayMongo QR — never render a placeholder.
+                // Guard: no real PayMongo QR never render a placeholder.
                 <div className="text-center py-8">
                   <div className="mx-auto w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4">
                     <AlertTriangle size={26} className="text-amber-500" />

@@ -311,7 +311,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (!data?.user?.id) throw new Error("Signup failed");
 
       // Create user profile (upsert: the auth listener may have already created
-      // it during the signUp event — overwrite is fine since role is 'customer' here)
+      // it during the signUp event overwrite is fine since role is 'customer' here)
       const { error: profileError } = await supabase
         .from("users")
         .upsert(

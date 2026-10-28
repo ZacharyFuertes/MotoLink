@@ -570,7 +570,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
       .filter((a) => {
         if (!q) return true;
         // Walk-in rows have no `customer` join, so search their own columns too
-        // — otherwise every walk-in booking is invisible to the search box.
+        // otherwise every walk-in booking is invisible to the search box.
         const customerName = (
           (a as any).customer?.name ||
           a.walk_in_name ||
@@ -1432,7 +1432,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         )}
       </AnimatePresence>
 
-      {/* Booking modal — shared with the owner dashboard's quick entry point. */}
+      {/* Booking modal shared with the owner dashboard's quick entry point. */}
       <AnimatePresence>
         {showBookingForm && (
           <WalkInBookingModal

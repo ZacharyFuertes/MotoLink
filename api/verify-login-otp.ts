@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — Verify login OTP code
+ * Vercel Serverless Function Verify login OTP code
  *
  * Flow:
  *  1. Look up the stored (hashed) code for the user and check it is unused,
@@ -111,7 +111,7 @@ export default async function handler(req: any, res: any) {
       .update({ used: true })
       .eq("id", match.id);
 
-    // 4) Mint a session. generateLink does NOT send an email — it only creates
+    // 4) Mint a session. generateLink does NOT send an email it only creates
     //    a one-time token hash which we redeem immediately for a session.
     const { data: linkData, error: linkError } = await db.auth.admin.generateLink({
       type: "magiclink",

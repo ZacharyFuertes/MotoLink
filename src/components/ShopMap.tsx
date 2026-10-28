@@ -69,7 +69,7 @@ const ShopMap = ({
   // Desktop floating drawer open/closed (Grab-style)
   const [_drawerOpen, _setDrawerOpen] = useState(true);
 
-  // In-map route state — draws real road route on Leaflet canvas via OSRM
+  // In-map route state draws real road route on Leaflet canvas via OSRM
   const [activeRouteShop, setActiveRouteShop] = useState<ShopSearchResult | null>(null);
   const routeLayerRef = useRef<any>(null);
 
@@ -233,7 +233,7 @@ const ShopMap = ({
 
     mapInstanceRef.current = map;
 
-    // Official OpenStreetMap tile layer — free, no API key, smooth zooming preserved.
+    // Official OpenStreetMap tile layer free, no API key, smooth zooming preserved.
     Leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       subdomains: "abc",
@@ -356,7 +356,7 @@ const ShopMap = ({
       }
     });
 
-    // (Route is now drawn separately via OSRM — see the route effect above.)
+    // (Route is now drawn separately via OSRM see the route effect above.)
 
     // Gently reveal the map once markers are first loaded (only once, on mount).
     if (!hasPannedToShopsRef.current && mapRef.current && mapInstanceRef.current && activeShop) {

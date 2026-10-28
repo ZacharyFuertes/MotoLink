@@ -111,12 +111,12 @@ const inputClass =
  *    service shows in their history and they get the confirmation email.
  *
  * The registered picker searches **every MotoLink customer account**, not just
- * this shop's members — a customer who signed up but has never booked here has
+ * this shop's members a customer who signed up but has never booked here has
  * `users.shop_id = NULL` and is exactly the person an owner needs to reach. That
  * is not reachable with a plain `.from("users")` query: RLS policy "Shop owners
  * can view shop members" only exposes rows whose `shop_id` matches, so the search
  * runs through the SECURITY DEFINER search_registered_customers() RPC instead.
- * Returns only id / name / phone / email / is_shop_member — never a whole row.
+ * Returns only id / name / phone / email / is_shop_member never a whole row.
  *
  * The RPC needs `20261004_registered_customer_search.sql`; the walk-in columns
  * need `20261003_walk_in_appointments.sql` and
@@ -200,7 +200,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   //
   // The walk-in insert sends that column, and PostgREST answers PGRST204
   // ("Could not find the 'walk_in_name' column of 'appointments' in the schema
-  // cache") when the 20261003 migration has not been run — a message that tells
+  // cache") when the 20261003 migration has not been run a message that tells
   // an owner nothing about what to do. One cheap single-column read turns that
   // into a stated requirement before they fill the form in.
   useEffect(() => {
@@ -233,7 +233,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   // Registered-customer search: server-side, debounced, platform-wide.
   //
   // Replaces a one-shot `.from("users")` fetch scoped to `.eq("shop_id")`, which
-  // could only ever see this shop's members — RLS blocks the rest, so the filter
+  // could only ever see this shop's members RLS blocks the rest, so the filter
   // was not even the limiting factor. An empty query is valid and returns the
   // most recent accounts, so the list is populated the moment the tab is opened.
   useEffect(() => {
@@ -328,7 +328,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setError("");
     setCopied(false);
     // Refresh the slot list: the one we just took is now unavailable. The
-    // customer list is not refetched — the search effect re-runs when the owner
+    // customer list is not refetched the search effect re-runs when the owner
     // switches back to Registered, because identityMode changes.
     void loadBookedSlots(todayKey(), justBooked);
   };
@@ -340,7 +340,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard unavailable — the owner can still read the code on screen.
+      // Clipboard unavailable the owner can still read the code on screen.
     }
   };
 
@@ -431,7 +431,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         status: "pending",
         // Identity columns are populated only when there is no account to point
         // at. This is the insert that fails with PGRST204 if the 20261003
-        // migration has not been applied — hence the preflight above.
+        // migration has not been applied hence the preflight above.
         walk_in_name: customerId ? null : name,
         walk_in_phone: customerId ? null : phone,
         walk_in_email: customerId ? null : formData.customer_email.trim() || null,
@@ -809,7 +809,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 takenSlots={bookedSlots}
                 pastSlots={pastSlots}
                 label="Time Slot"
-                emptyMessage="No time slots left on this date — pick another day."
+                emptyMessage="No time slots left on this date pick another day."
               />
 
               <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">

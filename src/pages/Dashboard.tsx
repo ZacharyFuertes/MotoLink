@@ -29,13 +29,13 @@ interface DashboardProps {
   /**
    * Bump this from the parent to force a refetch. The walk-in booking modal is
    * hosted by the parent (it is launched from the Welcome Banner), and it has no
-   * way to reach this component's internal `load()` — this counter is the
+   * way to reach this component's internal `load()` this counter is the
    * hand-off, so a fresh booking shows up in the stats and pending list.
    */
   refreshSignal?: number;
 }
 
-// Local calendar date, not UTC — toISOString() would report the wrong day
+// Local calendar date, not UTC toISOString() would report the wrong day
 // between 00:00 and 08:00 in PHT.
 const TODAY = () => todayKey();
 
@@ -166,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, refreshSignal }) => {
       const posAll =
         sum(salesRows, (s) => s.sale_price) + sum(jobRows, partsFromJob);
 
-      // Revenue trend (last 14 days) — same convention as the platform dashboard.
+      // Revenue trend (last 14 days) same convention as the platform dashboard.
       const dayKeys: string[] = [];
       for (let i = 13; i >= 0; i--) {
         const d = new Date();

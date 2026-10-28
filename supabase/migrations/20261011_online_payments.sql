@@ -3,7 +3,7 @@
 -- Run after 20261004_registered_customer_search.sql.
 --
 -- Adds:
---   * payments table — source of truth for the QR / webhook lifecycle
+--   * payments table source of truth for the QR / webhook lifecycle
 --   * shops.online_payment_enabled + deposit configuration (per-shop toggle)
 --   * appointments payment columns (method / status / amount paid / deposit)
 --

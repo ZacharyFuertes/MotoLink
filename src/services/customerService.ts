@@ -47,7 +47,7 @@ export const customerService = {
    * Search MotoLink customer accounts for the owner booking flow.
    *
    * Searches every role='customer' row on the platform, not just the calling
-   * owner's shop — a customer who signed up but has never booked here has
+   * owner's shop a customer who signed up but has never booked here has
    * shop_id = NULL and cannot be reached through `users` under the owner RLS
    * policies at all, so this runs through the SECURITY DEFINER
    * search_registered_customers() RPC.

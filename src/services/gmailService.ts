@@ -1,7 +1,7 @@
 import nodemailer, { Transporter } from "nodemailer";
 
 /**
- * Gmail SMTP transactional email service (100% free — uses a Gmail App Password).
+ * Gmail SMTP transactional email service (100% free uses a Gmail App Password).
  *
  * SERVER-ONLY MODULE. Do not import this from client (browser) components:
  * it is imported exclusively by the `api/` Vercel serverless functions, so the
@@ -43,7 +43,7 @@ export interface ReadyForPickupPayload {
 
 export interface GmailSendResult {
   success: boolean;
-  /** The subject that was (or would have been) sent — for audit logging. */
+  /** The subject that was (or would have been) sent for audit logging. */
   subject?: string;
   /** True when GMAIL_USER / GMAIL_APP_PASS are not set on the server. */
   notConfigured?: boolean;
@@ -193,7 +193,7 @@ const deliver = async (opts: {
   const transporter = getTransport();
   if (!transporter) {
     console.warn(
-      "[gmail] Gmail SMTP is not configured — set GMAIL_USER and GMAIL_APP_PASS (16-char App Password) on the server.",
+      "[gmail] Gmail SMTP is not configured set GMAIL_USER and GMAIL_APP_PASS (16-char App Password) on the server.",
     );
     return { success: false, notConfigured: true, subject };
   }
@@ -222,13 +222,13 @@ const deliver = async (opts: {
 /**
  * Booking confirmation sent to the customer right after a booking is created
  * (or claimed). Subject per spec:
- *   "Booking Confirmed — MotoLink [Ref: ${booking_id}]"
+ *   "Booking Confirmed MotoLink [Ref: ${booking_id}]"
  */
 export const sendBookingConfirmationEmail = async (
   payload: BookingConfirmationPayload,
 ): Promise<GmailSendResult> => {
   const ref = payload.bookingId || "—";
-  const subject = `Booking Confirmed — MotoLink [Ref: ${ref}]`;
+  const subject = `Booking Confirmed MotoLink [Ref: ${ref}]`;
   const vehicle = payload.vehicle || "—";
   const schedule = [fmtDate(payload.scheduledDate), fmtTime(payload.scheduledTime)]
     .filter((part) => part && part !== "—")
@@ -238,7 +238,7 @@ export const sendBookingConfirmationEmail = async (
     badge: "BOOKING CONFIRMED",
     heading: `Your booking is confirmed${payload.customerName ? `, ${payload.customerName.split(" ")[0]}` : ""}!`,
     subheading:
-      "Your appointment has been scheduled. Here are the full details — keep this email handy for your visit.",
+      "Your appointment has been scheduled. Here are the full details keep this email handy for your visit.",
     body: `
       ${detailsTable(
         detailRow("Customer", payload.customerName || "—") +
@@ -255,7 +255,7 @@ export const sendBookingConfirmationEmail = async (
   });
 
   const text = [
-    "MOTOLINK — BOOKING CONFIRMED",
+    "MOTOLINK BOOKING CONFIRMED",
     "==============================================",
     `Customer : ${payload.customerName || "-"}`,
     `Shop     : ${payload.shopName}`,
@@ -273,12 +273,12 @@ export const sendBookingConfirmationEmail = async (
 /**
  * "Service ready for pickup" notification sent when the shop owner marks the
  * appointment/job order completed. Subject per spec:
- *   "Service Completed — Your Motorcycle is Ready for Pickup! 🏍️"
+ *   "Service Completed Your Motorcycle is Ready for Pickup! 🏍️"
  */
 export const sendReadyForPickupEmail = async (
   payload: ReadyForPickupPayload,
 ): Promise<GmailSendResult> => {
-  const subject = "Service Completed — Your Motorcycle is Ready for Pickup! 🏍️";
+  const subject = "Service Completed Your Motorcycle is Ready for Pickup! 🏍️";
   const vehicle = payload.vehicle || "—";
   const contact = payload.shopContact || "—";
 
@@ -286,7 +286,7 @@ export const sendReadyForPickupEmail = async (
     badge: "READY FOR PICKUP",
     heading: `Your motorcycle is ready${payload.customerName ? `, ${payload.customerName.split(" ")[0]}` : ""}!`,
     subheading:
-      "Great news — the service on your motorcycle is complete and it is ready for pickup at the shop.",
+      "Great news the service on your motorcycle is complete and it is ready for pickup at the shop.",
     body: `
       ${detailsTable(
         detailRow("Shop", payload.shopName) +
@@ -309,7 +309,7 @@ export const sendReadyForPickupEmail = async (
   });
 
   const text = [
-    "MOTOLINK — SERVICE COMPLETED",
+    "MOTOLINK SERVICE COMPLETED",
     "==============================================",
     `Shop    : ${payload.shopName}`,
     `Vehicle : ${vehicle}`,

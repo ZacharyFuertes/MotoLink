@@ -17,7 +17,7 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ children }) => {
         }}
       />
 
-      {/* Gradient Overlays — dark navy wash + bottom fade for readability */}
+      {/* Gradient Overlays dark navy wash + bottom fade for readability */}
       <div className="absolute inset-0 bg-gradient-overlay" />
       <div className="absolute inset-0 bg-moto-dark/70" />
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-moto-dark to-transparent" />

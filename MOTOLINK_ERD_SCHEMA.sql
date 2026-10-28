@@ -1,7 +1,7 @@
 -- ============================================================================
--- MOTOLINK — ERD-Ready Database Schema
+-- MOTOLINK ERD-Ready Database Schema
 -- Generated from live Supabase database + frontend usage analysis
--- Stripped of RLS policies, triggers, and functions — clean for ERD tools
+-- Stripped of RLS policies, triggers, and functions clean for ERD tools
 -- ============================================================================
 
 -- ============================================================================

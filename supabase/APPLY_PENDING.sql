@@ -1,5 +1,5 @@
 ﻿-- ============================================================================
--- APPLY PENDING — paste this whole file into Supabase -> SQL Editor and run it.
+-- APPLY PENDING paste this whole file into Supabase -> SQL Editor and run it.
 -- ============================================================================
 --
 -- Two existing migrations in this project have never been applied to the live
@@ -225,7 +225,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 
 -- ############################################################################
--- ##  MIGRATION 2/3 — 20261004_registered_customer_search.sql
+-- ##  MIGRATION 2/3 20261004_registered_customer_search.sql
 -- ############################################################################
 
 
@@ -391,7 +391,7 @@ COMMENT ON POLICY "Shop owners can view customers they serve" ON public.users IS
 -- ---------------------------------------------------------------------------
 
 -- ############################################################################
--- ##  MIGRATION 3/3 — 20261025_walk_in_email_notifications.sql
+-- ##  MIGRATION 3/3 20261025_walk_in_email_notifications.sql
 -- ############################################################################
 
 ALTER TABLE public.appointments

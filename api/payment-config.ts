@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — reports whether the PayMongo provider is
+ * Vercel Serverless Function reports whether the PayMongo provider is
  * configured so the UI can disable online payment without knowing the secret.
  *
  * Returns a boolean only (never the key). If this returns false, no QR should

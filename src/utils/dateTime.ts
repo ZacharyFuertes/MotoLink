@@ -45,7 +45,7 @@ export const normalizeTime = (t?: string | null): string => {
 
 /**
  * True when `slot` ("HH:MM") can no longer be booked on `dateKey`
- * ("YYYY-MM-DD") — because the day is in the past, or because the slot has
+ * ("YYYY-MM-DD") because the day is in the past, or because the slot has
  * already passed on that day.
  *
  * A slot is treated as unavailable once the current time *reaches* it: booking

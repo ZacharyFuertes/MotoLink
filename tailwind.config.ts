@@ -55,7 +55,7 @@ export default {
         "body-lg": ["1rem", { lineHeight: "1.75", letterSpacing: "0.01em" }],
         "body-md": ["0.875rem", { lineHeight: "1.7", letterSpacing: "0.01em" }],
         "body-sm": ["0.75rem", { lineHeight: "1.65", letterSpacing: "0.02em" }],
-        // Meta/label text — uppercase needs extra tracking
+        // Meta/label text uppercase needs extra tracking
         "label-lg": [
           "0.8125rem",
           { lineHeight: "1.5", letterSpacing: "0.12em" },

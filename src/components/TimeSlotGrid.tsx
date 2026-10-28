@@ -24,9 +24,9 @@ interface TimeSlotGridProps {
   /** Currently chosen slot ("HH:MM"), or "" for none. */
   value: string;
   onChange: (slot: string) => void;
-  /** Already booked — unavailable. */
+  /** Already booked unavailable. */
   takenSlots?: string[];
-  /** Time has already passed on the selected day — unavailable. */
+  /** Time has already passed on the selected day unavailable. */
   pastSlots?: string[];
   /** Rendered above the grid. */
   label?: string;
@@ -122,7 +122,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 
       {availableCount === 0 ? (
         <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
-          {emptyMessage || "No time slots left on this date — pick another day."}
+          {emptyMessage || "No time slots left on this date pick another day."}
         </p>
       ) : (
         (takenSlots.length > 0 || pastSlots.length > 0) && (

@@ -54,7 +54,7 @@ export const getPaymentConfig = async (): Promise<PaymentConfigStatus> => {
 
 /**
  * Start an online deposit payment for a booking. Resolves with a REAL PayMongo
- * checkout URL (qrValue). Rejects with OnlinePaymentError — never fabricates a
+ * checkout URL (qrValue). Rejects with OnlinePaymentError never fabricates a
  * QR. If the shop hasn't enabled online payment or the provider isn't set up,
  * it rejects with code "online_disabled" / "not_configured".
  */

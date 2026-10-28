@@ -24,14 +24,14 @@ export interface Shop {
   /** UTC moment a legal hold was raised. */
   legal_hold_at?: string | null;
   legal_hold_reason?: string | null;
-  /** TERMINATED | ARCHIVED — why the shop is on hold. */
+  /** TERMINATED | ARCHIVED why the shop is on hold. */
   hold_reason?: string | null;
   hold_note?: string | null;
   /** UTC moment the shop's PII was anonymized. */
   purged_at?: string | null;
   /** Storage path of the pre-purge encrypted export, once created. */
   export_archive_ref?: string | null;
-  /** Owner toggle — when false, GCash/Maya is "Unavailable" during booking. */
+  /** Owner toggle when false, GCash/Maya is "Unavailable" during booking. */
   online_payment_enabled?: boolean;
   /** "fixed" = peso downpayment, "percent" = % of estimated total. */
   deposit_type?: "fixed" | "percent";

@@ -23,7 +23,7 @@ export type AppPage =
 // Role-based mapping (central source of truth for allowed pages per role)
 // NOTE: Top-level POVs are customer / owner / admin. The mechanic role still
 // exists in the DB (job-order assignment, mechanic_availability) but has NO
-// portal — owners manage all job-order work from their own pages.
+// portal owners manage all job-order work from their own pages.
 export const rolePagesMapping: Record<UserRole, AppPage[]> = {
   customer: ["landing", "user-profile"],
   mechanic: [],

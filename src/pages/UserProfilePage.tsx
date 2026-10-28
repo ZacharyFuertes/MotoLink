@@ -1685,7 +1685,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
               {detailVehicle.edit_requested && (
                 <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                  Change requested — waiting for admin approval.
+                  Change requested waiting for admin approval.
                 </p>
               )}
               {showLockedNotice && (
@@ -1696,7 +1696,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               )}
               {!detailLocked && detailVehicle.edit_approved_at && (
                 <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                  Admin approved a change — save it before it closes.
+                  Admin approved a change save it before it closes.
                 </p>
               )}
 

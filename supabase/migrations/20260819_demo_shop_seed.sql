@@ -14,7 +14,7 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
--- 0. PREREQUISITE CHECK — fails fast with a clear message if the supporting
+-- 0. PREREQUISITE CHECK fails fast with a clear message if the supporting
 --    migrations haven't been applied yet.
 -- ---------------------------------------------------------------------------
 DO $$
@@ -28,7 +28,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 1. AUTH USERS (demo owner, mechanics, riders) — uses crypt() so they can log in
+-- 1. AUTH USERS (demo owner, mechanics, riders) uses crypt() so they can log in
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE

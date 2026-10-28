@@ -29,7 +29,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Base navigation links — action-oriented labels.
+  // Base navigation links action-oriented labels.
   const links = [
     { label: "Explore Shops", action: onBrowse },
     { label: "Live Locator", action: onMap },
@@ -151,7 +151,7 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
           <ThemeToggle className="h-10 w-10" />
         </div>
 
-        {/* Mobile controls — theme toggle + clean text-based menu control */}
+        {/* Mobile controls theme toggle + clean text-based menu control */}
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle className="h-10 w-10" />
           <motion.button

@@ -11,7 +11,7 @@
 --              appointment's UUID so it is guaranteed unique across every row.
 --
 -- The booking_id is generated SERVER-SIDE (BEFORE INSERT trigger), exactly once,
--- at the moment the appointment row is successfully written — never on failed
+-- at the moment the appointment row is successfully written never on failed
 -- submissions and never twice for the same record.
 -- ============================================================================
 

@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — PayMongo webhook handler.
+ * Vercel Serverless Function PayMongo webhook handler.
  *
  * Verifies the Paymongo-Signature (HMAC-SHA256 over `timestamp.<raw body>`) and
  * idempotently flips the matching payments + appointment to the resolved state.
@@ -52,7 +52,7 @@ const readRawBody = (req: any): Promise<string> =>
  */
 const verifySignature = (rawBody: string, signatureHeader: string): boolean => {
   if (!PAYMONGO_WEBHOOK_SECRET) {
-    console.warn("[payment-webhook] No PAYMONGO_WEBHOOK_SECRET — skipping verification.");
+    console.warn("[payment-webhook] No PAYMONGO_WEBHOOK_SECRET skipping verification.");
     return true;
   }
   if (!signatureHeader) return false;
@@ -177,7 +177,7 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ ok: false, error: "Lookup failed." });
   }
 
-  // Unknown payment — acknowledge so PayMongo stops retrying.
+  // Unknown payment acknowledge so PayMongo stops retrying.
   if (!payment) {
     console.warn("[payment-webhook] No payment row for event", eventType, {
       providerIntentId,
@@ -193,7 +193,7 @@ export default async function handler(req: any, res: any) {
   else if (EXPIRED_EVENTS.has(eventType)) nextStatus = "expired";
 
   if (!nextStatus) {
-    // Unhandled event type — acknowledge without touching state.
+    // Unhandled event type acknowledge without touching state.
     return res.status(200).json({ ok: true, ignored: true });
   }
 
@@ -225,7 +225,7 @@ export default async function handler(req: any, res: any) {
   if (nextStatus === "paid") {
     // A deposit that lands after the shop was placed on hold (or otherwise
     // deactivated) must NOT produce a valid booking. The payment row stays
-    // "paid" (that is fact — the money moved), but the appointment is flagged
+    // "paid" (that is fact the money moved), but the appointment is flagged
     // for a refund and admins are alerted to it.
     const { data: shop } = await db
       .from("shops")
@@ -251,8 +251,8 @@ export default async function handler(req: any, res: any) {
           db,
           payment.appointment_id,
           admin.id as string,
-          `Deposit of ${fmtPeso(Number(payment.amount))} via ${payment.method === "gcash" ? "GCash" : "Maya"} was received for a booking whose shop is no longer ACTIVE — process a refund.`,
-          "Refund needed — payment on inactive shop",
+          `Deposit of ${fmtPeso(Number(payment.amount))} via ${payment.method === "gcash" ? "GCash" : "Maya"} was received for a booking whose shop is no longer ACTIVE process a refund.`,
+          "Refund needed payment on inactive shop",
         );
       }
       return res.status(200).json({ ok: true, holdRefundFlagged: true });

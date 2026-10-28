@@ -228,7 +228,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
 
   const handleDeleteVehicle = async (vehicleId: string) => {
     // A bike with service records is the audit trail shops and invoices
-    // reference, so it must not be removable — the same rule the garage cards
+    // reference, so it must not be removable the same rule the garage cards
     // in UserProfilePage enforce.
     try {
       if (await hasServiceActivity(vehicleId)) {

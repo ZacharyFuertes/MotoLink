@@ -253,7 +253,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   };
 
   /**
-   * Email OTP login — step 1: ask the server to email a 6-digit code.
+   * Email OTP login step 1: ask the server to email a 6-digit code.
    */
   const handleSendOtp = async () => {
     setError("");
@@ -283,7 +283,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   };
 
   /**
-   * Email OTP login — step 2: verify the code and establish the Supabase session.
+   * Email OTP login step 2: verify the code and establish the Supabase session.
    */
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,7 +309,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         setSignupOtpPending(false);
       }
 
-      // Install the session — AuthContext picks it up via onAuthStateChange.
+      // Install the session AuthContext picks it up via onAuthStateChange.
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: result.session.access_token,
         refresh_token: result.session.refresh_token,
@@ -358,7 +358,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         });
     }
 
-    // Role is resolved, login succeeded — App routes the user to the dashboard
+    // Role is resolved, login succeeded App routes the user to the dashboard
     // matching their role (customer -> landing, owner -> dashboard, admin -> admin-dashboard).
     setLoading(false);
     setLoginAttempted(false);
@@ -405,7 +405,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           </button>
         </div>
 
-        {/* LEFT / MAIN — AUTH FORM */}
+        {/* LEFT / MAIN AUTH FORM */}
         <div className="bg-moto-darker/40 p-6 sm:p-8 md:p-12 flex flex-col overflow-y-auto relative w-full scrollbar-hide">
           {/* Back nav for desktop */}
           <button
@@ -771,7 +771,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           </div>
         </div>
 
-        {/* RIGHT — VISUAL ARTWORK */}
+        {/* RIGHT VISUAL ARTWORK */}
         <div
           className="hidden md:block relative bg-cover bg-center min-h-full"
           style={{ backgroundImage: `url(${heroImage})` }}

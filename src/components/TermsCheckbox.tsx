@@ -11,7 +11,7 @@ interface TermsCheckboxProps {
 
 /**
  * Required agreement tickbox for the two registration flows (customer signup
- * and shop registration). Purely a client-side gate — the caller blocks its own
+ * and shop registration). Purely a client-side gate the caller blocks its own
  * submit handler when `checked` is false, so the wording here is the single
  * source of truth for what the user is agreeing to.
  */

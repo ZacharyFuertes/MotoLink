@@ -13,7 +13,7 @@ const svc = createClient(URL, SERVICE, { auth: { persistSession: false, autoRefr
 const TS = Date.now();
 const PASSWORD = "TestPass123!";
 let PASS = 0, FAIL = 0;
-const check = (name, ok, detail = "") => { if (ok) PASS++; else FAIL++; console.log(`${ok ? "✅" : "❌"}  ${name}${detail ? "  — " + detail : ""}`); };
+const check = (name, ok, detail = "") => { if (ok) PASS++; else FAIL++; console.log(`${ok ? "✅" : "❌"}  ${name}${detail ? "  " + detail : ""}`); };
 
 const CUST_EMAIL = `rls.customer.${TS}@example.com`;
 const ADMIN_EMAIL = `rls.admin.${TS}@example.com`;

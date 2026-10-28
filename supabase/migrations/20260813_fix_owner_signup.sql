@@ -1,5 +1,5 @@
 -- ============================================================================
--- FIX: Shop owner registration — "Registration Failed" + owner becomes customer
+-- FIX: Shop owner registration "Registration Failed" + owner becomes customer
 -- Run this in the Supabase SQL Editor.
 --
 -- Root causes found live:
@@ -16,8 +16,8 @@
 --   A. Makes shops.description nullable (default '') so partial signup data can
 --      never violate a constraint.
 --   B. Auto-creates public.users the instant an auth.users row is inserted
---      (handle_new_user trigger) — kills the client-side profile race entirely.
---   C. Adds register_shop_owner() — creates the owner profile + shop + shop_id
+--      (handle_new_user trigger) kills the client-side profile race entirely.
+--   C. Adds register_shop_owner() creates the owner profile + shop + shop_id
 --      link inside ONE transaction (SECURITY DEFINER), so there is no partial
 --      state, no FK race, no demotion.
 -- ============================================================================

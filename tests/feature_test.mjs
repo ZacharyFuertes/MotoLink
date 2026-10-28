@@ -13,7 +13,7 @@ const svc = createClient(URL, SERVICE, { auth: { persistSession: false, autoRefr
 const TS = Date.now();
 const PASSWORD = "TestPass123!";
 let PASS = 0, FAIL = 0;
-const check = (name, ok, detail = "") => { if (ok) PASS++; else FAIL++; console.log(`${ok ? "✅" : "❌"}  ${name}${detail ? "  — " + detail : ""}`); };
+const check = (name, ok, detail = "") => { if (ok) PASS++; else FAIL++; console.log(`${ok ? "✅" : "❌"}  ${name}${detail ? "  " + detail : ""}`); };
 
 const CUST = `feat.customer.${TS}@example.com`;
 const OWNER = `feat.owner.${TS}@example.com`;
@@ -142,7 +142,7 @@ try {
     check("Customer sees updated status", a?.status === "confirmed", a?.status);
     // customer can cancel own PENDING only
     const { error: canErr } = await sb.from("appointments").update({ status: "cancelled" }).eq("id", apptId);
-    check("Customer can cancel own (any status — policy checks status='pending')", true, canErr ? "note: cancelled=" + canErr.message : "ok");
+    check("Customer can cancel own (any status policy checks status='pending')", true, canErr ? "note: cancelled=" + canErr.message : "ok");
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -248,7 +248,7 @@ try {
   }
 
   // Reservation fulfillment: the app's wired flow deducts part stock
-  // (reservationService.fulfillReservation — used in CustomersListPage).
+  // (reservationService.fulfillReservation used in CustomersListPage).
   {
     const sb = anon();
     await sb.auth.signInWithPassword({ email: OWNER, password: PASSWORD });

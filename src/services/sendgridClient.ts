@@ -21,13 +21,13 @@ export interface EmailRequestResult {
   success: boolean;
   skipped?: boolean;
   error?: string;
-  /** True when the email service env keys aren't set yet — callers should stay quiet. */
+  /** True when the email service env keys aren't set yet callers should stay quiet. */
   notConfigured?: boolean;
 }
 
 /**
  * Request a transactional email for an appointment. Fire-and-forget friendly:
- * never throws — failures are returned as { success: false, error } and the
+ * never throws failures are returned as { success: false, error } and the
  * caller decides whether to surface a toast.
  */
 export const requestEmail = async (

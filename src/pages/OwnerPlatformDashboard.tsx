@@ -67,7 +67,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const isOnHold = shopStatus === "ON_HOLD";
   const isPurged = shopStatus === "PURGED";
   // Owner with no resolvable shop (missing/linked-after signup) is treated as
-  // unapproved and locked too — they have nothing to manage yet.
+  // unapproved and locked too they have nothing to manage yet.
   const shopNotFound = !shopLoading && !shop;
   const isLocked =
     shopLoading || shopNotFound || shopStatus !== "ACTIVE";

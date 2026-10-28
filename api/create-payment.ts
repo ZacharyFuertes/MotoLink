@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — create a PayMongo payment for an online
+ * Vercel Serverless Function create a PayMongo payment for an online
  * (GCash / Maya) reservation deposit on a booking.
  *
  * SECURITY: The PayMongo secret key lives here (server env only). The browser
@@ -10,7 +10,7 @@
  *   • the deposit must be within PayMongo's chargeable range
  *
  * A QR is only ever generated from a REAL `next_action.redirect.url` returned
- * by PayMongo — if any guard fails we return an error instead of a fake QR.
+ * by PayMongo if any guard fails we return an error instead of a fake QR.
  */
 
 import { createClient } from "@supabase/supabase-js";

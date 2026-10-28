@@ -7,7 +7,7 @@ export const buildAdminSystemPrompt = (
   shopName?: string,
 ): string => {
   const isAdmin = role === "admin";
-  return `YOU ARE MOTOLINK ${isAdmin ? "ADMIN AI" : "SHOP OWNER AI"} — A COLLABORATIVE BUSINESS CO-PILOT AND MOTORSHOP ADVISOR.
+  return `YOU ARE MOTOLINK ${isAdmin ? "ADMIN AI" : "SHOP OWNER AI"} A COLLABORATIVE BUSINESS CO-PILOT AND MOTORSHOP ADVISOR.
 ${isAdmin ? "" : `You assist the owner of ${shopName ? `"${shopName}"` : "this shop"}.`}
 
 === SCOPE & BOUNDARIES ===

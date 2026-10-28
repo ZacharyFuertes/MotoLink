@@ -57,7 +57,7 @@ CREATE POLICY "Admin can view all reviews"
   USING (public.is_admin());
 
 -- ---------------------------------------------------------------------------
--- 2. GET_LANDING_STATS RPC — one call, real aggregates, anon-safe
+-- 2. GET_LANDING_STATS RPC one call, real aggregates, anon-safe
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_landing_stats()
 RETURNS json
@@ -105,7 +105,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_landing_stats() TO anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- 3. GET_SHOP_REVIEW_SUMMARIES RPC — per-shop rating + review count
+-- 3. GET_SHOP_REVIEW_SUMMARIES RPC per-shop rating + review count
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_shop_review_summaries()
 RETURNS json

@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — lightweight payment status poller.
+ * Vercel Serverless Function lightweight payment status poller.
  *
  * The QR screen polls this instead of reading the `payments` table directly,
  * so the client never needs payment write access and RLS stays tight. Only the
@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
     return res.status(403).json({ success: false, error: "Not authorized." });
   }
 
-  // Held/deactivated shops can no longer finish a payment — the QR screen
+  // Held/deactivated shops can no longer finish a payment the QR screen
   // should stop polling and surface the shop's unavailable state.
   if (payment.status === "awaiting_action" || payment.status === "awaiting_payment") {
     const { data: shop } = await db

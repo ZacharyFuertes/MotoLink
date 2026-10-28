@@ -1,5 +1,5 @@
 /**
- * Vercel Serverless Function — on-hold notification email.
+ * Vercel Serverless Function on-hold notification email.
  *
  * Called by the admin flow right after a shop is placed on hold, so the shop
  * owner is emailed immediately with their retention countdown. Unlike the cron

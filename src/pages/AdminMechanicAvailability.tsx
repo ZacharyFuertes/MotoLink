@@ -253,7 +253,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     setCreatingMechanic(true)
     const ownerShopId = resolvedShopId || user?.shop_id || null
     try {
-      // Capture the owner's session BEFORE signUp — creating the mechanic's
+      // Capture the owner's session BEFORE signUp creating the mechanic's
       // auth account swaps the active session to the new user, so we restore
       // the owner's session afterwards.
       const { data: ownerSess } = await supabase.auth.getSession()

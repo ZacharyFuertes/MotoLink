@@ -493,7 +493,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
 
     if (parsed.length < 2) {
       setImportError(
-        "The CSV file appears to be empty — no data rows were found.",
+        "The CSV file appears to be empty no data rows were found.",
       );
       return;
     }
@@ -552,7 +552,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     setImportPreview(preview);
     if (preview.length === 0) {
       setImportError(
-        "No new items to import — every row is missing a name/SKU or uses a SKU that already exists in your inventory.",
+        "No new items to import every row is missing a name/SKU or uses a SKU that already exists in your inventory.",
       );
     }
   };

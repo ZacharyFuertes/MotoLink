@@ -1,4 +1,4 @@
-name: Shop retention — daily purge & reminders
+name: Shop retention daily purge & reminders
 
 on:
   schedule:

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
+import { ArrowLeft, Phone, Wrench, Package, Users, Mail, AlertCircle, Star, Navigation, CalendarDays, ChevronLeft, ChevronRight, Image as ImageIcon, Cog, Bike, Gauge, Droplet, Bolt, Flame, ShieldCheck, GaugeCircle } from "lucide-react";
 import { getShopById, parseOperatingHoursString } from "../services/shopService";
 import { productService } from "../services/productService";
 import { inventoryService } from "../services/inventoryService";
@@ -29,8 +29,7 @@ interface ShopProduct {
 
 interface ShopMechanic {
   id: string;
-  name: string;
-  email: string;
+  name: string | null;
 }
 
 interface ShopService {
@@ -114,7 +113,7 @@ const computeShopStatus = (operatingHours?: string): ShopStatus => {
     }
   }
 
-  // Closed — find the next day/time the shop opens (scan forward up to 7 days).
+  // Closed find the next day/time the shop opens (scan forward up to 7 days).
   for (let offset = 1; offset <= 7; offset++) {
     const dayIndex = (today + offset) % 7;
     const entry = schedule[dayIndex];
@@ -124,15 +123,6 @@ const computeShopStatus = (operatingHours?: string): ShopStatus => {
   }
 
   return { state: "closed", nextOpenLabel: "check back later" };
-};
-
-// Deterministic per-mechanic profile flavor so team cards feel real:
-// stable rating + availability derived from the mechanic id (no server field).
-const mechanicProfile = (id: string): { rating: string; available: boolean } => {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  const rating = (4.4 + (hash % 6) / 10).toFixed(1); // 4.4 – 4.9
-  return { rating, available: hash % 5 !== 0 };
 };
 
 // Themed garage icon chosen from a product's name/category so image-less
@@ -161,6 +151,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [mechanics, setMechanics] = useState<ShopMechanic[]>([]);
   const [services, setServices] = useState<ShopService[]>([]);
   const [reviews, setReviews] = useState<ShopReview[]>([]);
+  const [reviewPage, setReviewPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -169,9 +160,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [gallery, setGallery] = useState<ShopPhoto[]>([]);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [galleryFocused, setGalleryFocused] = useState(false);
-  const [selectedService, setSelectedService] = useState<ShopService | null>(null);
-  const [selectedMechanic, setSelectedMechanic] = useState<ShopMechanic | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
 
   // Only show genuine owner-uploaded shop photos. Exclude any gallery entry
   // that is actually the shop's logo so the logo never shows inside the viewer.
@@ -185,17 +173,22 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   }, [galleryFiltered, galleryIndex]);
 
   const activePhoto = galleryFiltered[galleryIndex] || null;
+  const reviewsPerPage = 10;
+  const reviewPageCount = Math.ceil(reviews.length / reviewsPerPage);
+  const visibleReviews = reviews.slice(
+    reviewPage * reviewsPerPage,
+    (reviewPage + 1) * reviewsPerPage,
+  );
 
-  // Default-select the first item of each catalog category once data is loaded.
   useEffect(() => {
-    if (services.length > 0 && !selectedService) setSelectedService(services[0]);
-  }, [services, selectedService]);
+    setReviewPage(0);
+  }, [shopId]);
+
   useEffect(() => {
-    if (mechanics.length > 0 && !selectedMechanic) setSelectedMechanic(mechanics[0]);
-  }, [mechanics, selectedMechanic]);
-  useEffect(() => {
-    if (products.length > 0 && !selectedProduct) setSelectedProduct(products[0]);
-  }, [products, selectedProduct]);
+    if (reviewPageCount > 0 && reviewPage >= reviewPageCount) {
+      setReviewPage(reviewPageCount - 1);
+    }
+  }, [reviewPage, reviewPageCount]);
 
   const moveGallery = (delta: number) => {
     if (galleryFiltered.length === 0) return;
@@ -290,7 +283,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           inventoryService.getParts(shopId),
           supabase
             .from("users")
-            .select("id, name, email")
+            .select("id, name")
             .eq("role", "mechanic")
             .eq("shop_id", shopId)
             .order("name"),
@@ -410,106 +403,113 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const hasCoords =
     typeof shop.latitude === "number" && typeof shop.longitude === "number";
 
-  // Weekly open-day count + derived response-rate metric for the summary row.
-  const openDays = schedule.filter((d) => d.open).length;
-  const responseRate = `${90 + (openDays >= 6 ? 7 : openDays >= 4 ? 4 : 0)}%`;
-
   // Rotate the Sunday-first schedule into a Monday-first visualizer order.
   const weekOrder = [1, 2, 3, 4, 5, 6, 0];
   const todayIdx = new Date().getDay();
 
 
   const directionsButton =
-    "inline-flex items-center justify-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-5 py-2.5 text-xs font-bold text-slate-950 uppercase tracking-wider transition active:scale-95";
+    "shop-directions-button inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider transition active:scale-95";
 
   return (
-    <div className="min-h-screen bg-moto-darker text-slate-100">
-      {/* Ambient radial light */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-0 h-[420px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-moto-accent/20 via-moto-darker to-moto-darker" />
+    <div className="shop-detail-page min-h-screen bg-moto-darker text-slate-100">
+      <div className="shop-detail-grain pointer-events-none fixed inset-0 z-0" aria-hidden="true" />
 
-      <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 sm:py-10 lg:grid-cols-[320px_1fr]">
-        {/* ────────────────────────────── LEFT STICKY SIDEBAR ────────────────────────────── */}
-        <aside className="h-fit space-y-6 lg:sticky lg:top-6">
+      <div className="shop-detail-layout relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 py-5 pb-28 sm:gap-7 sm:px-6 sm:py-8 sm:pb-32 lg:grid-cols-12">
+        {/* ────────────────────────────── SHOP PROFILE & CATALOG ────────────────────────────── */}
+        <aside className="contents">
           {/* ── Shop Profile Card ── */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 300, damping: 22 }}
-            className="relative rounded-2xl border border-moto-gray bg-moto-dark p-6 text-center transition-colors hover:border-moto-accent/40"
+            className="shop-profile-card relative order-1 flex h-full flex-col items-start justify-center p-5 sm:p-7 lg:col-span-3"
           >
             <button
               onClick={onBack}
               aria-label="Back to shops"
-              className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-400 transition hover:border-moto-accent/40 hover:text-moto-accent active:scale-95"
+              className="shop-back-button absolute right-4 top-4 flex h-9 w-9 items-center justify-center text-slate-400 transition hover:text-moto-accent active:scale-95"
             >
               <ArrowLeft size={16} />
             </button>
 
-            <div className="relative inline-block">
+            <div className="flex w-full items-center gap-4 sm:gap-5 lg:flex-col lg:items-center lg:text-center">
+            <div className="shop-profile-mark relative inline-flex shrink-0 items-center justify-center">
               {shop.logo_url ? (
                 <img
                   src={shop.logo_url}
                   alt={`${shop.name} logo`}
-                  className="h-24 w-24 rounded-full border-2 border-moto-gray bg-moto-darker object-contain p-2"
+                  className="shop-profile-logo h-full w-full object-contain"
                 />
               ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-moto-gray bg-moto-darker">
+                <div className="flex h-full w-full items-center justify-center">
                   <span className="font-display text-4xl font-black text-moto-accent">
                     {shop.name.trim().charAt(0) || "?"}
                   </span>
                 </div>
               )}
               {typeof shop.rating === "number" && (
-                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-moto-accent px-2.5 py-0.5 text-xs font-bold text-slate-950 whitespace-nowrap">
-                  <Star size={12} className="fill-slate-950" /> {shop.rating.toFixed(1)}
+                <span className="shop-rating-stamp absolute -bottom-2 -right-2 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold whitespace-nowrap">
+                  <Star size={11} className="fill-current" /> {shop.rating.toFixed(1)}
                 </span>
               )}
             </div>
 
-            <h1 className="mt-6 font-display font-black text-xl tracking-tight text-slate-100">
-              {shop.name}
-            </h1>
+            <div className="min-w-0 flex-1 lg:w-full lg:flex-none">
+              <h1 className="shop-profile-name mt-1 break-words font-display font-black text-2xl leading-tight tracking-tight text-slate-100 sm:text-3xl lg:text-2xl">
+                {shop.name}
+              </h1>
 
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-moto-accent">
-              <ShieldCheck size={11} /> Verified Partner
-            </span>
+              <span className="shop-verified mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-moto-accent">
+                <ShieldCheck size={12} /> Verified partner
+              </span>
+            </div>
+            </div>
 
+            <div className="shop-profile-contacts mt-5 flex w-full flex-col gap-2 border-t pt-4 lg:items-center">
             {shop.email && (
-              <a href={`mailto:${shop.email}`} className="mt-4 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-moto-accent">
-                <Mail size={14} className="text-moto-accent" /> {shop.email}
+              <a href={`mailto:${shop.email}`} className="shop-contact-link flex items-center gap-2 text-sm text-slate-400 transition hover:text-moto-accent">
+                <Mail size={14} className="shrink-0 text-moto-accent" /> <span className="truncate">{shop.email}</span>
               </a>
             )}
             {shop.phone && (
-              <a href={`tel:${shop.phone}`} className="mt-1 flex items-center justify-center gap-1.5 text-sm text-slate-400 transition hover:text-moto-accent">
-                <Phone size={14} className="text-moto-accent" /> {shop.phone}
+              <a href={`tel:${shop.phone}`} className="shop-contact-link flex items-center gap-2 text-sm text-slate-400 transition hover:text-moto-accent">
+                <Phone size={14} className="shrink-0 text-moto-accent" /> {shop.phone}
               </a>
             )}
+            </div>
           </motion.section>
 
           {/* ── Catalog Tabs & Lists ── */}
-          <section className="rounded-2xl border border-moto-gray bg-moto-darker p-5">
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-moto-gray bg-moto-dark p-1.5">
+          <section className="shop-catalog-panel order-4 p-4 sm:p-6 lg:col-span-12">
+            <div className="shop-section-heading mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black text-slate-100 sm:text-2xl">Services, mechanics &amp; parts</h2>
+              </div>
+            </div>
+            <div role="tablist" aria-label="Shop catalog" className="shop-catalog-tabs grid grid-cols-3">
               {([
                 { id: "services" as const, label: "Services", icon: Wrench, count: services.length },
                 { id: "mechanics" as const, label: "Mechanics", icon: Users, count: mechanics.length },
-                { id: "products" as const, label: "Products", icon: Package, count: products.length },
+                { id: "products" as const, label: "Parts", icon: Package, count: products.length },
               ]).map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   aria-selected={activeTab === tab.id}
+                  aria-label={`${tab.label} (${tab.count})`}
                   role="tab"
-                  className={`relative inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-colors ${
-                    activeTab === tab.id ? "bg-moto-accent text-slate-950" : "text-slate-400 hover:text-white"
+                  className={`shop-catalog-tab relative inline-flex min-w-0 items-center justify-center gap-1.5 px-2 py-3 text-xs font-bold uppercase tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent sm:gap-2 sm:px-3 ${
+                    activeTab === tab.id ? "is-active text-moto-accent" : "text-slate-400 hover:text-white"
                   }`}
                 >
                   <tab.icon size={15} className="shrink-0" />
-                  <span className="truncate">{tab.label}</span>
+                  <span className="hidden truncate sm:inline">{tab.label}</span>
                   <span
-                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      activeTab === tab.id ? "bg-moto-dark/20 text-slate-950" : "bg-moto-gray text-slate-400"
+                    className={`inline-flex min-w-5 items-center justify-center px-1.5 py-0.5 text-[10px] font-bold ${
+                      activeTab === tab.id ? "bg-moto-accent/15 text-moto-accent" : "bg-moto-gray/50 text-slate-400"
                     }`}
                   >
                     {tab.count}
@@ -518,35 +518,26 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               ))}
             </div>
 
-            <div className="mt-5 max-h-[420px] space-y-2 overflow-y-auto pr-1">
+            <div className="shop-catalog-list mt-4 max-h-[560px] overflow-y-auto pr-1">
               {/* ── SERVICES ── */}
               {activeTab === "services" && (
                 services.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
+                      <div className="shop-empty-state p-8 text-center">
                     <Wrench size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No services listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any services to its menu yet.</p>
                   </div>
                 ) : (
-                  services.map((svc, idx) => {
-                    const isPopular = idx === 0;
-                    const isSelected = selectedService?.id === svc.id;
-                    return (
-                      <button
+                  services.map((svc) => (
+                      <div
                         key={svc.id}
-                        type="button"
-                        onClick={() => setSelectedService(svc)}
-                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                          isSelected
-                            ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
-                        }`}
+                        className="shop-catalog-row flex w-full items-center gap-3 p-3.5 text-left"
                       >
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-moto-dark text-slate-400"}`}>
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-moto-dark text-slate-400">
                           <Wrench size={15} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
+                          <p className="truncate text-sm font-bold text-slate-100">
                             {svc.label}
                           </p>
                           {svc.description && (
@@ -554,104 +545,80 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <p className="text-sm font-bold text-moto-accent">
+                          <p className="shop-catalog-price">
                             ₱{Number(svc.price).toLocaleString()}
                           </p>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                              isPopular
-                                ? isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-moto-accent/10 text-moto-accent"
-                                : isSelected ? "bg-moto-accent/20 text-moto-accent" : "bg-emerald-500/10 text-emerald-300"
-                            }`}
+                            className="shop-catalog-status shop-listing-label px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider"
                           >
-                            {isPopular ? "Popular" : "Available"}
+                            Available
                           </span>
                         </div>
-                      </button>
-                    );
-                  })
+                      </div>
+                    ))
                 )
               )}
 
               {/* ── MECHANICS ── */}
               {activeTab === "mechanics" && (
                 mechanics.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
+                  <div className="shop-empty-state p-8 text-center">
                     <Users size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No mechanics listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">No mechanics have been assigned to this shop yet.</p>
                   </div>
                 ) : (
-                  mechanics.map((mech) => {
-                    const isSelected = selectedMechanic?.id === mech.id;
-                    const profile = mechanicProfile(mech.id);
-                    return (
-                      <button
-                        key={mech.id}
-                        type="button"
-                        onClick={() => setSelectedMechanic(mech)}
-                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                          isSelected
-                            ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
-                        }`}
-                      >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isSelected ? "border-moto-accent/50 bg-moto-accent/20" : "border-moto-gray bg-moto-dark"}`}>
-                          <span className="font-display text-[10px] font-black uppercase text-moto-accent">
-                            {mech.name.slice(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
-                            {mech.name}
-                          </p>
-                          <p className="truncate text-xs text-slate-500">{mech.email}</p>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-moto-dark border border-moto-gray px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                            <Star size={9} className="fill-amber-400 text-amber-400" /> {profile.rating}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                              profile.available
-                                ? "bg-emerald-500/10 text-emerald-300"
-                                : "bg-moto-gray text-slate-400"
-                            }`}
-                          >
-                            <span className={`h-1 w-1 rounded-full ${profile.available ? "bg-emerald-400" : "bg-slate-500"}`} />
-                            {profile.available ? "Available" : "Booked"}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })
+                  <div className="shop-team-list">
+                    <div className="mb-2 flex items-center justify-between gap-3 px-1 pb-3">
+                      <div>
+                        <p className="text-sm font-bold text-slate-100">The people behind the work</p>
+                        <p className="mt-0.5 text-xs text-slate-500">Contact the shop to ask about a technician.</p>
+                      </div>
+                    </div>
+                    {mechanics.map((mech) => {
+                      const mechanicName = mech.name?.trim() || "Mechanic";
+                      const initials = mechanicName
+                        .split(/\s+/)
+                        .map((part) => part[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase();
+
+                      return (
+                        <article key={mech.id} className="shop-team-member flex items-center gap-3 px-2.5 py-3">
+                          <div className="shop-team-avatar flex h-11 w-11 shrink-0 items-center justify-center" role="img" aria-label={`${mechanicName} initials`}>
+                            <span className="font-display text-xs font-black uppercase text-moto-accent">
+                              {initials || "M"}
+                            </span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-slate-100">{mechanicName}</p>
+                            <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Workshop mechanic</p>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
                 )
               )}
 
               {/* ── PRODUCTS ── */}
               {activeTab === "products" && (
                 products.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-moto-gray p-8 text-center">
+                      <div className="shop-empty-state p-8 text-center">
                     <Package size={28} className="mx-auto mb-3 text-slate-600" />
                     <p className="font-bold uppercase tracking-widest text-slate-200 text-sm">No products listed yet</p>
                     <p className="text-slate-400 text-sm mt-1">This shop hasn't added any parts or products to its catalog yet.</p>
                   </div>
                 ) : (
                   products.map((p) => {
-                    const isSelected = selectedProduct?.id === p.id;
                     const FallbackIcon = productFallbackIcon(`${p.name} ${p.category || ""}`.toLowerCase());
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        type="button"
-                        onClick={() => setSelectedProduct(p)}
-                        className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
-                          isSelected
-                            ? "border-moto-accent bg-moto-accent/10"
-                            : "border-moto-gray bg-moto-dark hover:border-moto-gray-light"
-                        }`}
+                        className="shop-catalog-row flex w-full items-center gap-3 p-3.5 text-left"
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border ${isSelected ? "border-moto-accent/50" : "border-moto-gray"} bg-moto-dark`}>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-moto-gray bg-moto-dark">
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
                           ) : (
@@ -659,7 +626,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`truncate text-sm font-bold ${isSelected ? "text-moto-accent" : "text-slate-100"}`}>
+                          <p className="truncate text-sm font-bold text-slate-100">
                             {p.name}
                           </p>
                           {p.description && (
@@ -667,14 +634,14 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <p className="text-sm font-bold text-moto-accent">
+                          <p className="shop-catalog-price">
                             ₱{Number(p.unit_price).toLocaleString()}
                           </p>
-                          <span className="rounded-full bg-moto-accent/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-moto-accent">
+                          <span className="shop-catalog-status px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
                             {p.quantity_in_stock !== undefined ? `${p.quantity_in_stock} in stock` : "In-Store"}
                           </span>
                         </div>
-                      </button>
+                      </div>
                     );
                   })
                 )
@@ -683,7 +650,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           </section>
 
           {/* ── Primary Action Buttons ── */}
-          <div className="flex flex-col gap-2.5">
+          <div className="order-5 flex flex-col gap-2.5 lg:col-span-12 lg:items-end">
             {hasCoords && (
               <button onClick={handleNavigate} className={directionsButton}><Navigation size={15} /> Get Directions</button>
             )}
@@ -691,26 +658,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         </aside>
 
         {/* ────────────────────────────── RIGHT MAIN PANEL ────────────────────────────── */}
-        <main className="min-w-0 space-y-6">
-          {/* ── Photo Gallery ── */}
+        <main className="contents">
           <section
-            className="overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker"
+            className="shop-gallery-frame order-2 min-w-0 overflow-hidden lg:col-span-9"
             onKeyDown={handleGalleryKey}
           >
-            <div className="flex items-center justify-between px-5 py-3">
-              <div className="flex items-center gap-2">
-                <Camera size={15} className="text-moto-accent" />
-                <h2 className="text-sm font-bold text-slate-100">Photo Gallery</h2>
-              </div>
-              {galleryFiltered.length > 1 && (
-                <span className="text-xs tabular-nums text-slate-500">
-                  {galleryIndex + 1} / {galleryFiltered.length}
-                </span>
-              )}
-            </div>
-
             {galleryFiltered.length === 0 ? (
-              <div className="p-8 text-center">
+              <div className="shop-empty-state p-8 text-center">
                 <ImageIcon size={30} className="mx-auto mb-2 text-slate-600" />
                 <p className="text-sm font-semibold text-slate-300">No photos yet</p>
                 <p className="mt-1 text-xs text-slate-500">This shop hasn't uploaded any photos.</p>
@@ -721,7 +675,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   tabIndex={0}
                   onFocus={() => setGalleryFocused(true)}
                   onBlur={() => setGalleryFocused(false)}
-                  className="group relative h-[320px] overflow-hidden bg-moto-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent/60"
+                  className="shop-gallery-viewer group relative h-[240px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent/60 sm:h-[320px] lg:h-[390px]"
                   aria-label="Gallery viewer"
                 >
                   <AnimatePresence mode="wait">
@@ -742,7 +696,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(-1)}
                         aria-label="Previous photo"
-                        className="absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
+                        className="shop-gallery-arrow absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
                       >
                         <ChevronLeft size={18} />
                       </button>
@@ -750,7 +704,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         type="button"
                         onClick={() => moveGallery(1)}
                         aria-label="Next photo"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-moto-gray bg-moto-dark text-slate-200 backdrop-blur-md transition hover:border-moto-accent hover:text-moto-accent active:scale-95"
+                        className="shop-gallery-arrow absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -764,7 +718,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 </div>
 
                 {galleryFiltered.length > 1 && (
-                  <div className="flex gap-1.5 overflow-x-auto border-t border-moto-gray px-3 py-2.5">
+                    <div className="shop-gallery-thumbs flex gap-2 overflow-x-auto px-3 py-2.5 sm:px-4">
                     {galleryFiltered.map((photo, i) => (
                       <button
                         key={photo.id}
@@ -774,8 +728,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                         aria-current={i === galleryIndex}
                         className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
                           i === galleryIndex
-                            ? "border-moto-accent ring-2 ring-moto-accent/40"
-                            : "border-moto-gray/80 opacity-60 hover:opacity-100"
+                            ? "is-current"
+                              : "opacity-65 hover:opacity-100"
                         }`}
                       >
                         <img
@@ -795,35 +749,36 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-moto-gray bg-moto-darker p-5"
+            className="shop-overview-panel order-3 p-4 sm:p-6 lg:col-span-12"
           >
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Navigation size={15} className="text-moto-accent" />
-                <h2 className="text-sm font-bold text-slate-100">Shop Overview</h2>
+              <div className="flex items-end gap-3">
+                <div>
+                  <h2 className="shop-overview-title text-xl font-black text-slate-100 sm:text-2xl">Shop overview</h2>
+                </div>
               </div>
               {shopStatus.state === "open" ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                <span className="shop-status-pill inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Open Now
                 </span>
               ) : shopStatus.state === "closed" ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                <span className="shop-status-pill inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Closed
                 </span>
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="shop-fact p-4">
+                <p className="shop-fact-label">Status</p>
+                <p className="shop-fact-value mt-1.5">
                   {shopStatus.state === "open"
                     ? "Open"
                     : shopStatus.state === "closed"
                       ? "Closed"
                       : "Inactive"}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-400">
+                <p className="shop-fact-detail mt-0.5">
                   {shopStatus.state === "open"
                     ? `until ${shopStatus.closeTime}`
                     : shopStatus.state === "closed"
@@ -832,42 +787,37 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                 </p>
               </div>
 
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Address</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">{shop.city}</p>
-                <p className="mt-0.5 text-xs text-slate-400 line-clamp-2">{shop.address}</p>
+              <div className="shop-fact p-4">
+                <p className="shop-fact-label">Address</p>
+                <p className="shop-fact-value mt-1.5">{shop.city}</p>
+                <p className="shop-fact-detail mt-0.5 line-clamp-2">{shop.address}</p>
               </div>
 
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Services</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">{services.length}</p>
-                <p className="mt-0.5 text-xs text-slate-400">active menu items</p>
+              <div className="shop-fact p-4">
+                <p className="shop-fact-label">Services</p>
+                <p className="shop-fact-value mt-1.5">{services.length}</p>
+                <p className="shop-fact-detail mt-0.5">active menu items</p>
               </div>
 
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Team Size</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">{mechanics.length}</p>
-                <p className="mt-0.5 text-xs text-slate-400">assigned mechanics</p>
+              <div className="shop-fact p-4">
+                <p className="shop-fact-label">Team size</p>
+                <p className="shop-fact-value mt-1.5">{mechanics.length}</p>
+                <p className="shop-fact-detail mt-0.5">assigned mechanics</p>
               </div>
 
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Parts Stocked</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">{products.length}</p>
-                <p className="mt-0.5 text-xs text-slate-400">catalog items</p>
+              <div className="shop-fact p-4">
+                <p className="shop-fact-label">Parts stocked</p>
+                <p className="shop-fact-value mt-1.5">{products.length}</p>
+                <p className="shop-fact-detail mt-0.5">catalog items</p>
               </div>
 
-              <div className="rounded-xl border border-moto-gray bg-moto-dark p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Response Rate</p>
-                <p className="mt-1.5 text-sm font-bold text-slate-100">{responseRate}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{openDays} open days / week</p>
-              </div>
             </div>
 
             {/* ── 7-Day Operating Hours ── */}
-            <div className="mt-5 border-t border-moto-gray pt-4">
+            <div className="shop-hours mt-5 pt-4">
               <div className="mb-3 flex items-center gap-2">
                 <CalendarDays size={15} className="text-moto-accent" />
-                <h3 className="text-sm font-bold text-slate-100">Operating Hours</h3>
+                <h3 className="shop-hours-title text-sm font-bold uppercase tracking-wider text-slate-100">Weekly hours</h3>
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
@@ -877,25 +827,25 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                   return (
                     <div
                       key={dIdx}
-                      className={`rounded-xl border p-2.5 text-center transition ${
+                      className={`shop-day-cell p-2.5 text-center transition ${
                         isToday
-                          ? "border-moto-accent/40 bg-moto-accent/10"
-                          : "border-moto-gray bg-moto-dark"
+                          ? "is-today"
+                          : ""
                       }`}
                     >
-                      <p className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? "text-moto-accent" : "text-slate-400"}`}>
+                      <p className={`shop-day-label font-bold uppercase tracking-wider ${isToday ? "text-moto-accent" : "text-slate-400"}`}>
                         {d.day.slice(0, 3)}
-                        {isToday && <span className="ml-1 text-[9px] text-moto-accent">· Today</span>}
+                        {isToday && <span className="shop-today-label ml-1 text-moto-accent">· Today</span>}
                       </p>
                       {d.open ? (
                         <>
-                          <p className="mt-2 text-xs font-bold tabular-nums text-slate-200">{formatClock(d.openTime)}</p>
-                          <p className="text-xs tabular-nums text-slate-400">- {formatClock(d.closeTime)}</p>
+                          <p className="shop-hours-time mt-2 font-bold tabular-nums text-slate-200">{formatClock(d.openTime)}</p>
+                          <p className="shop-hours-end tabular-nums text-slate-400">– {formatClock(d.closeTime)}</p>
                           <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-emerald-400 mx-auto" />
                         </>
                       ) : (
                         <>
-                          <p className="mt-2 text-xs font-bold text-slate-500">Closed</p>
+                          <p className="shop-hours-closed mt-2 font-semibold">Closed</p>
                           <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-slate-600 mx-auto" />
                         </>
                       )}
@@ -911,13 +861,13 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="flex flex-col gap-4 rounded-2xl border border-moto-gray bg-moto-darker p-6 sm:flex-row sm:items-center sm:justify-between"
+            className="shop-booking-cta order-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7 lg:col-span-12"
           >
             <div>
-              <h2 className="text-lg font-black text-slate-100">
+              <h2 className="text-xl font-black text-slate-100 sm:text-2xl">
                 {shopStatus.state === "open" ? "Ready to book?" : "Plan ahead"}
               </h2>
-              <p className="mt-1 max-w-md text-sm text-slate-400">
+              <p className="mt-2 max-w-xl text-base leading-relaxed text-slate-300">
                 {shopStatus.state === "open"
                   ? `Pick a service and confirm your booking with ${shop.name}.`
                   : `This shop is currently closed. You can still browse, and bookings will be available when it reopens${shopStatus.nextOpenLabel ? ` (next opens ${shopStatus.nextOpenLabel})` : ""}.`}
@@ -927,46 +877,47 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               type="button"
               onClick={openBooking}
               disabled={shop.is_open === false}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-6 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+              className="shop-book-button inline-flex shrink-0 items-center justify-center gap-2 px-7 py-3.5 text-base font-bold uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CalendarDays size={16} /> Book Now
             </button>
           </motion.section>
 
-          <section className="rounded-2xl border border-moto-gray bg-moto-darker p-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
+          <section className="shop-reviews-panel order-7 p-4 sm:p-6 lg:col-span-12">
+            <div className="shop-reviews-heading mb-5 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-slate-100">Customer Reviews</h2>
-                <p className="text-sm text-slate-400">What riders are saying about this shop.</p>
+                <h2 className="text-xl font-black text-slate-100 sm:text-2xl">Customer reviews</h2>
+                <p className="mt-1 text-sm text-slate-400">Notes from riders who have visited this workshop.</p>
               </div>
               {reviews.length > 0 && (
-                <div className="inline-flex items-center gap-1 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-2.5 py-1 text-xs font-bold text-moto-accent">
-                  <Star size={11} className="fill-moto-accent text-moto-accent" />
-                  {(
-                    reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-                  ).toFixed(1)}
+                <div className="shop-review-summary flex shrink-0 flex-col items-center justify-center px-4 py-1.5">
+                  <span className="inline-flex items-center gap-1 text-lg font-black text-moto-accent">
+                    <Star size={14} className="fill-current" />
+                    {(reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="shop-review-list grid items-stretch gap-3 sm:grid-cols-2 sm:gap-4">
               {reviews.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-moto-gray p-6 text-center">
+                <div className="shop-empty-state col-span-full p-8 text-center">
                   <Star size={24} className="mx-auto mb-3 text-slate-500" />
                   <p className="text-sm font-semibold text-slate-300">No reviews yet</p>
                   <p className="mt-1 text-xs text-slate-400">Be the first rider to share feedback.</p>
                 </div>
               ) : (
-                reviews.map((review) => (
-                  <div key={review.id} className="rounded-2xl border border-moto-gray bg-moto-dark p-3.5">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-[10px] font-black uppercase text-moto-accent">
+                visibleReviews.map((review) => (
+                  <article key={review.id} className="shop-review-card px-3.5 py-4 sm:px-4 sm:py-5">
+                    <div className="shop-review-header flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <div className="shop-review-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-xs font-black uppercase text-moto-accent">
                           {(review.customer_name || "C").slice(0, 2)}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-bold text-slate-100">{review.customer_name || "Customer"}</p>
-                          <p className="text-[10px] text-slate-500">
+                          <p className="shop-review-date text-xs text-slate-500">
                             {new Date(review.created_at).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
@@ -975,7 +926,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="shop-review-stars flex shrink-0 items-center gap-1" aria-label={`${review.rating} out of 5 stars`}>
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
@@ -986,14 +937,41 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                       </div>
                     </div>
 
-                    {review.title && (
-                      <p className="mb-1 text-sm font-bold text-moto-accent">{review.title}</p>
-                    )}
-                    <p className="text-sm leading-relaxed text-slate-300">{review.comment}</p>
-                  </div>
+                    <div className="shop-review-body mt-2">
+                      {review.title && (
+                        <p className="mb-1 text-sm font-bold text-moto-accent">{review.title}</p>
+                      )}
+                      <p className="text-sm leading-relaxed text-slate-300">{review.comment}</p>
+                    </div>
+                  </article>
                 ))
               )}
 </div>
+            {reviewPageCount > 1 && (
+              <nav className="shop-review-pagination mt-5 flex items-center justify-center gap-4 border-t pt-4" aria-label="Customer review pages">
+                <button
+                  type="button"
+                  onClick={() => setReviewPage((page) => Math.max(0, page - 1))}
+                  disabled={reviewPage === 0}
+                  aria-label="Previous reviews"
+                  className="shop-review-page-button inline-flex h-10 w-10 items-center justify-center transition disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ChevronLeft size={19} />
+                </button>
+                <span className="shop-review-page-label text-sm font-medium" aria-live="polite">
+                  {reviewPage * reviewsPerPage + 1}–{Math.min((reviewPage + 1) * reviewsPerPage, reviews.length)} of {reviews.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReviewPage((page) => Math.min(reviewPageCount - 1, page + 1))}
+                  disabled={reviewPage >= reviewPageCount - 1}
+                  aria-label="Next reviews"
+                  className="shop-review-page-button inline-flex h-10 w-10 items-center justify-center transition disabled:cursor-not-allowed disabled:opacity-35"
+                >
+                  <ChevronRight size={19} />
+                </button>
+              </nav>
+            )}
           </section>
         </main>
       </div>

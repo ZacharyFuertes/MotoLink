@@ -74,7 +74,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
       label: "Update Parts",
       icon: ShoppingBag,
       requiredRole: ["owner"],
-      tooltip: "POS — sell parts, adjust stock, track revenue",
+      tooltip: "POS sell parts, adjust stock, track revenue",
     },
     {
       id: "appointments",
