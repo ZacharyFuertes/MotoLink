@@ -29,13 +29,14 @@ interface CustomerLoginPageProps {
 }
 
 const SIGNUP_OTP_PENDING_KEY = "moto_customer_signup_otp_pending";
+const ADMIN_EMAIL = "admin@motolink.com";
 
 const LoginPage: React.FC<CustomerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
   initialIsSignup = false,
 }) => {
-  const { signup, user, isLoading } = useAuth();
+  const { login, signup, user, isLoading } = useAuth();
   const [isSignup, setIsSignup] = useState(initialIsSignup);
   const [signupOtpPending, setSignupOtpPending] = useState(
     () => localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true",
@@ -85,6 +86,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   // Refs so the loginAttempted useEffect can read signup context
   const wasSignupRef = React.useRef(false);
   const notifPrefRef = React.useRef(true);
+  const adminPasswordLoginRef = React.useRef(false);
 
   // Save the customer form draft (no password) so a reload restores it.
   useEffect(() => {
@@ -197,6 +199,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         setLoading(false);
         return;
       } else {
+        // This designated admin account uses the password-authenticated admin
+        // portal flow and skips the customer email OTP. Role is checked again
+        // after authentication; no account role is changed or trusted from input.
+        if (formData.email.trim().toLowerCase() === ADMIN_EMAIL) {
+          adminPasswordLoginRef.current = true;
+          await login(formData.email.trim(), formData.password);
+          setFormData((prev) => ({ ...prev, password: "" }));
+          setLoginAttempted(true);
+          setLoading(false);
+          return;
+        }
+
         // Validate the password server-side, then require the emailed OTP
         // before creating a browser session.
         const result = await requestLoginCode(
@@ -221,6 +235,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       // AuthContext will be updated in the background via onAuthStateChange
       setLoginAttempted(true);
     } catch (err) {
+      adminPasswordLoginRef.current = false;
       let errorMessage = "Authentication failed. Please try again.";
 
       if (err instanceof Error) {
@@ -331,6 +346,17 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   useEffect(() => {
     if (!loginAttempted || isLoading || !user) {
       return;
+    }
+
+    if (adminPasswordLoginRef.current) {
+      adminPasswordLoginRef.current = false;
+      if (user.email?.trim().toLowerCase() !== ADMIN_EMAIL || user.role !== "admin") {
+        void supabase.auth.signOut();
+        setError("This direct sign-in is only available to the MotoLink administrator account.");
+        setLoading(false);
+        setLoginAttempted(false);
+        return;
+      }
     }
 
     // If this was a fresh customer signup, save the notification preference

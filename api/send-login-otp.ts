@@ -81,7 +81,11 @@ export default async function handler(req: any, res: any) {
     if (userError || !user) {
       return res.status(404).json({ success: false, error: "No account found with this email." });
     }
-    if (user.role !== "customer") {
+    // The customer sign-in experience can also be used by platform admins.
+    // The authenticated profile role is never changed here; App routes admins
+    // to the admin console after OTP verification. Owners/mechanics still use
+    // their dedicated portals.
+    if (user.role !== "customer" && user.role !== "admin") {
       return res.status(403).json({ success: false, error: "Please use the sign-in portal for your account." });
     }
 

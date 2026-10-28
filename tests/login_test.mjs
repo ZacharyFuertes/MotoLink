@@ -152,7 +152,7 @@ try {
   }
   {
     const r = await signInAndGetRole(ADMIN_EMAIL, PASSWORD);
-    check("Admin on Customer portal → rejected", r.role !== "customer", "role=" + r.role);
+    check("Admin on Customer portal → allowed; app routes to admin console", r.role === "admin", "role=" + r.role);
     check("Admin on Owner portal → rejected", r.role !== "owner", "role=" + r.role);
     check("Admin on Admin portal → allowed", portalGuard(r.role, "admin"), "role=" + r.role);
   }

@@ -302,8 +302,9 @@ const AppContent: React.FC = () => {
 
   // If not authenticated, or still on a login screen awaiting role confirmation,
   // show landing page or login. The login page stays mounted until onLoginSuccess
-  // fires so its role guard can reject wrong-portal logins (e.g. admin creds on
-  // the customer form) instead of silently dropping into a dashboard.
+  // fires so its role guard can reject unsupported portal logins instead of
+  // silently dropping into a dashboard. Admins may also use customer sign-in;
+  // onLoginSuccess routes them using their actual authenticated role.
   if (!isAuthenticated || (!loginCompleted && isLoginScreen)) {
     const handleLoginSuccess = () => {
       // Role-based destination: owners/admins go straight to their own
