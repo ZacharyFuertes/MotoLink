@@ -1249,7 +1249,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             setSelectedTime("");
                           }}
                           includeToday={false}
-                          skipSundays
                           label="Pick a date"
                         />
                       </div>
