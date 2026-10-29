@@ -135,6 +135,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           .from('mechanic_availability')
           .select('*')
           .order('day_of_week', { ascending: true })
+          .eq('shop_id', ownerShopId)
         if (mechanicIds.length > 0) {
           availQuery = availQuery.in('mechanic_id', mechanicIds)
         }
@@ -340,6 +341,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           .from('job_orders')
           .delete()
           .eq('mechanic_id', deleteConfirm.id)
+          .eq('shop_id', resolvedShopId || user?.shop_id || null)
       } catch (e) {}
 
       try {
@@ -347,6 +349,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           .from('mechanic_availability')
           .delete()
           .eq('mechanic_id', deleteConfirm.id)
+          .eq('shop_id', resolvedShopId || user?.shop_id || null)
       } catch (e) {}
 
       try {
@@ -354,6 +357,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
           .from('appointments')
           .delete()
           .eq('mechanic_id', deleteConfirm.id)
+          .eq('shop_id', resolvedShopId || user?.shop_id || null)
       } catch (e) {}
 
       const { error: userError } = await supabase
@@ -382,6 +386,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
         .from('mechanic_availability')
         .update({ is_available: !currentStatus })
         .eq('id', availabilityId)
+        .eq('shop_id', resolvedShopId || user?.shop_id || null)
 
       if (error) throw error
       setAvailability(

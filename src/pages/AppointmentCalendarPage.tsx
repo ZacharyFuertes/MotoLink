@@ -162,7 +162,8 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         const { data: mechanics } = await supabase
           .from("users")
           .select("id, name")
-          .in("id", mechanicIds);
+          .in("id", mechanicIds)
+          .eq("shop_id", resolvedShopId);
         setMechanicNames(Object.fromEntries((mechanics || []).map((mechanic: any) => [mechanic.id, mechanic.name || "Mechanic"])));
       } else {
         setMechanicNames({});
