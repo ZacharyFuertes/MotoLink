@@ -40,7 +40,7 @@ import TermsCheckbox from "./TermsCheckbox";
 import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import DateStrip from "./DateStrip";
-import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
+import TimeSlotGrid from "./TimeSlotGrid";
 import { normalizeTime } from "../utils/dateTime";
 import { parseOperatingHoursString } from "../services/shopService";
 
@@ -119,7 +119,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [dynamicServices, setDynamicServices] = useState<any[]>([]);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const [shopClosedSlots, setShopClosedSlots] = useState<string[]>([]);
+  const [daySlots, setDaySlots] = useState<string[]>([]);
+  const [pastSlots, setPastSlots] = useState<string[]>([]);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -589,18 +590,44 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-// Slots the shop is NOT open for on the selected date.
-// Reads the shop's operating_hours from shops.operating_hours (set by the
-// owner when creating/editing their shop account), parses it into a
-// per-day schedule, then filters BOOKING_TIME_SLOTS to only include slots
-// within that day's open/close window. Days marked closed or shops with no
-// hours configured fall back to all slots available.
+  // Slots the shop is NOT open for on the selected date.
+  // Reads the shop's operating_hours from shops.operating_hours (set by the
+  // owner when creating/editing their shop account), parses it into a
+  // per-day schedule, then generates hourly slots within that day's open/close
+  // window (not limited to the hardcoded BOOKING_TIME_SLOTS). Days marked
+  // closed or shops with no hours configured fall back to no bookable slots.
   const timeToMinutes = (t: string): number => {
     const [h, m] = (t || "").split(":");
     const hh = parseInt(h, 10);
     const mm = parseInt(m, 10);
     if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
     return hh * 60 + mm;
+  };
+
+  const minutesToSlot = (totalMinutes: number): string => {
+    const dayMinutes = 24 * 60;
+    const m = ((totalMinutes % dayMinutes) + dayMinutes) % dayMinutes;
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+
+  const generateDaySlots = (openTime: string, closeTime: string): string[] => {
+    const openMin = timeToMinutes(openTime);
+    const closeMin = timeToMinutes(closeTime);
+    const slots: string[] = [];
+    let current = openMin;
+    const dayMinutes = 24 * 60;
+    let target = closeMin;
+    if (closeMin <= openMin) {
+      // Overnight range (e.g. 22:00 -> 02:00); close is the next day.
+      target = closeMin + dayMinutes;
+    }
+    while (current < target) {
+      slots.push(minutesToSlot(current));
+      current += 60;
+    }
+    return slots;
   };
 
   const fetchShopAvailability = async () => {
@@ -624,50 +651,63 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       const schedule = parseOperatingHoursString(shop?.operating_hours);
       const dayIdx = new Date(`${selectedDate}T00:00:00`).getDay();
       const day = schedule[dayIdx];
-      let closedSlots: string[] = [];
+      let baseSlots: string[] = [];
+      let blockedSlots: string[] = [];
       if (day && day.open && day.openTime && day.closeTime) {
-        const openMin = timeToMinutes(day.openTime);
-        const closeMin = timeToMinutes(day.closeTime);
-        closedSlots = BOOKING_TIME_SLOTS.filter((slot) => {
-          const slotMin = timeToMinutes(slot);
-          // Handle overnight ranges (close <= open means wrap past midnight)
-          if (closeMin <= openMin) {
-            return !(slotMin >= openMin || slotMin < closeMin);
-          }
-          return !(slotMin >= openMin && slotMin < closeMin);
+        baseSlots = generateDaySlots(day.openTime, day.closeTime);
+        // Remove slots that fall within owner-defined maintenance windows
+        // (day_of_week 0 = Sunday, matching parseOperatingHoursString).
+        const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
+        blocked.forEach((b) => {
+          const startMin = timeToMinutes(b.start_time);
+          const endMin = timeToMinutes(b.end_time);
+          blockedSlots = [
+            ...blockedSlots,
+            ...baseSlots.filter((slot) => {
+              const slotMin = timeToMinutes(slot);
+              return slotMin >= startMin && slotMin < endMin;
+            }),
+          ];
         });
       }
-      // Block slots that fall within owner-defined maintenance windows
-      // (day_of_week 0 = Sunday, matching parseOperatingHoursString).
-      const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
-      blocked.forEach((b) => {
-        const startMin = timeToMinutes(b.start_time);
-        const endMin = timeToMinutes(b.end_time);
-        const bSlots = BOOKING_TIME_SLOTS.filter((slot) => {
-          const slotMin = timeToMinutes(slot);
-          return slotMin >= startMin && slotMin < endMin;
-        });
-        closedSlots = [...closedSlots, ...bSlots];
-      });
-      setShopClosedSlots([...new Set(closedSlots)]);
+      setDaySlots([...new Set(baseSlots.filter((s) => !blockedSlots.includes(s)))]);
+      // Slots that have already passed on the selected day (today only).
+      const now = new Date();
+      const selected = new Date(`${selectedDate}T00:00:00`);
+      const isToday =
+        now.getFullYear() === selected.getFullYear() &&
+        now.getMonth() === selected.getMonth() &&
+        now.getDate() === selected.getDate();
+      const nowMin = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
+      setPastSlots(
+        baseSlots.filter((s) => timeToMinutes(s) <= nowMin),
+      );
     } catch {
       // If the blocked_hours table isn't deployed yet, degrade gracefully:
       // treat it as no blocked windows.
-      setShopClosedSlots([]);
+      setDaySlots([]);
+      setPastSlots([]);
     }
   };
 
   // Slots the shared TimeSlotGrid should render as unavailable.
-  // Combines already-booked appointment slots, shop-closed slots (outside
-  // operating hours), and owner-blocked maintenance windows.
+  // Combines already-booked appointment slots and slots that have already
+  // passed today. Shop-closed / blocked slots are already excluded from
+  // daySlots so they don't render at all.
   const unavailableSlots = useMemo(
     () =>
-      BOOKING_TIME_SLOTS.filter(
-        (time) =>
-          bookedSlots.includes(time) || shopClosedSlots.includes(time),
-      ),
-    [bookedSlots, shopClosedSlots],
+      daySlots.filter((time) => bookedSlots.includes(time) || pastSlots.includes(time)),
+    [daySlots, bookedSlots, pastSlots],
   );
+
+  // If the currently selected time is no longer valid for the loaded day
+  // (e.g. outside operating hours or blocked), clear it so the customer
+  // picks an available slot.
+  useEffect(() => {
+    if (selectedTime && !daySlots.includes(selectedTime)) {
+      setSelectedTime("");
+    }
+  }, [selectedTime, daySlots]);
 
   const partsTotal = useMemo(
     () => selectedParts.reduce((sum, p) => sum + p.quantity * p.unit_price, 0),
@@ -1215,6 +1255,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       </div>
 
 <TimeSlotGrid
+                        slots={daySlots}
                         value={selectedTime}
                         onChange={setSelectedTime}
                         takenSlots={unavailableSlots}
