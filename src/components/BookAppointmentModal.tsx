@@ -200,10 +200,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     setCurrentStep((c) => c + delta);
   };
 
-  // Tracks whether an initial service preselection was already applied during
-  // the current open cycle so it is not reapplied on every render.
-  const initialServiceApplied = useRef(false);
-
   // Snapshot the in-progress booking so a guest can resume at the confirm step
   // after signing up / logging in (the modal unmounts during the auth redirect).
   const savePendingBooking = () => {
@@ -299,20 +295,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
   // When the modal is opened from a specific service row (e.g. from the shop's
   // services tab), preselect that service so its label and price carry into the
-  // booking. Applied only once per open and never clobbers an in-progress or
-  // restored pending booking.
+  // booking. Never clobbers an in-progress selection. Re-runs whenever the
+  // dynamic service catalog finishes loading so a late-arriving catalog still
+  // gets the preselect applied.
   useEffect(() => {
-    if (!isOpen) {
-      initialServiceApplied.current = false;
-      return;
-    }
-    if (!initialServiceId || initialServiceApplied.current) return;
+    if (!isOpen || !initialServiceId) return;
     if (selectedServices.length > 0) return;
     const svc = dynamicServices.find((s) => s.id === initialServiceId);
     if (svc) {
       setSelectedServices([svc.id]);
       setSelectedServicePrice(Number(svc.price) || 0);
-      initialServiceApplied.current = true;
     }
   }, [isOpen, initialServiceId, dynamicServices, selectedServices.length]);
 
