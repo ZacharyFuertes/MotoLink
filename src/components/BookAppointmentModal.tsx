@@ -42,6 +42,7 @@ import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import DateStrip from "./DateStrip";
 import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
 import { normalizeTime } from "../utils/dateTime";
+import { parseOperatingHoursString } from "../services/shopService";
 
 interface VehicleData {
   id: string;
@@ -586,33 +587,43 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-  // Slots the shop is NOT open for on the selected date.
-// Queries mechanic_availability for the shop's shifts on the selected
-// day of week, then filters BOOKING_TIME_SLOTS to only include those
-// within any mechanic's available shift. Slots outside all shifts are
-// considered "shop closed" and disabled in the time slot grid.
-// Falls back to default open hours when no shifts are configured.
+// Slots the shop is NOT open for on the selected date.
+// Reads the shop's operating_hours from shops.operating_hours (set by the
+// owner when creating/editing their shop account), parses it into a
+// per-day schedule, then filters BOOKING_TIME_SLOTS to only include slots
+// within that day's open/close window. Days marked closed or shops with no
+// hours configured fall back to all slots available.
+  const timeToMinutes = (t: string): number => {
+    const [h, m] = (t || "").split(":");
+    const hh = parseInt(h, 10);
+    const mm = parseInt(m, 10);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
+    return hh * 60 + mm;
+  };
+
   const fetchShopAvailability = async () => {
     if (!selectedDate || !defaultShopId) return;
     try {
-      const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
-      const { data, error } = await supabase
-        .from("mechanic_availability")
-        .select("start_time, end_time, is_available")
-        .eq("shop_id", defaultShopId)
-        .eq("day_of_week", weekday)
-        .eq("is_available", true);
+      const { data: shop, error } = await supabase
+        .from("shops")
+        .select("operating_hours")
+        .eq("id", defaultShopId)
+        .maybeSingle();
       if (error) throw error;
-      const shifts = data || [];
+      const schedule = parseOperatingHoursString(shop?.operating_hours);
+      const dayIdx = new Date(`${selectedDate}T00:00:00`).getDay();
+      const day = schedule[dayIdx];
       let closedSlots: string[] = [];
-      if (shifts.length > 0) {
+      if (day && day.open && day.openTime && day.closeTime) {
+        const openMin = timeToMinutes(day.openTime);
+        const closeMin = timeToMinutes(day.closeTime);
         closedSlots = BOOKING_TIME_SLOTS.filter((slot) => {
-          const time = normalizeTime(slot);
-          return !shifts.some((shift) => {
-            const start = normalizeTime(shift.start_time);
-            const end = normalizeTime(shift.end_time);
-            return time >= start && time <= end;
-          });
+          const slotMin = timeToMinutes(slot);
+          // Handle overnight ranges (close <= open means wrap past midnight)
+          if (closeMin <= openMin) {
+            return !(slotMin >= openMin || slotMin < closeMin);
+          }
+          return !(slotMin >= openMin && slotMin < closeMin);
         });
       }
       setShopClosedSlots(closedSlots);
