@@ -70,6 +70,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
+  const [showRecoveryPasswordConfirm, setShowRecoveryPasswordConfirm] = useState(false);
   const [passwordHintsVisible, setPasswordHintsVisible] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -152,7 +154,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     setLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${import.meta.env.VITE_PUBLIC_URL ?? window.location.origin}/`,
       });
       if (resetError) throw resetError;
       setRecoveryMessage("If an account exists for that email, a password reset link has been sent.");
@@ -636,11 +638,29 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               <form onSubmit={handleUpdateRecoveredPassword} className="space-y-4">
                 <div className="relative">
                   <Lock size={18} className={iconClass} />
-                  <input type="password" value={recoveryPassword} onChange={(e) => setRecoveryPassword(e.target.value)} placeholder="New password" autoComplete="new-password" required className={inputClass} />
+                  <input type={showRecoveryPassword ? "text" : "password"} value={recoveryPassword} onChange={(e) => setRecoveryPassword(e.target.value)} placeholder="New password" autoComplete="new-password" required className={inputClass} />
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryPassword((prev) => !prev)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
+                    aria-label={showRecoveryPassword ? "Hide password" : "Show password"}
+                    title={showRecoveryPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRecoveryPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 <div className="relative">
                   <Lock size={18} className={iconClass} />
-                  <input type="password" value={recoveryPasswordConfirm} onChange={(e) => setRecoveryPasswordConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" required className={inputClass} />
+                  <input type={showRecoveryPasswordConfirm ? "text" : "password"} value={recoveryPasswordConfirm} onChange={(e) => setRecoveryPasswordConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" required className={inputClass} />
+                  <button
+                    type="button"
+                    onClick={() => setShowRecoveryPasswordConfirm((prev) => !prev)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-moto-accent transition-colors"
+                    aria-label={showRecoveryPasswordConfirm ? "Hide password" : "Show password"}
+                    title={showRecoveryPasswordConfirm ? "Hide password" : "Show password"}
+                  >
+                    {showRecoveryPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 {recoveryMessage && <p role="status" className="text-sm text-emerald-400">{recoveryMessage}</p>}
                 <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-6 py-3 text-sm font-black uppercase tracking-wider text-slate-950 disabled:opacity-50">
