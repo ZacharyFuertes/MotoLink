@@ -141,6 +141,15 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     return () => data.subscription.unsubscribe();
   }, []);
 
+  const getAuthRedirectBase = () => {
+    const configuredUrl = import.meta.env.VITE_PUBLIC_URL?.trim();
+    if (configuredUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(configuredUrl)) {
+      return configuredUrl.replace(/\/+$/, "");
+    }
+
+    return window.location.origin.replace(/\/+$/, "");
+  };
+
   const handleRequestPasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -154,7 +163,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     setLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${import.meta.env.VITE_PUBLIC_URL ?? window.location.origin}/`,
+        redirectTo: `${getAuthRedirectBase()}/`,
       });
       if (resetError) throw resetError;
       setRecoveryMessage("If an account exists for that email, a password reset link has been sent.");
