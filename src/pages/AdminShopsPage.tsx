@@ -201,7 +201,7 @@ const AdminShopsPage: React.FC = () => {
 
       const { data: appts, error: apptError } = await supabase
         .from("appointments")
-        .select("shop_id, booking_id");
+        .select("shop_id, customer_id, booking_id");
       if (apptError) throw apptError;
 
       const { data: customers, error: custError } = await supabase
@@ -210,6 +210,11 @@ const AdminShopsPage: React.FC = () => {
         .eq("role", "customer");
       if (custError) throw custError;
 
+      const [{ data: jobs }, { data: reservations }] = await Promise.all([
+        supabase.from("job_orders").select("shop_id, customer_id"),
+        supabase.from("reservations").select("shop_id, customer_id"),
+      ]);
+
       const ownersById = new Map(
         ownersList.map((owner) => [owner.id, owner]),
       );
@@ -217,10 +222,26 @@ const AdminShopsPage: React.FC = () => {
       (appts || []).forEach((a: any) => {
         if (a.shop_id) apptCount[a.shop_id] = (apptCount[a.shop_id] || 0) + 1;
       });
-      const customerCount: Record<string, number> = {};
+      const customerIdsByShop: Record<string, Set<string>> = {};
+      const addShopCustomer = (shopId: string | null, customerId: string | null) => {
+        if (!shopId || !customerId) return;
+        const ids = customerIdsByShop[shopId] || new Set<string>();
+        ids.add(customerId);
+        customerIdsByShop[shopId] = ids;
+      };
       (customers || []).forEach((c: any) => {
-        if (c.shop_id) customerCount[c.shop_id] = (customerCount[c.shop_id] || 0) + 1;
+        addShopCustomer(c.shop_id, c.id);
       });
+      (appts || []).forEach((appointment: any) =>
+        addShopCustomer(appointment.shop_id, appointment.customer_id),
+      );
+      (jobs || []).forEach((job: any) => addShopCustomer(job.shop_id, job.customer_id));
+      (reservations || []).forEach((reservation: any) =>
+        addShopCustomer(reservation.shop_id, reservation.customer_id),
+      );
+      const customerCount: Record<string, number> = Object.fromEntries(
+        Object.entries(customerIdsByShop).map(([shopId, ids]) => [shopId, ids.size]),
+      );
 
       setShops(
         (rawShopRows || []).map((s: any) => {
@@ -438,17 +459,24 @@ const AdminShopsPage: React.FC = () => {
     setShopCustomers([]);
     setCustomersLoading(true);
     setError(null);
-    const { data, error: custError } = await supabase
-      .from("users")
-      .select("id, name, email, phone, address, created_at")
-      .eq("role", "customer")
-      .eq("shop_id", shop.id)
-      .order("created_at", { ascending: false });
-    setCustomersLoading(false);
-    if (custError) {
-      setError(custError.message || "Failed to load customers");
-    } else {
+    try {
+      // Include customers linked through bookings, jobs, and reservations;
+      // users.shop_id alone is usually null for customer accounts.
+      const { data, error: customerError } = await supabase.rpc(
+        "get_shop_customer_directory",
+        { p_shop_id: shop.id },
+      );
+      if (customerError) throw customerError;
       setShopCustomers((data || []) as ShopCustomer[]);
+    } catch (err) {
+      console.error("Could not load shop customer directory:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load customers. Apply the shop customer directory migration if it has not been run.",
+      );
+    } finally {
+      setCustomersLoading(false);
     }
   };
 
@@ -690,9 +718,6 @@ const AdminShopsPage: React.FC = () => {
                           >
                             {shop.name}
                           </button>
-                          <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-4 h-4" /> {shop.city || "No city"}
-                          </p>
                         </div>
                       </div>
                     </td>

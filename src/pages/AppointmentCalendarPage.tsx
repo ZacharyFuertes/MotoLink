@@ -11,7 +11,6 @@ import {
 } from "recharts";
 import {
   CheckCircle,
-  Check,
   XCircle,
   Mail,
   Calendar,
@@ -25,7 +24,6 @@ import {
   ChevronDown,
   ChevronUp,
   UserRound,
-  Users,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -39,16 +37,10 @@ import {
   sendServiceInProgressEmail,
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
-  sendBookingUpdatedEmail,
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
 import { notifyOwnerIfStockBecameLow } from "../services/lowStockNotificationService";
-import {
-  assignMechanicToAppointment,
-  getAssignableMechanics,
-  type AssignableMechanic,
-} from "../services/mechanicAssignmentService";
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -90,12 +82,6 @@ const AppointmentCalendarPage: React.FC<AppointmentCalendarPageProps> = () => {
   const { isDark } = useTheme();
 const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [mechanicNames, setMechanicNames] = useState<Record<string, string>>({});
-  const [assignmentEditorId, setAssignmentEditorId] = useState<string | null>(null);
-  const [assignmentOptions, setAssignmentOptions] = useState<AssignableMechanic[]>([]);
-  const [assignmentChoice, setAssignmentChoice] = useState("");
-  const [assignmentLoading, setAssignmentLoading] = useState(false);
-  const [assignmentSaving, setAssignmentSaving] = useState(false);
-  const [assignmentError, setAssignmentError] = useState("");
   const [expandedServiceRows, setExpandedServiceRows] = useState<Set<string>>(() => new Set());
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [completedAppointment, setCompletedAppointment] = useState<{
@@ -162,8 +148,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         const { data: mechanics } = await supabase
           .from("users")
           .select("id, name")
-          .in("id", mechanicIds)
-          .eq("shop_id", resolvedShopId);
+          .in("id", mechanicIds);
         setMechanicNames(Object.fromEntries((mechanics || []).map((mechanic: any) => [mechanic.id, mechanic.name || "Mechanic"])));
       } else {
         setMechanicNames({});
@@ -204,72 +189,6 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
   };
 
   const filteredAppointments = getFilteredAppointments();
-
-  const openMechanicAssignment = async (appointment: Appointment) => {
-    if (assignmentEditorId === appointment.id) {
-      setAssignmentEditorId(null);
-      setAssignmentError("");
-      return;
-    }
-    setAssignmentEditorId(appointment.id);
-    setAssignmentChoice(appointment.mechanic_id || "");
-    setAssignmentOptions([]);
-    setAssignmentError("");
-    setAssignmentLoading(true);
-    try {
-      const options = await getAssignableMechanics(appointment);
-      setAssignmentOptions(options);
-    } catch (error) {
-      console.error("Could not load eligible mechanics:", error);
-      setAssignmentError("Could not load available mechanics. Refresh and try again.");
-    } finally {
-      setAssignmentLoading(false);
-    }
-  };
-
-  const saveMechanicAssignment = async (appointment: Appointment) => {
-    setAssignmentSaving(true);
-    setAssignmentError("");
-    try {
-      const mechanicId = assignmentChoice === "__unassign__" ? null : assignmentChoice || null;
-      await assignMechanicToAppointment(appointment.id, mechanicId);
-      setAppointments((current) => current.map((item) =>
-        item.id === appointment.id ? { ...item, mechanic_id: mechanicId || undefined } : item,
-      ));
-      if (mechanicId) {
-        const selectedMechanic = assignmentOptions.find((mechanic) => mechanic.id === mechanicId);
-        if (selectedMechanic) setMechanicNames((current) => ({ ...current, [selectedMechanic.id]: selectedMechanic.name }));
-      }
-      setAssignmentEditorId(null);
-      let emailSent = true;
-      let emailSkipped = false;
-      if (appointment.customer_id || appointment.walk_in_email) {
-        try {
-          const result = await sendBookingUpdatedEmail(appointment.id);
-          emailSkipped = result.skipped === true;
-          emailSent = result.success || emailSkipped;
-        } catch (emailError) {
-          console.error("Could not notify customer about mechanic assignment:", emailError);
-          emailSent = false;
-        }
-      }
-      showToast(
-        !emailSent
-          ? "Assignment saved, but the customer email could not be sent."
-          : emailSkipped
-            ? "Assignment saved. Customer email preferences were respected."
-            : mechanicId
-              ? "Mechanic assigned and customer notified."
-              : "Mechanic assignment removed and customer notified.",
-        !emailSent ? "error" : "success",
-      );
-    } catch (error) {
-      console.error("Could not assign mechanic:", error);
-      setAssignmentError(error instanceof Error ? error.message : "Could not save mechanic assignment.");
-    } finally {
-      setAssignmentSaving(false);
-    }
-  };
 
   const handleStatusChange = async (
     appointmentId: string,
@@ -430,7 +349,6 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
               : apt,
           ),
         );
-        if (newStatus !== "confirmed") setAssignmentEditorId(null);
         if (newStatus === "completed") {
           setCompletedAppointment({ appointment, invoiceTotal: generatedInvoiceTotal });
         }
@@ -445,7 +363,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
   };
 
   const isOwner = user?.role === "owner" || user?.role === "admin";
-  const canAssignMechanics = user?.role === "owner";
+  const canViewMechanic = user?.role === "owner";
   const isCustomer = user?.role === "customer";
   const canBookAppointments = isCustomer || isOwner;
   const canUpdateStatus = isOwner;
@@ -631,14 +549,9 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
       });
   }, [filteredAppointments, filterStatus, searchTerm, sortBy]);
 
-  const activeAssignmentAppointment = appointments.find(
-    (appointment) => appointment.id === assignmentEditorId,
-  );
   const activeStatusAppointment = appointments.find(
     (appointment) => appointment.id === statusEditorId,
   );
-  const eligibleMechanics = assignmentOptions.filter((mechanic) => mechanic.eligible);
-  const unavailableMechanics = assignmentOptions.filter((mechanic) => !mechanic.eligible);
 
   return (
     <div className={`min-h-full w-full space-y-7 p-5 sm:p-6 lg:p-8 ${theme.text}`}>
@@ -828,7 +741,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                   <th className="w-[20%] px-6 py-4 font-semibold sm:px-8">Customer</th>
                   <th className="w-[25%] px-5 py-4 font-semibold">Service / vehicle</th>
                   <th className="w-[13%] px-5 py-4 font-semibold">Date &amp; time</th>
-                  {canAssignMechanics && <th className="w-[14%] px-5 py-4 font-semibold">Mechanic</th>}
+                  {canViewMechanic && <th className="w-[14%] px-5 py-4 font-semibold">Mechanic</th>}
                   <th className="w-[11%] px-5 py-4 font-semibold">Status</th>
                   <th className="w-[7%] px-5 py-4 text-right font-semibold">Price</th>
                   {canUpdateStatus && <th className="w-[10%] px-6 py-4 text-right font-semibold sm:px-8">Update</th>}
@@ -945,7 +858,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                         <p className={`text-base font-medium leading-snug ${theme.text}`}>{new Date(`${appointment.scheduled_date}T00:00:00`).toLocaleDateString("en-PH", { day: "numeric", month: "short", year: "numeric" })}</p>
                         <p className={`mt-1.5 text-sm ${theme.muted}`}>{appointment.scheduled_time || "Time not set"}</p>
                       </td>
-                      {canAssignMechanics && (
+                      {canViewMechanic && (
                         <td className="px-4 py-4">
                           <div className="flex min-w-[145px] items-center gap-2.5">
                             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${appointment.mechanic_id ? "bg-emerald-500/10 text-emerald-600" : "bg-slate-500/10 text-slate-400"}`}>
@@ -953,18 +866,11 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                             </span>
                             <div className="min-w-0">
                               <p className={`truncate text-xs font-bold ${appointment.mechanic_id ? theme.heading : theme.muted}`}>
-                                {appointment.mechanic_id ? mechanicNames[appointment.mechanic_id] || "Assigned mechanic" : "Unassigned"}
+                                {appointment.mechanic_id ? mechanicNames[appointment.mechanic_id] || "Selected mechanic" : "No mechanic selected"}
                               </p>
-                              {appointment.status === "confirmed" && (
-                                <button
-                                  type="button"
-                                  onClick={() => void openMechanicAssignment(appointment)}
-                                  className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-[#6b91ed] transition hover:text-[#456fc7] hover:underline"
-                                >
-                                  {appointment.mechanic_id ? "Manage assignment" : "Assign mechanic"}
-                                  <ChevronDown size={12} />
-                                </button>
-                              )}
+                              <p className={`mt-1 text-[10px] ${theme.muted}`}>
+                                {appointment.mechanic_id ? "Selected during booking" : "Not selected"}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -1055,7 +961,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 {(Object.entries(statusConfig) as [AppointmentStatus, typeof statusConfig[AppointmentStatus]][]).map(([status, config]) => {
                   const descriptions: Record<AppointmentStatus, string> = {
                     pending: "Waiting for the shop to review this request.",
-                    confirmed: "The booking is accepted. Assign a mechanic from the appointment row.",
+                    confirmed: "The booking is accepted. The customer-selected mechanic is shown on the appointment.",
                     in_progress: "Work has started; the customer will receive an email update.",
                     completed: "Finalize the service, update stock and create the invoice.",
                     cancelled: "Cancel this appointment and notify the customer.",
@@ -1090,199 +996,6 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
               </div>
               <footer className={`border-t px-5 py-3 text-[10px] ${theme.border} ${theme.muted}`}>
                 Status updates notify the customer by email when available.
-              </footer>
-            </motion.section>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Assign mechanic dialog */}
-      <AnimatePresence>
-        {canAssignMechanics && activeAssignmentAppointment && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget && !assignmentSaving) setAssignmentEditorId(null);
-            }}
-          >
-            <motion.section
-              initial={{ opacity: 0, y: 18, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              transition={{ type: "spring", damping: 26, stiffness: 300 }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="assign-mechanic-title"
-              className={`flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-2xl ${theme.border} ${theme.panel}`}
-            >
-              <header className={`flex items-start justify-between gap-4 border-b px-5 py-5 sm:px-7 ${theme.border}`}>
-                <div className="flex min-w-0 items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#6b91ed]/15 text-[#6b91ed]">
-                    <UserRound size={20} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6b91ed]">Team assignment</p>
-                    <h2 id="assign-mechanic-title" className={`mt-1 text-lg font-bold ${theme.heading}`}>
-                      {activeAssignmentAppointment.mechanic_id ? "Change mechanic" : "Assign a mechanic"}
-                    </h2>
-                    <p className={`mt-1 text-xs ${theme.muted}`}>Choose a team member who is scheduled and available for this booking.</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Close mechanic assignment"
-                  onClick={() => setAssignmentEditorId(null)}
-                  disabled={assignmentSaving}
-                  className={`rounded-lg p-2 transition ${theme.muted} hover:bg-slate-500/10 hover:text-rose-500 disabled:opacity-50`}
-                >
-                  <X size={18} />
-                </button>
-              </header>
-
-              <div className="overflow-y-auto px-5 py-5 sm:px-7">
-                <div className={`mb-5 grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-[1fr_auto] sm:items-center ${theme.border} ${theme.panelAlt}`}>
-                  <div className="min-w-0">
-                    <p className={`truncate text-sm font-bold ${theme.heading}`}>
-                      {(activeAssignmentAppointment as any).customer?.name || activeAssignmentAppointment.walk_in_name || "Customer"}
-                    </p>
-                    <p className={`mt-1 truncate text-xs ${theme.muted}`}>{activeAssignmentAppointment.service_type}</p>
-                  </div>
-                  <div className="text-left sm:text-right">
-                    <p className={`text-xs font-semibold ${theme.text}`}>
-                      {new Date(`${activeAssignmentAppointment.scheduled_date}T00:00:00`).toLocaleDateString("en-PH", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                    </p>
-                    <p className={`mt-1 text-xs ${theme.muted}`}>{activeAssignmentAppointment.scheduled_time || "Time not set"}</p>
-                  </div>
-                </div>
-
-                {assignmentLoading ? (
-                  <div className={`flex min-h-40 flex-col items-center justify-center gap-3 ${theme.muted}`}>
-                    <Loader2 size={24} className="animate-spin text-[#6b91ed]" />
-                    <p className="text-sm font-semibold">Checking mechanic schedules…</p>
-                  </div>
-                ) : assignmentError && assignmentOptions.length === 0 ? (
-                  <div className="rounded-xl border border-rose-500/25 bg-rose-500/5 p-6 text-center">
-                    <p className="text-sm font-bold text-rose-500">Couldn’t load mechanic availability</p>
-                    <p className={`mx-auto mt-1 max-w-md text-xs ${theme.muted}`}>{assignmentError}</p>
-                    <button
-                      type="button"
-                      onClick={() => void openMechanicAssignment(activeAssignmentAppointment)}
-                      className="mt-4 rounded-lg bg-[#6b91ed] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#557fe3]"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                ) : assignmentOptions.length === 0 ? (
-                  <div className={`rounded-xl border border-dashed p-8 text-center ${theme.border}`}>
-                    <Users className={`mx-auto mb-2 ${theme.muted}`} size={25} />
-                    <p className={`text-sm font-bold ${theme.heading}`}>No mechanics added yet</p>
-                    <p className={`mt-1 text-xs ${theme.muted}`}>Add your team in Manage Mechanics, then schedule their weekly shifts.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-5">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between">
-                        <h3 className={`text-xs font-bold uppercase tracking-wider ${theme.text}`}>Available for this time</h3>
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300">{eligibleMechanics.length}</span>
-                      </div>
-                      {eligibleMechanics.length === 0 ? (
-                        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
-                          <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">No one is available for this slot.</p>
-                          <p className="mt-1 text-xs leading-relaxed text-amber-700/80 dark:text-amber-200/70">Add or enable a matching shift in Manage Mechanics, or choose another appointment time.</p>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {eligibleMechanics.map((mechanic) => {
-                            const selected = assignmentChoice === mechanic.id;
-                            return (
-                              <button
-                                key={mechanic.id}
-                                type="button"
-                                disabled={assignmentSaving}
-                                onClick={() => setAssignmentChoice(mechanic.id)}
-                                aria-pressed={selected}
-                                className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${selected ? "border-[#6b91ed] bg-[#6b91ed]/10 ring-2 ring-[#6b91ed]/20" : `${theme.border} ${theme.panelAlt} hover:border-[#6b91ed]/50 hover:bg-[#6b91ed]/5`}`}
-                              >
-                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-xs font-black uppercase text-emerald-600 dark:text-emerald-300">
-                                  {mechanic.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className={`block truncate text-sm font-bold ${theme.heading}`}>{mechanic.name}</span>
-                                  <span className="mt-0.5 block truncate text-[11px] text-emerald-600 dark:text-emerald-300">On shift · available</span>
-                                </span>
-                                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-[#6b91ed] bg-[#6b91ed] text-white" : `${theme.border} ${theme.muted}`}`}>
-                                  {selected && <Check size={12} />}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {unavailableMechanics.length > 0 && (
-                      <details className={`rounded-xl border ${theme.border}`}>
-                        <summary className={`flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-xs font-semibold ${theme.muted}`}>
-                          <span>Other mechanics</span>
-                          <span>{unavailableMechanics.length} not available</span>
-                        </summary>
-                        <div className="space-y-1 border-t border-inherit p-2">
-                          {unavailableMechanics.map((mechanic) => {
-                            const reason = mechanic.reason === "already-booked"
-                              ? "Booked at this time"
-                              : mechanic.reason === "unavailable"
-                                ? "Shift marked unavailable"
-                                : mechanic.reason === "outside-shift"
-                                  ? "Outside their shift"
-                                  : "No shift scheduled";
-                            return (
-                              <div key={mechanic.id} className={`flex items-center gap-3 rounded-lg px-2 py-2 opacity-70 ${theme.panelAlt}`}>
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-500/10 text-[10px] font-bold uppercase text-slate-400">{mechanic.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2)}</span>
-                                <span className={`min-w-0 flex-1 truncate text-xs font-semibold ${theme.text}`}>{mechanic.name}</span>
-                                <span className={`shrink-0 text-[10px] ${theme.muted}`}>{reason}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </details>
-                    )}
-                    {assignmentError && <p role="alert" className="text-xs text-rose-500">{assignmentError}</p>}
-                  </div>
-                )}
-              </div>
-
-              <footer className={`flex flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-between sm:px-7 ${theme.border}`}>
-                {activeAssignmentAppointment.mechanic_id ? (
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentChoice("__unassign__")}
-                    disabled={assignmentSaving || assignmentLoading}
-                    className={`rounded-xl border px-4 py-2.5 text-xs font-bold transition ${theme.border} ${theme.muted} hover:border-rose-400/40 hover:text-rose-500 disabled:opacity-50`}
-                  >
-                    Remove assignment
-                  </button>
-                ) : <span />}
-                <div className="flex gap-2 sm:ml-auto">
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentEditorId(null)}
-                    disabled={assignmentSaving}
-                    className={`flex-1 rounded-xl border px-4 py-2.5 text-xs font-bold transition sm:flex-none ${theme.border} ${theme.text} hover:bg-slate-500/5 disabled:opacity-50`}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void saveMechanicAssignment(activeAssignmentAppointment)}
-                    disabled={assignmentSaving || assignmentLoading || (assignmentChoice !== "__unassign__" && (!assignmentChoice || assignmentChoice === activeAssignmentAppointment.mechanic_id || !eligibleMechanics.some((mechanic) => mechanic.id === assignmentChoice)))}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#6b91ed] px-5 py-2.5 text-xs font-bold text-white shadow-sm shadow-[#6b91ed]/20 transition hover:bg-[#557fe3] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
-                  >
-                    {assignmentSaving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : assignmentChoice === "__unassign__" ? "Confirm removal" : "Confirm assignment"}
-                  </button>
-                </div>
               </footer>
             </motion.section>
           </motion.div>

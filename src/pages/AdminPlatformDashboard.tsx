@@ -184,12 +184,12 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           const primary = await supabase
             .from("shops")
             .select(
-              "id, name, slug, city, is_active, is_open, status, legal_hold, created_at, owner_id",
+              "id, name, slug, city, address, is_active, is_open, status, legal_hold, created_at, owner_id",
             );
           if (primary.error) {
             const fallback = await supabase
               .from("shops")
-              .select("id, name, slug, city, is_active, is_open, created_at, owner_id");
+              .select("id, name, slug, city, address, is_active, is_open, created_at, owner_id");
             shops = fallback.data;
           } else {
             shops = primary.data;
@@ -238,8 +238,18 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
 
         const { data: allJobOrders } = await supabase
           .from("job_orders")
-          .select("id, status, total_cost, shop_id, completed_at, created_at");
+          .select("id, status, total_cost, shop_id, customer_id, completed_at, created_at");
         const jobs = allJobOrders || [];
+
+        let reservations: any[] = [];
+        try {
+          const { data: allReservations } = await supabase
+            .from("reservations")
+            .select("shop_id, customer_id, status");
+          reservations = allReservations || [];
+        } catch (error) {
+          console.warn("Could not load reservations for customer counts:", error);
+        }
 
         let partSales: any[] = [];
         try {
@@ -374,19 +384,32 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               ],
         );
 
-        // Customers per shop
-        const customerCountByShop: Record<string, number> = {};
+        // Customers can be connected to shops through their profile, bookings,
+        // job orders, or reservations. users.shop_id alone misses most riders.
+        const customerIdsByShop: Record<string, Set<string>> = {};
+        const addShopCustomer = (shopId: string | null, customerId: string | null) => {
+          if (!shopId || !customerId) return;
+          const shopCustomerIds = customerIdsByShop[shopId] || new Set<string>();
+          shopCustomerIds.add(customerId);
+          customerIdsByShop[shopId] = shopCustomerIds;
+        };
         users
           .filter((u) => u.role === "customer" && u.shop_id)
-          .forEach((u) => {
-            customerCountByShop[u.shop_id] =
-              (customerCountByShop[u.shop_id] || 0) + 1;
-          });
+          .forEach((u) => addShopCustomer(u.shop_id, u.id));
+        appts.forEach((appointment) =>
+          addShopCustomer(appointment.shop_id, appointment.customer_id),
+        );
+        jobs.forEach((job) => addShopCustomer(job.shop_id, job.customer_id));
+        reservations.forEach((reservation) =>
+          addShopCustomer(reservation.shop_id, reservation.customer_id),
+        );
+        const customerCountByShop: Record<string, number> = Object.fromEntries(
+          Object.entries(customerIdsByShop).map(([shopId, customerIds]) => [shopId, customerIds.size]),
+        );
         setCustomersPerShop(
           allShops
             .map((s) => ({
-              name:
-                s.name.length > 12 ? s.name.slice(0, 12) + "..." : s.name,
+              name: s.name,
               count: customerCountByShop[s.id] || 0,
             }))
             .sort((a, b) => b.count - a.count)
@@ -396,7 +419,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         // Shops by city
         const cityMap: Record<string, number> = {};
         allShops.forEach((s) => {
-          const city = s.city || "Unknown";
+          const cityField = typeof s.city === "string" ? s.city.trim() : "";
+          const addressParts = typeof s.address === "string"
+            ? s.address.split(",").map((part: string) => part.trim()).filter(Boolean)
+            : [];
+          const city = cityField || addressParts[addressParts.length - 1] || "Unknown";
           cityMap[city] = (cityMap[city] || 0) + 1;
         });
         setShopsByCity(
@@ -1360,8 +1387,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                         dataKey="name"
                         type="category"
                         stroke="#64748b"
-                        fontSize={11}
-                        width={90}
+                        fontSize={10}
+                        width={120}
                         tickLine={false}
                         axisLine={false}
                         fontWeight={500}
@@ -1378,14 +1405,14 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                 </motion.div>
               </div>
 
-              {/* Shops Table + Shops by City */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              {/* Shops Table */}
+              <div className="grid grid-cols-1 gap-6 mb-8">
                 {/* All Shops Table */}
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
-                  className="lg:col-span-2 dashboard-card overflow-hidden"
+                  className="dashboard-card overflow-hidden"
                 >
                   <div className="px-6 py-5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -1493,61 +1520,6 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </motion.div>
 
-                {/* Shops by City */}
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.55 }}
-                  className="dashboard-card overflow-hidden"
-                >
-                  <div className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
-                        <MapPin className="w-5 h-5 text-violet-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>Shops by City</h3>
-                        <p className="text-sm text-slate-400">Geographic distribution</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="px-6 pb-6 space-y-5">
-                    {shopsByCity.map((item, index) => {
-                      const maxCount = Math.max(
-                        ...shopsByCity.map((s) => s.count),
-                        1,
-                      );
-                      return (
-                        <div key={item.city}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-slate-100">
-                              {item.city}
-                            </span>
-                            <span className="text-sm font-bold text-slate-100 tabular-nums">
-                              {item.count}
-                            </span>
-                          </div>
-                          <div className="w-full bg-moto-gray/40 rounded-full h-2">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${(item.count / maxCount) * 100}%` }}
-                              transition={{ duration: 0.8, delay: 0.6 + index * 0.1, ease: "easeOut" }}
-                              className="h-2 rounded-full"
-                              style={{
-                                background: `linear-gradient(90deg, ${COLORS[index % COLORS.length]}, ${COLORS[index % COLORS.length]}cc)`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {shopsByCity.length === 0 && (
-                      <p className="text-center text-slate-300 text-base py-6">
-                        No data yet
-                      </p>
-                    )}
-                  </div>
-                </motion.div>
               </div>
 
               {/* Recent Users Table */}

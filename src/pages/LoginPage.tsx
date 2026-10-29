@@ -54,6 +54,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 }) => {
   const { login, user, isLoading } = useAuth();
   const [isSignup, setIsSignup] = useState(initialIsSignup);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState("");
+  const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const [initialSignupOtpState] = useState(getInitialSignupOtpState);
   const [signupOtpIsNew, setSignupOtpIsNew] = useState(
     () => initialSignupOtpState.isNew,
@@ -115,6 +120,84 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const wasSignupRef = React.useRef(false);
   const notifPrefRef = React.useRef(true);
   const adminPasswordLoginRef = React.useRef(false);
+
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (hashParams.get("type") === "recovery") {
+      setRecoveryMode(true);
+      setForgotPasswordOpen(false);
+    }
+
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecoveryMode(true);
+        setForgotPasswordOpen(false);
+        setError("");
+        setRecoveryMessage("");
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setRecoveryMessage("");
+    const email = formData.email.trim().toLowerCase();
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
+      });
+      if (resetError) throw resetError;
+      setRecoveryMessage("If an account exists for that email, a password reset link has been sent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the password reset email.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRecoveredPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setRecoveryMessage("");
+    if (
+      recoveryPassword.length < 8 ||
+      !/[A-Z]/.test(recoveryPassword) ||
+      !/[a-z]/.test(recoveryPassword) ||
+      !/[0-9]/.test(recoveryPassword)
+    ) {
+      setError("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+      return;
+    }
+    if (recoveryPassword !== recoveryPasswordConfirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: recoveryPassword,
+      });
+      if (updateError) throw updateError;
+      setRecoveryMessage("Password updated successfully. Redirecting to your account…");
+      setRecoveryMode(false);
+      setRecoveryPassword("");
+      setRecoveryPasswordConfirm("");
+      setLoginAttempted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update your password.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Save the customer form draft (no password) so a reload restores it.
   useEffect(() => {
@@ -509,10 +592,14 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                   transition={{ duration: 0.25 }}
                 >
                   <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">
-                    {isSignup ? "Create account" : "Welcome back"}
+                    {recoveryMode ? "Set a new password" : forgotPasswordOpen ? "Reset your password" : isSignup ? "Create account" : "Welcome back"}
                   </h1>
                   <p className="text-slate-400 text-sm mb-8">
-                    {isSignup
+                    {recoveryMode
+                      ? "Choose a new password for your MotoLink account."
+                      : forgotPasswordOpen
+                        ? "We’ll email you a secure password reset link."
+                        : isSignup
                       ? "Register to book appointments & track repairs"
                       : "Sign in to your account"}
                   </p>
@@ -523,6 +610,44 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
             <InlineError message={error} onClose={() => setError("")} />
 
             {/* Form */}
+            {forgotPasswordOpen ? (
+              <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+                <div className="relative">
+                  <Mail size={18} className={iconClass} />
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                    placeholder="Email"
+                    autoComplete="email"
+                    required
+                    className={inputClass}
+                  />
+                </div>
+                {recoveryMessage && <p role="status" className="text-sm text-emerald-400">{recoveryMessage}</p>}
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-6 py-3 text-sm font-black uppercase tracking-wider text-slate-950 disabled:opacity-50">
+                  {loading ? "Sending…" : "Send reset link"}
+                </button>
+                <button type="button" onClick={() => { setForgotPasswordOpen(false); setRecoveryMessage(""); setError(""); }} className="w-full text-xs font-semibold text-slate-400 hover:text-moto-accent">
+                  Back to login
+                </button>
+              </form>
+            ) : recoveryMode ? (
+              <form onSubmit={handleUpdateRecoveredPassword} className="space-y-4">
+                <div className="relative">
+                  <Lock size={18} className={iconClass} />
+                  <input type="password" value={recoveryPassword} onChange={(e) => setRecoveryPassword(e.target.value)} placeholder="New password" autoComplete="new-password" required className={inputClass} />
+                </div>
+                <div className="relative">
+                  <Lock size={18} className={iconClass} />
+                  <input type="password" value={recoveryPasswordConfirm} onChange={(e) => setRecoveryPasswordConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" required className={inputClass} />
+                </div>
+                {recoveryMessage && <p role="status" className="text-sm text-emerald-400">{recoveryMessage}</p>}
+                <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-6 py-3 text-sm font-black uppercase tracking-wider text-slate-950 disabled:opacity-50">
+                  {loading ? "Updating…" : "Update password"}
+                </button>
+              </form>
+            ) : (
             <form
               onSubmit={
                 loginMode === "otp" && otpSent
@@ -788,8 +913,13 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
               {!isSignup && loginMode === "password" && (
                 <div className="flex justify-end -mt-1">
                   <a
-                    href="#"
-                    onClick={(e) => e.preventDefault()}
+                    href="#forgot-password"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setForgotPasswordOpen(true);
+                      setRecoveryMessage("");
+                      setError("");
+                    }}
                     className="text-xs font-semibold text-moto-accent hover:underline"
                   >
                     Forgot Password?
@@ -859,6 +989,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                 </button>
               )}
             </form>
+            )}
 
             {/* Divider */}
             {!signupOtpPending && !otpSent && <div className="flex items-center gap-4 my-6">

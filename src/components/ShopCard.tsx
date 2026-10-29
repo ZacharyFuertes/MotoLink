@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Clock, MapPin, Navigation, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { ShopSearchResult } from "../types/shop";
@@ -19,12 +19,25 @@ const getShopStatus = (shop: ShopSearchResult) => {
 };
 
 const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCardProps) => {
-  // is_open is the owner's explicit availability override. Only use schedule
-  // hours as a fallback for legacy rows where that column is unavailable.
+  // Re-render periodically so the badge transitions when opening/closing time
+  // passes while the landing page remains open.
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockTick((tick) => tick + 1), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const parsed = parseOperatingHoursString(shop.operating_hours);
+  const hasOperatingSchedule = parsed.some((day) => day.open);
+  // is_open=false is a manual close override. is_open=true does not override
+  // the schedule: a shop outside today's configured hours should still show
+  // closed. Fall back to the explicit flag for legacy shops without hours.
   const inferredOpen =
-    typeof shop.is_open === "boolean"
-      ? shop.is_open
-      : isOpenNowFromOperatingHours(shop.operating_hours);
+    !shop.is_active || shop.is_open === false
+      ? false
+      : hasOperatingSchedule
+        ? isOpenNowFromOperatingHours(shop.operating_hours)
+        : shop.is_open;
   let status = getShopStatus(shop);
   if (typeof inferredOpen === "boolean") {
     status = inferredOpen
@@ -46,7 +59,6 @@ const ShopCard = ({ shop, onSelect, onConnect: _onConnect, onViewShop }: ShopCar
     return `${hour12}:${mm.toString().padStart(2, "0")} ${period}`;
   };
 
-  const parsed = parseOperatingHoursString(shop.operating_hours);
   const UI_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const schedule = UI_DAYS.map((day, idx) => {
     const dayIndex = (idx + 1) % 7; // map MON(0)->1(Monday), ..., SUN(6)->0(Sunday)

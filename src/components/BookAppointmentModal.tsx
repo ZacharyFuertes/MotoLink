@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   Info,
   ClipboardList,
+  CalendarDays,
+  Clock,
   Droplet,
   Wrench,
   CircleDashed,
@@ -112,8 +114,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
   const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(null);
   const [availableMechanicsForTime, setAvailableMechanicsForTime] = useState<{ id: string; name: string; phone?: string | null }[]>([]);
+  const [loadingMechanicsForTime, setLoadingMechanicsForTime] = useState(false);
+  const [mechanicAvailabilityError, setMechanicAvailabilityError] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [mechanicScheduleWeekdays, setMechanicScheduleWeekdays] = useState<Set<number>>(new Set());
+  const [loadingMechanicScheduleDays, setLoadingMechanicScheduleDays] = useState(false);
+  const [mechanicScheduleDaysError, setMechanicScheduleDaysError] = useState("");
+  const [mechanicAvailabilityRefreshKey, setMechanicAvailabilityRefreshKey] = useState(0);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [vehicleInfo, setVehicleInfo] = useState("");
   const [notes, setNotes] = useState("");
@@ -268,6 +276,108 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   }, [isOpen, defaultShopId, shopId]);
 
+  // Load weekdays on which at least one mechanic has an enabled shift that
+  // overlaps the shop's opening hours. Dates remain visible in the strip but
+  // are disabled when no mechanic is scheduled for that weekday.
+  useEffect(() => {
+    let active = true;
+    if (!isOpen || !defaultShopId) {
+      setMechanicScheduleWeekdays(new Set());
+      setLoadingMechanicScheduleDays(false);
+      setMechanicScheduleDaysError("");
+      return;
+    }
+
+    setLoadingMechanicScheduleDays(true);
+    setMechanicScheduleDaysError("");
+
+    const loadMechanicScheduleDays = async () => {
+      try {
+        const [shopResult, shiftsResult] = await Promise.all([
+          supabase
+            .from("shops")
+            .select("operating_hours")
+            .eq("id", defaultShopId)
+            .maybeSingle(),
+          supabase
+            .from("mechanic_availability")
+            .select("day_of_week, start_time, end_time, is_available")
+            .eq("shop_id", defaultShopId)
+            .eq("is_available", true),
+        ]);
+        if (shopResult.error) throw shopResult.error;
+        if (shiftsResult.error) throw shiftsResult.error;
+
+        const shopSchedule = parseOperatingHoursString(shopResult.data?.operating_hours);
+        const toMinutes = (time: string) => {
+          const [hours, minutes] = (time || "").split(":").map(Number);
+          return (hours || 0) * 60 + (minutes || 0);
+        };
+        const availableWeekdays = new Set<number>();
+        (shiftsResult.data || []).forEach((shift) => {
+          const shiftWeekday = Number(shift.day_of_week); // Monday=0 through Sunday=6.
+          if (!Number.isInteger(shiftWeekday) || shiftWeekday < 0 || shiftWeekday > 6) return;
+
+          // Shift weekdays use Monday=0; shop hours use Sunday=0.
+          const shopDayIndex = (shiftWeekday + 1) % 7;
+          const shopDay = shopSchedule[shopDayIndex];
+          if (!shopDay?.open) return;
+
+          const shiftStart = toMinutes(shift.start_time);
+          const shiftEnd = toMinutes(shift.end_time);
+          const shopOpen = toMinutes(shopDay.openTime);
+          const shopClose = toMinutes(shopDay.closeTime);
+          if (shiftStart < shopClose && shiftEnd > shopOpen) {
+            availableWeekdays.add(shiftWeekday);
+          }
+        });
+        if (active) setMechanicScheduleWeekdays(availableWeekdays);
+      } catch (error) {
+        console.error("Could not load mechanic schedules for date picker:", error);
+        if (active) {
+          setMechanicScheduleWeekdays(new Set());
+          setMechanicScheduleDaysError("Mechanic schedules could not be loaded. Dates are disabled until availability is available.");
+        }
+      } finally {
+        if (active) setLoadingMechanicScheduleDays(false);
+      }
+    };
+
+    const refreshMechanicAvailability = () => {
+      void loadMechanicScheduleDays();
+      // Re-run the selected date/time query too, so newly added or edited
+      // shifts immediately update the mechanic choices without changing slot.
+      setMechanicAvailabilityRefreshKey((key) => key + 1);
+    };
+
+    void loadMechanicScheduleDays();
+
+    // Realtime is immediate when enabled; polling and window focus provide a
+    // fallback for local/dev environments where Supabase realtime is off.
+    const channel = supabase
+      .channel(`booking-mechanic-shifts-${defaultShopId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "mechanic_availability",
+          filter: `shop_id=eq.${defaultShopId}`,
+        },
+        refreshMechanicAvailability,
+      )
+      .subscribe();
+    const pollId = window.setInterval(refreshMechanicAvailability, 30_000);
+    window.addEventListener("focus", refreshMechanicAvailability);
+
+    return () => {
+      active = false;
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", refreshMechanicAvailability);
+      void supabase.removeChannel(channel);
+    };
+  }, [isOpen, defaultShopId]);
+
   // When the modal is opened from a specific service row (e.g. from the shop's
   // services tab), preselect that service so its label and price carry into the
   // Payment availability for this shop + platform provider.
@@ -335,13 +445,126 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   }, [isOpen]);
 
   // Fetch booked slots and shop availability for the selected date.
-  // Mechanics are assigned by the shop after confirming the appointment.
   useEffect(() => {
     if (selectedDate) {
       fetchBookedSlots();
       fetchShopAvailability();
     }
   }, [selectedDate, defaultShopId, shopId]);
+
+  // Keep the mechanic results in sync with the exact selected date, time, and
+  // service duration. Cleanup prevents a slower previous request from
+  // replacing results for a newer time selection.
+  useEffect(() => {
+    let active = true;
+
+    const fetchMechanicsForSelectedSlot = async () => {
+      setAvailableMechanicsForTime([]);
+      setMechanicAvailabilityError("");
+
+      if (!selectedDate || !selectedTime) {
+        setLoadingMechanicsForTime(false);
+        return;
+      }
+      if (!defaultShopId) {
+        setLoadingMechanicsForTime(false);
+        setMechanicAvailabilityError("We could not load this shop's mechanics. Please close and reopen booking.");
+        return;
+      }
+
+      setLoadingMechanicsForTime(true);
+      try {
+        const startMin = timeToMinutes(normalizeTime(selectedTime));
+        const duration = selectedServices.reduce((sum, serviceId) => {
+          const service = dynamicServices.find((item) => item.id === serviceId);
+          return sum + (service?.duration_minutes || 60);
+        }, 0) || 60;
+        const endMin = startMin + duration;
+        // mechanic_availability uses ISO weekdays: Monday=0 through Sunday=6.
+        const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
+
+        const { data: mechanics, error: mechanicError } = await supabase
+          .from("users")
+          .select("id, name, phone")
+          .eq("role", "mechanic")
+          .eq("shop_id", defaultShopId)
+          .order("name");
+        if (mechanicError) throw mechanicError;
+
+        const mechanicIds = (mechanics || []).map((mechanic) => mechanic.id);
+        if (mechanicIds.length === 0) {
+          if (active) setAvailableMechanicsForTime([]);
+          return;
+        }
+
+        const [shiftsResult, bookingsResult] = await Promise.all([
+          supabase
+            .from("mechanic_availability")
+            .select("mechanic_id, start_time, end_time, is_available")
+            .in("mechanic_id", mechanicIds)
+            .eq("shop_id", defaultShopId)
+            .eq("day_of_week", weekday),
+          supabase
+            .from("appointments")
+            .select("mechanic_id, scheduled_time, duration_minutes")
+            .eq("shop_id", defaultShopId)
+            .eq("scheduled_date", selectedDate)
+            .in("status", ["pending", "confirmed", "in_progress"])
+            .in("mechanic_id", mechanicIds),
+        ]);
+        if (shiftsResult.error) throw shiftsResult.error;
+        if (bookingsResult.error) throw bookingsResult.error;
+
+        const shiftsByMechanic = new Map<string, typeof shiftsResult.data>();
+        (shiftsResult.data || []).forEach((shift) => {
+          const shifts = shiftsByMechanic.get(shift.mechanic_id) || [];
+          shifts.push(shift);
+          shiftsByMechanic.set(shift.mechanic_id, shifts);
+        });
+
+        const busyMechanicIds = new Set<string>();
+        (bookingsResult.data || []).forEach((booking) => {
+          if (!booking.mechanic_id) return;
+          const bookingStart = timeToMinutes(normalizeTime(booking.scheduled_time));
+          const bookingEnd = bookingStart + (booking.duration_minutes || 60);
+          if (bookingStart < endMin && bookingEnd > startMin) {
+            busyMechanicIds.add(booking.mechanic_id);
+          }
+        });
+
+        const available = (mechanics || []).filter((mechanic) => {
+          if (busyMechanicIds.has(mechanic.id)) return false;
+          return (shiftsByMechanic.get(mechanic.id) || []).some((shift) => {
+            const shiftStart = timeToMinutes(normalizeTime(shift.start_time));
+            const shiftEnd = timeToMinutes(normalizeTime(shift.end_time));
+            return shift.is_available && shiftStart <= startMin && shiftEnd >= endMin;
+          });
+        });
+
+        if (active) {
+          setAvailableMechanicsForTime(available);
+          setSelectedMechanicId((current) =>
+            current && available.some((mechanic) => mechanic.id === current)
+              ? current
+              : null,
+          );
+        }
+      } catch (error) {
+        console.error("Could not check mechanic availability:", error);
+        if (active) {
+          setAvailableMechanicsForTime([]);
+          setMechanicAvailabilityError("We couldn't check mechanic availability. Please try selecting the time again.");
+        }
+      } finally {
+        if (active) setLoadingMechanicsForTime(false);
+      }
+    };
+
+    void fetchMechanicsForSelectedSlot();
+    return () => {
+      active = false;
+    };
+  }, [selectedDate, selectedTime, defaultShopId, selectedServices, dynamicServices, mechanicAvailabilityRefreshKey]);
 
   const resolveDefaultShop = async () => {
     try {
@@ -626,84 +849,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-  // When the customer picks a time slot, fetch mechanics available for that
-  // specific date+time+duration combination.
-  const handleTimeSelect = async (time: string) => {
-    if (!selectedDate || !time || !defaultShopId) return;
+  // Selecting a time resets the mechanic; the availability effect above then
+  // loads the matching mechanics for the chosen date/time/duration.
+  const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     setSelectedMechanicId(null);
-    setAvailableMechanicsForTime([]);
-    try {
-      const startMin = timeToMinutes(normalizeTime(time));
-      const duration = totalDurationMinutes || 60;
-      const endMin = startMin + duration;
-      const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
-
-      const { data: mechs, error: mechError } = await supabase
-        .from("users")
-        .select("id, name, phone")
-        .eq("role", "mechanic")
-        .eq("shop_id", defaultShopId)
-        .order("name");
-      if (mechError) throw mechError;
-
-      const mechanicIds = (mechs || []).map((m) => m.id);
-      if (!mechanicIds.length) {
-        setAvailableMechanicsForTime([]);
-        return;
-      }
-
-      const [shiftsResult, bookingsResult] = await Promise.all([
-        supabase
-          .from("mechanic_availability")
-          .select("mechanic_id, start_time, end_time, is_available")
-          .in("mechanic_id", mechanicIds)
-          .eq("shop_id", defaultShopId)
-          .eq("day_of_week", weekday),
-        supabase
-          .from("appointments")
-          .select("mechanic_id, scheduled_time, duration_minutes")
-          .eq("shop_id", defaultShopId)
-          .eq("scheduled_date", selectedDate)
-          .in("status", ["pending", "confirmed", "in_progress"])
-          .in("mechanic_id", mechanicIds),
-      ]);
-      if (shiftsResult.error) throw shiftsResult.error;
-      if (bookingsResult.error) throw bookingsResult.error;
-
-      const shiftsByMechanic = new Map<string, typeof shiftsResult.data>();
-      (shiftsResult.data || []).forEach((shift) => {
-        const shifts = shiftsByMechanic.get(shift.mechanic_id) || [];
-        shifts.push(shift);
-        shiftsByMechanic.set(shift.mechanic_id, shifts);
-      });
-
-      const busyMechanicIds = new Set<string>();
-      (bookingsResult.data || [])
-        .filter((booking) => booking.mechanic_id)
-        .forEach((booking) => {
-          const bStart = timeToMinutes(normalizeTime(booking.scheduled_time));
-          const bDuration = booking.duration_minutes || 60;
-          const bEnd = bStart + bDuration;
-          if (bStart < endMin && bEnd > startMin) {
-            busyMechanicIds.add(booking.mechanic_id);
-          }
-        });
-
-      const available = (mechs || []).filter((mechanic) => {
-        if (busyMechanicIds.has(mechanic.id)) return false;
-        const shifts = shiftsByMechanic.get(mechanic.id) || [];
-        return shifts.some((shift) => {
-          const sStart = timeToMinutes(normalizeTime(shift.start_time));
-          const sEnd = timeToMinutes(normalizeTime(shift.end_time));
-          return shift.is_available && sStart <= startMin && sEnd >= endMin;
-        });
-      });
-
-      setAvailableMechanicsForTime(available);
-    } catch {
-      setAvailableMechanicsForTime([]);
-    }
   };
 
   // Slots the shop is NOT open for on the selected date.
@@ -1645,10 +1795,29 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             setSelectedTime("");
                             setSelectedMechanicId(null);
                             setAvailableMechanicsForTime([]);
+                            setMechanicAvailabilityError("");
                           }}
                           includeToday={false}
+                          skipSundays={false}
                           label="Pick a date"
+                          isDateDisabled={(dateKey) => {
+                            if (loadingMechanicScheduleDays) return true;
+                            const date = new Date(`${dateKey}T00:00:00`);
+                            const mechanicWeekday = (date.getDay() + 6) % 7;
+                            return !mechanicScheduleWeekdays.has(mechanicWeekday);
+                          }}
                         />
+                        <div className="mt-2 flex items-center justify-between gap-3 text-[11px]">
+                          {mechanicScheduleDaysError ? (
+                            <p role="alert" className="text-rose-300">{mechanicScheduleDaysError}</p>
+                          ) : loadingMechanicScheduleDays ? (
+                            <p className="inline-flex items-center gap-1.5 text-slate-400">
+                              <Loader2 size={12} className="animate-spin" /> Checking mechanic schedules…
+                            </p>
+                          ) : (
+                            <p className="text-slate-500">Gray dates have no mechanic shift scheduled.</p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mb-8">
@@ -1677,7 +1846,29 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </p>
                           </div>
 
-                          {availableMechanicsForTime.length === 0 ? (
+                          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-moto-accent/20 bg-moto-accent/[0.05] px-4 py-3">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-moto-accent">
+                              <CalendarDays size={13} /> {selectedDate}
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-moto-accent">
+                              <Clock size={13} /> {formatTime(selectedTime)}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              Showing mechanics with a matching shift and no overlapping booking.
+                            </span>
+                          </div>
+
+                          {loadingMechanicsForTime ? (
+                            <div className="flex items-center justify-center gap-3 rounded-2xl border border-moto-gray bg-moto-darker/60 p-8 text-sm text-slate-300">
+                              <Loader2 size={18} className="animate-spin text-moto-accent" />
+                              Checking mechanics for this time…
+                            </div>
+                          ) : mechanicAvailabilityError ? (
+                            <div role="alert" className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-center">
+                              <p className="text-sm font-semibold text-rose-300">Availability could not be checked</p>
+                              <p className="mt-1 text-xs text-slate-300">{mechanicAvailabilityError}</p>
+                            </div>
+                          ) : availableMechanicsForTime.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-moto-gray/80 bg-moto-darker/50 p-8 text-center">
                               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-moto-accent mb-3">
                                 <Wrench size={20} strokeWidth={1.75} />
@@ -1686,9 +1877,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 No Mechanics Available
                               </p>
                               <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
-                                No mechanic is available at {selectedTime} on
-                                {selectedDate}. Please choose another time.
+                                No mechanic has a matching shift without an overlapping booking. Choose another date or time, or contact the shop.
                               </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTime("");
+                                  setSelectedMechanicId(null);
+                                }}
+                                className="mt-4 rounded-lg border border-moto-gray px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-300 transition hover:border-moto-accent hover:text-moto-accent"
+                              >
+                                Choose another time
+                              </button>
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1699,25 +1899,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     key={mechanic.id}
                                     type="button"
                                     onClick={() => setSelectedMechanicId(mechanic.id)}
-                                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors duration-200 ${isSelected ? "bg-moto-accent/15 border-moto-accent ring-1 ring-moto-accent shadow-lg shadow-moto-accent/5" : "bg-moto-dark border-moto-gray hover:border-moto-accent/60"}`}
+                                    aria-pressed={isSelected}
+                                    className={`group flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border p-5 text-center transition-all duration-200 ${isSelected ? "bg-moto-accent/10 border-moto-accent ring-2 ring-moto-accent/25 shadow-lg shadow-moto-accent/10" : "bg-moto-darker border-moto-gray hover:-translate-y-0.5 hover:border-moto-accent/60 hover:bg-moto-accent/[0.04]"}`}
                                   >
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
+                                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors ${isSelected ? "bg-moto-accent text-slate-950" : "bg-moto-accent/10 text-moto-accent group-hover:bg-moto-accent/15"}`}>
                                       <User size={24} strokeWidth={1.75} />
                                     </div>
                                     <p className="font-bold text-slate-100 text-sm">
-                                      {mechanic.name}
+                                      {mechanic.name || "Shop mechanic"}
                                     </p>
                                     {mechanic.phone && (
                                       <p className="text-xs text-slate-400">
                                         {mechanic.phone}
                                       </p>
                                     )}
-                                    {isSelected && (
-                                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-[10px] font-bold">
-                                        <Check size={10} className="text-emerald-500" />
-                                        Selected
-                                      </span>
-                                    )}
+                                    <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${isSelected ? "bg-moto-accent text-slate-950" : "bg-emerald-500/10 text-emerald-300"}`}>
+                                      {isSelected ? <Check size={11} /> : <CheckCircle size={11} />}
+                                      {isSelected ? "Selected" : "Available"}
+                                    </span>
                                   </button>
                                 );
                               })}
@@ -1904,7 +2103,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               Mechanic
                             </span>
                             <span className="text-slate-100 font-medium text-sm">
-                              Assigned by the shop after confirmation
+                              {availableMechanicsForTime.find((mechanic) => mechanic.id === selectedMechanicId)?.name || "No mechanic selected"}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">

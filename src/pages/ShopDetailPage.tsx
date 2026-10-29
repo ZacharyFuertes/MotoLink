@@ -291,28 +291,12 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
 
   const fetchReviews = async (shopIdValue: string) => {
     try {
-      const { data: reviewRows, error } = await supabase
-        .from("shop_reviews")
-        .select("id, customer_id, rating, title, comment, created_at")
-        .eq("shop_id", shopIdValue)
-        .eq("is_visible", true)
-        .order("created_at", { ascending: false });
+      const { data: reviewRows, error } = await supabase.rpc(
+        "get_shop_reviews_with_names",
+        { p_shop_id: shopIdValue },
+      );
 
       if (error) throw error;
-
-      const customerIds = [...new Set((reviewRows || []).map((row) => row.customer_id).filter(Boolean))] as string[];
-      let customerMap: Record<string, string> = {};
-
-      if (customerIds.length > 0) {
-        const { data: customers } = await supabase
-          .from("users")
-          .select("id, name")
-          .in("id", customerIds);
-
-        (customers || []).forEach((customer: any) => {
-          customerMap[customer.id] = customer.name || "Customer";
-        });
-      }
 
       setReviews(
         (reviewRows || []).map((review: any) => ({
@@ -322,7 +306,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
           title: review.title,
           comment: review.comment,
           created_at: review.created_at,
-          customer_name: review.customer_id ? customerMap[review.customer_id] || "Customer" : "Customer",
+          customer_name: review.customer_name || "Customer",
         })),
       );
     } catch (err) {

@@ -12,6 +12,8 @@ interface DateStripProps {
   /** Hide Sundays (shops closed). Defaults to false: shops can be open Sunday. */
   skipSundays?: boolean;
   label?: string;
+  /** Return true when the date must be visible but cannot be selected. */
+  isDateDisabled?: (dateKey: string) => boolean;
 }
 
 /**
@@ -32,6 +34,7 @@ const DateStrip: React.FC<DateStripProps> = ({
   includeToday = true,
   skipSundays = false,
   label,
+  isDateDisabled,
 }) => {
   const dates = useMemo(() => {
     const out: string[] = [];
@@ -72,39 +75,47 @@ const DateStrip: React.FC<DateStripProps> = ({
         {dates.map((dateKey) => {
           const f = formatDate(dateKey);
           const isActive = value === dateKey;
+          const isDisabled = isDateDisabled?.(dateKey) ?? false;
           return (
             <button
               key={dateKey}
               type="button"
               aria-pressed={isActive}
-              onClick={() => onChange(dateKey)}
+              aria-disabled={isDisabled}
+              disabled={isDisabled}
+              title={isDisabled ? "No mechanic shift is scheduled for this date" : undefined}
+              onClick={() => {
+                if (!isDisabled) onChange(dateKey);
+              }}
               className={`flex h-[86px] w-[68px] shrink-0 flex-col items-center justify-center
                           rounded-2xl border py-2 transition-colors duration-200
                           ${
-                            isActive
+                            isDisabled
+                              ? "cursor-not-allowed border-moto-gray/50 bg-moto-darker/40 text-slate-600 opacity-45"
+                              : isActive
                               ? "border-moto-accent bg-moto-accent/10 text-moto-accent shadow-lg shadow-moto-accent/10 ring-1 ring-moto-accent/40"
                               : "border-moto-gray bg-moto-darker text-slate-400 hover:border-moto-accent/60"
                           }`}
             >
               <span
                 className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
-                  isActive ? "text-moto-accent" : "text-slate-400"
+                  isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
                 }`}
               >
                 {f.day}
               </span>
-              <span className="font-display my-0.5 text-2xl font-black leading-none text-slate-100">
+              <span className={`font-display my-0.5 text-2xl font-black leading-none ${isDisabled ? "text-slate-600" : "text-slate-100"}`}>
                 {f.date}
               </span>
               <span
                 className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
-                  isActive ? "text-moto-accent" : "text-slate-400"
+                  isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
                 }`}
               >
                 {f.month}
               </span>
               {f.isToday && (
-                <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-moto-accent/80">
+                  <span className={`mt-0.5 text-[8px] font-bold uppercase tracking-wider ${isDisabled ? "text-slate-600" : "text-moto-accent/80"}`}>
                   Today
                 </span>
               )}
