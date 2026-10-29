@@ -11,6 +11,8 @@ import {
   EyeOff,
   Mail,
   KeyRound,
+  Check,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -31,27 +33,46 @@ interface CustomerLoginPageProps {
 const SIGNUP_OTP_PENDING_KEY = "moto_customer_signup_otp_pending";
 const ADMIN_EMAIL = "admin@motolink.com";
 
+const getInitialSignupOtpState = () => {
+  const pendingState = localStorage.getItem(SIGNUP_OTP_PENDING_KEY);
+  // A new signup has no auth account yet, and its password is intentionally
+  // memory-only. After reload, return to the signup form to re-enter it.
+  if (pendingState === "new") {
+    localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
+    return { pending: false, isNew: false };
+  }
+  return {
+    pending: pendingState === "existing" || pendingState === "true",
+    isNew: false,
+  };
+};
+
 const LoginPage: React.FC<CustomerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
   initialIsSignup = false,
 }) => {
-  const { login, signup, user, isLoading } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const [isSignup, setIsSignup] = useState(initialIsSignup);
+  const [initialSignupOtpState] = useState(getInitialSignupOtpState);
+  const [signupOtpIsNew, setSignupOtpIsNew] = useState(
+    () => initialSignupOtpState.isNew,
+  );
   const [signupOtpPending, setSignupOtpPending] = useState(
-    () => localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true",
+    () => initialSignupOtpState.pending,
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordHintsVisible, setPasswordHintsVisible] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loginMode, setLoginMode] = useState<"password" | "otp">(() =>
-    localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true" ? "otp" : "password",
+    initialSignupOtpState.pending ? "otp" : "password",
   );
   const [otpSent, setOtpSent] = useState(
-    () => localStorage.getItem(SIGNUP_OTP_PENDING_KEY) === "true",
+    () => initialSignupOtpState.pending,
   );
   const [otpCode, setOtpCode] = useState("");
   const [formData, setFormData] = useState(() => {
@@ -83,6 +104,13 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       vehicle_model: "",
     };
   });
+  // Password strength condition state (signup only)
+  const [pwConditions, setPwConditions] = useState({
+    len8: false,
+    upper: false,
+    lower: false,
+    digit: false,
+  });
   // Refs so the loginAttempted useEffect can read signup context
   const wasSignupRef = React.useRef(false);
   const notifPrefRef = React.useRef(true);
@@ -110,6 +138,7 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
     if (signupOtpPending) {
       localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
       setSignupOtpPending(false);
+      setSignupOtpIsNew(false);
       setOtpSent(false);
       setOtpCode("");
     }
@@ -119,6 +148,16 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Track password strength conditions during signup
+    if (name === "password" && isSignup) {
+      setPwConditions({
+        len8: value.length >= 8,
+        upper: /[A-Z]/.test(value),
+        lower: /[a-z]/.test(value),
+        digit: /[0-9]/.test(value),
+      });
+    }
 
     // Models are make-scoped, so a new make invalidates the current model
     if (name === "vehicle_make") {
@@ -141,61 +180,49 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
     try {
       if (isSignup) {
-        // Check if email already exists with a different role
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("email, role")
-          .eq("email", formData.email)
-          .single();
+        // The server checks whether this is a legacy account left by the old
+        // pre-OTP signup flow, avoiding client-side RLS-dependent lookups.
+        const signupOtpResult = await requestLoginCode(
+          formData.email.trim(),
+          undefined,
+          "customer_signup",
+        );
+        if (!signupOtpResult.success) {
+          throw new Error(signupOtpResult.error || "Could not send the verification code.");
+        }
 
-        if (existingUser && existingUser.role !== "customer") {
-          setError(
-            `❌ This email is already registered as a ${existingUser.role}. Please sign in with your existing credentials instead.`,
+        if (signupOtpResult.existingAccount) {
+          const loginOtpResult = await requestLoginCode(
+            formData.email.trim(),
+            formData.password,
           );
+          if (!loginOtpResult.success) {
+            throw new Error(loginOtpResult.error || "Could not send the verification code.");
+          }
+          localStorage.setItem(SIGNUP_OTP_PENDING_KEY, "existing");
+          setSignupOtpIsNew(false);
+          setSignupOtpPending(true);
+          setLoginMode("otp");
+          setOtpSent(true);
+          setOtpCode("");
+          setFormData((prev) => ({ ...prev, password: "" }));
           setLoading(false);
           return;
         }
 
-        // Capture these before async call so the useEffect can read them
-        wasSignupRef.current = true;
-        notifPrefRef.current = true; // Email notifications default to ON
+        // Validate new-account passwords here; existing customer passwords
+        // continue to be checked by the OTP endpoint.
+        const pwd = formData.password;
+        if (pwd.length < 8 || !/[A-Z]/.test(pwd) || !/[a-z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+          throw new Error("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+        }
 
-        await signup(
-          formData.email,
-          formData.password,
-          formData.name,
-          formData.phone,
-          formData.address,
-          {
-            make: formData.vehicle_make,
-            model: formData.vehicle_model,
-          },
-        );
-
-        // Switch into the pending state before signing out. App observes this
-        // marker and keeps the signup page mounted while auth state clears.
-        localStorage.setItem(SIGNUP_OTP_PENDING_KEY, "true");
+        localStorage.setItem(SIGNUP_OTP_PENDING_KEY, "new");
+        setSignupOtpIsNew(true);
         setSignupOtpPending(true);
         setLoginMode("otp");
-
-        // The signup helper creates the account/profile, but do not leave its
-        // initial session active. Require email OTP before granting app access.
-        const { error: signOutError } = await supabase.auth.signOut();
-        if (signOutError) throw signOutError;
-
-        const otpResult = await requestLoginCode(formData.email.trim());
-        if (!otpResult.success) {
-          setError(
-            otpResult.error ||
-              "Your account was created, but we could not send the verification code. Try sending it again.",
-          );
-          setLoading(false);
-          return;
-        }
-
         setOtpSent(true);
         setOtpCode("");
-        setFormData((prev) => ({ ...prev, password: "" }));
         setLoading(false);
         return;
       } else {
@@ -280,7 +307,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
     setLoading(true);
     try {
-      const result = await requestLoginCode(formData.email.trim());
+      const result = signupOtpPending
+        ? signupOtpIsNew
+          ? await requestLoginCode(formData.email.trim(), undefined, "customer_signup")
+          : await requestLoginCode(formData.email.trim(), formData.password)
+        : await requestLoginCode(formData.email.trim());
       if (!result.success) {
         setError(result.error || "Could not send the verification code.");
         setLoading(false);
@@ -312,7 +343,27 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
 
     setLoading(true);
     try {
-      const result = await verifyLoginCode(formData.email.trim(), code);
+      if (signupOtpPending && signupOtpIsNew && !formData.password) {
+        setError("Please re-enter your password to finish creating your account.");
+        setLoading(false);
+        return;
+      }
+
+      const result = await verifyLoginCode(
+        formData.email.trim(),
+        code,
+        signupOtpPending && signupOtpIsNew ? "customer_signup" : "login",
+        signupOtpPending && signupOtpIsNew
+          ? {
+              password: formData.password,
+              name: formData.name,
+              phone: formData.phone,
+              address: formData.address,
+              vehicleMake: formData.vehicle_make,
+              vehicleModel: formData.vehicle_model,
+            }
+          : undefined,
+      );
       if (!result.success || !result.session) {
         setError(result.error || "The code is invalid or has expired.");
         setLoading(false);
@@ -322,6 +373,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
       if (signupOtpPending) {
         localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
         setSignupOtpPending(false);
+        if (signupOtpIsNew) {
+          wasSignupRef.current = true;
+          notifPrefRef.current = true;
+        }
+        setSignupOtpIsNew(false);
       }
 
       // Install the session AuthContext picks it up via onAuthStateChange.
@@ -547,6 +603,8 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
+                          onFocus={() => setPasswordHintsVisible(true)}
+                          onBlur={() => setPasswordHintsVisible(false)}
                           placeholder="Password"
                           required
                           className={passwordInputClass}
@@ -567,6 +625,52 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
                           )}
                         </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Password strength condition indicators (signup only, shown on hover/focus) */}
+                  {isSignup && (!signupOtpPending || signupOtpIsNew) && passwordHintsVisible && (
+                    <div className="mt-1 space-y-1.5 text-sm">
+                      {[
+                        {
+                          met: pwConditions.len8,
+                          label: "At least 8 characters",
+                        },
+                        {
+                          met: pwConditions.upper,
+                          label: "One uppercase letter (A-Z)",
+                        },
+                        {
+                          met: pwConditions.lower,
+                          label: "One lowercase letter (a-z)",
+                        },
+                        {
+                          met: pwConditions.digit,
+                          label: "One number (0-9)",
+                        },
+                      ].map((requirement) => (
+                        <div
+                          key={requirement.label}
+                          className={`flex items-center gap-2 text-[11px] font-medium ${
+                            requirement.met ? "text-emerald-400" : "text-slate-500"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+                              requirement.met
+                                ? "bg-emerald-500/10 text-emerald-400"
+                                : "bg-slate-700/80 text-slate-400"
+                            }`}
+                          >
+                            {requirement.met ? (
+                              <Check size={10} className="fill-current" />
+                            ) : (
+                              <X size={10} className="fill-current" />
+                            )}
+                          </span>
+                          <span>{requirement.label}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
 

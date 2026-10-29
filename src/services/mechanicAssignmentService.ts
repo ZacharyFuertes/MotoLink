@@ -14,11 +14,14 @@ interface AssignmentAppointment {
   shop_id: string;
   scheduled_date: string;
   scheduled_time: string | null;
+  /** Total service duration in minutes. Defaults to 60 when not provided. */
+  durationMinutes?: number;
 }
 
 /**
- * Return same-shop mechanics with an enabled weekly shift covering the booking
- * slot, excluding mechanics already assigned to another active booking then.
+ * Return same-shop mechanics with an enabled weekly shift covering the ENTIRE
+ * booking duration [start, start+duration), excluding mechanics already
+ * assigned to overlapping active booking intervals.
  */
 export const getAssignableMechanics = async (
   appointment: AssignmentAppointment,
@@ -42,7 +45,9 @@ export const getAssignableMechanics = async (
 
   const mechanicIds = mechanics.map((mechanic) => mechanic.id);
   const weekday = (new Date(`${appointment.scheduled_date}T00:00:00`).getDay() + 6) % 7;
-  const time = normalizeTime(appointment.scheduled_time);
+  const startMin = normalizeTime(appointment.scheduled_time);
+  const duration = appointment.durationMinutes || 60;
+  const endMin = startMin + duration;
 
   const [shiftsResult, bookingsResult] = await Promise.all([
     supabase
@@ -53,7 +58,7 @@ export const getAssignableMechanics = async (
       .eq("shop_id", appointment.shop_id),
     supabase
       .from("appointments")
-      .select("id, mechanic_id, scheduled_time")
+      .select("id, mechanic_id, scheduled_time, duration_minutes")
       .eq("shop_id", appointment.shop_id)
       .eq("scheduled_date", appointment.scheduled_date)
       .in("status", ["pending", "confirmed", "in_progress"])
@@ -68,28 +73,34 @@ export const getAssignableMechanics = async (
     shifts.push(shift);
     shiftsByMechanic.set(shift.mechanic_id, shifts);
   });
-  const busyMechanicIds = new Set<string>(
-    (bookingsResult.data || [])
-      .filter(
-        (booking) =>
-          booking.id !== appointment.id &&
-          normalizeTime(booking.scheduled_time) === time,
-      )
-      .map((booking) => booking.mechanic_id)
-      .filter(Boolean),
-  );
+
+  // Detect mechanics with overlapping booked intervals: [bookingStart, bookingEnd) overlaps [startMin, endMin)
+  const busyMechanicIds = new Set<string>();
+  (bookingsResult.data || [])
+    .filter((booking) => booking.id !== appointment.id && booking.mechanic_id)
+    .forEach((booking) => {
+      const bStart = normalizeTime(booking.scheduled_time);
+      const bDuration = booking.duration_minutes || 60;
+      const bEnd = bStart + bDuration;
+      // Intervals overlap if bStart < endMin && bEnd > startMin
+      if (bStart < endMin && bEnd > startMin) {
+        busyMechanicIds.add(booking.mechanic_id);
+      }
+    });
+
   return mechanics.map((mechanic) => {
     const shifts = shiftsByMechanic.get(mechanic.id) || [];
-    const matchingShifts = shifts.filter((shift) => {
-      const start = normalizeTime(shift.start_time);
-      const end = normalizeTime(shift.end_time);
-      return time >= start && time <= end;
+    // Shift must fully cover [startMin, endMin): shift.start <= startMin && shift.end >= endMin
+    const coveringShifts = shifts.filter((shift) => {
+      const sStart = normalizeTime(shift.start_time);
+      const sEnd = normalizeTime(shift.end_time);
+      return sStart <= startMin && sEnd >= endMin;
     });
     const isBusy = busyMechanicIds.has(mechanic.id);
-    const hasAvailableShift = matchingShifts.some((shift) => shift.is_available);
+    const hasAvailableShift = coveringShifts.some((shift) => shift.is_available);
     let reason: AssignableMechanic["reason"];
     if (isBusy) reason = "already-booked";
-    else if (matchingShifts.length > 0 && !hasAvailableShift) reason = "unavailable";
+    else if (coveringShifts.length > 0 && !hasAvailableShift) reason = "unavailable";
     else if (shifts.length > 0) reason = "outside-shift";
     else reason = "no-shift";
 

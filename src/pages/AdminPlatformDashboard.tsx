@@ -32,6 +32,7 @@ import {
   Shield,
   ShieldCheck,
   CheckCircle2,
+  XCircle,
   Globe,
   Settings,
   TrendingUp,
@@ -157,6 +158,8 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [shopActionError, setShopActionError] = useState<string | null>(null);
   const [reviewingShop, setReviewingShop] = useState<ReviewShop | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -475,6 +478,39 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
       }
     },
     [fetchAdminData, recentShops],
+  );
+
+  const declineShop = useCallback(
+    async (shop: PendingShop) => {
+      const confirmed = window.confirm(
+        `Decline and permanently delete “${shop.name}”? The pending owner account will also be removed if it has no other shops.`,
+      );
+      if (!confirmed) return;
+
+      setDecliningId(shop.id);
+      setShopActionError(null);
+      try {
+        const { data, error } = await supabase.rpc("admin_decline_pending_shop", {
+          p_shop_id: shop.id,
+        });
+        if (error) throw error;
+        if (data?.success === false) {
+          throw new Error(data.error || "The shop could not be declined.");
+        }
+        await fetchAdminData();
+      } catch (err) {
+        const errorMessage =
+          err && typeof err === "object" && "message" in err && typeof err.message === "string"
+            ? err.message
+            : null;
+        setShopActionError(
+          errorMessage || "The shop could not be declined.",
+        );
+      } finally {
+        setDecliningId(null);
+      }
+    },
+    [fetchAdminData],
   );
 
   const refreshNotifications = async () => {
@@ -972,6 +1008,11 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                     border: "1px solid rgba(245, 158, 11, 0.25)",
                   }}
                 >
+                  {shopActionError && (
+                    <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                      {shopActionError}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center">
@@ -1010,7 +1051,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <button
                             onClick={() => setReviewingShop({
                               id: shop.id,
@@ -1030,7 +1071,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                           </button>
                           <button
                             onClick={() => approveShop(shop.id)}
-                            disabled={approvingId === shop.id}
+                            disabled={approvingId === shop.id || decliningId === shop.id}
                             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold transition-all disabled:opacity-50 shadow-sm shadow-emerald-600/20 hover:shadow-md hover:shadow-emerald-600/30"
                           >
                             {approvingId === shop.id ? (
@@ -1042,6 +1083,23 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
                               <>
                                 <CheckCircle2 className="w-5 h-5" />
                                 Approve Shop
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => declineShop(shop)}
+                            disabled={approvingId === shop.id || decliningId === shop.id}
+                            className="col-span-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 hover:bg-rose-500 hover:text-white text-[13px] font-bold transition-all disabled:opacity-50"
+                          >
+                            {decliningId === shop.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-rose-200/40 border-t-rose-200 rounded-full animate-spin" />
+                                Declining…
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-5 h-5" />
+                                Decline and Delete
                               </>
                             )}
                           </button>

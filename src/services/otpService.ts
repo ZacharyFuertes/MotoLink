@@ -9,11 +9,13 @@ export interface OtpSendResult {
   success: boolean;
   message?: string;
   error?: string;
+  existingAccount?: boolean;
 }
 
 export interface OtpVerifyResult {
   success: boolean;
   error?: string;
+  pendingRegistration?: boolean;
   session?: {
     access_token: string;
     refresh_token: string;
@@ -47,9 +49,14 @@ const post = async (path: string, body: Record<string, unknown>) => {
 export const requestLoginCode = async (
   email: string,
   password?: string,
+  purpose: "login" | "shop_signup" | "customer_signup" = "login",
 ): Promise<OtpSendResult> => {
   try {
-    const { status, payload } = await post("/api/send-login-otp", { email, password });
+    const { status, payload } = await post("/api/send-login-otp", {
+      email,
+      password,
+      purpose,
+    });
 
     if (!responseOk(status, payload)) {
       return {
@@ -61,6 +68,7 @@ export const requestLoginCode = async (
     return {
       success: true,
       message: payload?.message || "Verification code sent to your email.",
+      existingAccount: payload?.existingAccount === true,
     };
   } catch {
     return {
@@ -74,14 +82,35 @@ export const requestLoginCode = async (
 export const verifyLoginCode = async (
   email: string,
   code: string,
+  purpose: "login" | "shop_signup" | "customer_signup" = "login",
+  registration?: {
+    password: string;
+    name: string;
+    phone?: string;
+    address?: string;
+    vehicleMake?: string;
+    vehicleModel?: string;
+  },
 ): Promise<OtpVerifyResult> => {
   try {
-    const { status, payload } = await post("/api/verify-login-otp", { email, code });
+    const { status, payload } = await post("/api/verify-login-otp", {
+      email,
+      code,
+      purpose,
+      registration,
+    });
 
     if (!responseOk(status, payload)) {
       return {
         success: false,
         error: payload?.error || "The code is invalid or has expired.",
+      };
+    }
+
+    if (payload?.pendingRegistration) {
+      return {
+        success: true,
+        pendingRegistration: true,
       };
     }
 

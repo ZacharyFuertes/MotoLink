@@ -36,7 +36,7 @@ interface AuthContextType {
   canViewReports: () => boolean;
   canAccessAdminDashboard: () => boolean;
   canAccessCustomerPortal: () => boolean;
-  refreshUser: () => Promise<User | null>;
+  refreshUser: (userId?: string) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +77,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         .single();
 
       if (userData) {
+        // Incomplete shop-owner registrations are not valid app sessions.
+        // If the owner profile exists without a linked shop, they must not be
+        // treated as an authenticated shop owner until the registration is
+        // completed and approved.
+        if (userData.role === "owner" && !userData.shop_id) {
+          console.warn("⚠️ [Auth] Owner session is incomplete; clearing stale session");
+          await supabase.auth.signOut();
+          setUser(null);
+          return null;
+        }
+
         console.log("✅ [Auth] User profile loaded");
         setUser(userData as User);
         return userData as User;
@@ -251,13 +262,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // Await the profile fetch so that when login() resolves, `user` reflects
       // the real role from the DB (not a stale value from an earlier race)
-      await setUserProfileFromSession(data.user.id, data.user.email);
+      const profile = await setUserProfileFromSession(data.user.id, data.user.email);
+      if (!profile) {
+        throw new Error("Signed in, but the account profile could not be loaded. Please try again.");
+      }
 
       console.log("✅ [Auth] Login successful");
     } catch (err) {
       console.error("❌ [Auth] Login error:", err);
-      setIsLoading(false);
       throw new Error(formatDatabaseError(err));
+    } finally {
+      // Do not rely exclusively on onAuthStateChange: if Supabase has already
+      // emitted the event while the profile query is pending, the UI could
+      // otherwise remain in its loading state after login resolves.
+      setIsLoading(false);
     }
   };
 
@@ -290,6 +308,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  const validateSignupPassword = (password: string): void => {
+    if (password.length < 8) {
+      throw new Error("Password must be at least 8 characters long.");
+    }
+    if (!/[A-Z]/.test(password)) {
+      throw new Error("Password must contain at least one uppercase letter (A-Z).");
+    }
+    if (!/[a-z]/.test(password)) {
+      throw new Error("Password must contain at least one lowercase letter (a-z).");
+    }
+    if (!/[0-9]/.test(password)) {
+      throw new Error("Password must contain at least one number (0-9).");
+    }
+  };
+
   const signup = async (
     email: string,
     password: string,
@@ -302,6 +335,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     console.log("📝 [Auth] Signup attempt:", email, "role:", role);
     setIsLoading(true);
     try {
+      // Enforce strong password rules for new registrations only.
+      // Login is unaffected — existing accounts with older passwords keep working.
+      validateSignupPassword(password);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -365,9 +402,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const canAccessAdminDashboard = (): boolean => user?.role === "owner" || user?.role === "admin";
   const canAccessCustomerPortal = (): boolean => user?.role === "customer";
 
-  const refreshUser = async (): Promise<User | null> => {
-    if (user?.id) {
-      return await setUserProfileFromSession(user.id, user.email);
+  const refreshUser = async (userId?: string): Promise<User | null> => {
+    const targetUserId = userId || user?.id;
+    if (targetUserId) {
+      return await setUserProfileFromSession(
+        targetUserId,
+        targetUserId === user?.id ? user.email : undefined,
+      );
     }
     return null;
   };

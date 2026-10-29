@@ -23,6 +23,7 @@ import {
   Loader2,
   Banknote,
   QrCode,
+  User,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -74,6 +75,7 @@ interface CatalogService {
   description?: string | null;
   icon?: string | null;
   price: number;
+  duration_minutes?: number;
 }
 
 interface BookAppointmentModalProps {
@@ -108,6 +110,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
+  const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(null);
+  const [availableMechanicsForTime, setAvailableMechanicsForTime] = useState<{ id: string; name: string; phone?: string | null }[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
@@ -259,6 +263,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   useEffect(() => {
     if (isOpen && defaultShopId) {
       fetchServices();
+      fetchMechanics();
       fetchAvailableParts();
     }
   }, [isOpen, defaultShopId, shopId]);
@@ -304,6 +309,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSelectedServices([]);
         setSelectedDate("");
         setSelectedTime("");
+        setSelectedMechanicId(null);
         setSelectedVehicleId("");
         setVehicleInfo("");
         setNotes("");
@@ -513,6 +519,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           desc: s.description,
           icon: iconMap[s.icon || ""] || Wrench,
           price: s.price,
+          duration_minutes: s.duration_minutes || 60,
         }));
         setDynamicServices(mapped);
         return;
@@ -541,6 +548,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           desc: s.description,
           icon: iconMap[s.icon] || Wrench,
           price: s.price,
+          duration_minutes: s.duration_minutes || 60,
         }));
         setDynamicServices(mapped);
       } else {
@@ -548,6 +556,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       }
     } catch {
       setDynamicServices([]);
+    }
+  };
+
+  const fetchMechanics = async () => {
+    if (!defaultShopId) return;
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, name, phone")
+        .eq("role", "mechanic")
+        .eq("shop_id", defaultShopId)
+        .order("name");
+      if (error) throw error;
+      setAvailableMechanicsForTime(data || []);
+    } catch {
+      setAvailableMechanicsForTime([]);
     }
   };
 
@@ -575,18 +599,110 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     try {
       let query = supabase
         .from("appointments")
-        .select("scheduled_time")
+        .select("scheduled_time, duration_minutes")
         .eq("scheduled_date", selectedDate)
         .in("status", ["pending", "confirmed", "in_progress"]);
 
       const resolvedShopId = shopId || defaultShopId;
       if (resolvedShopId) query = query.eq("shop_id", resolvedShopId);
+      if (selectedMechanicId) query = query.eq("mechanic_id", selectedMechanicId);
 
       const { data, error } = await query;
       if (error) throw error;
-      setBookedSlots((data || []).map((a: any) => normalizeTime(a.scheduled_time)));
+
+      // Block every hourly slot overlapping each booking's [start, start+duration) interval.
+      const blocked = new Set<string>();
+      (data || []).forEach((a: any) => {
+        const startMin = timeToMinutes(normalizeTime(a.scheduled_time));
+        const duration = a.duration_minutes || 60;
+        const endMin = startMin + duration;
+        for (let m = startMin; m < endMin; m += 60) {
+          blocked.add(minutesToSlot(m));
+        }
+      });
+      setBookedSlots([...blocked]);
     } catch {
       setBookedSlots([]);
+    }
+  };
+
+  // When the customer picks a time slot, fetch mechanics available for that
+  // specific date+time+duration combination.
+  const handleTimeSelect = async (time: string) => {
+    if (!selectedDate || !time || !defaultShopId) return;
+    setSelectedTime(time);
+    setSelectedMechanicId(null);
+    setAvailableMechanicsForTime([]);
+    try {
+      const startMin = timeToMinutes(normalizeTime(time));
+      const duration = totalDurationMinutes || 60;
+      const endMin = startMin + duration;
+      const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
+
+      const { data: mechs, error: mechError } = await supabase
+        .from("users")
+        .select("id, name, phone")
+        .eq("role", "mechanic")
+        .eq("shop_id", defaultShopId)
+        .order("name");
+      if (mechError) throw mechError;
+
+      const mechanicIds = (mechs || []).map((m) => m.id);
+      if (!mechanicIds.length) {
+        setAvailableMechanicsForTime([]);
+        return;
+      }
+
+      const [shiftsResult, bookingsResult] = await Promise.all([
+        supabase
+          .from("mechanic_availability")
+          .select("mechanic_id, start_time, end_time, is_available")
+          .in("mechanic_id", mechanicIds)
+          .eq("shop_id", defaultShopId)
+          .eq("day_of_week", weekday),
+        supabase
+          .from("appointments")
+          .select("mechanic_id, scheduled_time, duration_minutes")
+          .eq("shop_id", defaultShopId)
+          .eq("scheduled_date", selectedDate)
+          .in("status", ["pending", "confirmed", "in_progress"])
+          .in("mechanic_id", mechanicIds),
+      ]);
+      if (shiftsResult.error) throw shiftsResult.error;
+      if (bookingsResult.error) throw bookingsResult.error;
+
+      const shiftsByMechanic = new Map<string, typeof shiftsResult.data>();
+      (shiftsResult.data || []).forEach((shift) => {
+        const shifts = shiftsByMechanic.get(shift.mechanic_id) || [];
+        shifts.push(shift);
+        shiftsByMechanic.set(shift.mechanic_id, shifts);
+      });
+
+      const busyMechanicIds = new Set<string>();
+      (bookingsResult.data || [])
+        .filter((booking) => booking.mechanic_id)
+        .forEach((booking) => {
+          const bStart = timeToMinutes(normalizeTime(booking.scheduled_time));
+          const bDuration = booking.duration_minutes || 60;
+          const bEnd = bStart + bDuration;
+          if (bStart < endMin && bEnd > startMin) {
+            busyMechanicIds.add(booking.mechanic_id);
+          }
+        });
+
+      const available = (mechs || []).filter((mechanic) => {
+        if (busyMechanicIds.has(mechanic.id)) return false;
+        const shifts = shiftsByMechanic.get(mechanic.id) || [];
+        return shifts.some((shift) => {
+          const sStart = timeToMinutes(normalizeTime(shift.start_time));
+          const sEnd = timeToMinutes(normalizeTime(shift.end_time));
+          return shift.is_available && sStart <= startMin && sEnd >= endMin;
+        });
+      });
+
+      setAvailableMechanicsForTime(available);
+    } catch {
+      setAvailableMechanicsForTime([]);
     }
   };
 
@@ -653,23 +769,60 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       const day = schedule[dayIdx];
       let baseSlots: string[] = [];
       let blockedSlots: string[] = [];
-      if (day && day.open && day.openTime && day.closeTime) {
+
+      if (selectedMechanicId) {
+        // Mechanic selected: use their shift hours for this day, intersected
+        // with shop operating hours.
+        const { data: mechAvailability, error: mechError } = await supabase
+          .from("mechanic_availability")
+          .select("start_time, end_time, is_available")
+          .eq("mechanic_id", selectedMechanicId)
+          .eq("shop_id", defaultShopId)
+          .eq("day_of_week", dayIdx);
+
+        if (!mechError && mechAvailability) {
+          const shopOpenMin = day?.open && day.openTime && day.closeTime
+            ? timeToMinutes(day.openTime)
+            : 0;
+          const shopCloseMin = day?.open && day.openTime && day.closeTime
+            ? timeToMinutes(day.closeTime)
+            : 24 * 60;
+
+          mechAvailability.forEach((shift) => {
+            if (!shift.is_available) return;
+            const shiftStart = timeToMinutes(shift.start_time);
+            const shiftEnd = timeToMinutes(shift.end_time);
+            // Intersect mechanic shift with shop hours
+            const effStart = Math.max(shiftStart, shopOpenMin);
+            const effEnd = Math.min(shiftEnd, shopCloseMin);
+            if (effStart < effEnd) {
+              const shiftSlots = generateDaySlots(
+                minutesToSlot(effStart),
+                minutesToSlot(effEnd),
+              );
+              baseSlots = [...baseSlots, ...shiftSlots];
+            }
+          });
+        }
+      } else if (day && day.open && day.openTime && day.closeTime) {
+        // No mechanic selected: use shop operating hours (original behavior).
         baseSlots = generateDaySlots(day.openTime, day.closeTime);
-        // Remove slots that fall within owner-defined maintenance windows
-        // (day_of_week 0 = Sunday, matching parseOperatingHoursString).
-        const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
-        blocked.forEach((b) => {
-          const startMin = timeToMinutes(b.start_time);
-          const endMin = timeToMinutes(b.end_time);
-          blockedSlots = [
-            ...blockedSlots,
-            ...baseSlots.filter((slot) => {
-              const slotMin = timeToMinutes(slot);
-              return slotMin >= startMin && slotMin < endMin;
-            }),
-          ];
-        });
       }
+
+      // Remove slots that fall within owner-defined maintenance windows
+      // (day_of_week 0 = Sunday, matching parseOperatingHoursString).
+      const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
+      blocked.forEach((b) => {
+        const startMin = timeToMinutes(b.start_time);
+        const endMin = timeToMinutes(b.end_time);
+        blockedSlots = [
+          ...blockedSlots,
+          ...baseSlots.filter((slot) => {
+            const slotMin = timeToMinutes(slot);
+            return slotMin >= startMin && slotMin < endMin;
+          }),
+        ];
+      });
       setDaySlots([...new Set(baseSlots.filter((s) => !blockedSlots.includes(s)))]);
       // Slots that have already passed on the selected day (today only).
       const now = new Date();
@@ -690,15 +843,31 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-  // Slots the shared TimeSlotGrid should render as unavailable.
-  // Combines already-booked appointment slots and slots that have already
-  // passed today. Shop-closed / blocked slots are already excluded from
-  // daySlots so they don't render at all.
-  const unavailableSlots = useMemo(
+  // Total booking duration = sum of selected service durations (minutes).
+  const totalDurationMinutes = useMemo(
     () =>
-      daySlots.filter((time) => bookedSlots.includes(time) || pastSlots.includes(time)),
-    [daySlots, bookedSlots, pastSlots],
+      selectedServices.reduce((sum, svcId) => {
+        const svc = dynamicServices.find((s) => s.id === svcId);
+        return sum + (svc?.duration_minutes || 60);
+      }, 0),
+    [selectedServices, dynamicServices],
   );
+
+  // Slots the shared TimeSlotGrid should render as unavailable.
+  // Combines already-booked appointment slots, slots that have already
+  // passed today, and slots where the selected services would run past shop close.
+  const unavailableSlots = useMemo(() => {
+    // Shop close time: last daySlot + 60 minutes (slots run up to but not including close)
+    const shopCloseMinutes =
+      daySlots.length > 0 ? timeToMinutes(daySlots[daySlots.length - 1]) + 60 : Infinity;
+
+    return daySlots.filter((time) => {
+      if (bookedSlots.includes(time) || pastSlots.includes(time)) return true;
+      // Block if the selected service duration would run past shop close
+      if (timeToMinutes(time) + totalDurationMinutes > shopCloseMinutes) return true;
+      return false;
+    });
+  }, [daySlots, bookedSlots, pastSlots, totalDurationMinutes]);
 
   // If the currently selected time is no longer valid for the loaded day
   // (e.g. outside operating hours or blocked), clear it so the customer
@@ -736,8 +905,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       case 1:
         return true; // Parts step is optional
       case 2:
-        return !!selectedDate && !!selectedTime;
+        return !!selectedDate && !!selectedTime && !!selectedMechanicId;
       case 3:
+        return !!selectedDate && !!selectedTime;
+      case 4:
         return !!(selectedVehicleId || vehicleInfo.trim()) && termsAccepted;
       default:
         return false;
@@ -811,6 +982,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         shop_id: shopIdToUse,
         scheduled_date: selectedDate,
         scheduled_time: selectedTime,
+        duration_minutes: totalDurationMinutes || 60,
+        mechanic_id: selectedMechanicId || null,
         service_type: serviceLabels,
         description: `${vehicleDesc} - ${serviceLabels}`,
         status: "pending",
@@ -1219,50 +1392,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Step 3: Date & Time */}
-                  {currentStep === 2 && (
-                    <motion.div
-                      key="datetime"
-                      initial={{ opacity: 0, x: 24 * stepDir.current }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 * stepDir.current }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                    >
-<div className="mb-8">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                          Step 03 · Schedule
-                        </p>
-                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Pick Date &amp; Time<span className="text-moto-accent">.</span>
-                        </h3>
-                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Choose when you'd like to bring your motorcycle in.
-                        </p>
-                      </div>
-
-                      <div className="mb-8">
-                        <DateStrip
-                          value={selectedDate}
-                          onChange={(next) => {
-                            setSelectedDate(next);
-                            // The slot may not be bookable on the new day.
-                            setSelectedTime("");
-                          }}
-                          includeToday={false}
-                          label="Pick a date"
-                        />
-                      </div>
-
-<TimeSlotGrid
-                        slots={daySlots}
-                        value={selectedTime}
-                        onChange={setSelectedTime}
-                        takenSlots={unavailableSlots}
-                        label="Pick a time"
-                      />
-                    </motion.div>
-                  )}
-
                   {/* Step 2: Parts Selection */}
                   {currentStep === 1 && (
                     <motion.div
@@ -1292,7 +1421,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-moto-accent mb-3">
                             <Wrench size={20} strokeWidth={1.75} />
                           </div>
-                          <p className="font-display font-black text-slate-200 uppercase tracking-tight">
+                          <p className="font-display font-bold text-slate-200 uppercase tracking-tight">
                             No parts available.
                           </p>
                           <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
@@ -1365,6 +1494,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   {selectedPart ? (
                                     <div className="flex items-center gap-3 pt-3 border-t border-moto-gray/60">
                                       <button
+                                        type="button"
                                         onClick={() =>
                                           setSelectedParts(
                                             selectedParts
@@ -1387,20 +1517,20 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                         {selectedPart.quantity}
                                       </span>
                                       <button
+                                        type="button"
                                         onClick={() =>
                                           selectedPart.quantity <
                                             part.quantity_in_stock &&
-                                          setSelectedParts(
-                                            selectedParts.map((p) =>
-                                              p.id === part.id
-                                                ? {
-                                                    ...p,
-                                                    quantity: p.quantity + 1,
-                                                  }
-                                                : p,
+                                            setSelectedParts(
+                                              selectedParts.map((p) =>
+                                                p.id === part.id
+                                                  ? {
+                                                      ...p,
+                                                      quantity: p.quantity + 1,
+                                                    }
+                                                  : p,
                                             ),
-                                          )
-                                        }
+                                        )}
                                         disabled={
                                           selectedPart.quantity >=
                                           part.quantity_in_stock
@@ -1424,6 +1554,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     </div>
                                   ) : (
                                     <button
+                                      type="button"
                                       onClick={() =>
                                         setSelectedParts([
                                           ...selectedParts,
@@ -1446,9 +1577,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           </div>
                           {selectedParts.length > 0 && (
                             <div className="mt-6 rounded-2xl border border-moto-accent/20 bg-moto-accent/[0.06] p-5">
-                              <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-3">
-                                Selected Parts · {selectedParts.length}
-                              </p>
                               <div className="space-y-2 mb-3">
                                 {selectedParts.map((part) => (
                                   <div
@@ -1469,10 +1597,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               </div>
                               <div className="border-t border-moto-accent/15 pt-3">
                                 <p className="flex items-center justify-between text-sm font-bold">
-                                  <span className="text-slate-300">
-                                    Parts Total
-                                  </span>
-                                  <span className="text-moto-accent font-mono font-black text-lg">
+                                  <span className="text-slate-300">Parts Total</span>
+                                  <span className="text-moto-accent font-mono font-bold text-lg">
                                     ₱
                                     {selectedParts
                                       .reduce(
@@ -1490,6 +1616,117 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       )}
                     </motion.div>
                   )}
+                  {/* Step 3: Date & Time */}
+                  {currentStep === 2 && (
+                    <motion.div
+                      key="datetime"
+                      initial={{ opacity: 0, x: 24 * stepDir.current }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -24 * stepDir.current }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                    >
+                      <div className="mb-8">
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
+                          Step 03 · Schedule
+                        </p>
+                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
+                          Pick Date &amp; Time<span className="text-moto-accent">.</span>
+                        </h3>
+                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
+                          Choose when you'd like to bring your motorcycle in.
+                        </p>
+                      </div>
+
+                      <div className="mb-8">
+                        <DateStrip
+                          value={selectedDate}
+                          onChange={(next) => {
+                            setSelectedDate(next);
+                            setSelectedTime("");
+                            setSelectedMechanicId(null);
+                            setAvailableMechanicsForTime([]);
+                          }}
+                          includeToday={false}
+                          label="Pick a date"
+                        />
+                      </div>
+
+                      <div className="mb-8">
+                        <TimeSlotGrid
+                          slots={daySlots}
+                          value={selectedTime}
+                          onChange={handleTimeSelect}
+                          takenSlots={unavailableSlots}
+                          label="Pick a time"
+                        />
+                      </div>
+
+                      {/* Mechanic selection for the chosen time slot */}
+                      {selectedDate && selectedTime && (
+                        <>
+                          <div className="mb-8">
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
+                              Step 03b · Choose Mechanic
+                            </p>
+                            <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
+                              Pick Your Mechanic<span className="text-moto-accent">.</span>
+                            </h3>
+                            <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
+                              Select the mechanic who will handle your service
+                              at {selectedTime}.
+                            </p>
+                          </div>
+
+                          {availableMechanicsForTime.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-moto-gray/80 bg-moto-darker/50 p-8 text-center">
+                              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-moto-accent mb-3">
+                                <Wrench size={20} strokeWidth={1.75} />
+                              </div>
+                              <p className="font-display font-bold text-slate-200 uppercase tracking-tight">
+                                No Mechanics Available
+                              </p>
+                              <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
+                                No mechanic is available at {selectedTime} on
+                                {selectedDate}. Please choose another time.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {availableMechanicsForTime.map((mechanic) => {
+                                const isSelected = selectedMechanicId === mechanic.id;
+                                return (
+                                  <button
+                                    key={mechanic.id}
+                                    type="button"
+                                    onClick={() => setSelectedMechanicId(mechanic.id)}
+                                    className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors duration-200 ${isSelected ? "bg-moto-accent/15 border-moto-accent ring-1 ring-moto-accent shadow-lg shadow-moto-accent/5" : "bg-moto-dark border-moto-gray hover:border-moto-accent/60"}`}
+                                  >
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
+                                      <User size={24} strokeWidth={1.75} />
+                                    </div>
+                                    <p className="font-bold text-slate-100 text-sm">
+                                      {mechanic.name}
+                                    </p>
+                                    {mechanic.phone && (
+                                      <p className="text-xs text-slate-400">
+                                        {mechanic.phone}
+                                      </p>
+                                    )}
+                                    {isSelected && (
+                                      <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 text-[10px] font-bold">
+                                        <Check size={10} className="text-emerald-500" />
+                                        Selected
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
 
                   {/* Step 4: Confirm */}
                   {currentStep === 3 && (
@@ -1501,8 +1738,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       transition={{ duration: 0.2, ease: "easeOut" }}
                     >
                       <div className="mb-8">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                          Step 04 · Confirm
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
+                            Step 04 · Confirm
                         </p>
                         <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
                           Review & Confirm<span className="text-moto-accent">.</span>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, Fragment } from "react";
 import { motion } from "framer-motion";
-import { Mail, Lock, Loader, ArrowLeft, User, Store, Phone, MapPin, Check, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Loader, ArrowLeft, User, Store, Phone, MapPin, Check, X, Eye, EyeOff, KeyRound } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { requestLoginCode, verifyLoginCode } from "../services/otpService";
 import { getRoleLabel } from "../utils/roleAccess";
 import InlineError from "../components/InlineError";
 import LocationPicker from "../components/LocationPicker";
@@ -30,6 +31,15 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [isSignup, setIsSignup] = useState(initialIsSignup);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordHintsVisible, setPasswordHintsVisible] = useState(false);
+  const [pwConditions, setPwConditions] = useState({
+    len8: false,
+    upper: false,
+    lower: false,
+    digit: false,
+  });
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
   const [termsOpen, setTermsOpen] = useState(false);
   // Deliberately NOT part of the wizard draft below: agreement must be given
   // again on the final submit, never restored from a saved draft.
@@ -98,9 +108,24 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   const clearSignupDraft = () => localStorage.removeItem(SIGNUP_DRAFT_KEY);
 
+  const resetOtpFlow = () => {
+    setOtpSent(false);
+    setOtpCode("");
+    setError("");
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "password") {
+      setPwConditions({
+        len8: value.length >= 8,
+        upper: /[A-Z]/.test(value),
+        lower: /[a-z]/.test(value),
+        digit: /[0-9]/.test(value),
+      });
+    }
   };
 
   const WEEK_DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -165,155 +190,258 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       return;
     }
 
-    setLoading(true);
+    const email = signupData.email.trim().toLowerCase();
+    const latitude = signupData.shop_latitude;
+    const longitude = signupData.shop_longitude;
 
-    try {
-      // The shop location is captured from the map pin no manual coords typing.
-      const latitude = signupData.shop_latitude;
-      const longitude = signupData.shop_longitude;
-      if (latitude === null || longitude === null) {
-        throw new Error(
-          "Please pin your shop location on the map before registering.",
-        );
-      }
+    if (latitude === null || longitude === null) {
+      setError("Please pin your shop location on the map before registering.");
+      return;
+    }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: signupData.email,
-        password: formData.password,
-      });
-      if (authError) throw authError;
-      if (!authData?.user?.id) throw new Error("Signup failed");
-
-      if (!authData.session) {
-        throw new Error(
-          "Account created, please check your email to confirm your address, then sign in with the Shop Owner portal.",
-        );
-      }
-
-      // PREFERRED PATH: register the owner + shop in ONE server-side transaction
-      // via the register_shop_owner RPC (supabase/migrations/20260813_*.sql).
-      // The function upserts the profile as 'owner', inserts the shop, and links
-      // shop_id atomically no partial state, no client race, no demotion.
-      const slug = `${signupData.shop_name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`;
-
-      // Convert schedule into a human-readable operating_hours string
-      const opHours = generateOperatingHoursString(signupData.operating_schedule);
-      const { data: rpcShopId, error: rpcError } = await supabase.rpc(
-        "register_shop_owner",
-        {
-          p_user_id: authData.user.id,
-          p_email: signupData.email,
-          p_name: signupData.name,
-          p_shop_name: signupData.shop_name,
-          p_slug: slug,
-          p_description: signupData.shop_description || "",
-          p_address: signupData.shop_address || "",
-          p_city: signupData.shop_city || "",
-          p_latitude: latitude,
-          p_longitude: longitude,
-          p_phone: signupData.shop_phone || null,
-          p_is_active: false,
-        },
-      );
-
-      if (!rpcError && rpcShopId) {
-        // The register_shop_owner RPC doesn't accept p_operating_hours, so
-        // persist the human-readable schedule with a follow-up update. RLS
-        // "Shop owners can manage own shop" allows the owner to update it.
-        const { error: hoursError } = await supabase
-          .from("shops")
-          .update({ operating_hours: opHours })
-          .eq("id", rpcShopId);
-        if (hoursError) {
-          console.warn("Failed to save operating hours:", hoursError.message);
-        }
-        // Log the new owner in
-        await login(signupData.email, formData.password);
-        await refreshUser();
-        roleCheckedRef.current = false;
-        setLoginAttempted(true);
+    if (otpSent) {
+      const code = otpCode.trim();
+      if (!code) {
+        setError("Please enter the verification code from your email.");
         return;
       }
 
-      // If the RPC doesn't exist yet (migration not applied), fall through to
-      // the step-by-step flow below. Any OTHER error is a real failure.
-      if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") {
-        throw rpcError;
-      }
+      setLoading(true);
+      try {
+        const result = await verifyLoginCode(email, code, "shop_signup");
+        if (!result.success) {
+          setError(result.error || "The code is invalid or has expired.");
+          setLoading(false);
+          return;
+        }
 
-      // FALLBACK PATH (pre-migration): create the user profile FIRST so the
-      // shops.owner_id FK (→ users.id) is satisfied when the shop is inserted
-      // below. shop_id is intentionally omitted here because users.shop_id →
-      // shops.id must exist first.
-      const { error: profileError } = await supabase
-        .from("users")
-        .upsert(
+        if (result.pendingRegistration) {
+          // Create the auth account only after the email code passes.
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password: formData.password,
+          });
+          if (authError) throw authError;
+          if (!authData?.user?.id) throw new Error("Signup failed");
+
+          const { error: profileError } = await supabase
+            .from("users")
+            .upsert(
+              {
+                id: authData.user.id,
+                email,
+                name: signupData.name,
+                role: "owner",
+                phone: signupData.shop_phone || null,
+                shop_id: null,
+              },
+              { onConflict: "id" },
+            );
+          if (profileError) throw profileError;
+
+          const slug = `${signupData.shop_name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`;
+
+          const opHours = generateOperatingHoursString(signupData.operating_schedule);
+
+          const { data: shopData, error: shopError } = await supabase
+            .from("shops")
+            .insert({
+              name: signupData.shop_name,
+              slug,
+              description: signupData.shop_description || "",
+              address: signupData.shop_address || "",
+              city: signupData.shop_city || "",
+              latitude,
+              longitude,
+              phone: signupData.shop_phone || null,
+              email,
+              owner_id: authData.user.id,
+              is_active: false,
+              operating_hours: opHours,
+            })
+            .select("id")
+            .maybeSingle();
+
+          if (shopError) throw shopError;
+          if (!shopData?.id) {
+            throw new Error("Could not create the shop. The RLS INSERT policy for shops may not be applied or the migration is missing.");
+          }
+
+          const { error: roleFixError } = await supabase
+            .from("users")
+            .update({ role: "owner", shop_id: shopData.id })
+            .eq("id", authData.user.id);
+          if (roleFixError) throw roleFixError;
+
+          await login(email, formData.password);
+          const ownerProfile = await refreshUser(authData.user.id);
+          if (
+            !ownerProfile ||
+            ownerProfile.role !== "owner" ||
+            !ownerProfile.shop_id
+          ) {
+            throw new Error(
+              "Your shop was registered, but we could not finish loading the owner account. Please sign in again.",
+            );
+          }
+          roleCheckedRef.current = false;
+          setLoginAttempted(true);
+          setOtpSent(false);
+          setOtpCode("");
+          return;
+        }
+
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.session!.access_token,
+          refresh_token: result.session!.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+
+        const slug = `${signupData.shop_name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 40) || "shop"}-${Math.random().toString(36).slice(2, 7)}`;
+
+        const opHours = generateOperatingHoursString(signupData.operating_schedule);
+        const { data: rpcShopId, error: rpcError } = await supabase.rpc(
+          "register_shop_owner",
           {
-            id: authData.user.id,
-            email: signupData.email,
-            name: signupData.name,
-            role: "owner",
-            phone: signupData.shop_phone || null,
+            p_user_id: result.user?.id || "",
+            p_email: email,
+            p_name: signupData.name,
+            p_shop_name: signupData.shop_name,
+            p_slug: slug,
+            p_description: signupData.shop_description || "",
+            p_address: signupData.shop_address || "",
+            p_city: signupData.shop_city || "",
+            p_latitude: latitude,
+            p_longitude: longitude,
+            p_phone: signupData.shop_phone || null,
+            p_is_active: false,
           },
-          { onConflict: "id" },
         );
-      if (profileError) throw profileError;
 
-      // Create the shop (owner_id FK now resolves to the users row above)
-      const { data: shopData, error: shopError } = await supabase
-        .from("shops")
-        .insert({
-          name: signupData.shop_name,
-          slug,
-          description: signupData.shop_description || "",
-          address: signupData.shop_address || "",
-          city: signupData.shop_city || "",
-          latitude,
-          longitude,
-          phone: signupData.shop_phone || null,
-          email: signupData.email,
-          owner_id: authData.user.id,
-          is_active: false,
-          // persist the human-readable operating hours
-          operating_hours: opHours,
-        })
-        .select("id")
+        if (!rpcError && rpcShopId) {
+          const { error: hoursError } = await supabase
+            .from("shops")
+            .update({ operating_hours: opHours })
+            .eq("id", rpcShopId);
+          if (hoursError) {
+            console.warn("Failed to save operating hours:", hoursError.message);
+          }
+          await login(email, formData.password);
+          await refreshUser();
+          roleCheckedRef.current = false;
+          setLoginAttempted(true);
+          setOtpSent(false);
+          setOtpCode("");
+          return;
+        }
+
+        if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") {
+          throw rpcError;
+        }
+
+        const { error: profileError } = await supabase
+          .from("users")
+          .upsert(
+            {
+              id: result.user?.id || "",
+              email,
+              name: signupData.name,
+              role: "owner",
+              phone: signupData.shop_phone || null,
+            },
+            { onConflict: "id" },
+          );
+        if (profileError) throw profileError;
+
+        const { data: shopData, error: shopError } = await supabase
+          .from("shops")
+          .insert({
+            name: signupData.shop_name,
+            slug,
+            description: signupData.shop_description || "",
+            address: signupData.shop_address || "",
+            city: signupData.shop_city || "",
+            latitude,
+            longitude,
+            phone: signupData.shop_phone || null,
+            email,
+            owner_id: result.user?.id || "",
+            is_active: false,
+            operating_hours: opHours,
+          })
+          .select("id")
+          .maybeSingle();
+        if (shopError) throw shopError;
+        if (!shopData?.id) {
+          throw new Error(
+            "Could not create the shop. The RLS INSERT policy for shops may not be applied run the migration in Supabase.",
+          );
+        }
+
+        const { error: roleFixError } = await supabase
+          .from("users")
+          .update({ role: "owner", shop_id: shopData.id })
+          .eq("id", result.user?.id || "");
+        if (roleFixError) throw roleFixError;
+
+        await login(email, formData.password);
+        await refreshUser();
+        roleCheckedRef.current = false;
+        setLoginAttempted(true);
+        setOtpSent(false);
+        setOtpCode("");
+        return;
+      } catch (err) {
+        let errorMessage = "Verification failed. Please try again.";
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+        setError(errorMessage);
+        setLoading(false);
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: existingUser, error: lookupError } = await supabase
+        .from("users")
+        .select("id, email, role, shop_id")
+        .eq("email", email)
         .maybeSingle();
-      if (shopError) throw shopError;
-      if (!shopData?.id) {
-        throw new Error(
-          "Could not create the shop. The RLS INSERT policy for shops may not be applied run the migration in Supabase.",
-        );
+
+      if (lookupError) {
+        console.warn("Pending owner lookup failed:", lookupError.message);
       }
 
-      // Link the owner to their shop (belt-and-suspenders: forces the role too
-      // regardless of what any parallel auth flow may have written)
-      const { error: roleFixError } = await supabase
-        .from("users")
-        .update({ role: "owner", shop_id: shopData.id })
-        .eq("id", authData.user.id);
-      if (roleFixError) throw roleFixError;
+      if (existingUser && existingUser.shop_id) {
+        setError("This email is already registered to a verified shop owner account.");
+        setLoading(false);
+        return;
+      }
 
-      // Log the new owner in
-      await login(signupData.email, formData.password);
-      await refreshUser();
-      roleCheckedRef.current = false;
-      setLoginAttempted(true);
+      const otpResult = await requestLoginCode(email, undefined, "shop_signup");
+      if (!otpResult.success) {
+        throw new Error(otpResult.error || "Could not send the verification code.");
+      }
+
+      setOtpSent(true);
+      setOtpCode("");
+      setLoading(false);
     } catch (err) {
-      // NOTE: we deliberately do NOT demote the profile to 'customer' on
-      // failure. The auth user already exists, so the account can never be
-      // re-registered under the same email; flipping it to a customer silently
-      // corrupted failed registrations. If the shop row is missing, the profile
-      // stays 'owner' (no shop linked) so the admin can repair it, and the
-      // user can sign in to retry. See MEMORY.md.
       let errorMessage = "Registration failed. Please try again.";
       if (err instanceof Error) {
-        if (err.message.includes("User already registered")) {
-          errorMessage = "This email is already registered.";
+        if (err.message.toLowerCase().includes("user already registered")) {
+          errorMessage = "This email is already registered to a pending or completed shop owner account. Please continue the verification flow or try a different email.";
         } else {
           errorMessage = err.message;
         }
@@ -328,6 +456,18 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     if (step === 0) {
       if (!signupData.email.trim()) return "Please enter your email address.";
       if (!formData.password) return "Please create a password.";
+      if (formData.password.length < 8) {
+        return "Password must be at least 8 characters long.";
+      }
+      if (!/[A-Z]/.test(formData.password)) {
+        return "Password must contain at least one uppercase letter (A-Z).";
+      }
+      if (!/[a-z]/.test(formData.password)) {
+        return "Password must contain at least one lowercase letter (a-z).";
+      }
+      if (!/[0-9]/.test(formData.password)) {
+        return "Password must contain at least one number (0-9).";
+      }
       if (!signupData.name.trim()) return "Please enter your name.";
       if (!signupData.shop_name.trim()) return "Please enter your shop name.";
       const phoneDigits = signupData.shop_phone.replace(/\D/g, "");
@@ -360,6 +500,9 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
   const handleBack = () => {
     setError("");
+    if (otpSent) {
+      resetOtpFlow();
+    }
     setCurrentStep((s) => Math.max(s - 1, 0));
   };
 
@@ -456,7 +599,11 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
       
       {/* Top Left Global Back Button */}
       <button
-        onClick={onBack}
+        onClick={() => {
+          resetOtpFlow();
+          clearSignupDraft();
+          onBack();
+        }}
         className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20 inline-flex items-center gap-2 rounded-full bg-moto-darker/60 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur-md border border-moto-gray/50 hover:bg-moto-gray hover:text-moto-accent hover:border-moto-accent/50 transition-all shadow-lg"
       >
         <ArrowLeft size={16} /> Return to Home
@@ -571,7 +718,25 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       <label className={labelClass}>Password</label>
                       <div className={fieldWrapperClass}>
                         <Lock size={16} className={iconClass} />
-                        <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} placeholder="Create a password" required className={passwordInputClass} />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={formData.password}
+                          onChange={(e) => {
+                            setFormData({ ...formData, password: e.target.value });
+                            setPwConditions({
+                              len8: e.target.value.length >= 8,
+                              upper: /[A-Z]/.test(e.target.value),
+                              lower: /[a-z]/.test(e.target.value),
+                              digit: /[0-9]/.test(e.target.value),
+                            });
+                          }}
+                          onFocus={() => setPasswordHintsVisible(true)}
+                          onBlur={() => setPasswordHintsVisible(false)}
+                          placeholder="Create a password"
+                          required
+                          className={passwordInputClass}
+                        />
                         <button
                           type="button"
                           onClick={() => setShowPassword((prev) => !prev)}
@@ -582,6 +747,39 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
+
+                      {passwordHintsVisible && (
+                        <div className="mt-2 space-y-1.5 text-sm">
+                          {[
+                            { met: pwConditions.len8, label: "At least 8 characters" },
+                            { met: pwConditions.upper, label: "One uppercase letter (A-Z)" },
+                            { met: pwConditions.lower, label: "One lowercase letter (a-z)" },
+                            { met: pwConditions.digit, label: "One number (0-9)" },
+                          ].map((requirement) => (
+                            <div
+                              key={requirement.label}
+                              className={`flex items-center gap-2 text-[11px] font-medium ${
+                                requirement.met ? "text-emerald-400" : "text-slate-500"
+                              }`}
+                            >
+                              <span
+                                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${
+                                  requirement.met
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : "bg-slate-700/80 text-slate-400"
+                                }`}
+                              >
+                                {requirement.met ? (
+                                  <Check size={10} className="fill-current" />
+                                ) : (
+                                  <X size={10} className="fill-current" />
+                                )}
+                              </span>
+                              <span>{requirement.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -676,6 +874,56 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                 {currentStep === 2 && (
                   <>
                 {/* Schedule section */}
+                {otpSent && (
+                  <div className="mb-4">
+                    <div className="relative">
+                      <KeyRound size={18} className={iconClass} />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="6-digit code"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        className={`${passwordInputClass.replace(
+                          "pr-11",
+                          "pr-3 tracking-[0.5em] text-center font-mono text-lg",
+                        )}`}
+                      />
+                    </div>
+                    <p className="mt-2 text-[10px] text-slate-400">
+                      We sent a 6-digit verification code to {signupData.email}. Enter it to complete your registration.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setError("");
+                        setLoading(true);
+                        try {
+                          const otpResult = await requestLoginCode(
+                            signupData.email.trim().toLowerCase(),
+                            undefined,
+                            "shop_signup",
+                          );
+                          if (!otpResult.success) {
+                            throw new Error(otpResult.error || "Could not send the verification code.");
+                          }
+                          setOtpCode("");
+                          setError("");
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "Could not send the verification code.");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="mt-2 w-full text-xs font-semibold text-moto-accent hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Resend code
+                    </button>
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2 mb-3 pb-2 border-b border-moto-gray">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-moto-accent/20 text-moto-accent text-[10px] font-bold">3</span>
@@ -782,7 +1030,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                       className="w-full inline-flex items-center justify-center gap-2 px-6 py-2.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading && <Loader size={18} className="animate-spin" />}
-                      Register Shop
+                      {otpSent ? "Verify & Complete Registration" : "Register Shop"}
                     </motion.button>
                   )}
                   {currentStep > 0 && (

@@ -60,66 +60,103 @@ export default async function handler(req: any, res: any) {
         });
     }
 
-    const { email, password } = req.body || {};
+    const { email, password, purpose = "login" } = req.body || {};
     if (!email || typeof email !== "string") {
       return res.status(400).json({ success: false, error: "Email is required." });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const runtimePurpose =
+      purpose === "shop_signup" || purpose === "customer_signup" ? purpose : "login";
 
     const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Find user by email
-    const { data: user, error: userError } = await db
-      .from("users")
-      .select("id, email, name, role")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+    if (runtimePurpose === "customer_signup") {
+      const { data: existingCustomer, error: existingCustomerError } = await db
+        .from("users")
+        .select("id, role")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
 
-    if (userError || !user) {
-      return res.status(404).json({ success: false, error: "No account found with this email." });
-    }
-    // Shared login entry supports customers, owners and platform admins.
-    // The profile role is never changed; the app routes by the verified role.
-    // Mechanics do not have a self-service login portal.
-    if (user.role !== "customer" && user.role !== "owner" && user.role !== "admin") {
-      return res.status(403).json({ success: false, error: "Please use the sign-in portal for your account." });
-    }
-
-    // Password login uses a non-persistent server-side Supabase client to
-    // validate credentials. No browser session is created until OTP succeeds.
-    if (password !== undefined) {
-      if (typeof password !== "string" || !password) {
-        return res.status(400).json({ success: false, error: "Email and password are required." });
-      }
-      if (!SUPABASE_ANON_KEY) {
-        return res.status(500).json({ success: false, error: "Server not configured." });
+      if (existingCustomerError) {
+        console.error("[send-login-otp] customer signup lookup failed:", existingCustomerError);
+        return res.status(500).json({ success: false, error: "Could not check this email. Please try again." });
       }
 
-      const auth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-      const { data: authData, error: authError } = await auth.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+      if (existingCustomer) {
+        if (existingCustomer.role !== "customer") {
+          return res.status(409).json({
+            success: false,
+            error: "This email already has an account. Please sign in through its existing portal.",
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          existingAccount: true,
+          message: "This customer account already exists. Verify your sign-in to continue.",
+        });
+      }
+    }
 
-      if (authError || authData?.user?.id !== user.id) {
-        return res.status(401).json({ success: false, error: "Invalid email or password." });
+    let user: { id: string; email: string; name?: string; role?: string } | null = null;
+
+    if (runtimePurpose === "login") {
+      const { data: foundUser, error: userError } = await db
+        .from("users")
+        .select("id, email, name, role")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (userError || !foundUser) {
+        return res.status(404).json({ success: false, error: "No account found with this email." });
+      }
+
+      user = foundUser;
+
+      // Shared login entry supports customers, owners and platform admins.
+      // The profile role is never changed; the app routes by the verified role.
+      // Mechanics do not have a self-service login portal.
+      if (user.role !== "customer" && user.role !== "owner" && user.role !== "admin") {
+        return res.status(403).json({ success: false, error: "Please use the sign-in portal for your account." });
+      }
+
+      // Password login uses a non-persistent server-side Supabase client to
+      // validate credentials. No browser session is created until OTP succeeds.
+      if (password !== undefined) {
+        if (typeof password !== "string" || !password) {
+          return res.status(400).json({ success: false, error: "Email and password are required." });
+        }
+        if (!SUPABASE_ANON_KEY) {
+          return res.status(500).json({ success: false, error: "Server not configured." });
+        }
+
+        const auth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+        const { data: authData, error: authError } = await auth.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (authError || authData?.user?.id !== user.id) {
+          return res.status(401).json({ success: false, error: "Invalid email or password." });
+        }
       }
     }
 
     // Rate limit
     try {
       const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const { count: recentCount } = await db
+      const rateQuery = db
         .from("verification_codes")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("purpose", "login")
+        .eq("email", normalizedEmail)
+        .eq("purpose", runtimePurpose)
         .gte("created_at", fifteenMinAgo);
+
+      const { count: recentCount } = await rateQuery;
 
       if (recentCount && recentCount >= MAX_REQUESTS_PER_15_MIN) {
         return res.status(429).json({
@@ -132,26 +169,27 @@ export default async function handler(req: any, res: any) {
       await db
         .from("verification_codes")
         .update({ used: true })
-        .eq("user_id", user.id)
-        .eq("purpose", "login")
+        .eq("email", normalizedEmail)
+        .eq("purpose", runtimePurpose)
         .eq("used", false);
     } catch (e) {
       console.error("Rate limit check failed:", e);
       // Continue anyway if table doesn't exist yet
     }
 
-    // Generate code
+    const targetUserId = user?.id || null;
+    const codeSeed = targetUserId || normalizedEmail;
     const code = generateCode();
-    const codeHash = hashCode(user.id, code);
+    const codeHash = hashCode(codeSeed, code);
     const expiresAt = new Date(Date.now() + CODE_TTL_MS).toISOString();
 
     try {
       const { error: insertError } = await db.from("verification_codes").insert({
-        user_id: user.id,
+        user_id: targetUserId,
         email: normalizedEmail,
         code: codeHash,
         code_hash: codeHash,
-        purpose: "login",
+        purpose: runtimePurpose,
         expires_at: expiresAt,
         used: false,
         attempts: 0,
@@ -159,12 +197,11 @@ export default async function handler(req: any, res: any) {
 
       if (insertError) {
         console.error("[send-login-otp] failed to store code:", insertError);
-        // Try without code_hash if column doesn't exist
         const { error: insertError2 } = await db.from("verification_codes").insert({
-          user_id: user.id,
+          user_id: targetUserId,
           email: normalizedEmail,
           code: codeHash,
-          purpose: "login",
+          purpose: runtimePurpose,
           expires_at: expiresAt,
           used: false,
           attempts: 0,
@@ -180,7 +217,7 @@ export default async function handler(req: any, res: any) {
     }
 
     // Send email
-    const firstName = user.name?.split(" ")[0] || "there";
+    const firstName = user?.name?.split(" ")[0] || "there";
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -278,7 +315,9 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ success: false, error: e?.message || "Failed to send verification code." });
     }
 
-    console.log(`[send-login-otp] code sent to ${normalizedEmail} (user ${user.id})`);
+    console.log(
+      `[send-login-otp] code sent to ${normalizedEmail} (${user ? `user ${user.id}` : "pending signup"})`,
+    );
     return res.status(200).json({ success: true, message: "Verification code sent to your email." });
   } catch (err: any) {
     console.error("[send-login-otp] error:", err);

@@ -35,36 +35,43 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({ success: false, error: "Server not configured." });
   }
 
-  const { email, code } = req.body || {};
+  const { email, code, purpose = "login", registration } = req.body || {};
   if (!email || !code) {
     return res.status(400).json({ success: false, error: "Email and code are required." });
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
   const normalizedCode = String(code).trim();
+  const runtimePurpose =
+    purpose === "shop_signup" || purpose === "customer_signup" ? purpose : "login";
 
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
   try {
-    // 1) Resolve the account.
-    const { data: user, error: userError } = await db
-      .from("users")
-      .select("id, email, role")
-      .eq("email", normalizedEmail)
-      .maybeSingle();
+    let user: { id: string; email: string; role: string } | null = null;
 
-    if (userError || !user) {
-      return res.status(404).json({ success: false, error: "Invalid credentials." });
+    if (runtimePurpose === "login") {
+      // 1) Resolve the account.
+      const { data: existingUser, error: userError } = await db
+        .from("users")
+        .select("id, email, role")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (userError || !existingUser) {
+        return res.status(404).json({ success: false, error: "Invalid credentials." });
+      }
+      user = existingUser;
     }
 
-    // 2) Find the newest unused, unexpired code for this user.
+    // 2) Find the newest unused, unexpired code for this email.
     const { data: candidates, error: codeError } = await db
       .from("verification_codes")
       .select("*")
-      .eq("user_id", user.id)
-      .eq("purpose", "login")
+      .eq("email", normalizedEmail)
+      .eq("purpose", runtimePurpose)
       .eq("used", false)
       .order("created_at", { ascending: false })
       .limit(3);
@@ -89,7 +96,7 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const expectedHash = hashCode(user.id, normalizedCode);
+    const expectedHash = hashCode(user?.id || normalizedEmail, normalizedCode);
     const match = rows.find(
       (row: any) =>
         ((row.code_hash || row.code) === expectedHash || (row.code === normalizedCode)) &&
@@ -110,6 +117,82 @@ export default async function handler(req: any, res: any) {
       .from("verification_codes")
       .update({ used: true })
       .eq("id", match.id);
+
+    if (runtimePurpose === "shop_signup") {
+      return res.status(200).json({
+        success: true,
+        pendingRegistration: true,
+      });
+    }
+
+    if (runtimePurpose === "customer_signup") {
+      const password = typeof registration?.password === "string" ? registration.password : "";
+      const name = typeof registration?.name === "string" ? registration.name.trim() : "";
+      if (
+        password.length < 8 ||
+        !/[A-Z]/.test(password) ||
+        !/[a-z]/.test(password) ||
+        !/[0-9]/.test(password) ||
+        !name
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: "Enter your name and a valid password to finish signup.",
+        });
+      }
+
+      const { data: created, error: createError } = await db.auth.admin.createUser({
+        email: normalizedEmail,
+        password,
+        email_confirm: true,
+      });
+      if (createError || !created?.user?.id) {
+        console.error("[verify-login-otp] customer creation failed:", createError);
+        const duplicate = /already|registered|exists/i.test(createError?.message || "");
+        return res.status(duplicate ? 409 : 500).json({
+          success: false,
+          error: duplicate
+            ? "This email already has an account. Sign in instead or use the resend code option."
+            : "Could not create your account. Please try again.",
+        });
+      }
+
+      user = { id: created.user.id, email: normalizedEmail, role: "customer" };
+
+      const { error: profileError } = await db.from("users").upsert(
+        {
+          id: user.id,
+          email: normalizedEmail,
+          name,
+          role: "customer",
+          phone: typeof registration.phone === "string" ? registration.phone.trim() || null : null,
+          address: typeof registration.address === "string" ? registration.address.trim() || null : null,
+          shop_id: null,
+        },
+        { onConflict: "id" },
+      );
+
+      if (profileError) {
+        console.error("[verify-login-otp] customer profile creation failed:", profileError);
+        await db.auth.admin.deleteUser(user.id);
+        return res.status(500).json({ success: false, error: "Could not save your profile. Please try again." });
+      }
+
+      const vehicleMake = typeof registration.vehicleMake === "string" ? registration.vehicleMake.trim() : "";
+      const vehicleModel = typeof registration.vehicleModel === "string" ? registration.vehicleModel.trim() : "";
+      if (vehicleMake && vehicleModel) {
+        const { error: vehicleError } = await db.from("vehicles").insert({
+          customer_id: user.id,
+          make: vehicleMake,
+          model: vehicleModel,
+        });
+        if (vehicleError) {
+          console.error("[verify-login-otp] customer vehicle creation failed:", vehicleError);
+          await db.auth.admin.deleteUser(user.id);
+          return res.status(500).json({ success: false, error: "Could not save your vehicle. Please try again." });
+        }
+      }
+    }
 
     // 4) Mint a session. generateLink does NOT send an email it only creates
     //    a one-time token hash which we redeem immediately for a session.

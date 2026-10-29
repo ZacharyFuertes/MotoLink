@@ -220,7 +220,7 @@ const AppContent: React.FC = () => {
       // Signup can also be entered from the customer login page's internal
       // toggle, where moto_login_type remains "customer". The explicit pending
       // marker is therefore the reliable signal, regardless of portal label.
-      if (localStorage.getItem("moto_customer_signup_otp_pending") === "true") {
+      if (localStorage.getItem("moto_customer_signup_otp_pending")) {
         return;
       }
       console.log("🚪 User logged out, resetting to landing");
