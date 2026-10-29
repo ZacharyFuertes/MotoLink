@@ -37,6 +37,8 @@ export interface Shop {
   deposit_type?: "fixed" | "percent";
   /** Amount (fixed) or percentage (percent). 0 = no downpayment. */
   deposit_value?: number;
+  /** When true, default service template is shown to customers when shop catalog is empty. */
+  enable_service_template?: boolean;
   rating?: number;
   reviewCount?: number;
   available?: boolean;

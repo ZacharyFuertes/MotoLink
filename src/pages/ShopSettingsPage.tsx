@@ -114,6 +114,7 @@ const emptyShop: Shop = {
   longitude: 0,
   operating_hours: "Hours unavailable",
   is_active: true,
+  enable_service_template: false,
 };
 
 const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
@@ -416,6 +417,7 @@ const [loading, setLoading] = useState(true);
         online_payment_enabled: shop.online_payment_enabled,
         deposit_type: shop.deposit_type || "fixed",
         deposit_value: shop.deposit_value || 0,
+        enable_service_template: shop.enable_service_template === true,
       });
 
       if (!updated) throw new Error("Save failed.");
@@ -1183,6 +1185,75 @@ const [loading, setLoading] = useState(true);
                   </div>
                 </div>
               )}
+            </div>
+          </motion.div>
+
+          {/* Service Template Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.24 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-violet-500/15 text-violet-400 rounded-xl flex items-center justify-center shrink-0">
+                <Wrench size={5} className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Service Template Fallback
+                </h2>
+                <p className="text-[13px] text-slate-400">
+                  When no shop-specific services are configured, customers booking
+                  will see a default set of services (Oil Change, Brake Service, etc.).
+                  Turn this off to only show services you've configured in your catalog.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-moto-gray bg-moto-dark p-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={shop.enable_service_template === true}
+                    aria-label="Enable default service template fallback"
+                    onClick={() => handleField("enable_service_template", !(shop.enable_service_template === true))}
+                    className={`relative inline-flex h-9 w-16 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
+                      shop.enable_service_template === true ? "bg-violet-500" : "bg-moto-gray"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-1 ring-black/5 transition-transform duration-200 ${
+                        shop.enable_service_template === true ? "translate-x-8" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                  <div>
+                    <p className="text-base font-semibold text-slate-100">
+                      {shop.enable_service_template === true
+                        ? "Service template is on"
+                        : "Service template is off"}
+                    </p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">
+                      {shop.enable_service_template === true
+                        ? "Customers see default services when your catalog is empty. Changes apply after you hit Save Changes."
+                        : "Customers only see services you've configured in your catalog. Changes apply after you hit Save Changes."}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold shrink-0 ${
+                    shop.enable_service_template === true
+                      ? "bg-violet-500/15 text-violet-300 border border-violet-500/30"
+                      : "bg-moto-gray/40 text-slate-400 border border-moto-gray"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${shop.enable_service_template === true ? "bg-violet-400 animate-pulse" : "bg-slate-500"}`} />
+                  {shop.enable_service_template === true ? "Enabled" : "Disabled"}
+                </span>
+              </div>
             </div>
           </motion.div>
 

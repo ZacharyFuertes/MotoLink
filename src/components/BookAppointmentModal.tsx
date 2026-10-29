@@ -143,10 +143,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
-  const [dynamicServices, setDynamicServices] = useState<any[]>(SERVICE_TYPES);
+  const [dynamicServices, setDynamicServices] = useState<any[]>([]);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [shopClosedSlots, setShopClosedSlots] = useState<string[]>([]);
+  const [enableServiceTemplate, setEnableServiceTemplate] = useState(false);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -517,12 +518,21 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const fetchServices = async () => {
     if (!defaultShopId) return;
     try {
+      // Fetch shop flag for service template fallback
+      const { data: shop, error: shopError } = await supabase
+        .from("shops")
+        .select("enable_service_template")
+        .eq("id", defaultShopId)
+        .maybeSingle();
+      if (shopError) throw shopError;
+      setEnableServiceTemplate(shop?.enable_service_template ?? false);
+
       const { data, error } = await supabase
         .from("services_pricing")
         .select("*")
         .eq("shop_id", defaultShopId)
         .eq("is_active", true);
-      if (error) return; // Silent fallback to defaults
+      if (error) throw error;
       if (data && data.length > 0) {
         const iconMap: Record<string, any> = {
           Droplet,
@@ -542,9 +552,34 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           price: s.price,
         }));
         setDynamicServices(mapped);
+      } else if (enableServiceTemplate) {
+        // Fall back to static template only when shop enables it
+        const mapped = SERVICE_TYPES.map((s) => ({
+          id: s.id,
+          label: s.label,
+          desc: s.desc,
+          icon: s.icon,
+          price: 0,
+        }));
+        setDynamicServices(mapped);
+      } else {
+        setDynamicServices([]);
       }
     } catch (e) {
-      // Keep static SERVICE_TYPES on error
+      // On error, keep empty (no static template fallback unless enabled)
+      if (enableServiceTemplate) {
+        setDynamicServices(
+          SERVICE_TYPES.map((s) => ({
+            id: s.id,
+            label: s.label,
+            desc: s.desc,
+            icon: s.icon,
+            price: 0,
+          })),
+        );
+      } else {
+        setDynamicServices([]);
+      }
     }
   };
 

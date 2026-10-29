@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.shops (
   online_payment_enabled BOOLEAN NOT NULL DEFAULT false,
   deposit_type    TEXT NOT NULL DEFAULT 'fixed' CHECK (deposit_type IN ('fixed', 'percent')),
   deposit_value   NUMERIC(10,2) NOT NULL DEFAULT 0,
+  enable_service_template BOOLEAN NOT NULL DEFAULT false,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
