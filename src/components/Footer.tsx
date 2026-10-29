@@ -16,7 +16,7 @@ import TermsModal from './TermsModal'
  * - Responsive layout
  */
 
-const Footer: React.FC = () => {
+const Footer: React.FC<{ onScrollTo?: (id: string) => void }> = ({ onScrollTo }) => {
   const currentYear = new Date().getFullYear()
   const [termsOpen, setTermsOpen] = useState(false)
 
@@ -50,9 +50,7 @@ const Footer: React.FC = () => {
   const navLinks = [
     { label: 'Browse Shops', href: '#shops' },
     { label: 'Map', href: '#map' },
-    
-  
-   
+    { label: 'How it Works', href: '#', onClick: () => onScrollTo?.('how-it-works') },
   ]
 
   const containerVariants = {
@@ -104,12 +102,22 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               {navLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-slate-300 hover:text-moto-accent transition-colors text-sm flex items-center gap-1"
-                  >
-                    {link.label}
-                  </a>
+                  {link.onClick ? (
+                    <button
+                      type="button"
+                      onClick={link.onClick}
+                      className="text-slate-300 hover:text-moto-accent transition-colors text-sm flex items-center gap-1 w-full text-left"
+                    >
+                      {link.label}
+                    </button>
+                  ) : (
+                    <a
+                      href={link.href}
+                      className="text-slate-300 hover:text-moto-accent transition-colors text-sm flex items-center gap-1"
+                    >
+                      {link.label}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
@@ -121,7 +129,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-3 text-sm text-slate-200">
               <li className="flex items-start gap-3 hover:text-white transition-colors">
                 <MapPin size={18} className="mt-0.5 flex-shrink-0" />
-                <span>Metro Manila, Philippines<br />Connecting nearby independent shops</span>
+                <span>East Bank Road Cainta Rizal, Philippines</span>
               </li>
               <li className="flex items-center gap-3 hover:text-white transition-colors cursor-pointer">
                 <Phone size={18} />
