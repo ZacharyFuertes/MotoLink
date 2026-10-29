@@ -25,9 +25,12 @@ import {
   X,
   QrCode,
   Percent,
+  StopCircle,
+  Plus,
+  Ban,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { getShopById, updateShop, updateShopAvailability, parseOperatingHoursString } from "../services/shopService";
+import { getShopById, updateShop, updateShopAvailability, parseOperatingHoursString, ShopBlockedHour, getShopBlockedHours, saveShopBlockedHours, deleteShopBlockedHour } from "../services/shopService";
 import { getPaymentConfig } from "../services/paymentService";
 import { Shop } from "../types/shop";
 import AccessDenied from "../components/AccessDenied";
@@ -122,6 +125,14 @@ const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
 const [shop, setShop] = useState<Shop>(emptyShop);
 const [schedule, setSchedule] = useState<DaySchedule[]>(emptyDaySchedule);
 const [scheduleTouched, setScheduleTouched] = useState(false);
+const [blockedHours, setBlockedHours] = useState<ShopBlockedHour[]>([]);
+const [blockedLoading, setBlockedLoading] = useState(false);
+const [blockedForm, setBlockedForm] = useState<{
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  reason: string;
+}>({ day_of_week: new Date().getDay(), start_time: "12:00", end_time: "13:00", reason: "" });
 const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
@@ -181,6 +192,14 @@ const [loading, setLoading] = useState(true);
       }
       setLoading(false);
     });
+    getShopBlockedHours(user.shop_id)
+      .then((hours) => {
+        if (mounted) setBlockedHours(hours);
+      })
+      .catch(() => {
+        // Blocked hours table may not be deployed yet; start empty.
+        if (mounted) setBlockedHours([]);
+      });
     loadGallery(user.shop_id);
     return () => {
       mounted = false;
@@ -361,6 +380,77 @@ const [loading, setLoading] = useState(true);
         d.open ? { ...d, openTime: firstOpen.openTime, closeTime: firstOpen.closeTime } : d,
       ),
     );
+  };
+
+  const handleBlockedFormChange = (field: keyof typeof blockedForm, value: string | number) => {
+    setBlockedForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddBlockedHour = async () => {
+    if (!user?.shop_id) return;
+    const { day_of_week, start_time, end_time, reason } = blockedForm;
+    if (!start_time || !end_time) {
+      setMessage({ type: "error", text: "Enter both a start and an end time." });
+      return;
+    }
+    const startMin = clockToMinutes(start_time);
+    const endMin = clockToMinutes(end_time);
+    if (endMin <= startMin) {
+      setMessage({ type: "error", text: "End time must be after the start time." });
+      return;
+    }
+    setBlockedLoading(true);
+    setMessage(null);
+    try {
+      const next = [
+        ...blockedHours,
+        {
+          id: `blocked_${Date.now()}`,
+          shop_id: user.shop_id,
+          day_of_week,
+          start_time,
+          end_time,
+          reason: reason || null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        },
+      ];
+      await saveShopBlockedHours(
+        user.shop_id,
+        next.map(({ id, created_at, ...rest }) => rest),
+      );
+      setBlockedHours(next);
+      setBlockedForm((prev) => ({ ...prev, start_time: "", end_time: "", reason: "" }));
+      setMessage({ type: "success", text: "Blocked hour added." });
+    } catch (err) {
+      console.error("Error adding blocked hour:", err);
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to add blocked hour.",
+      });
+    } finally {
+      setBlockedLoading(false);
+    }
+  };
+
+  const handleDeleteBlockedHour = async (id: string) => {
+    if (!user?.shop_id) return;
+    if (!window.confirm("Remove this blocked hour?")) return;
+    setBlockedLoading(true);
+    setMessage(null);
+    try {
+      await deleteShopBlockedHour(id);
+      setBlockedHours(blockedHours.filter((h) => h.id !== id));
+      setMessage({ type: "success", text: "Blocked hour removed." });
+    } catch (err) {
+      console.error("Error removing blocked hour:", err);
+      setMessage({
+        type: "error",
+        text: err instanceof Error ? err.message : "Failed to remove blocked hour.",
+      });
+    } finally {
+      setBlockedLoading(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -935,6 +1025,146 @@ const [loading, setLoading] = useState(true);
                 <span>
                   Fix the highlighted day(s) above every open day needs a valid time range.
                 </span>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Blocked Service Hours Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16 }}
+            className="dashboard-card p-6"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-rose-500/15 text-rose-400 rounded-xl flex items-center justify-center shrink-0">
+                <StopCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Blocked Service Hours
+                </h2>
+                <p className="text-[13px] text-slate-400">
+                  Block off hours you can&apos;t take bookings (e.g. hard fixes, maintenance). Customers won&apos;t be able to book these slots.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-4">
+              <div>
+                <label className={labelClass}>Day</label>
+                <select
+                  value={blockedForm.day_of_week}
+                  onChange={(e) =>
+                    handleBlockedFormChange("day_of_week", Number(e.target.value))
+                  }
+                  className={inputClass}
+                >
+                  {WEEK_DAYS.map((d, i) => (
+                    <option key={i} value={i}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>From</label>
+                <input
+                  type="time"
+                  value={blockedForm.start_time}
+                  onChange={(e) =>
+                    handleBlockedFormChange("start_time", e.target.value)
+                  }
+                  className={timeInputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>To</label>
+                <input
+                  type="time"
+                  value={blockedForm.end_time}
+                  onChange={(e) =>
+                    handleBlockedFormChange("end_time", e.target.value)
+                  }
+                  className={timeInputClass}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelClass}>Reason</label>
+                <input
+                  value={blockedForm.reason}
+                  onChange={(e) =>
+                    handleBlockedFormChange("reason", e.target.value)
+                  }
+                  placeholder="e.g. Hard fix / maintenance"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                type="button"
+                disabled={blockedLoading}
+                onClick={handleAddBlockedHour}
+                className={`rounded-xl border px-4 py-2.5 text-[13px] font-bold transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                  blockedLoading
+                    ? "border-moto-gray bg-moto-darker text-slate-500"
+                    : "border-moto-accent/50 bg-moto-accent/10 text-moto-accent hover:bg-moto-accent/20"
+                }`}
+              >
+                {blockedLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Adding…
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" /> Add blocked hour
+                  </>
+                )}
+              </button>
+            </div>
+
+            {blockedHours.length === 0 ? (
+              <p className="mt-6 text-center text-sm text-slate-500">
+                No blocked hours. Customers can book during your operating hours.
+              </p>
+            ) : (
+              <div className="mt-5 space-y-2">
+                <p className="text-[12px] font-semibold uppercase tracking-widest text-slate-400 mb-3">
+                  Active blocked windows
+                </p>
+                {blockedHours.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-moto-gray bg-moto-dark p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Ban className="w-4 h-4 text-rose-400 shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-100">
+                          {WEEK_DAYS[b.day_of_week]}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {b.start_time} – {b.end_time}{b.reason ? ` · ${b.reason}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBlockedHour(b.id)}
+                      disabled={blockedLoading}
+                      className="rounded-md p-1 text-slate-400 transition hover:bg-rose-500/20 hover:text-rose-400 disabled:opacity-30 disabled:hover:bg-transparent"
+                      aria-label="Remove blocked hour"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <p className="mt-3 text-[12px] text-slate-500">
+                  Changes apply to customer bookings immediately after saving.
+                </p>
               </div>
             )}
           </motion.div>

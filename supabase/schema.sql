@@ -354,6 +354,37 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_mechanic_avail_unique ON public.mechanic_a
 CREATE INDEX IF NOT EXISTS idx_mechanic_avail_shop ON public.mechanic_availability(shop_id);
 
 -- ============================================================================
+-- SHOP BLOCKED HOURS (owner-defined maintenance windows)
+-- day_of_week: 0 = Sunday ... 6 = Saturday
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.shop_blocked_hours (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id     UUID NOT NULL REFERENCES public.shops(id) ON DELETE CASCADE,
+  day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
+  start_time  TIME NOT NULL,
+  end_time    TIME NOT NULL,
+  reason      TEXT,
+  is_active   BOOLEAN NOT NULL DEFAULT true,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_blocked_hours_shop ON public.shop_blocked_hours(shop_id);
+CREATE INDEX IF NOT EXISTS idx_shop_blocked_hours_day ON public.shop_blocked_hours(shop_id, day_of_week);
+
+ALTER TABLE public.shop_blocked_hours ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view shop blocked hours"
+  ON public.shop_blocked_hours FOR SELECT USING (true);
+
+CREATE POLICY "Shop owners can manage their own blocked hours"
+  ON public.shop_blocked_hours FOR ALL USING (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  )
+  WITH CHECK (
+    shop_id IN (SELECT id FROM public.shops WHERE owner_id = auth.uid())
+  );
+
+-- ============================================================================
 -- PHASE 6: NOTIFICATIONS
 -- ============================================================================
 

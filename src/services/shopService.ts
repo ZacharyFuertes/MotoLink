@@ -314,6 +314,60 @@ export const updateShopAvailability = async (
   return normalizeShop(data as Record<string, unknown>);
 };
 
+export interface ShopBlockedHour {
+  id: string;
+  shop_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** Fetch the active blocked (maintenance) windows for a shop. */
+export const getShopBlockedHours = async (
+  shopId: string,
+): Promise<ShopBlockedHour[]> => {
+  const { data, error } = await supabase
+    .from("shop_blocked_hours")
+    .select("*")
+    .eq("shop_id", shopId)
+    .eq("is_active", true)
+    .order("day_of_week", { ascending: true })
+    .order("start_time", { ascending: true });
+  if (error) throw error;
+  return (data || []) as ShopBlockedHour[];
+};
+
+/** Replace a shop's entire set of blocked hours with the provided list. */
+export const saveShopBlockedHours = async (
+  shopId: string,
+  blockedHours: Omit<ShopBlockedHour, "id" | "created_at">[],
+): Promise<boolean> => {
+  const { error: delErr } = await supabase
+    .from("shop_blocked_hours")
+    .delete()
+    .eq("shop_id", shopId);
+  if (delErr) throw delErr;
+  if (blockedHours.length === 0) return true;
+  const { error } = await supabase
+    .from("shop_blocked_hours")
+    .insert(blockedHours.map((b) => ({ ...b, shop_id: shopId })));
+  if (error) throw error;
+  return true;
+};
+
+/** Delete a single blocked hour row by id. */
+export const deleteShopBlockedHour = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from("shop_blocked_hours")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+  return true;
+};
+
 export interface PublicShopStats {
   shopCount: number;
   riderCount: number;

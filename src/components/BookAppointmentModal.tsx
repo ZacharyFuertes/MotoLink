@@ -665,12 +665,21 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const fetchShopAvailability = async () => {
     if (!selectedDate || !defaultShopId) return;
     try {
-      const { data: shop, error } = await supabase
+      const { data: shop, error: shopError } = await supabase
         .from("shops")
         .select("operating_hours")
         .eq("id", defaultShopId)
         .maybeSingle();
-      if (error) throw error;
+      if (shopError) throw shopError;
+      // Blocked hours table may not be deployed yet; a failure there must not
+      // wipe operating-hours-based blocking, so treat it as no blocked windows.
+      let blockedRows: { day_of_week: number; start_time: string; end_time: string }[] = [];
+      const { data: blockedData, error: blockedError } = await supabase
+        .from("shop_blocked_hours")
+        .select("day_of_week, start_time, end_time")
+        .eq("shop_id", defaultShopId)
+        .eq("is_active", true);
+      if (!blockedError && blockedData) blockedRows = blockedData;
       const schedule = parseOperatingHoursString(shop?.operating_hours);
       const dayIdx = new Date(`${selectedDate}T00:00:00`).getDay();
       const day = schedule[dayIdx];
@@ -687,17 +696,35 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           return !(slotMin >= openMin && slotMin < closeMin);
         });
       }
-      setShopClosedSlots(closedSlots);
+      // Block slots that fall within owner-defined maintenance windows
+      // (day_of_week 0 = Sunday, matching parseOperatingHoursString).
+      const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
+      blocked.forEach((b) => {
+        const startMin = timeToMinutes(b.start_time);
+        const endMin = timeToMinutes(b.end_time);
+        const bSlots = BOOKING_TIME_SLOTS.filter((slot) => {
+          const slotMin = timeToMinutes(slot);
+          return slotMin >= startMin && slotMin < endMin;
+        });
+        closedSlots = [...closedSlots, ...bSlots];
+      });
+      setShopClosedSlots([...new Set(closedSlots)]);
     } catch {
+      // If the blocked_hours table isn't deployed yet, degrade gracefully:
+      // treat it as no blocked windows.
       setShopClosedSlots([]);
     }
   };
 
   // Slots the shared TimeSlotGrid should render as unavailable.
-  // Combines already-booked appointment slots with shop-closed slots
-  // (time slots outside the shop's mechanic availability shifts).
+  // Combines already-booked appointment slots, shop-closed slots (outside
+  // operating hours), and owner-blocked maintenance windows.
   const unavailableSlots = useMemo(
-    () => BOOKING_TIME_SLOTS.filter((time) => bookedSlots.includes(time) || shopClosedSlots.includes(time)),
+    () =>
+      BOOKING_TIME_SLOTS.filter(
+        (time) =>
+          bookedSlots.includes(time) || shopClosedSlots.includes(time),
+      ),
     [bookedSlots, shopClosedSlots],
   );
 
