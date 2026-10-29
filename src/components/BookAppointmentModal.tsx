@@ -587,10 +587,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   };
 
   // Slots the shop is NOT open for on the selected date.
-  // Queries mechanic_availability for the shop's shifts on the selected
-  // day of week, then filters BOOKING_TIME_SLOTS to only include those
-  // within any mechanic's available shift. Slots outside all shifts are
-  // considered "shop closed" and disabled in the time slot grid.
+// Queries mechanic_availability for the shop's shifts on the selected
+// day of week, then filters BOOKING_TIME_SLOTS to only include those
+// within any mechanic's available shift. Slots outside all shifts are
+// considered "shop closed" and disabled in the time slot grid.
+// Falls back to default open hours when no shifts are configured.
   const fetchShopAvailability = async () => {
     if (!selectedDate || !defaultShopId) return;
     try {
@@ -603,14 +604,17 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .eq("is_available", true);
       if (error) throw error;
       const shifts = data || [];
-      const closedSlots = BOOKING_TIME_SLOTS.filter((slot) => {
-        const time = normalizeTime(slot);
-        return !shifts.some((shift) => {
-          const start = normalizeTime(shift.start_time);
-          const end = normalizeTime(shift.end_time);
-          return time >= start && time <= end;
+      let closedSlots: string[] = [];
+      if (shifts.length > 0) {
+        closedSlots = BOOKING_TIME_SLOTS.filter((slot) => {
+          const time = normalizeTime(slot);
+          return !shifts.some((shift) => {
+            const start = normalizeTime(shift.start_time);
+            const end = normalizeTime(shift.end_time);
+            return time >= start && time <= end;
+          });
         });
-      });
+      }
       setShopClosedSlots(closedSlots);
     } catch {
       setShopClosedSlots([]);
