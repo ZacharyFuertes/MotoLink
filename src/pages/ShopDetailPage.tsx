@@ -159,7 +159,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingServiceId, setBookingServiceId] = useState<string | null>(null);
   const [showNavigation, setShowNavigation] = useState(false);
   const [shopSaved, setShopSaved] = useState(false);
   const [savingShop, setSavingShop] = useState(false);
@@ -396,12 +395,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     }
   };
 
-  const openBooking = (serviceId?: string) => {
-    if (shop?.is_open === false) return;
-    setBookingServiceId(serviceId ?? null);
-    setShowBookingModal(true);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-moto-darker p-6 flex items-center justify-center">
@@ -629,21 +622,11 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           >
                             Available
                           </span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openBooking(svc.id);
-                            }}
-                            className="shop-catalog-book-button inline-flex items-center gap-1 rounded-lg border border-moto-accent/40 bg-moto-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-moto-accent transition hover:bg-moto-accent/20 hover:text-white active:scale-95"
-                          >
-                            <CalendarDays size={10} /> Book
-                          </button>
                         </div>
                       </div>
                     ))
-                )
-              )}
+                  )
+                )}
 
               {/* ── MECHANICS ── */}
               {activeTab === "mechanics" && (
@@ -961,7 +944,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => openBooking()}
+              onClick={() => setShowBookingModal(true)}
               disabled={shop.is_open === false}
               className="shop-book-button inline-flex shrink-0 items-center justify-center gap-2 px-7 py-3.5 text-base font-bold uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -1090,7 +1073,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         </div>
         <button
           type="button"
-          onClick={() => openBooking()}
+          onClick={() => setShowBookingModal(true)}
           disabled={shop.is_open === false}
           className="inline-flex shrink-0 items-center gap-2 rounded-full bg-moto-accent hover:bg-moto-accent-dark px-5 py-3 text-sm font-bold text-slate-950 uppercase tracking-wider transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -1103,7 +1086,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
         isOpen={showBookingModal}
         onClose={() => setShowBookingModal(false)}
         shopId={shopId}
-        initialServiceId={bookingServiceId}
+        services={services}
         onAuthRequired={onAuthRequired}
       />
       <NavigationModal

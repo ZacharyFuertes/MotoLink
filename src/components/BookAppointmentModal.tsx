@@ -68,6 +68,14 @@ interface SelectedPart {
   quantity: number;
 }
 
+interface CatalogService {
+  id: string;
+  label: string;
+  description?: string | null;
+  icon?: string | null;
+  price: number;
+}
+
 interface BookAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -76,48 +84,10 @@ interface BookAppointmentModalProps {
   onAuthRequired?: (mode: "login" | "signup") => void;
   /** Pre-selects one of the customer's motorcycles. Used by "Rebook". */
   initialVehicleId?: string | null;
-  /** Preselects a service from the shop's catalog when the modal opens (e.g. from the services tab). */
-  initialServiceId?: string | null;
+  /** Service catalog passed from the shop detail page so Step 01 is populated
+   *  with the shop's actual services instead of an independent fetch. */
+  services?: CatalogService[];
 }
-
-const SERVICE_TYPES = [
-  {
-    id: "oil_change",
-    label: "Oil Change",
-    icon: Droplet,
-    desc: "Full synthetic or conventional oil change",
-  },
-  {
-    id: "brake_service",
-    label: "Brake Service",
-    icon: Wrench,
-    desc: "Brake pad replacement and inspection",
-  },
-  {
-    id: "tire_replacement",
-    label: "Tire Replacement",
-    icon: CircleDashed,
-    desc: "Tire mounting, balancing, and alignment",
-  },
-  {
-    id: "engine_diagnostic",
-    label: "Engine Diagnostic",
-    icon: Settings,
-    desc: "Full engine scan and diagnosis",
-  },
-  {
-    id: "general_maintenance",
-    label: "General Maintenance",
-    icon: Hammer,
-    desc: "Routine checkup and maintenance",
-  },
-  {
-    id: "custom_work",
-    label: "Custom Work",
-    icon: Sparkles,
-    desc: "Custom modifications and upgrades",
-  },
-];
 
 const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
 
@@ -132,7 +102,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   shopId,
   onAuthRequired,
   initialVehicleId,
-  initialServiceId,
+  services: servicesProp,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -150,7 +120,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [shopClosedSlots, setShopClosedSlots] = useState<string[]>([]);
-  const [enableServiceTemplate, setEnableServiceTemplate] = useState(false);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -295,19 +264,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
   // When the modal is opened from a specific service row (e.g. from the shop's
   // services tab), preselect that service so its label and price carry into the
-  // booking. Never clobbers an in-progress selection. Re-runs whenever the
-  // dynamic service catalog finishes loading so a late-arriving catalog still
-  // gets the preselect applied.
-  useEffect(() => {
-    if (!isOpen || !initialServiceId) return;
-    if (selectedServices.length > 0) return;
-    const svc = dynamicServices.find((s) => s.id === initialServiceId);
-    if (svc) {
-      setSelectedServices([svc.id]);
-      setSelectedServicePrice(Number(svc.price) || 0);
-    }
-  }, [isOpen, initialServiceId, dynamicServices, selectedServices.length]);
-
   // Payment availability for this shop + platform provider.
   useEffect(() => {
     if (!isOpen || !defaultShopId) return;
@@ -536,14 +492,30 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const fetchServices = async () => {
     if (!defaultShopId) return;
     try {
-      // Fetch shop flag for service template fallback
-      const { data: shop, error: shopError } = await supabase
-        .from("shops")
-        .select("enable_service_template")
-        .eq("id", defaultShopId)
-        .maybeSingle();
-      if (shopError) throw shopError;
-      setEnableServiceTemplate(shop?.enable_service_template ?? false);
+      // When the parent passes a service catalog (e.g. from the shop detail
+      // page), use it directly instead of fetching again. This guarantees
+      // Step 01 shows the shop's actual services.
+      if (servicesProp && servicesProp.length > 0) {
+        const iconMap: Record<string, any> = {
+          Droplet,
+          Wrench,
+          CircleDashed,
+          Settings,
+          Hammer,
+          Sparkles,
+          ClipboardList,
+          Car,
+        };
+        const mapped = servicesProp.map((s) => ({
+          id: s.id,
+          label: s.label,
+          desc: s.description,
+          icon: iconMap[s.icon || ""] || Wrench,
+          price: s.price,
+        }));
+        setDynamicServices(mapped);
+        return;
+      }
 
       const { data, error } = await supabase
         .from("services_pricing")
@@ -570,34 +542,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           price: s.price,
         }));
         setDynamicServices(mapped);
-      } else if (enableServiceTemplate) {
-        // Fall back to static template only when shop enables it
-        const mapped = SERVICE_TYPES.map((s) => ({
-          id: s.id,
-          label: s.label,
-          desc: s.desc,
-          icon: s.icon,
-          price: 0,
-        }));
-        setDynamicServices(mapped);
       } else {
         setDynamicServices([]);
       }
-    } catch (e) {
-      // On error, keep empty (no static template fallback unless enabled)
-      if (enableServiceTemplate) {
-        setDynamicServices(
-          SERVICE_TYPES.map((s) => ({
-            id: s.id,
-            label: s.label,
-            desc: s.desc,
-            icon: s.icon,
-            price: 0,
-          })),
-        );
-      } else {
-        setDynamicServices([]);
-      }
+    } catch {
+      setDynamicServices([]);
     }
   };
 
