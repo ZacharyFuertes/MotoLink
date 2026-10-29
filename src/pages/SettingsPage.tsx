@@ -7,11 +7,7 @@ import {
   ShieldCheck,
   KeyRound,
   LogOut,
-  SlidersHorizontal,
-  Wrench,
-  BellRing,
   Lock,
-  Search,
   Mail,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -20,25 +16,6 @@ import { supabase } from "../services/supabaseClient";
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
 }
-
-const TIMEZONES = [
-  "Asia/Manila",
-  "Asia/Tokyo",
-  "Asia/Singapore",
-  "Asia/Seoul",
-  "Asia/Shanghai",
-  "Asia/Dubai",
-  "Asia/Kolkata",
-  "Australia/Sydney",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "UTC",
-  "America/New_York",
-  "America/Los_Angeles",
-];
-
-const ROLE_OPTIONS = ["customer", "owner", "mechanic", "admin"];
 
 interface SectionCardProps {
   icon: LucideIcon;
@@ -71,48 +48,6 @@ const SectionCard: React.FC<SectionCardProps> = ({
   </motion.div>
 );
 
-interface ToggleRowProps {
-  label: string;
-  description: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: () => void;
-}
-
-const ToggleRow: React.FC<ToggleRowProps> = ({
-  label,
-  description,
-  checked,
-  disabled,
-  onChange,
-}) => (
-  <div className="flex items-center justify-between gap-4 py-3.5 border-b border-moto-gray last:border-b-0">
-    <div>
-      <p className="text-[13px] font-bold text-slate-200">{label}</p>
-      {description && <p className="text-xs text-slate-300 mt-0.5">{description}</p>}
-    </div>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onChange}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-        checked ? "bg-moto-accent" : "bg-moto-gray"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-          checked ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  </div>
-);
-
-const selectClassName =
-  "px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm font-medium text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition disabled:opacity-50";
 const inputClassName =
   "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition";
 
@@ -128,12 +63,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     type: "success" | "error";
   } | null>(null);
 
-  // Admin platform settings state
-  const [platformSettings, setPlatformSettings] = useState<Record<string, any>>(
-    {},
-  );
   const [settingsLoading, setSettingsLoading] = useState(true);
-  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [settingsStatus, setSettingsStatus] = useState<{
     text: string;
     type: "success" | "error";
@@ -145,18 +75,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   }, [user?.email]);
 
   // Account Repair state
-  const [repairEmail, setRepairEmail] = useState("");
-  const [repairSearching, setRepairSearching] = useState(false);
-  const [repairSaving, setRepairSaving] = useState(false);
-  const [repairResult, setRepairResult] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    shop_id: string | null;
-  } | null>(null);
-  const [repairRole, setRepairRole] = useState("");
-  const [repairShopId, setRepairShopId] = useState("");
 
   // Audit log state
   const [auditLog, setAuditLog] = useState<
@@ -171,27 +89,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
 
   const isAdmin = user?.role === "admin";
 
-  const getSetting = (key: string, fallback: any) => {
-    const value = platformSettings[key];
-    return value === undefined || value === null ? fallback : value;
-  };
-
-  const logAudit = async (action: string, target?: string) => {
-    if (!user) return;
-    try {
-      const { error } = await supabase.from("admin_audit_log").insert({
-        actor_id: user.id,
-        actor_email: user.email,
-        action,
-        target: target || null,
-      });
-      if (error) throw error;
-      loadAuditLog();
-    } catch (err) {
-      console.error("Failed to write audit log:", err);
-    }
-  };
-
   const loadAdminSettings = async () => {
     setSettingsLoading(true);
     try {
@@ -205,7 +102,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         map[row.setting_key] =
           v && typeof v === "object" && "value" in v ? v.value : v;
       });
-      setPlatformSettings(map);
     } catch (err: any) {
       console.error("Failed to load platform settings:", err);
       setSettingsStatus({
@@ -247,94 +143,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     loadLastSignIn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
-
-  const saveSetting = async (key: string, value: any) => {
-    setSavingKey(key);
-    setSettingsStatus(null);
-    try {
-      const { error } = await supabase
-        .from("platform_settings")
-        .upsert(
-          { setting_key: key, setting_value: { value } },
-          { onConflict: "setting_key" },
-        );
-      if (error) throw error;
-      setPlatformSettings((prev) => ({ ...prev, [key]: value }));
-      setSettingsStatus({ text: "Settings saved successfully.", type: "success" });
-      await logAudit(`Changed setting ${key} to ${JSON.stringify(value)}`, key);
-    } catch (err: any) {
-      setSettingsStatus({
-        text: err?.message || `Failed to save ${key}.`,
-        type: "error",
-      });
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const searchRepairUser = async () => {
-    if (!repairEmail.trim()) return;
-    setRepairSearching(true);
-    setSettingsStatus(null);
-    setRepairResult(null);
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, name, email, role, shop_id")
-        .ilike("email", repairEmail.trim())
-        .limit(1)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) {
-        setSettingsStatus({
-          text: "No user found with that email address.",
-          type: "error",
-        });
-        return;
-      }
-      setRepairResult(data);
-      setRepairRole(data.role);
-      setRepairShopId(data.shop_id || "");
-    } catch (err: any) {
-      setSettingsStatus({
-        text: err?.message || "Search failed.",
-        type: "error",
-      });
-    } finally {
-      setRepairSearching(false);
-    }
-  };
-
-  const saveRepairUser = async () => {
-    if (!repairResult) return;
-    setRepairSaving(true);
-    setSettingsStatus(null);
-    try {
-      const nextShopId = repairShopId.trim() ? repairShopId.trim() : null;
-      const { error } = await supabase
-        .from("users")
-        .update({ role: repairRole, shop_id: nextShopId })
-        .eq("id", repairResult.id);
-      if (error) throw error;
-      setSettingsStatus({
-        text: "Account updated successfully.",
-        type: "success",
-      });
-      await logAudit(
-        `Repaired account ${repairResult.email}: role -> ${repairRole}, shop_id -> ${
-          nextShopId || "unlinked"
-        }`,
-        repairResult.id,
-      );
-    } catch (err: any) {
-      setSettingsStatus({
-        text: err?.message || "Failed to update account.",
-        type: "error",
-      });
-    } finally {
-      setRepairSaving(false);
-    }
-  };
 
   if (!user || (user.role !== "owner" && user.role !== "admin")) {
     return <AccessDenied requestedPage="settings" onNavigate={onNavigate} />;

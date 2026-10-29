@@ -96,17 +96,6 @@ interface PendingShop {
   created_at: string;
 }
 
-const COLORS = [
-  "#35D0C0",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-];
-
 /* Custom chart tooltip */
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -151,9 +140,6 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   >([]);
   const [customersPerShop, setCustomersPerShop] = useState<
     { name: string; count: number }[]
-  >([]);
-  const [shopsByCity, setShopsByCity] = useState<
-    { city: string; count: number }[]
   >([]);
   const [recentShops, setRecentShops] = useState<ShopRow[]>([]);
   const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
@@ -426,12 +412,6 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
           const city = cityField || addressParts[addressParts.length - 1] || "Unknown";
           cityMap[city] = (cityMap[city] || 0) + 1;
         });
-        setShopsByCity(
-          Object.entries(cityMap)
-            .map(([city, count]) => ({ city, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 6),
-        );
 
         // Shops table
         const shopRows: ShopRow[] = allShops.map((s) => {
