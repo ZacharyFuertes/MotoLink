@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import { getShopByOwnerId } from "../services/shopService";
+import { getShopByOwnerId, parseOperatingHoursString } from "../services/shopService";
 import {
   sendBookingRequestReceivedEmail,
   sendOwnerBookingEmail,
@@ -30,7 +30,7 @@ import {
   SCHEMA_NOT_APPLIED_MESSAGE,
 } from "../services/appointmentService";
 import { Appointment } from "../types";
-import TimeSlotGrid, { BOOKING_TIME_SLOTS } from "./TimeSlotGrid";
+import TimeSlotGrid from "./TimeSlotGrid";
 import DateStrip from "./DateStrip";
 import {
   isSlotPast,
@@ -145,6 +145,8 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [selectedSlot, setSelectedSlot] = useState("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [daySlots, setDaySlots] = useState<string[]>([]);
+  const [pastSlots, setPastSlots] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -311,10 +313,123 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     void loadBookedSlots(selectedDate);
   }, [isOpen, selectedDate, loadBookedSlots]);
 
-  const pastSlots = useMemo(() => {
-    if (!selectedDate) return [];
-    return BOOKING_TIME_SLOTS.filter((s) => isSlotPast(selectedDate, s, now));
-  }, [selectedDate, now]);
+  // Helper: convert "HH:MM" to minutes since midnight.
+  const timeToMinutes = (t: string): number => {
+    const [h, m] = (t || "").split(":");
+    const hh = parseInt(h, 10);
+    const mm = parseInt(m, 10);
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return 0;
+    return hh * 60 + mm;
+  };
+
+  const minutesToSlot = (totalMinutes: number): string => {
+    const dayMinutes = 24 * 60;
+    const m = ((totalMinutes % dayMinutes) + dayMinutes) % dayMinutes;
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+
+  // Generate hourly slots within the shop's open→close window for one day.
+  const generateDaySlots = (openTime: string, closeTime: string): string[] => {
+    const openMin = timeToMinutes(openTime);
+    const closeMin = timeToMinutes(closeTime);
+    const slots: string[] = [];
+    let current = openMin;
+    const dayMinutes = 24 * 60;
+    let target = closeMin;
+    if (closeMin <= openMin) {
+      target = closeMin + dayMinutes;
+    }
+    while (current < target) {
+      slots.push(minutesToSlot(current));
+      current += 60;
+    }
+    return slots;
+  };
+
+  // Fetch the shop's operating hours + blocked windows for the selected date,
+  // then compute the bookable (in-hours, non-blocked) slots and past slots.
+  const fetchShopAvailability = useCallback(
+    async (date: string) => {
+      if (!date) {
+        setDaySlots([]);
+        setPastSlots([]);
+        return;
+      }
+      try {
+        const shopId = await resolveShopId();
+        if (!shopId) {
+          setDaySlots([]);
+          setPastSlots([]);
+          return;
+        }
+        const [shopRes, blockedRes] = await Promise.all([
+          supabase
+            .from("shops")
+            .select("operating_hours")
+            .eq("id", shopId)
+            .maybeSingle(),
+          supabase
+            .from("shop_blocked_hours")
+            .select("day_of_week, start_time, end_time")
+            .eq("shop_id", shopId)
+            .eq("is_active", true),
+        ]);
+        if (shopRes.error) throw shopRes.error;
+        const blockedRows =
+          (blockedRes.data ||
+            []) as { day_of_week: number; start_time: string; end_time: string }[];
+        const schedule = parseOperatingHoursString(shopRes.data?.operating_hours);
+        const dayIdx = new Date(`${date}T00:00:00`).getDay();
+        const day = schedule[dayIdx];
+        let baseSlots: string[] = [];
+        let blockedSlotList: string[] = [];
+        if (day && day.open && day.openTime && day.closeTime) {
+          baseSlots = generateDaySlots(day.openTime, day.closeTime);
+          const blocked = blockedRows.filter((b) => b.day_of_week === dayIdx);
+          blocked.forEach((b) => {
+            const startMin = timeToMinutes(b.start_time);
+            const endMin = timeToMinutes(b.end_time);
+            blockedSlotList = [
+              ...blockedSlotList,
+              ...baseSlots.filter((slot) => {
+                const slotMin = timeToMinutes(slot);
+                return slotMin >= startMin && slotMin < endMin;
+              }),
+            ];
+          });
+        }
+        setDaySlots([...new Set(baseSlots.filter((s) => !blockedSlotList.includes(s)))]);
+        // Slots already passed on the selected day (today only).
+        const nowDate = new Date();
+        const selected = new Date(`${date}T00:00:00`);
+        const isToday =
+          nowDate.getFullYear() === selected.getFullYear() &&
+          nowDate.getMonth() === selected.getMonth() &&
+          nowDate.getDate() === selected.getDate();
+        const nowMin = isToday ? nowDate.getHours() * 60 + nowDate.getMinutes() : -1;
+        setPastSlots(baseSlots.filter((s) => timeToMinutes(s) <= nowMin));
+      } catch {
+        setDaySlots([]);
+        setPastSlots([]);
+      }
+    },
+    [resolveShopId],
+  );
+
+  // Recompute availability whenever the date or shop resolves.
+  useEffect(() => {
+    void fetchShopAvailability(selectedDate);
+  }, [selectedDate, fetchShopAvailability]);
+
+  // If the currently selected time is no longer valid for the loaded day
+  // (outside operating hours or blocked), clear it.
+  useEffect(() => {
+    if (selectedSlot && !daySlots.includes(selectedSlot)) {
+      setSelectedSlot("");
+    }
+  }, [selectedSlot, daySlots]);
 
   const resetForm = (justBooked?: string | null) => {
     setFormData(emptyForm);
@@ -804,6 +919,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               />
 
               <TimeSlotGrid
+                slots={daySlots}
                 value={selectedSlot}
                 onChange={setSelectedSlot}
                 takenSlots={bookedSlots}
