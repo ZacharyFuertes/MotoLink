@@ -145,6 +145,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [dynamicServices, setDynamicServices] = useState<any[]>(SERVICE_TYPES);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [shopClosedSlots, setShopClosedSlots] = useState<string[]>([]);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -350,11 +351,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   }, [isOpen]);
 
-  // Fetch booked slots for the selected date. Mechanics are assigned by the
-  // shop after confirming the appointment.
+  // Fetch booked slots and shop availability for the selected date.
+  // Mechanics are assigned by the shop after confirming the appointment.
   useEffect(() => {
     if (selectedDate) {
       fetchBookedSlots();
+      fetchShopAvailability();
     }
   }, [selectedDate, defaultShopId, shopId]);
 
@@ -584,10 +586,43 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
+  // Slots the shop is NOT open for on the selected date.
+  // Queries mechanic_availability for the shop's shifts on the selected
+  // day of week, then filters BOOKING_TIME_SLOTS to only include those
+  // within any mechanic's available shift. Slots outside all shifts are
+  // considered "shop closed" and disabled in the time slot grid.
+  const fetchShopAvailability = async () => {
+    if (!selectedDate || !defaultShopId) return;
+    try {
+      const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
+      const { data, error } = await supabase
+        .from("mechanic_availability")
+        .select("start_time, end_time, is_available")
+        .eq("shop_id", defaultShopId)
+        .eq("day_of_week", weekday)
+        .eq("is_available", true);
+      if (error) throw error;
+      const shifts = data || [];
+      const closedSlots = BOOKING_TIME_SLOTS.filter((slot) => {
+        const time = normalizeTime(slot);
+        return !shifts.some((shift) => {
+          const start = normalizeTime(shift.start_time);
+          const end = normalizeTime(shift.end_time);
+          return time >= start && time <= end;
+        });
+      });
+      setShopClosedSlots(closedSlots);
+    } catch {
+      setShopClosedSlots([]);
+    }
+  };
+
   // Slots the shared TimeSlotGrid should render as unavailable.
+  // Combines already-booked appointment slots with shop-closed slots
+  // (time slots outside the shop's mechanic availability shifts).
   const unavailableSlots = useMemo(
-    () => BOOKING_TIME_SLOTS.filter((time) => bookedSlots.includes(time)),
-    [bookedSlots],
+    () => BOOKING_TIME_SLOTS.filter((time) => bookedSlots.includes(time) || shopClosedSlots.includes(time)),
+    [bookedSlots, shopClosedSlots],
   );
 
   const partsTotal = useMemo(
