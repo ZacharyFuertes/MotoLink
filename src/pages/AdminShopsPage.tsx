@@ -31,10 +31,10 @@ import {
   extendRetention,
   toggleLegalHold,
   purgeShopNow,
+  deleteShop,
   lifecycleError,
 } from "../services/adminShopLifecycle";
 import {
-  calcDaysRemaining,
   isShopStatus,
 } from "../lib/shopLifecycle";
 
@@ -91,6 +91,13 @@ interface LegalHoldModalState {
   reason: string;
 }
 
+interface DeleteShopModalState {
+  shop: AdminShopRow;
+  reason: string;
+  adminEmail: string;
+  adminPassword: string;
+}
+
 const STATUS_BADGE: Record<AdminShopRow["status"], string> = {
   PENDING: "bg-amber-500/15 text-amber-400",
   ACTIVE: "bg-emerald-500/15 text-emerald-400",
@@ -125,6 +132,7 @@ const AdminShopsPage: React.FC = () => {
   const [purgeTarget, setPurgeTarget] = useState<PurgeModalState | null>(null);
   const [extendTarget, setExtendTarget] = useState<ExtendModalState | null>(null);
   const [legalHoldTarget, setLegalHoldTarget] = useState<LegalHoldModalState | null>(null);
+  const [deleteShopTarget, setDeleteShopTarget] = useState<DeleteShopModalState | null>(null);
 
   const fetchShops = useCallback(async () => {
     setLoading(true);
@@ -322,6 +330,30 @@ const AdminShopsPage: React.FC = () => {
     await runAction(shop.id, () => reactivateShop(shop.id), `${shop.name} reactivated and accepting bookings.`);
   };
 
+  const handleArchive = async (shop: AdminShopRow) => {
+    await runAction(
+      shop.id,
+      () =>
+        supabase
+          .from("shops")
+          .update({ is_active: false })
+          .eq("id", shop.id),
+      `${shop.name} archived. It is hidden from public listings but can be restored anytime.`,
+    );
+  };
+
+  const handleUnarchive = async (shop: AdminShopRow) => {
+    await runAction(
+      shop.id,
+      () =>
+        supabase
+          .from("shops")
+          .update({ is_active: true })
+          .eq("id", shop.id),
+      `${shop.name} unarchived. It is visible in public listings again.`,
+    );
+  };
+
   const submitPurge = async () => {
     if (!purgeTarget) return;
     const ok = await runAction(
@@ -351,6 +383,22 @@ const AdminShopsPage: React.FC = () => {
         : `Legal hold lifted on ${legalHoldTarget.shop.name}.`,
     );
     if (ok) setLegalHoldTarget(null);
+  };
+
+  const submitDeleteShop = async () => {
+    if (!deleteShopTarget) return;
+    const ok = await runAction(
+      deleteShopTarget.shop.id,
+      () =>
+        deleteShop(
+          deleteShopTarget.shop.id,
+          deleteShopTarget.reason.trim(),
+          deleteShopTarget.adminEmail.trim(),
+          deleteShopTarget.adminPassword.trim(),
+        ),
+      `${deleteShopTarget.shop.name} has been permanently deleted.`,
+    );
+    if (ok) setDeleteShopTarget(null);
   };
 
   const submitExtend = async () => {
@@ -429,11 +477,6 @@ const AdminShopsPage: React.FC = () => {
     { id: "active", label: "Active Listings", count: activeCount },
     { id: "on_hold", label: "On Hold", count: onHoldCount },
   ];
-
-  const daysUntilPurge = (shop: AdminShopRow): number | null => {
-    if (shop.status !== "ON_HOLD" || !shop.purge_scheduled_at) return null;
-    return calcDaysRemaining(new Date(shop.purge_scheduled_at), new Date());
-  };
 
   return (
     <div className="min-w-0 space-y-6">
@@ -676,37 +719,6 @@ const AdminShopsPage: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      {shop.status === "ON_HOLD" ? (
-                        <div className="flex flex-col gap-0.5 text-[12px]">
-                          <span
-                            className={`inline-flex items-center gap-1 font-bold ${
-                              shop.legal_hold
-                                ? "text-sky-400"
-                                : daysUntilPurge(shop) === 0
-                                  ? "text-red-400"
-                                  : "text-amber-400"
-                            }`}
-                          >
-                            <CalendarClock className="w-3.5 h-3.5" />
-                            {shop.legal_hold
-                              ? "Legal hold purge blocked"
-                              : shop.purge_scheduled_at == null
-                                ? "Retained no purge scheduled"
-                                : daysUntilPurge(shop) === 0
-                                  ? "Purge due"
-                                  : `${daysUntilPurge(shop)} day${daysUntilPurge(shop) === 1 ? "" : "s"} left`}
-                          </span>
-                          <span className="text-slate-500">
-                            {shop.purge_scheduled_at
-                              ? new Date(shop.purge_scheduled_at).toLocaleDateString()
-                              : "No schedule"}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-500 text-xs">—</span>
-                      )}
-                    </td>
-                    <td>
                       <div className="flex items-center justify-end gap-2 flex-wrap">
                         <button
                           onClick={() => openShopReview(shop)}
@@ -717,91 +729,83 @@ const AdminShopsPage: React.FC = () => {
                         </button>
 
                         {shop.status === "PENDING" && (
-                          <button
-                            onClick={() => handleApprove(shop)}
-                            disabled={actingId === shop.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-emerald-600/20"
-                          >
-                            {actingId === shop.id ? (
-                              <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="w-4 h-4" />
-                            )}
-                            Approve
-                          </button>
-                        )}
-
-                        {(shop.status === "PENDING" || shop.status === "ACTIVE") && (
-                          <button
-                            onClick={() =>
-                              setHoldTarget({
-                                shop,
-                                reason: shop.status === "PENDING" ? "ARCHIVED" : "TERMINATED",
-                                note: "",
-                              })
-                            }
-                            disabled={actingId === shop.id}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 hover:text-slate-950 text-amber-400 text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-amber-500/10"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            {shop.status === "PENDING" ? "Archive" : "On Hold"}
-                          </button>
-                        )}
-
-                        {shop.status === "ON_HOLD" && (
                           <>
                             <button
-                              onClick={() => handleReactivate(shop)}
+                              onClick={() => handleApprove(shop)}
                               disabled={actingId === shop.id}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-emerald-600/20"
                             >
                               {actingId === shop.id ? (
                                 <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                               ) : (
-                                <RefreshCw className="w-4 h-4" />
+                                <CheckCircle2 className="w-4 h-4" />
                               )}
-                              Reactivate
+                              Approve
                             </button>
                             <button
                               onClick={() =>
-                                setExtendTarget({ shop, days: 30, reason: "" })
-                              }
-                              disabled={actingId === shop.id}
-                              title="Extend the retention window"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-[13px] font-bold transition disabled:opacity-50"
-                            >
-                              <CalendarClock className="w-4 h-4" />
-                              Extend
-                            </button>
-                            <button
-                              onClick={() => setPurgeTarget({ shop })}
-                              disabled={actingId === shop.id || shop.legal_hold}
-                              title={
-                                shop.legal_hold
-                                  ? "Purge is blocked by an active legal hold"
-                                  : "Export + anonymize this shop's data now"
-                              }
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500 hover:text-white text-red-400 text-[13px] font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Purge
-                            </button>
-                            <button
-                              onClick={() =>
-                                setLegalHoldTarget({
+                                setDeleteShopTarget({
                                   shop,
-                                  active: !shop.legal_hold,
                                   reason: "",
+                                  adminEmail: "",
+                                  adminPassword: "",
                                 })
                               }
                               disabled={actingId === shop.id}
-                              title={shop.legal_hold ? "Lift the legal hold" : "Block purge with a legal hold"}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-[13px] font-bold transition disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 hover:text-white text-rose-400 text-[13px] font-bold transition disabled:opacity-50"
                             >
-                              <Lock className="w-4 h-4" />
-                              {shop.legal_hold ? "Lift Hold" : "Legal"}
+                              <XCircle className="w-4 h-4" />
+                              Decline
                             </button>
                           </>
+                        )}
+
+                        {shop.status === "ACTIVE" && (
+                          shop.is_active ? (
+                            <button
+                              onClick={() => handleArchive(shop)}
+                              disabled={actingId === shop.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-400 text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-amber-500/10"
+                            >
+                              {actingId === shop.id ? (
+                                <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <XCircle className="w-4 h-4" />
+                              )}
+                              Archive
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleUnarchive(shop)}
+                              disabled={actingId === shop.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 text-[13px] font-bold transition disabled:opacity-50 shadow-sm shadow-emerald-500/10"
+                            >
+                              {actingId === shop.id ? (
+                                <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                              Unarchive
+                            </button>
+                          )
+                        )}
+
+                        {shop.status !== "PENDING" && (
+                          <button
+                            onClick={() =>
+                              setDeleteShopTarget({
+                                shop,
+                                reason: "",
+                                adminEmail: "",
+                                adminPassword: "",
+                              })
+                            }
+                            disabled={actingId === shop.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 hover:text-white text-rose-400 text-[13px] font-bold transition disabled:opacity-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
                         )}
                       </div>
                     </td>
@@ -890,6 +894,17 @@ const AdminShopsPage: React.FC = () => {
               const row = shops.find((s) => s.id === shop.id);
               if (row) {
                 openShopCustomers(row);
+                closeShopReview();
+              }
+            }}
+            onArchive={(shop: ReviewShop) => {
+              const row = shops.find((s) => s.id === shop.id);
+              if (row) {
+                if (row.is_active) {
+                  handleArchive(row);
+                } else {
+                  handleUnarchive(row);
+                }
                 closeShopReview();
               }
             }}
@@ -1371,6 +1386,127 @@ const AdminShopsPage: React.FC = () => {
                     <Trash2 size={15} />
                   )}
                   Purge Now
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Shop Modal */}
+      <AnimatePresence>
+        {deleteShopTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setDeleteShopTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-md w-full p-6 shadow-2xl rounded-2xl border border-moto-gray bg-moto-darker"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
+                    Delete Shop
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setDeleteShopTarget(null)}
+                  className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-slate-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mb-5">
+                <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-3 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-rose-200 leading-relaxed">
+                    This is <strong>irreversible</strong>. Deleting{" "}
+                    <span className="font-bold">{deleteShopTarget.shop.name}</span>{" "}
+                    will permanently remove the shop and all related data from
+                    MotoLink. The shop owner will no longer be able to access
+                    the dashboard.
+                  </p>
+                </div>
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold">
+                  Reason (optional)
+                </label>
+                <textarea
+                  value={deleteShopTarget.reason}
+                  onChange={(e) =>
+                    setDeleteShopTarget({
+                      ...deleteShopTarget,
+                      reason: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  placeholder="e.g. Shop requested closure / duplicate listing"
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition resize-none placeholder:text-slate-500"
+                />
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold mt-4">
+                  Confirm Admin Email
+                </label>
+                <input
+                  type="email"
+                  value={deleteShopTarget.adminEmail}
+                  onChange={(e) =>
+                    setDeleteShopTarget({
+                      ...deleteShopTarget,
+                      adminEmail: e.target.value,
+                    })
+                  }
+                  placeholder="admin@motolink.com"
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition"
+                />
+
+                <label className="block text-[13px] text-slate-300 mb-1.5 font-semibold mt-4">
+                  Confirm Admin Password
+                </label>
+                <input
+                  type="password"
+                  value={deleteShopTarget.adminPassword}
+                  onChange={(e) =>
+                    setDeleteShopTarget({
+                      ...deleteShopTarget,
+                      adminPassword: e.target.value,
+                    })
+                  }
+                  placeholder="••••••••"
+                  className="w-full bg-moto-dark text-slate-100 px-4 py-2.5 rounded-xl border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/20 focus:outline-none text-sm transition"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteShopTarget(null)}
+                  disabled={actingId === deleteShopTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitDeleteShop}
+                  disabled={actingId === deleteShopTarget.shop.id}
+                  className="flex-1 px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm shadow-rose-500/20"
+                >
+                  {actingId === deleteShopTarget.shop.id ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 size={15} />
+                  )}
+                  Delete Shop
                 </button>
               </div>
             </motion.div>

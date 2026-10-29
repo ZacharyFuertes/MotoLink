@@ -125,9 +125,9 @@ try {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 4) WRONG-PORTAL DETECTION each portal must REJECT the other roles
+  // 4) SHARED CUSTOMER LOGIN authenticates customer, owner, and admin roles
   // ═══════════════════════════════════════════════════════════════════════
-  console.log("\n=== 4) Wrong-portal detection (simulates each portal's role guard) ===");
+  console.log("\n=== 4) Shared login role routing ===");
   const portalGuard = (userRole, expectedRole) => userRole === expectedRole;
 
   const signInAndGetRole = async (email, password) => {
@@ -146,13 +146,13 @@ try {
   }
   {
     const r = await signInAndGetRole(OWNER_EMAIL, PASSWORD);
-    check("Owner on Customer portal → rejected", r.role !== "customer", "role=" + r.role);
+    check("Owner on shared login → authenticated with owner role", r.role === "owner", "role=" + r.role);
     check("Owner on Admin portal → rejected", r.role !== "admin", "role=" + r.role);
     check("Owner on Owner portal → allowed", portalGuard(r.role, "owner"), "role=" + r.role);
   }
   {
     const r = await signInAndGetRole(ADMIN_EMAIL, PASSWORD);
-    check("Admin on Customer portal → allowed; app routes to admin console", r.role === "admin", "role=" + r.role);
+    check("Admin on shared login → authenticated with admin role", r.role === "admin", "role=" + r.role);
     check("Admin on Owner portal → rejected", r.role !== "owner", "role=" + r.role);
     check("Admin on Admin portal → allowed", portalGuard(r.role, "admin"), "role=" + r.role);
   }

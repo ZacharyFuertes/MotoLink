@@ -15,12 +15,14 @@ interface ShopOwnerLoginPageProps {
   onBack: () => void;
   onHome?: () => void;
   initialIsSignup?: boolean;
+  onUnifiedLogin: () => void;
 }
 
 const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
   onLoginSuccess,
   onBack,
   initialIsSignup = false,
+  onUnifiedLogin,
 }) => {
   const { login, user, isLoading, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -835,9 +837,18 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
 
             {/* Toggle between login / signup */}
             <div className="mt-6 text-center">
-              <button type="button" onClick={() => { setIsSignup(!isSignup); setError(""); setShowPassword(false); setAcceptedTerms(false); }} className="text-slate-400 hover:text-moto-accent font-medium text-sm transition-colors">
-                {isSignup ? "Already have an account? Sign in" : "Don't have a shop? Register here"}
-              </button>
+              {isSignup ? (
+                <p className="text-sm text-slate-400">
+                  Already have an account?{" "}
+                  <button type="button" onClick={onUnifiedLogin} className="font-semibold text-moto-accent transition-colors hover:underline">
+                    Login
+                  </button>
+                </p>
+              ) : (
+                <button type="button" onClick={() => { setIsSignup(true); setError(""); setShowPassword(false); setAcceptedTerms(false); }} className="text-slate-400 hover:text-moto-accent font-medium text-sm transition-colors">
+                  Register your shop
+                </button>
+              )}
             </div>
           </div>
         </div>

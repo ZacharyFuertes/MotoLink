@@ -9,13 +9,13 @@ interface MotolinkNavbarProps {
   onBrowse: () => void;
   onMap: () => void;
   onAbout: () => void;
+  onLogin: () => void;
   onGetStarted: () => void;
   onLogout?: () => void;
   onOpenProfile?: () => void;
-  onShopOwnerLogin?: () => void;
 }
 
-const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarted, onLogout, onOpenProfile, onShopOwnerLogin }: MotolinkNavbarProps) => {
+const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onLogin, onGetStarted, onLogout, onOpenProfile }: MotolinkNavbarProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeLabel, setActiveLabel] = useState<string>("");
@@ -128,16 +128,14 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
             </>
           ) : (
             <>
-              {onShopOwnerLogin && (
-                <motion.button
-                  onClick={onShopOwnerLogin}
-                  whileHover={{ y: -1 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="px-4 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:text-white whitespace-nowrap"
-                >
-                  Shop Owner Login
-                </motion.button>
-              )}
+              <motion.button
+                onClick={onLogin}
+                whileHover={{ y: -1 }}
+                whileTap={{ scale: 0.96 }}
+                className="navbar-login-button whitespace-nowrap px-5 py-2.5 text-sm font-bold transition-all"
+              >
+                Login
+              </motion.button>
               <motion.button
                 onClick={onGetStarted}
                 whileHover={{ y: -2 }}
@@ -212,21 +210,19 @@ const MotolinkNavbar = ({ isAuthenticated, onBrowse, onMap, onAbout, onGetStarte
                 ) : (
                   <>
                     <motion.button
+                      onClick={() => activate(onLogin, "Login")}
+                      whileTap={{ scale: 0.98 }}
+                      className="navbar-login-button w-full px-4 py-3 text-center text-base font-bold transition-all"
+                    >
+                      Login
+                    </motion.button>
+                    <motion.button
                       onClick={() => activate(onGetStarted, "Get Started")}
                       whileTap={{ scale: 0.98 }}
                       className="rounded-xl bg-gradient-to-r from-moto-accent to-moto-accent-dark px-4 py-3 text-base font-extrabold text-slate-950 border border-moto-accent/40 shadow-[0_0_20px_rgba(53,208,192,0.25)]"
                     >
                       Get Started
                     </motion.button>
-                    {onShopOwnerLogin && (
-                      <motion.button
-                        onClick={() => activate(onShopOwnerLogin, "Shop Owner Login")}
-                        whileTap={{ scale: 0.98 }}
-                        className="rounded-xl border border-moto-gray/50 bg-moto-darker/50 px-4 py-3 text-center text-base font-semibold text-slate-300 backdrop-blur-md hover:bg-moto-gray"
-                      >
-                        Shop Owner Login
-                      </motion.button>
-                    )}
                   </>
                 )}
               </div>

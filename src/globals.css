@@ -1398,6 +1398,18 @@ html.light .landing-page .landing-shop-card [class~="bg-moto-gray"] {
   background: #f3a66e;
   box-shadow: 0 9px 24px -11px rgba(239, 148, 90, 0.8);
 }
+.navbar-login-button {
+  border: 1px solid rgba(53, 208, 192, 0.36);
+  border-radius: 0.8rem;
+  background: rgba(53, 208, 192, 0.1);
+  color: #b7fff5;
+  box-shadow: 0 5px 18px -13px rgba(53, 208, 192, 0.48), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+.navbar-login-button:hover {
+  border-color: rgba(53, 208, 192, 0.62);
+  background: rgba(53, 208, 192, 0.17);
+  box-shadow: 0 8px 22px -12px rgba(53, 208, 192, 0.58), inset 0 1px rgba(255, 255, 255, 0.14);
+}
 .shop-reviews-panel {
   box-shadow: 0 10px 28px -22px rgba(239, 148, 90, 0.28), 0 14px 36px -30px rgba(0, 0, 0, 0.72);
 }
@@ -1595,6 +1607,16 @@ html.light .shop-detail-page .shop-book-button {
 }
 html.light .shop-detail-page .shop-book-button:hover {
   background: #b95620;
+}
+html.light .navbar-login-button {
+  border-color: rgba(13, 136, 126, 0.28);
+  background: rgba(13, 136, 126, 0.08);
+  color: #087c72;
+  box-shadow: 0 5px 18px -13px rgba(13, 136, 126, 0.38), inset 0 1px rgba(255, 255, 255, 0.86);
+}
+html.light .navbar-login-button:hover {
+  border-color: rgba(13, 136, 126, 0.5);
+  background: rgba(13, 136, 126, 0.14);
 }
 html.light .shop-detail-page .shop-directions-button {
   border-color: rgba(13, 136, 126, 0.34);

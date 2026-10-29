@@ -51,7 +51,7 @@ export const extendRetention = (
 ): Promise<LifecycleResult> =>
   rpc("admin_extend_retention", { p_shop_id: shopId, p_days: days, p_reason: reason });
 
-/** ON_HOLD only raise (active=true, reason required) or lift a legal hold. */
+/** ON_HOLD only toggle legal hold (simple mode - no-op). */
 export const toggleLegalHold = (
   shopId: string,
   active: boolean,
@@ -62,6 +62,35 @@ export const toggleLegalHold = (
     p_active: active,
     p_reason: reason || null,
   });
+
+/** Permanently delete a shop (cascades to related data via FK). */
+export const deleteShop = async (
+  shopId: string,
+  reason: string,
+  adminEmail: string,
+  adminPassword: string,
+): Promise<LifecycleResult> => {
+  // Verify admin credentials via Supabase Auth before allowing deletion
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: adminEmail,
+    password: adminPassword,
+  });
+  if (signInError) {
+    throw new Error("Invalid admin email or password.");
+  }
+
+  const { data, error } = await supabase.rpc("admin_delete_shop", {
+    p_shop_id: shopId,
+    p_admin_email: adminEmail,
+    p_admin_password: adminPassword,
+    p_reason: reason || null,
+  });
+  if (error) {
+    const e = error as { message?: string };
+    throw new Error(e?.message || `Failed to run admin_delete_shop.`);
+  }
+  return (data as LifecycleResult) || {};
+};
 
 /**
  * ON_HOLD only export + encrypt + anonymize immediately (no timer). Runs

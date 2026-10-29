@@ -81,11 +81,10 @@ export default async function handler(req: any, res: any) {
     if (userError || !user) {
       return res.status(404).json({ success: false, error: "No account found with this email." });
     }
-    // The customer sign-in experience can also be used by platform admins.
-    // The authenticated profile role is never changed here; App routes admins
-    // to the admin console after OTP verification. Owners/mechanics still use
-    // their dedicated portals.
-    if (user.role !== "customer" && user.role !== "admin") {
+    // Shared login entry supports customers, owners and platform admins.
+    // The profile role is never changed; the app routes by the verified role.
+    // Mechanics do not have a self-service login portal.
+    if (user.role !== "customer" && user.role !== "owner" && user.role !== "admin") {
       return res.status(403).json({ success: false, error: "Please use the sign-in portal for your account." });
     }
 

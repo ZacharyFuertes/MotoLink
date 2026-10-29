@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Trash2,
   CalendarClock,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { PH_BOUNDS, PH_MIN_ZOOM } from "../utils/phMapBounds";
@@ -43,6 +44,7 @@ interface AdminShopReviewModalProps {
   onPurge?: (shop: ReviewShop) => void;
   onExtend?: (shop: ReviewShop) => void;
   onViewCustomers?: (shop: ReviewShop) => void;
+  onArchive?: (shop: ReviewShop) => void;
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -75,6 +77,7 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
   onPurge,
   onExtend,
   onViewCustomers,
+  onArchive,
 }) => {
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -85,13 +88,49 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
     setLoading(true);
     setError(null);
     (async () => {
-      const { data, error: err } = await supabase
-        .from("shops")
-        .select(
-          "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open, status, legal_hold, hold_reason, on_hold_at, purge_scheduled_at, created_at, logo_url",
-        )
-        .eq("id", shop.id)
-        .maybeSingle();
+      const fullSelect =
+        "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, is_open, status, legal_hold, hold_reason, on_hold_at, purge_scheduled_at, created_at, logo_url";
+      const reducedSelect =
+        "id, name, slug, description, address, city, latitude, longitude, phone, email, operating_hours, is_active, created_at, logo_url";
+      let data: any = null;
+      let err: any = null;
+
+      try {
+        const res = await supabase
+          .from("shops")
+          .select(fullSelect)
+          .eq("id", shop.id)
+          .maybeSingle();
+        if (!mounted) return;
+        if (res.error) {
+          const message = res.error.message || "";
+          const code = (res.error as any).code;
+          if (
+            code === 42703 ||
+            (/is_open|status|legal_hold|hold_reason|on_hold_at|purge_scheduled_at/i.test(message) &&
+              /column|schema cache|not found|could not find/i.test(message))
+          ) {
+            const res2 = await supabase
+              .from("shops")
+              .select(reducedSelect)
+              .eq("id", shop.id)
+              .maybeSingle();
+            if (!mounted) return;
+            if (res2.error) {
+              err = res2.error;
+            } else {
+              data = res2.data;
+            }
+          } else {
+            err = res.error;
+          }
+        } else {
+          data = res.data;
+        }
+      } catch (e: any) {
+        err = e;
+      }
+
       if (!mounted) return;
       setLoading(false);
       if (err) {
@@ -315,6 +354,24 @@ const AdminShopReviewModal: React.FC<AdminShopReviewModalProps> = ({
                   >
                     <Users className="w-5 h-5" />
                     View Customers ({shop.customer_count ?? 0})
+                  </button>
+                )}
+                {shop.is_active && onArchive && (
+                  <button
+                    onClick={() => onArchive(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500 hover:text-slate-950 text-amber-400 text-[13px] font-bold rounded-xl transition"
+                  >
+                    <XCircle className="w-5 h-5" />
+                    Archive
+                  </button>
+                )}
+                {!shop.is_active && onArchive && (
+                  <button
+                    onClick={() => onArchive(shop)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 text-[13px] font-bold rounded-xl transition"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Unarchive
                   </button>
                 )}
               </div>

@@ -34,7 +34,6 @@ import ShopSettingsPage from "./pages/ShopSettingsPage";
 import AdminMechanicAvailability from "./pages/AdminMechanicAvailability";
 import LoginPage from "./pages/LoginPage";
 import ShopOwnerLoginPage from "./pages/ShopOwnerLoginPage";
-import AdminLoginPage from "./pages/AdminLoginPage";
 import UpdatePartsPage from "./pages/UpdatePartsPage";
 
 // Landing page imports (original)
@@ -359,7 +358,10 @@ const AppContent: React.FC = () => {
               handleOpenLogin();
             }}
             onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
-            onShopOwnerLogin={() => setCurrentLoginType("owner")}
+            onGetStarted={() => {
+              setLoginCompleted(false);
+              setCurrentLoginType("customer-signup");
+            }}
             onBook={() => handleOpenLogin()}
             onViewShop={openShopDetail}
           />
@@ -376,8 +378,8 @@ const AppContent: React.FC = () => {
             onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
           />
-        ) : currentLoginType === "admin" ? (
-          <AdminLoginPage
+        ) : currentLoginType === "admin" || currentLoginType === "owner" ? (
+          <LoginPage
             onLoginSuccess={handleLoginSuccess}
             onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
@@ -388,9 +390,13 @@ const AppContent: React.FC = () => {
             onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
             initialIsSignup={true}
+            onUnifiedLogin={() => {
+              setLoginCompleted(false);
+              setCurrentLoginType("customer");
+            }}
           />
         ) : (
-          <ShopOwnerLoginPage
+          <LoginPage
             onLoginSuccess={handleLoginSuccess}
             onBack={() => setCurrentLoginType("landing")}
             onHome={() => setCurrentLoginType("landing")}
@@ -435,7 +441,7 @@ const AppContent: React.FC = () => {
               isAuthenticated={true}
               onLoginRequired={() => {}}
               onOpenShopRegister={() => setCurrentLoginType("owner-signup")}
-              onShopOwnerLogin={() => setCurrentLoginType("owner")}
+              onGetStarted={() => {}}
               onBook={(shop) => {
                 if (shop.is_open === false) {
                   openShopDetail(shop);

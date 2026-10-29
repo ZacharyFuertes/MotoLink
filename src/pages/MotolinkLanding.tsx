@@ -20,9 +20,9 @@ interface MotolinkLandingProps {
   onLoginRequired: (shop?: ShopSearchResult) => void;
   onBook: (shop: ShopSearchResult) => void;
   onOpenShopRegister?: () => void;
+  onGetStarted: () => void;
   onLogout?: () => void;
   onViewShop?: (shop: ShopSearchResult) => void;
-  onShopOwnerLogin?: () => void;
   onOpenProfile?: () => void;
 }
 
@@ -82,7 +82,7 @@ const getCachedLocation = (): GeolocationCoordinates | undefined => {
   return undefined;
 };
 
-const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onLogout, onViewShop, onShopOwnerLogin, onOpenProfile }: MotolinkLandingProps) => {
+const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopRegister, onGetStarted, onLogout, onViewShop, onOpenProfile }: MotolinkLandingProps) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<GeolocationCoordinates | undefined>(getCachedLocation);
   const [city, setCity] = useState("");
@@ -237,7 +237,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   const connect = (shop: ShopSearchResult) => { setSelectedShop(shop); if (shop.is_open === false) { if (onViewShop) onViewShop(shop); return; } if (isAuthenticated) onBook(shop); else onLoginRequired(shop); };
 
   return <div className="landing-page min-h-screen bg-moto-dark text-slate-100">
-    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onGetStarted={() => onLoginRequired(selectedShop)} onLogout={onLogout} onShopOwnerLogin={onShopOwnerLogin} onOpenProfile={onOpenProfile} />
+    <MotolinkNavbar isAuthenticated={isAuthenticated} onBrowse={() => scrollTo("shops")} onMap={() => scrollTo("map")} onAbout={() => scrollTo("about")} onLogin={() => onLoginRequired(selectedShop)} onGetStarted={onGetStarted} onLogout={onLogout} onOpenProfile={onOpenProfile} />
     <main>
       {/* Hero full-bleed photo, bold headline, search bar, stats bar */}
       <motion.section
@@ -530,14 +530,6 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <Store size={20} />
             Register my shop
           </motion.button>
-          {onShopOwnerLogin ? (
-            <motion.div variants={itemVariants} className="mt-6 text-sm text-slate-400">
-              Already have a shop?{" "}
-              <button onClick={onShopOwnerLogin} className="text-moto-accent font-semibold hover:underline transition-all">
-                Sign in here
-              </button>
-            </motion.div>
-          ) : null}
         </motion.div>
       </motion.section>
       )}
