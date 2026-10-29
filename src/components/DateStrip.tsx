@@ -9,7 +9,7 @@ interface DateStripProps {
   days?: number;
   /** Offer today as the first day. Owners can book a walk-in for today. */
   includeToday?: boolean;
-  /** Hide Sundays (shops closed). */
+  /** Hide Sundays (shops closed). Defaults to false: shops can be open Sunday. */
   skipSundays?: boolean;
   label?: string;
 }
@@ -30,7 +30,7 @@ const DateStrip: React.FC<DateStripProps> = ({
   onChange,
   days = 14,
   includeToday = true,
-  skipSundays = true,
+  skipSundays = false,
   label,
 }) => {
   const dates = useMemo(() => {
