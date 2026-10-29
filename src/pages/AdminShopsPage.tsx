@@ -33,6 +33,7 @@ import {
   purgeShopNow,
   deleteShop,
   lifecycleError,
+  sendShopApprovedEmail,
 } from "../services/adminShopLifecycle";
 import {
   isShopStatus,
@@ -295,7 +296,20 @@ const AdminShopsPage: React.FC = () => {
   };
 
   const handleApprove = async (shop: AdminShopRow) => {
-    await runAction(shop.id, () => approveShop(shop.id), `${shop.name} approved and is now live.`);
+    const approved = await runAction(
+      shop.id,
+      () => approveShop(shop.id),
+      `${shop.name} approved and is now live.`,
+    );
+    if (approved) {
+      const emailResult = await sendShopApprovedEmail(shop.id);
+      if (!emailResult.success) {
+        setSuccess(
+          `${shop.name} was approved, but its email notification could not be sent: ${emailResult.error || "Unknown email error."}`,
+        );
+        console.warn("[AdminShopsPage] Shop approval email failed:", emailResult.error);
+      }
+    }
   };
 
   const submitHold = async () => {

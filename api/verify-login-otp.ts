@@ -57,7 +57,9 @@ export default async function handler(req: any, res: any) {
       const { data: existingUser, error: userError } = await db
         .from("users")
         .select("id, email, role")
-        .eq("email", normalizedEmail)
+        // Owner approval state is intentionally not checked here: pending
+        // owners can authenticate and land on the locked approval dashboard.
+        .ilike("email", normalizedEmail)
         .maybeSingle();
 
       if (userError || !existingUser) {
@@ -66,15 +68,17 @@ export default async function handler(req: any, res: any) {
       user = existingUser;
     }
 
-    // 2) Find the newest unused, unexpired code for this email.
+    // 2) Find the newest unused code for this email. Allow a few rows so a
+    // short-lived overlap during resend/deployment does not make a valid code
+    // unreachable; every candidate is still checked for expiry and use state.
     const { data: candidates, error: codeError } = await db
       .from("verification_codes")
       .select("*")
-      .eq("email", normalizedEmail)
+      .ilike("email", normalizedEmail)
       .eq("purpose", runtimePurpose)
       .eq("used", false)
       .order("created_at", { ascending: false })
-      .limit(3);
+      .limit(10);
 
     if (codeError) {
       console.error("[verify-login-otp] code lookup failed:", codeError);
@@ -96,20 +100,49 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const expectedHash = hashCode(user?.id || normalizedEmail, normalizedCode);
     const match = rows.find(
       (row: any) =>
-        ((row.code_hash || row.code) === expectedHash || (row.code === normalizedCode)) &&
-        new Date(row.expires_at).getTime() > Date.now(),
+        (() => {
+          const rowUserId = typeof row.user_id === "string" ? row.user_id : "";
+          // Current login codes are keyed by auth user ID; earlier pending
+          // signup/login deployments used normalized email as the seed.
+          const seeds = new Set(
+            [rowUserId, user?.id || "", normalizedEmail].filter(Boolean),
+          );
+          const storedCode = row.code_hash || row.code;
+          const hashMatches = [...seeds].some(
+            (seed) => storedCode === hashCode(seed, normalizedCode),
+          );
+          return (
+            (hashMatches || row.code === normalizedCode) &&
+            new Date(row.expires_at).getTime() > Date.now()
+          );
+        })(),
     );
 
     if (!match) {
+      const hasLiveCode = rows.some(
+        (row: any) => new Date(row.expires_at).getTime() > Date.now(),
+      );
+      console.warn("[verify-login-otp] no matching code", {
+        purpose: runtimePurpose,
+        candidateCount: rows.length,
+        hasLiveCode,
+        emailMatchesUser: runtimePurpose !== "login" || user?.email?.toLowerCase() === normalizedEmail,
+      });
       // Wrong code: count the attempt against the newest live code.
-      await db
-        .from("verification_codes")
-        .update({ attempts: (newest.attempts || 0) + 1 })
-        .eq("id", newest.id);
-      return res.status(401).json({ success: false, error: "Invalid or expired code." });
+      if (hasLiveCode) {
+        await db
+          .from("verification_codes")
+          .update({ attempts: (newest.attempts || 0) + 1 })
+          .eq("id", newest.id);
+      }
+      return res.status(401).json({
+        success: false,
+        error: hasLiveCode
+          ? "That code does not match. Use the newest code from your email or resend a new one."
+          : "That code has expired. Please resend a new one.",
+      });
     }
 
     // 3) Burn the code so it cannot be replayed.

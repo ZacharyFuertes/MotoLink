@@ -17,7 +17,6 @@ const GMAIL_USER = (process.env.GMAIL_USER || "").trim();
 const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 
 const CODE_TTL_MS = 10 * 60 * 1000;
-const MAX_REQUESTS_PER_15_MIN = 3;
 
 function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -106,7 +105,9 @@ export default async function handler(req: any, res: any) {
       const { data: foundUser, error: userError } = await db
         .from("users")
         .select("id, email, name, role")
-        .eq("email", normalizedEmail)
+        // Email casing should not prevent pending owners from requesting the
+        // same login OTP as active customers or admins.
+        .ilike("email", normalizedEmail)
         .maybeSingle();
 
       if (userError || !foundUser) {
@@ -146,25 +147,9 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // Rate limit
+    // Testing override: temporarily skip the per-email request cap, but still
+    // invalidate prior codes so only the newest requested code remains valid.
     try {
-      const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const rateQuery = db
-        .from("verification_codes")
-        .select("*", { count: "exact", head: true })
-        .eq("email", normalizedEmail)
-        .eq("purpose", runtimePurpose)
-        .gte("created_at", fifteenMinAgo);
-
-      const { count: recentCount } = await rateQuery;
-
-      if (recentCount && recentCount >= MAX_REQUESTS_PER_15_MIN) {
-        return res.status(429).json({
-          success: false,
-          error: "Too many code requests. Please try again in 15 minutes.",
-        });
-      }
-
       // Invalidate old codes
       await db
         .from("verification_codes")
@@ -173,7 +158,7 @@ export default async function handler(req: any, res: any) {
         .eq("purpose", runtimePurpose)
         .eq("used", false);
     } catch (e) {
-      console.error("Rate limit check failed:", e);
+      console.error("Previous OTP invalidation failed:", e);
       // Continue anyway if table doesn't exist yet
     }
 

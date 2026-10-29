@@ -9,6 +9,7 @@ const localEmailApi = {
       '/api/send-login-otp': '/api/send-login-otp.ts',
       '/api/verify-login-otp': '/api/verify-login-otp.ts',
       '/api/send-low-stock-alert': '/api/send-low-stock-alert.ts',
+      '/api/send-shop-approved': '/api/send-shop-approved.ts',
     };
 
     server.middlewares.use(async (req: any, res: any, next: (error?: unknown) => void) => {

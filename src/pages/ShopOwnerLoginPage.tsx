@@ -149,11 +149,6 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
     e.preventDefault();
     setError("");
 
-    if (!acceptedTerms) {
-      setError("Please agree to the Terms and Conditions to continue.");
-      return;
-    }
-
     setLoading(true);
     setLoginAttempted(false);
 
@@ -1075,8 +1070,7 @@ const ShopOwnerLoginPage: React.FC<ShopOwnerLoginPageProps> = ({
                     </button>
                   </div>
                 </motion.div>
-<TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} onOpenTerms={() => setTermsOpen(true)} />
-                <motion.button type="submit" disabled={loading || !acceptedTerms} whileHover={{ scale: loading || !acceptedTerms ? 1 : 1.02 }} whileTap={{ scale: loading || !acceptedTerms ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className="w-full mt-6 px-6 py-3.5 font-black uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-2 text-sm bg-gradient-to-r from-moto-accent to-moto-accent-dark hover:from-moto-accent-dark hover:to-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20 disabled:opacity-50 disabled:cursor-not-allowed">
                   {loading && <Loader size={18} className="animate-spin" />}
                   Sign In
                 </motion.button>

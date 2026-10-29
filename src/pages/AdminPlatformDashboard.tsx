@@ -58,6 +58,7 @@ import { AppNotification } from "../services/notificationService";
 import {
   approveShop as approveShopLifecycle,
   reactivateShop as reactivateShopLifecycle,
+  sendShopApprovedEmail,
 } from "../services/adminShopLifecycle";
 import { isShopStatus, type ShopStatus } from "../lib/shopLifecycle";
 
@@ -463,21 +464,32 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
   const approveShop = useCallback(
     async (shopId: string) => {
       setApprovingId(shopId);
+      setShopActionError(null);
       try {
         const shop = recentShops.find((s) => s.id === shopId);
+        const isPendingApproval = pendingShops.some((pending) => pending.id === shopId);
         if (shop?.status === "ON_HOLD") {
           await reactivateShopLifecycle(shopId);
         } else {
           await approveShopLifecycle(shopId);
         }
-        fetchAdminData();
+        if (isPendingApproval) {
+          const emailResult = await sendShopApprovedEmail(shopId);
+          if (!emailResult.success) {
+            setShopActionError(
+              `Shop approved, but the owner email notification could not be sent: ${emailResult.error || "Unknown email error."}`,
+            );
+            console.warn("[AdminPlatformDashboard] Shop approval email failed:", emailResult.error);
+          }
+        }
+        await fetchAdminData();
       } catch (err) {
         console.error("Error approving shop:", err);
       } finally {
         setApprovingId(null);
       }
     },
-    [fetchAdminData, recentShops],
+    [fetchAdminData, pendingShops, recentShops],
   );
 
   const declineShop = useCallback(

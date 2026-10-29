@@ -77,17 +77,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         .single();
 
       if (userData) {
-        // Incomplete shop-owner registrations are not valid app sessions.
-        // If the owner profile exists without a linked shop, they must not be
-        // treated as an authenticated shop owner until the registration is
-        // completed and approved.
-        if (userData.role === "owner" && !userData.shop_id) {
-          console.warn("⚠️ [Auth] Owner session is incomplete; clearing stale session");
-          await supabase.auth.signOut();
-          setUser(null);
-          return null;
-        }
-
+        // Owners with a null shop_id must still be allowed to authenticate:
+        // the owner dashboard resolves their shop by owner_id and keeps it
+        // locked until approval. Do not confuse approval state with login.
         console.log("✅ [Auth] User profile loaded");
         setUser(userData as User);
         return userData as User;

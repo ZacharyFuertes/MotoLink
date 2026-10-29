@@ -31,6 +31,36 @@ const rpc = async (fn: string, args: Record<string, unknown>): Promise<Lifecycle
 export const approveShop = (shopId: string): Promise<LifecycleResult> =>
   rpc("admin_approve_shop", { p_shop_id: shopId });
 
+/** Email the shop owner after the approval lifecycle RPC succeeds. */
+export const sendShopApprovedEmail = async (
+  shopId: string,
+): Promise<{ success: boolean; error?: string }> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { success: false, error: "Admin session is unavailable." };
+  }
+
+  try {
+    const response = await fetch("/api/send-shop-approved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopId, accessToken: session.access_token }),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.success) {
+      return {
+        success: false,
+        error: result?.error || `Approval email failed (HTTP ${response.status}).`,
+      };
+    }
+    return { success: true };
+  } catch {
+    return { success: false, error: "Network error sending the approval email." };
+  }
+};
+
 /** ACTIVE/PENDING → ON_HOLD. reason: TERMINATED (subscription default) | ARCHIVED. */
 export const holdShop = (
   shopId: string,
