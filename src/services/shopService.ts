@@ -226,6 +226,7 @@ export const updateShop = async (
       | "online_payment_enabled"
       | "deposit_type"
       | "deposit_value"
+      | "enable_service_template"
     >
   >,
 ): Promise<Shop | null> => {
@@ -234,7 +235,10 @@ export const updateShop = async (
   const attempt = async (select: string, allowed: "all" | "payment" | "core") => {
     // Strip columns the live DB doesn't have yet (migration not applied).
     const payload: Record<string, unknown> = { ...updates };
-    if (allowed !== "all") delete payload.is_open;
+    if (allowed !== "all") {
+      delete payload.is_open;
+      delete payload.enable_service_template;
+    }
     if (allowed === "core") {
       delete payload.online_payment_enabled;
       delete payload.deposit_type;

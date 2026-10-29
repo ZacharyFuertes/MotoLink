@@ -28,6 +28,7 @@ import {
   StopCircle,
   Plus,
   Ban,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopById, updateShop, updateShopAvailability, parseOperatingHoursString, ShopBlockedHour, getShopBlockedHours, saveShopBlockedHours, deleteShopBlockedHour } from "../services/shopService";
