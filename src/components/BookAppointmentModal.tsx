@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
+import { filterMechanicsForTimeSlot } from "../services/mechanicAssignmentService";
 import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail } from "../services/notificationService";
 import {
   startOnlinePayment,
@@ -114,10 +115,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
   const [selectedMechanicId, setSelectedMechanicId] = useState<string | null>(null);
   const [availableMechanicsForTime, setAvailableMechanicsForTime] = useState<{ id: string; name: string; phone?: string | null }[]>([]);
+  const [mechanicConflictForSlot, setMechanicConflictForSlot] = useState<{ slotKey: string; mechanicId: string } | null>(null);
   const [loadingMechanicsForTime, setLoadingMechanicsForTime] = useState(false);
   const [mechanicAvailabilityError, setMechanicAvailabilityError] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const mechanicSlotKey = `${selectedDate}|${normalizeTime(selectedTime)}|${[...selectedServices].sort().join(",")}`;
   const [mechanicScheduleWeekdays, setMechanicScheduleWeekdays] = useState<Set<number>>(new Set());
   const [loadingMechanicScheduleDays, setLoadingMechanicScheduleDays] = useState(false);
   const [mechanicScheduleDaysError, setMechanicScheduleDaysError] = useState("");
@@ -131,6 +134,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [dynamicServices, setDynamicServices] = useState<any[]>([]);
   const [defaultShopId, setDefaultShopId] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [mechanicUnavailableSlots, setMechanicUnavailableSlots] = useState<string[]>([]);
+  const [checkingMechanicSlots, setCheckingMechanicSlots] = useState(false);
+  const [mechanicSlotAvailabilityError, setMechanicSlotAvailabilityError] = useState("");
   const [daySlots, setDaySlots] = useState<string[]>([]);
   const [pastSlots, setPastSlots] = useState<string[]>([]);
   const [, setLoadingVehicles] = useState(false);
@@ -420,6 +426,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSelectedDate("");
         setSelectedTime("");
         setSelectedMechanicId(null);
+        setMechanicConflictForSlot(null);
         setSelectedVehicleId("");
         setVehicleInfo("");
         setNotes("");
@@ -504,13 +511,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
             .in("mechanic_id", mechanicIds)
             .eq("shop_id", defaultShopId)
             .eq("day_of_week", weekday),
-          supabase
-            .from("appointments")
-            .select("mechanic_id, scheduled_time, duration_minutes")
-            .eq("shop_id", defaultShopId)
-            .eq("scheduled_date", selectedDate)
-            .in("status", ["pending", "confirmed", "in_progress"])
-            .in("mechanic_id", mechanicIds),
+          supabase.rpc("get_busy_mechanic_ids_for_slot", {
+            p_shop_id: defaultShopId,
+            p_scheduled_date: selectedDate,
+            p_scheduled_time: normalizeTime(selectedTime),
+            p_duration_minutes: duration,
+          }),
         ]);
         if (shiftsResult.error) throw shiftsResult.error;
         if (bookingsResult.error) throw bookingsResult.error;
@@ -524,22 +530,19 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
         const busyMechanicIds = new Set<string>();
         (bookingsResult.data || []).forEach((booking) => {
-          if (!booking.mechanic_id) return;
-          const bookingStart = timeToMinutes(normalizeTime(booking.scheduled_time));
-          const bookingEnd = bookingStart + (booking.duration_minutes || 60);
-          if (bookingStart < endMin && bookingEnd > startMin) {
-            busyMechanicIds.add(booking.mechanic_id);
-          }
+          if (booking.mechanic_id) busyMechanicIds.add(booking.mechanic_id);
         });
 
-        const available = (mechanics || []).filter((mechanic) => {
-          if (busyMechanicIds.has(mechanic.id)) return false;
-          return (shiftsByMechanic.get(mechanic.id) || []).some((shift) => {
-            const shiftStart = timeToMinutes(normalizeTime(shift.start_time));
-            const shiftEnd = timeToMinutes(normalizeTime(shift.end_time));
-            return shift.is_available && shiftStart <= startMin && shiftEnd >= endMin;
-          });
+        const availableForSchedule = filterMechanicsForTimeSlot({
+          mechanics: mechanics || [],
+          shiftsByMechanic,
+          busyMechanicIds,
+          startMin,
+          endMin,
         });
+        const available = mechanicConflictForSlot?.slotKey === mechanicSlotKey
+          ? availableForSchedule.filter((mechanic) => mechanic.id !== mechanicConflictForSlot.mechanicId)
+          : availableForSchedule;
 
         if (active) {
           setAvailableMechanicsForTime(available);
@@ -564,7 +567,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     return () => {
       active = false;
     };
-  }, [selectedDate, selectedTime, defaultShopId, selectedServices, dynamicServices, mechanicAvailabilityRefreshKey]);
+  }, [selectedDate, selectedTime, defaultShopId, selectedServices, dynamicServices, mechanicAvailabilityRefreshKey, mechanicConflictForSlot, mechanicSlotKey]);
 
   const resolveDefaultShop = async () => {
     try {
@@ -1003,6 +1006,47 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     [selectedServices, dynamicServices],
   );
 
+  // A time is only selectable if at least one mechanic can cover the full
+  // selected-service duration without overlapping another active appointment.
+  useEffect(() => {
+    let active = true;
+    const shopIdForSlots = shopId || defaultShopId;
+
+    if (!selectedDate || !shopIdForSlots || daySlots.length === 0 || totalDurationMinutes <= 0) {
+      setMechanicUnavailableSlots([]);
+      setCheckingMechanicSlots(false);
+      return () => { active = false; };
+    }
+
+    setCheckingMechanicSlots(true);
+    setMechanicUnavailableSlots([]);
+    setMechanicSlotAvailabilityError("");
+
+    void supabase.rpc("get_available_mechanic_slots", {
+      p_shop_id: shopIdForSlots,
+      p_scheduled_date: selectedDate,
+      p_start_times: daySlots,
+      p_duration_minutes: totalDurationMinutes,
+    }).then(({ data, error }) => {
+      if (error) throw error;
+      if (active) {
+        setMechanicUnavailableSlots(
+          (data || []).filter((slot) => !slot.is_available).map((slot) => normalizeTime(slot.slot_time)),
+        );
+      }
+    }).catch((error) => {
+      console.error("Could not check mechanic availability for time slots:", error);
+      if (active) setMechanicSlotAvailabilityError("We couldn't verify mechanic availability for this date. Please try another date or reload the booking form.");
+      // Do not leave unchecked times bookable when the server-side availability
+      // check cannot be completed.
+      if (active) setMechanicUnavailableSlots(daySlots);
+    }).finally(() => {
+      if (active) setCheckingMechanicSlots(false);
+    });
+
+    return () => { active = false; };
+  }, [selectedDate, shopId, defaultShopId, daySlots, totalDurationMinutes]);
+
   // Slots the shared TimeSlotGrid should render as unavailable.
   // Combines already-booked appointment slots, slots that have already
   // passed today, and slots where the selected services would run past shop close.
@@ -1012,12 +1056,19 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       daySlots.length > 0 ? timeToMinutes(daySlots[daySlots.length - 1]) + 60 : Infinity;
 
     return daySlots.filter((time) => {
-      if (bookedSlots.includes(time) || pastSlots.includes(time)) return true;
+      if (bookedSlots.includes(time) || pastSlots.includes(time) || mechanicUnavailableSlots.includes(time)) return true;
       // Block if the selected service duration would run past shop close
       if (timeToMinutes(time) + totalDurationMinutes > shopCloseMinutes) return true;
       return false;
     });
-  }, [daySlots, bookedSlots, pastSlots, totalDurationMinutes]);
+  }, [daySlots, bookedSlots, pastSlots, mechanicUnavailableSlots, totalDurationMinutes]);
+
+  useEffect(() => {
+    if (!checkingMechanicSlots && selectedTime && unavailableSlots.includes(selectedTime)) {
+      setSelectedTime("");
+      setSelectedMechanicId(null);
+    }
+  }, [checkingMechanicSlots, selectedTime, unavailableSlots]);
 
   // If the currently selected time is no longer valid for the loaded day
   // (e.g. outside operating hours or blocked), clear it so the customer
@@ -1215,6 +1266,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       }
     } catch (err: any) {
       console.error("Error booking appointment:", err);
+      const bookingError = String(err?.message || "");
+      if (selectedMechanicId && /already booked|already assigned|overlap/i.test(bookingError)) {
+        setMechanicConflictForSlot({ slotKey: mechanicSlotKey, mechanicId: selectedMechanicId });
+        setSelectedMechanicId(null);
+        setErrorMsg("");
+        stepDir.current = -1;
+        setCurrentStep(2);
+        setMechanicAvailabilityRefreshKey((key) => key + 1);
+        return;
+      }
       setErrorMsg(
         err?.message || "Failed to book appointment. Please try again.",
       );
@@ -1800,8 +1861,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           includeToday={false}
                           skipSundays={false}
                           label="Pick a date"
-                          isDateDisabled={(dateKey) => {
-                            if (loadingMechanicScheduleDays) return true;
+                          isDateHidden={(dateKey) => {
+                            if (loadingMechanicScheduleDays) return false;
                             const date = new Date(`${dateKey}T00:00:00`);
                             const mechanicWeekday = (date.getDay() + 6) % 7;
                             return !mechanicScheduleWeekdays.has(mechanicWeekday);
@@ -1815,17 +1876,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               <Loader2 size={12} className="animate-spin" /> Checking mechanic schedules…
                             </p>
                           ) : (
-                            <p className="text-slate-500">Gray dates have no mechanic shift scheduled.</p>
+                            <p className="text-slate-500">Only dates with scheduled mechanics are shown.</p>
                           )}
                         </div>
                       </div>
 
                       <div className="mb-8">
+                        {mechanicSlotAvailabilityError && (
+                          <p role="alert" className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-300">
+                            {mechanicSlotAvailabilityError}
+                          </p>
+                        )}
                         <TimeSlotGrid
-                          slots={daySlots}
+                          slots={checkingMechanicSlots ? [] : daySlots.filter((time) => !unavailableSlots.includes(time))}
                           value={selectedTime}
                           onChange={handleTimeSelect}
-                          takenSlots={unavailableSlots}
+                          takenSlots={[]}
+                          pastSlots={[]}
+                          loading={checkingMechanicSlots}
                           label="Pick a time"
                         />
                       </div>

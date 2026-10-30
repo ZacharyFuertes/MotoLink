@@ -28,6 +28,8 @@ interface TimeSlotGridProps {
   takenSlots?: string[];
   /** Time has already passed on the selected day unavailable. */
   pastSlots?: string[];
+  /** Disable choices while availability is being checked. */
+  loading?: boolean;
   /** Rendered above the grid. */
   label?: string;
   /** Shown under the grid when nothing is selectable. */
@@ -49,6 +51,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   onChange,
   takenSlots = [],
   pastSlots = [],
+  loading = false,
   label,
   emptyMessage,
 }) => {
@@ -65,10 +68,8 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
       )}
 
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-        {slots.map((slot) => {
-          const isTaken = takenSlots.includes(slot);
-          const isPast = pastSlots.includes(slot);
-          const disabled = isTaken || isPast;
+        {slots.filter((slot) => !takenSlots.includes(slot) && !pastSlots.includes(slot)).map((slot) => {
+          const disabled = loading;
           const isActive = value === slot;
           const { hour, meridiem } = splitSlotLabel(slot);
 
@@ -80,11 +81,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
               aria-pressed={isActive}
               aria-disabled={disabled}
               title={
-                isTaken
-                  ? "Already booked"
-                  : isPast
-                    ? "Time has already passed"
-                    : `Book ${hour}:00 ${meridiem}`
+                loading ? "Checking mechanic availability" : `Book ${hour}:00 ${meridiem}`
               }
               onClick={() => onChange(slot)}
               className={`relative flex h-12 w-full flex-col items-center justify-center
@@ -93,13 +90,13 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                             isActive
                               ? "border-moto-accent bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20"
                               : disabled
-                                ? "cursor-not-allowed border-moto-gray bg-moto-dark text-slate-600"
+                                ? "cursor-wait border-moto-gray bg-moto-dark text-slate-600"
                                 : "border-moto-gray bg-moto-darker text-slate-300 hover:border-moto-accent hover:text-moto-accent"
                           }`}
             >
               <span
                 className={`text-sm font-bold leading-none tabular-nums ${
-                  disabled ? "line-through" : ""
+                  disabled ? "opacity-50" : ""
                 }`}
               >
                 {hour}
@@ -120,7 +117,13 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
         })}
       </div>
 
-      {availableCount === 0 ? (
+      {loading && (
+        <p className="mt-3 text-xs font-medium text-slate-400" role="status">
+          Checking which mechanics can cover the selected services…
+        </p>
+      )}
+
+      {!loading && availableCount === 0 ? (
         <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300">
           {emptyMessage || "No time slots left on this date pick another day."}
         </p>

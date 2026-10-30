@@ -14,6 +14,8 @@ interface DateStripProps {
   label?: string;
   /** Return true when the date must be visible but cannot be selected. */
   isDateDisabled?: (dateKey: string) => boolean;
+  /** Return true when the date should not appear in the strip at all. */
+  isDateHidden?: (dateKey: string) => boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ const DateStrip: React.FC<DateStripProps> = ({
   skipSundays = false,
   label,
   isDateDisabled,
+  isDateHidden,
 }) => {
   const dates = useMemo(() => {
     const out: string[] = [];
@@ -63,6 +66,8 @@ const DateStrip: React.FC<DateStripProps> = ({
     };
   };
 
+  const visibleDates = dates.filter((dateKey) => !isDateHidden?.(dateKey));
+
   return (
     <div>
       {label && (
@@ -72,7 +77,7 @@ const DateStrip: React.FC<DateStripProps> = ({
       )}
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
-        {dates.map((dateKey) => {
+        {visibleDates.map((dateKey) => {
           const f = formatDate(dateKey);
           const isActive = value === dateKey;
           const isDisabled = isDateDisabled?.(dateKey) ?? false;
@@ -123,6 +128,9 @@ const DateStrip: React.FC<DateStripProps> = ({
           );
         })}
       </div>
+      {visibleDates.length === 0 && (
+        <p className="mt-1 text-xs text-slate-400">No dates with scheduled mechanics are available.</p>
+      )}
     </div>
   );
 };

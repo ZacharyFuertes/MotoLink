@@ -1,6 +1,18 @@
 import { supabase } from "./supabaseClient";
 import { normalizeTime } from "../utils/dateTime";
 
+const timeToMinutes = (value?: string | null): number => {
+  const normalized = normalizeTime(value);
+  if (!normalized || !normalized.includes(":")) return 0;
+
+  const [hourPart, minutePart] = normalized.split(":");
+  const hour = Number.parseInt(hourPart, 10);
+  const minute = Number.parseInt(minutePart || "0", 10);
+
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return 0;
+  return hour * 60 + minute;
+};
+
 export interface AssignableMechanic {
   id: string;
   name: string;
@@ -8,6 +20,37 @@ export interface AssignableMechanic {
   eligible: boolean;
   reason?: "no-shift" | "outside-shift" | "unavailable" | "already-booked";
 }
+
+export interface TimeSlotMechanicCandidate {
+  id: string;
+  name: string;
+  phone?: string | null;
+}
+
+export const filterMechanicsForTimeSlot = ({
+  mechanics,
+  shiftsByMechanic,
+  busyMechanicIds,
+  startMin,
+  endMin,
+}: {
+  mechanics: TimeSlotMechanicCandidate[];
+  shiftsByMechanic: Map<string, Array<{ mechanic_id: string; start_time: string; end_time: string; is_available: boolean }>>;
+  busyMechanicIds: Set<string>;
+  startMin: number;
+  endMin: number;
+}) => {
+  return mechanics.filter((mechanic) => {
+    if (busyMechanicIds.has(mechanic.id)) return false;
+
+    const shifts = shiftsByMechanic.get(mechanic.id) || [];
+    return shifts.some((shift) => {
+      const shiftStart = timeToMinutes(shift.start_time);
+      const shiftEnd = timeToMinutes(shift.end_time);
+      return shift.is_available && shiftStart <= startMin && shiftEnd >= endMin;
+    });
+  });
+};
 
 interface AssignmentAppointment {
   id: string;
@@ -45,7 +88,7 @@ export const getAssignableMechanics = async (
 
   const mechanicIds = mechanics.map((mechanic) => mechanic.id);
   const weekday = (new Date(`${appointment.scheduled_date}T00:00:00`).getDay() + 6) % 7;
-  const startMin = normalizeTime(appointment.scheduled_time);
+  const startMin = timeToMinutes(appointment.scheduled_time);
   const duration = appointment.durationMinutes || 60;
   const endMin = startMin + duration;
 
@@ -79,7 +122,7 @@ export const getAssignableMechanics = async (
   (bookingsResult.data || [])
     .filter((booking) => booking.id !== appointment.id && booking.mechanic_id)
     .forEach((booking) => {
-      const bStart = normalizeTime(booking.scheduled_time);
+      const bStart = timeToMinutes(booking.scheduled_time);
       const bDuration = booking.duration_minutes || 60;
       const bEnd = bStart + bDuration;
       // Intervals overlap if bStart < endMin && bEnd > startMin
@@ -92,8 +135,8 @@ export const getAssignableMechanics = async (
     const shifts = shiftsByMechanic.get(mechanic.id) || [];
     // Shift must fully cover [startMin, endMin): shift.start <= startMin && shift.end >= endMin
     const coveringShifts = shifts.filter((shift) => {
-      const sStart = normalizeTime(shift.start_time);
-      const sEnd = normalizeTime(shift.end_time);
+      const sStart = timeToMinutes(shift.start_time);
+      const sEnd = timeToMinutes(shift.end_time);
       return sStart <= startMin && sEnd >= endMin;
     });
     const isBusy = busyMechanicIds.has(mechanic.id);

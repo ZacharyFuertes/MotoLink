@@ -100,7 +100,10 @@ BEGIN
         AND (other.scheduled_date + other.scheduled_time) <
             (NEW.scheduled_date + NEW.scheduled_time + make_interval(mins => v_duration))
     ) THEN
-      RAISE EXCEPTION 'This mechanic is already booked during part of that appointment time.';
+      -- Customers should simply see that mechanic disappear from the selectable
+      -- list for that date/time instead of receiving a blocking error.
+      NEW.mechanic_id := NULL;
+      RETURN NEW;
     END IF;
   END IF;
 
