@@ -366,6 +366,10 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           errorMessage = isSignup
             ? "Email already registered or invalid credentials. Please use a different email or sign in instead."
             : "Invalid email or password. Please check and try again.";
+        } else if (message.includes("invalid email or password")) {
+          errorMessage = isSignup
+            ? "This email is already registered. Please check the password or sign in instead."
+            : "Invalid email or password. Please check and try again.";
         } else if (message.includes("user already registered")) {
           errorMessage =
             "This email is already registered. Please sign in instead.";

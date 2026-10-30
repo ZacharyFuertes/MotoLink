@@ -53,14 +53,13 @@ interface WalkInBookingModalProps {
   contextLabel?: string;
 }
 
-const SERVICE_TYPES = [
-  "Oil Change",
-  "Brake Service",
-  "Tire Replacement",
-  "Engine Diagnostic",
-  "General Maintenance",
-  "Custom Work",
-];
+interface CatalogService {
+  id: string;
+  label: string;
+  description: string | null;
+  price: number;
+  duration_minutes: number;
+}
 
 const VEHICLE_MAKES = [
   "Honda",
@@ -94,7 +93,6 @@ const emptyForm = {
   customer_email: "",
   vehicle_make: "",
   vehicle_model: "",
-  service_type: [] as string[],
 };
 
 const inputClass =
@@ -142,6 +140,10 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [_customerSearchError, setCustomerSearchError] = useState("");
 
   const [formData, setFormData] = useState(emptyForm);
+  const [services, setServices] = useState<CatalogService[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState("");
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [selectedSlot, setSelectedSlot] = useState("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
@@ -189,6 +191,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setCustomerQuery("");
     setCustomerSearchError("");
     setFormData(emptyForm);
+    setServices([]);
+    setSelectedServiceIds([]);
+    setServicesError("");
     setSelectedDate(todayKey());
     setSelectedSlot("");
     setBookedSlots([]);
@@ -197,6 +202,58 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setConfirmed(null);
     setSchemaReady(null);
   }, [isOpen]);
+
+  // Use the owning shop's active catalog just like customer-created bookings.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setServicesLoading(true);
+    setServicesError("");
+
+    void (async () => {
+      try {
+        const shopId = await resolveShopId();
+        if (!shopId) {
+          throw new Error("No shop is linked to your account yet.");
+        }
+
+        const { data, error: catalogError } = await supabase
+          .from("services_pricing")
+          .select("id, label, description, price, duration_minutes")
+          .eq("shop_id", shopId)
+          .eq("is_active", true)
+          .order("price", { ascending: true });
+
+        if (catalogError) throw catalogError;
+        if (!cancelled) {
+          setServices(
+            (data || []).map((service) => ({
+              ...service,
+              price: Number(service.price) || 0,
+              duration_minutes: Number(service.duration_minutes) || 60,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Could not load shop services for walk-in booking:", err);
+        if (!cancelled) {
+          setServices([]);
+          setServicesError(
+            err instanceof Error
+              ? err.message
+              : "Could not load this shop's service catalog. Please try again.",
+          );
+        }
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, resolveShopId]);
 
   // Preflight the walk-in identity columns before allowing a booking.
   //
@@ -512,8 +569,15 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       setError("Enter the vehicle make.");
       return;
     }
-    if (formData.service_type.length === 0) {
-      setError("Choose at least one service type.");
+    if (servicesLoading) {
+      setError("Wait for the shop's service catalog to finish loading.");
+      return;
+    }
+    const selectedServices = services.filter((service) =>
+      selectedServiceIds.includes(service.id),
+    );
+    if (selectedServices.length === 0) {
+      setError("Choose at least one service from the shop's catalog.");
       return;
     }
 
@@ -534,16 +598,28 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       ]
         .filter(Boolean)
         .join(" ");
-      const serviceDescription = formData.service_type.join(", ");
+      const serviceDescription = selectedServices
+        .map((service) => service.label)
+        .join(", ");
+      const estimatedPrice = selectedServices.reduce(
+        (total, service) => total + service.price,
+        0,
+      );
+      const durationMinutes = selectedServices.reduce(
+        (total, service) => total + service.duration_minutes,
+        0,
+      );
       const payload = {
         customer_id: customerId,
         vehicle_id: null,
         shop_id: shopId,
         scheduled_date: selectedDate,
         scheduled_time: selectedSlot,
+        duration_minutes: durationMinutes,
         service_type: serviceDescription,
         description: `${vehicleDescription} - ${serviceDescription}`,
         status: "pending",
+        estimated_price: estimatedPrice,
         // Identity columns are populated only when there is no account to point
         // at. This is the insert that fails with PGRST204 if the 20261003
         // migration has not been applied hence the preflight above.
@@ -977,29 +1053,57 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 <legend className="mb-3 block text-xs font-bold text-slate-200">
                   Service Type (Choose all that apply)
                 </legend>
+                {servicesLoading ? (
+                  <p className="flex items-center gap-2 text-xs text-slate-400">
+                    <Loader2 size={14} className="animate-spin" />
+                    Loading shop services...
+                  </p>
+                ) : servicesError ? (
+                  <p role="alert" className="text-xs text-rose-300">
+                    {servicesError}
+                  </p>
+                ) : services.length === 0 ? (
+                  <p className="text-xs text-slate-400">
+                    No active services are listed. Add services in your shop's
+                    service catalog before booking.
+                  </p>
+                ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {SERVICE_TYPES.map((service) => (
+                  {services.map((service) => (
                     <label
-                      key={service}
-                      className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-moto-gray bg-moto-darker px-3.5 py-3 text-xs text-slate-200 transition-colors hover:border-moto-accent/50"
+                      key={service.id}
+                      className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-moto-gray bg-moto-darker px-3.5 py-3 text-xs text-slate-200 transition-colors hover:border-moto-accent/50"
                     >
                       <input
                         type="checkbox"
-                        checked={formData.service_type.includes(service)}
+                        checked={selectedServiceIds.includes(service.id)}
                         onChange={(e) =>
-                          setFormData((current) => ({
-                            ...current,
-                            service_type: e.target.checked
-                              ? [...current.service_type, service]
-                              : current.service_type.filter((item) => item !== service),
-                          }))
+                          setSelectedServiceIds((current) =>
+                            e.target.checked
+                              ? [...current, service.id]
+                              : current.filter((id) => id !== service.id),
+                          )
                         }
-                        className="accent-moto-accent"
+                        className="mt-0.5 accent-moto-accent"
                       />
-                      {service}
+                      <span className="flex-1">
+                        <span className="block font-semibold">{service.label}</span>
+                        {service.description && (
+                          <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">
+                            {service.description}
+                          </span>
+                        )}
+                        <span className="mt-1 block text-[10px] text-slate-500">
+                          Estimated duration: {service.duration_minutes} min
+                        </span>
+                      </span>
+                      <span className="whitespace-nowrap text-right font-mono font-bold text-slate-300">
+                        ₱{service.price.toFixed(2)}
+                      </span>
                     </label>
                   ))}
                 </div>
+                )}
               </fieldset>
 
               {formData.vehicle_make.trim() && (
@@ -1007,9 +1111,26 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                   <Car size={13} />
                   {formData.vehicle_make.trim()}
                   {formData.vehicle_model.trim() && ` ${formData.vehicle_model.trim()}`}
-                  {formData.service_type.length > 0 &&
-                    ` · ${formData.service_type.join(", ")}`}
+                  {selectedServiceIds.length > 0 &&
+                    ` · ${services
+                      .filter((service) => selectedServiceIds.includes(service.id))
+                      .map((service) => service.label)
+                      .join(", ")}`}
                 </p>
+              )}
+              {selectedServiceIds.length > 0 && (
+                <div className="flex items-center justify-between border-t border-moto-gray pt-3 text-xs">
+                  <span className="font-bold uppercase tracking-wide text-slate-300">
+                    Estimated service total
+                  </span>
+                  <span className="font-mono font-black text-moto-accent">
+                    ₱
+                    {services
+                      .filter((service) => selectedServiceIds.includes(service.id))
+                      .reduce((total, service) => total + service.price, 0)
+                      .toFixed(2)}
+                  </span>
+                </div>
               )}
             </div>
 
