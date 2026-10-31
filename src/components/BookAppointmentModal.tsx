@@ -700,7 +700,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .from("appointments")
         .select("id")
         .eq("customer_id", user.id)
-        .in("status", ["pending", "confirmed", "in_progress"])
+        .in("status", ["pending", "confirmed", "in_progress", "reschedule_requested"])
         .limit(1);
       if (error) throw error;
       const hasActive = (data || []).length > 0;

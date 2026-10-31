@@ -60,7 +60,7 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
       if (!aptError && appointments) {
         setTotalAppointments(appointments.length);
         setPendingAppointments(
-          appointments.filter((a: any) => a.status === "pending" || a.status === "confirmed").length
+          appointments.filter((a: any) => a.status === "pending" || a.status === "confirmed" || a.status === "reschedule_requested").length
         );
         
         // Calculate total spent from completed appointments

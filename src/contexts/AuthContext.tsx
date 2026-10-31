@@ -16,6 +16,8 @@ import { formatDatabaseError } from "../services/dbHelper";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  /** True after the persisted Supabase session has been checked on app startup. */
+  isInitialized: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -56,6 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const subscriptionRef = useRef<
     | ReturnType<typeof supabase.auth.onAuthStateChange>["data"]["subscription"]
     | null
@@ -141,8 +144,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (session?.user?.id) {
           console.log("✅ [Auth] Session restored");
-          // Fetch profile in background (non-blocking)
-          setUserProfileFromSession(session.user.id, session.user.email);
+          // Wait for the profile before marking auth hydration complete. The
+          // app uses this to validate a persisted page against the real role.
+          await setUserProfileFromSession(session.user.id, session.user.email);
         } else {
           console.log("ℹ️ [Auth] No session found");
           setUser(null);
@@ -150,6 +154,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       } catch (err) {
         console.error("❌ [Auth] Error restoring session:", err);
         setUser(null);
+      } finally {
+        setIsInitialized(true);
       }
     };
 
@@ -408,6 +414,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const value: AuthContextType = {
     user,
     isLoading,
+    isInitialized,
     isAuthenticated: !!user,
     login,
     logout,

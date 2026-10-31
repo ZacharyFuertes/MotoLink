@@ -54,6 +54,7 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "all", label: "All" },
   { id: "pending", label: "Pending" },
   { id: "confirmed", label: "Confirmed" },
+  { id: "reschedule_requested", label: "Reschedule Requested" },
   { id: "in_progress", label: "In Progress" },
   { id: "completed", label: "Completed" },
   { id: "declined", label: "Declined" },

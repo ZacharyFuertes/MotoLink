@@ -80,6 +80,16 @@ export const sendServiceInProgressEmail = async (appointmentId: string) =>
 export const sendBookingUpdatedEmail = async (appointmentId: string) =>
   sendEmailForAppointment("booking-updated", appointmentId);
 
+/** Notify an online customer after an owner resolves a mechanic conflict. */
+export const sendRescheduleNoticeToCustomer = async (
+  appointmentId: string,
+  changeType: "rescheduled" | "reassigned",
+) =>
+  sendEmailForAppointment(
+    changeType === "rescheduled" ? "booking-rescheduled" : "booking-mechanic-reassigned",
+    appointmentId,
+  );
+
 /** Send the customer a cancellation email. */
 export const sendBookingCancelledEmail = async (appointmentId: string) =>
   sendEmailForAppointment("booking-cancelled", appointmentId);

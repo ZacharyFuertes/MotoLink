@@ -32,6 +32,10 @@ interface CustomerLoginPageProps {
 
 const SIGNUP_OTP_PENDING_KEY = "moto_customer_signup_otp_pending";
 const ADMIN_EMAIL = "admin@motolink.com";
+const isLocalDevelopment =
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
 const getInitialSignupOtpState = () => {
   const pendingState = localStorage.getItem(SIGNUP_OTP_PENDING_KEY);
@@ -325,6 +329,16 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         // after authentication; no account role is changed or trusted from input.
         if (formData.email.trim().toLowerCase() === ADMIN_EMAIL) {
           adminPasswordLoginRef.current = true;
+          await login(formData.email.trim(), formData.password);
+          setFormData((prev) => ({ ...prev, password: "" }));
+          setLoginAttempted(true);
+          setLoading(false);
+          return;
+        }
+
+        // Local-only convenience for faster testing. Vite's DEV flag is false
+        // in production builds, so Vercel continues to require email OTP.
+        if (isLocalDevelopment) {
           await login(formData.email.trim(), formData.password);
           setFormData((prev) => ({ ...prev, password: "" }));
           setLoginAttempted(true);

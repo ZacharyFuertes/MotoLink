@@ -32,6 +32,9 @@ type EmailTemplate =
   | "service-completion"
   | "booking-cancelled"
   | "booking-updated"
+  | "booking-reschedule-requested"
+  | "booking-rescheduled"
+  | "booking-mechanic-reassigned"
   | "owner-booking";
 
 const TEMPLATES: EmailTemplate[] = [
@@ -41,6 +44,9 @@ const TEMPLATES: EmailTemplate[] = [
   "service-completion",
   "booking-cancelled",
   "booking-updated",
+  "booking-reschedule-requested",
+  "booking-rescheduled",
+  "booking-mechanic-reassigned",
   "owner-booking",
 ];
 
@@ -62,8 +68,21 @@ const fmtDate = (iso: string) => {
   }
 };
 
+const fmtDuration = (minutes: number) => {
+  const total = Math.max(0, Math.floor(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const remainingMinutes = total % 60;
+  if (!hours) {
+    return `${remainingMinutes} ${remainingMinutes === 1 ? "minute" : "minutes"}`;
+  }
+  if (!remainingMinutes) {
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  }
+  return `${hours} ${hours === 1 ? "hour" : "hours"} ${remainingMinutes} ${remainingMinutes === 1 ? "minute" : "minutes"}`;
+};
+
 const escapeHtml = (value: string) =>
-  value.replace(/[&<>"']/g, (character) => ({
+  String(value ?? "").replace(/[&<>"']/g, (character) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -90,8 +109,11 @@ interface EmailContext {
   serviceType: string;
   scheduledDate: string;
   scheduledTime: string;
+  durationMinutes: number;
+  previousSchedule?: string;
   status: string;
   notes?: string;
+  rescheduleReason?: string;
   parts: PartRow[];
   partsTotal: number;
   totalAmount: number;
@@ -148,7 +170,7 @@ const emailLayout = (opts: {
             <td style="padding:20px 36px;border-top:1px solid #f8fafc;background:#0a0a0a;">
               <p style="margin:0;font-size:12px;color:#64748b;text-align:center;line-height:1.8;">
                 MotoLink &nbsp;•&nbsp; Professional Vehicle Service<br/>
-                <span style="color:#94a3b8;">This is an automated notification. Reference: ${opts.ref}</span>
+                <span style="color:#94a3b8;">This is an automated notification. Reference: ${escapeHtml(opts.ref)}</span>
               </p>
             </td>
           </tr>
@@ -176,7 +198,7 @@ const partsTable = (parts: PartRow[]) => {
     .map(
       (p) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#334155;">${p.part_name || "Part"}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#334155;">${escapeHtml(p.part_name || "Part")}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#334155;text-align:center;">${p.quantity ?? 0}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#334155;text-align:right;">${fmtPeso(p.unit_price ?? 0)}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#334155;text-align:right;">${fmtPeso((p.quantity ?? 0) * (p.unit_price ?? 0))}</td>
@@ -211,13 +233,19 @@ const buildSubject = (template: EmailTemplate, ctx: EmailContext): string => {
       return `Your appointment has been cancelled – MotoLink`;
     case "booking-updated":
       return `Appointment update – ${ctx.serviceType} | MotoLink`;
+    case "booking-reschedule-requested":
+      return `Please contact the shop about your appointment | MotoLink`;
+    case "booking-rescheduled":
+      return `Your appointment has been rescheduled | MotoLink`;
+    case "booking-mechanic-reassigned":
+      return `Your MotoLink mechanic assignment was updated`;
     case "owner-booking":
       return `New appointment request – ${ctx.serviceType}`;
   }
 };
 
 const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
-  const first = ctx.customer?.name?.split(" ")[0] || "there";
+  const first = escapeHtml(ctx.customer?.name?.split(" ")[0] || "there");
   const shopLine = ctx.shop
     ? `${ctx.shop.name}${ctx.shop.city ? `, ${ctx.shop.city}` : ""}`
     : "MotoLink";
@@ -226,8 +254,14 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
     detailRow("Shop", shopLine),
     detailRow("Service", ctx.serviceType),
     detailRow("Schedule", when),
-    ...(ctx.mechanic && ["booking-confirmation", "service-in-progress", "booking-updated"].includes(template)
+    ...(template === "booking-rescheduled" && ctx.previousSchedule
+      ? [detailRow("Previous schedule", ctx.previousSchedule)]
+      : []),
+    ...(ctx.mechanic && ["booking-confirmation", "service-in-progress", "booking-updated", "booking-rescheduled", "booking-mechanic-reassigned"].includes(template)
       ? [detailRow("Assigned mechanic", ctx.mechanic.name)]
+      : []),
+    ...(template === "booking-rescheduled"
+      ? [detailRow("Total service time", fmtDuration(ctx.durationMinutes))]
       : []),
     detailRow("Reference", ctx.bookingRef),
   ].join("");
@@ -269,7 +303,7 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
       return `
         ${detailsTable(detailRow("Vehicle", ctx.vehicle ? `${ctx.vehicle.make || ""} ${ctx.vehicle.model || ""}${ctx.vehicle.year ? ` (${ctx.vehicle.year})` : ""}`.trim() || "—" : "—") + baseRows)}
         ${partsBlock}
-        ${ctx.notes ? `<div style="margin-top:20px;background:#f8fafc;border:1px solid #cbd5e1;border-left:3px solid #0f172a;padding:16px 20px;border-radius:0 6px 6px 0;"><p style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0f172a;">Technician Notes</p><p style="margin:0;font-size:14px;color:#334155;line-height:1.6;">${ctx.notes}</p></div>` : ""}
+        ${ctx.notes ? `<div style="margin-top:20px;background:#f8fafc;border:1px solid #cbd5e1;border-left:3px solid #0f172a;padding:16px 20px;border-radius:0 6px 6px 0;"><p style="margin:0 0 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#0f172a;">Technician Notes</p><p style="margin:0;font-size:14px;color:#334155;line-height:1.6;">${escapeHtml(ctx.notes)}</p></div>` : ""}
         <div style="margin-top:24px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:20px;text-align:center;">
           <p style="margin:0 0 4px;font-size:16px;font-weight:800;color:#22c55e;">Your vehicle is ready for pickup!</p>
           <p style="margin:0;font-size:13px;color:#64748b;">Please visit us during business hours. Bring this email or your appointment reference.</p>
@@ -286,6 +320,29 @@ const buildBody = (template: EmailTemplate, ctx: EmailContext): string => {
         ${partsBlock}
         <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
           <p style="margin:0;font-size:14px;color:#1d4ed8;line-height:1.6;">Your appointment details have been updated. Review the schedule above we look forward to seeing you${ctx.customer ? `, ${first}` : ""}!</p>
+        </div>`;
+    case "booking-reschedule-requested":
+      return `
+        ${detailsTable(baseRows)}
+        <div style="margin-top:24px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:20px;">
+          <p style="margin:0 0 8px;font-size:15px;font-weight:800;color:#92400e;">The shop has requested to reschedule this appointment.</p>
+          <p style="margin:0;font-size:13px;color:#475569;line-height:1.6;">Your existing requested time remains on your booking while the shop coordinates a new time with you. Please contact ${escapeHtml(ctx.shop?.name || "the shop")}${ctx.shop?.phone ? ` at ${escapeHtml(ctx.shop.phone)}` : ""} to arrange a suitable time.</p>
+          ${ctx.rescheduleReason ? `<p style="margin:12px 0 0;font-size:13px;color:#475569;line-height:1.6;"><strong>Shop note:</strong> ${escapeHtml(ctx.rescheduleReason)}</p>` : ""}
+        </div>`;
+    case "booking-rescheduled":
+      return `
+        ${detailsTable(baseRows)}
+        <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
+          <p style="margin:0 0 8px;font-size:15px;font-weight:800;color:#1d4ed8;">The shop rescheduled your appointment.</p>
+          <p style="margin:0;font-size:13px;color:#475569;line-height:1.6;">Your booking has been updated to the date and time shown above. No confirmation is needed. Please contact ${escapeHtml(ctx.shop?.name || "the shop")}${ctx.shop?.phone ? ` at ${escapeHtml(ctx.shop.phone)}` : ""} if the new time does not work for you.</p>
+          ${ctx.rescheduleReason ? `<p style="margin:12px 0 0;font-size:13px;color:#475569;line-height:1.6;"><strong>Shop note:</strong> ${escapeHtml(ctx.rescheduleReason)}</p>` : ""}
+        </div>`;
+    case "booking-mechanic-reassigned":
+      return `
+        ${detailsTable(baseRows)}
+        <div style="margin-top:24px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:20px;">
+          <p style="margin:0 0 8px;font-size:15px;font-weight:800;color:#1d4ed8;">Your mechanic assignment was updated.</p>
+          <p style="margin:0;font-size:13px;color:#475569;line-height:1.6;">Your appointment date and time have not changed. ${ctx.mechanic ? `Your new assigned mechanic is ${escapeHtml(ctx.mechanic.name)}.` : "The booking is currently unassigned; the shop will arrange a mechanic."} Contact ${escapeHtml(ctx.shop?.name || "the shop")}${ctx.shop?.phone ? ` at ${escapeHtml(ctx.shop.phone)}` : ""} if you have questions.</p>
         </div>`;
     case "owner-booking":
       return `
@@ -309,6 +366,8 @@ const buildText = (ctx: EmailContext): string => {
     `Service   : ${ctx.serviceType}`,
     `Schedule  : ${fmtDate(ctx.scheduledDate)} at ${ctx.scheduledTime}`,
     ...(ctx.mechanic ? [`Mechanic  : ${ctx.mechanic.name}`] : []),
+    ...(ctx.previousSchedule ? [`Previous  : ${ctx.previousSchedule}`] : []),
+    `Duration  : ${fmtDuration(ctx.durationMinutes)}`,
     "",
     ctx.parts.length
       ? `Parts:\n${ctx.parts.map((p) => `  - ${p.part_name || "Part"} x${p.quantity ?? 0} @ ${fmtPeso(p.unit_price ?? 0)}`).join("\n")}\n`
@@ -517,16 +576,16 @@ export default async function handler(req: any, res: any) {
     vehicle = vehicleRow || undefined;
   }
 
-  const missingNames = rawParts.filter((p) => !p.part_name);
+  // Only look up names for parts that lack one AND have an id to look up by.
+  const missingNameIds = rawParts
+    .filter((p) => !p.part_name && p.part_id)
+    .map((p) => p.part_id as string);
   let partNameById: Record<string, string> = {};
-  if (missingNames.length > 0) {
+  if (missingNameIds.length > 0) {
     const { data: partRows } = await db
       .from("parts")
       .select("id, name")
-      .in(
-        "id",
-        missingNames.map((p) => p.part_id as string),
-      );
+      .in("id", missingNameIds);
     partNameById = Object.fromEntries((partRows || []).map((r: any) => [r.id, r.name]));
   }
   const parts = rawParts.map((p) => ({
@@ -549,6 +608,7 @@ export default async function handler(req: any, res: any) {
     scheduledTime: appointment.scheduled_time || "",
     status: appointment.status,
     notes: appointment.notes || undefined,
+    rescheduleReason: appointment.reschedule_reason || undefined,
     parts,
     partsTotal,
     totalAmount: Number(appointment.total_amount) || partsTotal || 0,
@@ -556,6 +616,10 @@ export default async function handler(req: any, res: any) {
     mechanic,
     shop,
     vehicle,
+    durationMinutes: Number(appointment.duration_minutes) || 60,
+    previousSchedule: appointment.previous_scheduled_date && appointment.previous_scheduled_time
+      ? `${fmtDate(appointment.previous_scheduled_date)} at ${appointment.previous_scheduled_time}`
+      : undefined,
   };
 
   // 5) Pick recipient.
@@ -587,45 +651,46 @@ export default async function handler(req: any, res: any) {
 
   // 7) Render + send.
   const subject = buildSubject(template, ctx);
+  const firstName = escapeHtml(ctx.customer?.name?.split(" ")[0] || "there");
   const html = emailLayout({
     badge:
       template === "service-completion"
         ? "SERVICE COMPLETE"
         : template === "service-in-progress"
           ? "SERVICE IN PROGRESS"
-        : template === "booking-request-received"
-          ? "REQUEST RECEIVED"
-          : template === "booking-confirmation"
-            ? "BOOKING CONFIRMED"
-            : "MOTOLINK",
+          : template === "booking-request-received"
+            ? "REQUEST RECEIVED"
+            : template === "booking-confirmation"
+              ? "BOOKING CONFIRMED"
+              : "MOTOLINK",
     heading:
       template === "service-completion"
-        ? `Your vehicle is ready, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
+        ? `Your vehicle is ready, ${firstName}!`
         : template === "service-in-progress"
-          ? `Work on your vehicle has started, ${ctx.customer?.name?.split(" ")[0] || "there"}.`
-        : template === "booking-request-received"
-          ? `Booking request received, ${ctx.customer?.name?.split(" ")[0] || "there"}`
-        : template === "booking-confirmation"
-          ? `Your booking is confirmed, ${ctx.customer?.name?.split(" ")[0] || "there"}!`
-          : template === "owner-booking"
-            ? "New appointment request"
-            : template === "booking-cancelled"
-              ? "Your appointment was cancelled"
-              : "Your appointment details",
+          ? `Work on your vehicle has started, ${firstName}.`
+          : template === "booking-request-received"
+            ? `Booking request received, ${firstName}`
+            : template === "booking-confirmation"
+              ? `Your booking is confirmed, ${firstName}!`
+              : template === "owner-booking"
+                ? "New appointment request"
+                : template === "booking-cancelled"
+                  ? "Your appointment was cancelled"
+                  : "Your appointment details",
     subheading:
       template === "service-completion"
         ? "Great news your service appointment has been completed. Here is the full summary."
         : template === "service-in-progress"
           ? "The shop has started working on your appointment. Here are the booking details."
-        : template === "booking-request-received"
-          ? "We’ve received your appointment request. It is pending confirmation from the shop."
-        : template === "booking-confirmation"
-          ? "The shop has confirmed your appointment. Here are the confirmed details."
-          : template === "owner-booking"
-            ? "A customer has booked an appointment at your shop."
-            : template === "booking-cancelled"
-              ? "One of your appointments has been cancelled. Details below."
-              : "Your appointment details have been updated.",
+          : template === "booking-request-received"
+            ? "We’ve received your appointment request. It is pending confirmation from the shop."
+            : template === "booking-confirmation"
+              ? "The shop has confirmed your appointment. Here are the confirmed details."
+              : template === "owner-booking"
+                ? "A customer has booked an appointment at your shop."
+                : template === "booking-cancelled"
+                  ? "One of your appointments has been cancelled. Details below."
+                  : "Your appointment details have been updated.",
     body: buildBody(template, ctx),
     ref: ctx.bookingRef,
   });

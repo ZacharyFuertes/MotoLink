@@ -64,6 +64,20 @@ export interface ClaimedAppointment {
   scheduled_date: string;
 }
 
+export const cancelCustomerAppointment = async (appointmentId: string): Promise<void> => {
+  if (!appointmentId) throw new Error("Appointment ID is required.");
+
+  const { data, error } = await supabase.rpc("cancel_customer_appointment", {
+    p_appointment_id: appointmentId,
+  });
+  if (error) throw new Error(error.message || "Could not cancel this appointment.");
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result?.appointment_id || result.status !== "cancelled") {
+    throw new Error("This appointment could not be cancelled. Refresh and try again.");
+  }
+};
+
 export const claimWalkInAppointment = async (
   bookingReference: string,
 ): Promise<ClaimedAppointment> => {

@@ -50,6 +50,7 @@ export interface Part {
 export type AppointmentStatus =
   | "pending"
   | "confirmed"
+  | "reschedule_requested"
   | "in_progress"
   | "completed"
   | "cancelled";
@@ -63,6 +64,7 @@ export interface Appointment {
   shop_id: string;
   scheduled_date: string;
   scheduled_time: string;
+  duration_minutes?: number;
   service_type: string;
   description?: string;
   mechanic_id?: string | null;
@@ -71,6 +73,9 @@ export interface Appointment {
   walk_in_name?: string | null;
   walk_in_phone?: string | null;
   walk_in_email?: string | null;
+  reschedule_reason?: string | null;
+  reschedule_requested_at?: string | null;
+  reschedule_requested_by?: string | null;
   parts?: any[];
   total_amount?: number;
   estimated_price?: number;

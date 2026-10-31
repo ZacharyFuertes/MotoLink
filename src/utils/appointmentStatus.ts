@@ -26,6 +26,12 @@ export const APPOINTMENT_STATUS: Record<string, AppointmentStatusStyle> = {
     soft: "bg-moto-accent/15 text-moto-accent",
     dot: "bg-moto-accent",
   },
+  reschedule_requested: {
+    label: "Reschedule Requested",
+    pill: "text-orange-300 bg-orange-500/10 border-orange-500/20",
+    soft: "bg-orange-500/15 text-orange-300",
+    dot: "bg-orange-400",
+  },
   in_progress: {
     label: "In Progress",
     pill: "text-sky-400 bg-sky-500/10 border-sky-500/20",

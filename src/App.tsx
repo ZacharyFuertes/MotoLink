@@ -68,7 +68,7 @@ const getShopIdFromUrl = (): string | null => {
 };
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, user, isLoading, logout } = useAuth();
+  const { isAuthenticated, user, isLoading, isInitialized, logout } = useAuth();
 
   // Initialize currentPage from localStorage, falling back to landing
   const [currentPage, setCurrentPage] = useState<AppPage>(() => {
@@ -157,7 +157,7 @@ const AppContent: React.FC = () => {
    */
   useEffect(() => {
     // Only validate once auth is loaded and user role is available
-    if (isLoading) return;
+    if (!isInitialized || isLoading) return;
 
     // If not authenticated, clear any persisted page and force landing
     if (!isAuthenticated) {
@@ -182,7 +182,7 @@ const AppContent: React.FC = () => {
       // Redirect to the default page for this role
       navigateTo(getDefaultPageByRole(user.role));
     }
-  }, [isLoading, isAuthenticated, user?.role, currentPage]);
+  }, [isInitialized, isLoading, isAuthenticated, user?.role, currentPage]);
 
   // Handle page changes with role validation
   const handlePageChange = (page: AppPage | string) => {
@@ -281,6 +281,19 @@ const AppContent: React.FC = () => {
     "owner",
     "owner-signup",
   ].includes(currentLoginType);
+
+  // Wait for stored-session hydration before rendering or validating a saved
+  // route; otherwise the initial unauthenticated render can clear moto_last_page.
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-moto-dark text-slate-100">
+        <div className="text-center">
+          <p className="text-xl font-semibold mb-2">Restoring your session...</p>
+          <div className="animate-spin h-10 w-10 border-4 border-moto-accent border-t-transparent rounded-full mx-auto" />
+        </div>
+      </div>
+    );
+  }
 
   // If auth loading and we're NOT on a login screen, show a spinner placeholder.
   // On a login screen we let the login page manage its own loading UI so it stays

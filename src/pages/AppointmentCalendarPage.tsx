@@ -56,6 +56,11 @@ const statusConfig: Record<
     dot: "bg-moto-accent",
     label: "Confirmed",
   },
+  reschedule_requested: {
+    color: "bg-orange-500/15 text-orange-300 border border-orange-500/30",
+    dot: "bg-orange-400",
+    label: "Reschedule Requested",
+  },
   in_progress: {
     color: "bg-moto-accent/15 text-moto-accent border border-moto-accent/30",
     dot: "bg-moto-accent",
@@ -958,10 +963,11 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 </button>
               </header>
               <div className="space-y-2 p-4 sm:p-5">
-                {(Object.entries(statusConfig) as [AppointmentStatus, typeof statusConfig[AppointmentStatus]][]).map(([status, config]) => {
+                {(Object.entries(statusConfig) as [AppointmentStatus, typeof statusConfig[AppointmentStatus]][]).filter(([status]) => status !== "reschedule_requested").map(([status, config]) => {
                   const descriptions: Record<AppointmentStatus, string> = {
                     pending: "Waiting for the shop to review this request.",
                     confirmed: "The booking is accepted. The customer-selected mechanic is shown on the appointment.",
+                    reschedule_requested: "The shop is coordinating a new appointment time with the customer.",
                     in_progress: "Work has started; the customer will receive an email update.",
                     completed: "Finalize the service, update stock and create the invoice.",
                     cancelled: "Cancel this appointment and notify the customer.",

@@ -15,7 +15,9 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import { sendBookingCancelledEmail } from "../services/notificationService";
+import { cancelCustomerAppointment } from "../services/appointmentService";
 import BookAppointmentModal from "./BookAppointmentModal";
+import { todayKey } from "../utils/dateTime";
 
 interface AppointmentItem {
   id: string;
@@ -58,6 +60,12 @@ const STATUS_CONFIG: Record<
     bg: "bg-moto-accent/10 border-moto-accent/20",
     icon: <CheckCircle size={11} strokeWidth={2} />,
     label: "Confirmed",
+  },
+  reschedule_requested: {
+    color: "text-orange-300",
+    bg: "bg-orange-500/10 border-orange-500/20",
+    icon: <AlertCircle size={11} strokeWidth={2} />,
+    label: "Reschedule Requested",
   },
 
   completed: {
@@ -167,14 +175,9 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
   const handleCancelAppointment = async (appointmentId: string) => {
     try {
       setCancellingId(appointmentId);
-      const { error } = await supabase
-        .from("appointments")
-        .update({ status: "cancelled", updated_at: new Date().toISOString() })
-        .eq("id", appointmentId)
-        .eq("customer_id", user?.id); // Safety: only cancel own appointments
-      if (error) throw error;
+      await cancelCustomerAppointment(appointmentId);
 
-      sendBookingCancelledEmail(appointmentId);
+      void sendBookingCancelledEmail(appointmentId);
 
       // Update locally
       setAppointments((prev) =>
@@ -191,7 +194,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
     }
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayKey();
   const filteredAppointments = appointments.filter((apt) => {
     if (filter === "upcoming") {
       return (
@@ -218,7 +221,7 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
 
   const canCancel = (apt: AppointmentItem) => {
     return (
-      (apt.status === "pending" || apt.status === "confirmed") &&
+      (apt.status === "pending" || apt.status === "confirmed" || apt.status === "reschedule_requested") &&
       apt.scheduled_date >= today
     );
   };

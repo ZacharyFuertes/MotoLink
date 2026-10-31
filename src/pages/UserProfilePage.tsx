@@ -34,7 +34,7 @@ import BookAppointmentModal from "../components/BookAppointmentModal";
 import ServiceHistoryModal from "../components/ServiceHistoryModal";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import { getAppointmentStatus } from "../utils/appointmentStatus";
-import { claimWalkInAppointment } from "../services/appointmentService";
+import { cancelCustomerAppointment, claimWalkInAppointment } from "../services/appointmentService";
 import {
   EMPTY_VEHICLE_STATS,
   VehicleRecord,
@@ -54,6 +54,7 @@ import {
 } from "../services/vehicleService";
 import { sendBookingCancelledEmail } from "../services/notificationService";
 import { getSavedShops, SavedShop, unsaveShop } from "../services/shopFavoritesService";
+import { todayKey } from "../utils/dateTime";
 
 interface HistoryRecord {
   id: string;
@@ -552,9 +553,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     }
     return { value: null, isEstimate: false };
   };
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayKey();
   const canCancelBooking = (entry: HistoryRecord) =>
-    (entry.status === "pending" || entry.status === "confirmed") &&
+    (entry.status === "pending" || entry.status === "confirmed" || entry.status === "reschedule_requested") &&
     entry.scheduled_date >= today;
 
   const isUpcomingBooking = (entry: HistoryRecord) =>
@@ -639,18 +640,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
     try {
       setCancellingId(appointmentId);
-      const { error } = await supabase
-        .from("appointments")
-        .update({
-          status: "cancelled",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", appointmentId)
-        .eq("customer_id", user.id);
+      await cancelCustomerAppointment(appointmentId);
 
-      if (error) throw error;
-
-      sendBookingCancelledEmail(appointmentId);
+      void sendBookingCancelledEmail(appointmentId);
 
       setHistory((prev) =>
         prev.map((item) =>

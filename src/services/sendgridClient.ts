@@ -15,6 +15,9 @@ export type EmailTemplate =
   | "service-completion"
   | "booking-cancelled"
   | "booking-updated"
+  | "booking-reschedule-requested"
+  | "booking-rescheduled"
+  | "booking-mechanic-reassigned"
   | "owner-booking";
 
 export interface EmailRequestResult {
