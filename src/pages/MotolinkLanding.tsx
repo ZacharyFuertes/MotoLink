@@ -249,16 +249,16 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
       >
         <HeroSlideshow>
           <div className="w-full max-w-4xl px-2 sm:px-0">
-          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(2.75rem,7vw,5.5rem)] leading-1.02 tracking-tighter text-white/92 drop-shadow-[0_0_40px_rgba(45,212,191,0.25)]">
-            Find the Right
-            <span className="block mt-[-0.1em] text-moto-accent">Motor Shop.</span>
+          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(3.25rem,8vw,6.5rem)] leading-1.15 tracking-[0.01em] xs:drop-shadow-[0_0_12px_rgba(255,255,255,0.25),0_0_30px_rgba(255,255,255,0.12)] drop-shadow-[0_0_24px_rgba(255,255,255,0.45),0_0_70px_rgba(255,255,255,0.25)]">
+            Find Your
+            <span className="block text-moto-accent xs:drop-shadow-[0_0_10px_rgba(45,212,191,0.5),0_0_30px_rgba(45,212,191,0.3)] drop-shadow-[0_0_24px_rgba(45,212,191,0.75),0_0_70px_rgba(45,212,191,0.45)]">Motor Shop.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-6 max-w-[520px] text-[1.05rem] sm:text-[1.125rem] leading-1.7 tracking-[0.005em] text-white/75 text-center text-wrap-balance">
-            Locate trusted motorcycle shops near you services, parts, and mechanics across the Philippines.
+          <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-[1.75rem] max-w-[560px] text-[1.15rem] sm:text-[1.25rem] font-medium leading-1.8 tracking-[0.015em] text-white/65 text-center text-wrap-balance xs:drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] drop-shadow-[0_0_18px_rgba(255,255,255,0.15)]">
+            Locate trusted motorcycle shops near you for services, parts, and mechanics across the Philippines.
           </motion.p>
 
           {/* Hero CTA buttons */}
-          <motion.div initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24, willChange: "transform, opacity" }} className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto">
+          <motion.div initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.24, willChange: "transform, opacity" }} className="mt-[2.25rem] flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs sm:max-w-none mx-auto">
             <button onClick={() => scrollTo("map")} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-moto-accent px-6 py-3 text-xs sm:text-sm font-semibold tracking-[0.01em] text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 transition hover:-translate-y-0.5">
               <MapPin size={16} />
               Explore Live Map
@@ -273,34 +273,34 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.32, willChange: "transform, opacity" }}
-            className={`mx-auto mt-10 w-full max-w-xl rounded-2xl border bg-moto-darker/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-moto-gray/80 gap-2 sm:gap-0 ${isMobile ? "border-moto-gray/60" : "border-moto-gray/80 backdrop-blur-xl shadow-2xl"}`}
+            className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-moto-darker/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-moto-gray/80 gap-2 sm:gap-0 ${isMobile ? "border-moto-gray/60" : "border-moto-gray/80 backdrop-blur-xl shadow-2xl"}`}
           >
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display font-semibold text-3xl sm:text-4xl font-black text-moto-accent tabular-nums">
+              <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
                 {stats.shopCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[0.7rem] sm:text-xs font-semibold uppercase tracking-wider text-white/60 truncate">
+              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Partner Shops
               </p>
             </div>
             {stats.avgRating !== null && stats.avgRating > 0 && (
               <div className="px-2 sm:px-4 flex-1 hidden sm:block">
-                <p className="font-display font-semibold text-3xl sm:text-4xl font-black text-moto-accent flex items-center justify-center gap-1 tabular-nums">
+                <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent flex items-center justify-center gap-1">
                   <span>{stats.avgRating.toFixed(1)}</span>
                   <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
                 </p>
-                <p className="mt-1 text-[0.7rem] sm:text-xs font-semibold uppercase tracking-wider text-white/60 truncate">
+                <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                   Average Rating
                 </p>
               </div>
             )}
             <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display font-semibold text-3xl sm:text-4xl font-black text-moto-accent tabular-nums">
+              <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
                 {stats.riderCount}
                 <span className="text-white">+</span>
               </p>
-              <p className="mt-1 text-[0.7rem] sm:text-xs font-semibold uppercase tracking-wider text-white/60 truncate">
+              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Trusted by Riders
               </p>
             </div>
