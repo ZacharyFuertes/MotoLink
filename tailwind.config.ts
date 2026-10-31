@@ -33,7 +33,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        display: ["Plus Jakarta Sans", "Sora", "system-ui", "sans-serif"],
         mono: ["Courier Prime", "monospace"],
       },
       fontSize: {
