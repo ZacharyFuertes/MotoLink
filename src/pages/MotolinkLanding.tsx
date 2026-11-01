@@ -249,8 +249,8 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
       >
         <HeroSlideshow>
           <div className="w-full max-w-4xl px-2 sm:px-0">
-          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(3.25rem,8vw,6.5rem)] leading-1.15 tracking-[0.01em] xs:drop-shadow-[0_0_12px_rgba(255,255,255,0.25),0_0_30px_rgba(255,255,255,0.12)] drop-shadow-[0_0_24px_rgba(255,255,255,0.45),0_0_70px_rgba(255,255,255,0.25)]">
-            Find Your
+          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(3.25rem,8vw,6.5rem)] leading-1.15 tracking-[0.01em]">
+            <span className="text-white xs:drop-shadow-[0_0_12px_rgba(255,255,255,0.25),0_0_30px_rgba(255,255,255,0.12)] drop-shadow-[0_0_24px_rgba(255,255,255,0.45),0_0_70px_rgba(255,255,255,0.25)]">Find Your</span>
             <span className="block text-moto-accent xs:drop-shadow-[0_0_10px_rgba(45,212,191,0.5),0_0_30px_rgba(45,212,191,0.3)] drop-shadow-[0_0_24px_rgba(45,212,191,0.75),0_0_70px_rgba(45,212,191,0.45)]">Motor Shop.</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-[1.75rem] max-w-[560px] text-[1.15rem] sm:text-[1.25rem] font-medium leading-1.8 tracking-[0.015em] text-white/65 text-center text-wrap-balance xs:drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] drop-shadow-[0_0_18px_rgba(255,255,255,0.15)]">
@@ -278,7 +278,6 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <div className="px-2 sm:px-4 flex-1">
               <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
                 {stats.shopCount}
-                <span className="text-white">+</span>
               </p>
               <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Partner Shops
@@ -298,7 +297,6 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             <div className="px-2 sm:px-4 flex-1">
               <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
                 {stats.riderCount}
-                <span className="text-white">+</span>
               </p>
               <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
                 Trusted by Riders
@@ -337,7 +335,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
                 { number: "03", icon: ShieldCheck, title: "Ride Confident", description: "Get your bike serviced by verified shops and ride out worry-free." },
               ].map((step) => (
                 <motion.div key={step.number} variants={itemVariants} style={{ contain: "content" }} className="landing-feature-card relative rounded-2xl border border-moto-gray bg-moto-darker p-7 shadow-sm transition hover:-translate-y-1 hover:border-moto-accent hover:shadow-lg">
-                  <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-moto-ink/10">{step.number}</span>
+                  <span className="absolute right-5 top-5 font-display text-5xl font-black leading-none text-black dark:text-white">{step.number}</span>
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-moto-accent/15 text-moto-accent">
                     <step.icon size={22} />
                   </span>
