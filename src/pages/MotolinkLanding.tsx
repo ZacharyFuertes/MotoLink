@@ -1,6 +1,6 @@
 import { CalendarCheck, MapPin, Search, ShieldCheck, Star, Store } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AIChatModal from "../components/AIChatModal";
 import BackToTop from "../components/BackToTop";
 import MotolinkNavbar from "../components/MotolinkNavbar";
@@ -10,6 +10,7 @@ import ShopGallery from "../components/ShopGallery";
 import ShopMap from "../components/ShopMap";
 import ShopSearch from "../components/ShopSearch";
 import NavigationModal from "../components/NavigationModal";
+import RatingBreakdownModal from "../components/RatingBreakdownModal";
 import Footer from "../components/Footer";
 import chatbotIcon from "../pictures/icons/chatbot icon.png";
 import { getPublicShops, getPublicShopStats, getShopReviewSummaries, isOpenNowFromOperatingHours, PublicShopStats, sortByDistance } from "../services/shopService";
@@ -89,6 +90,9 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   const [availabilityOnly, setAvailabilityOnly] = useState(false);
   const [selectedShop, setSelectedShop] = useState<ShopSearchResult>();
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const ratingButtonRef = useRef<HTMLButtonElement | null>(null);
+  const ridersCtaRef = useRef<HTMLDivElement | null>(null);
   const [locationMessage, setLocationMessage] = useState("");
   const [navigateShop, setNavigateShop] = useState<ShopSearchResult | null>(null);
 
@@ -143,6 +147,25 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
   useEffect(() => {
     getPublicShopStats().then(setStats).catch(() => setStats({ shopCount: shops.length, riderCount: 0, avgRating: null, ridesBooked: 0, topRiders: [] }));
   }, [shops.length]);
+
+  // IntersectionObserver: glow the riders CTA box when it scrolls into view.
+  useEffect(() => {
+    const el = ridersCtaRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.classList.add("glow-active");
+            setTimeout(() => el.classList.remove("glow-active"), 1500);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const results = useMemo(
     () =>
@@ -273,35 +296,61 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
             initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.32, willChange: "transform, opacity" }}
-            className={`mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-moto-darker/90 p-4 sm:p-6 grid grid-cols-2 sm:flex sm:flex-row items-center justify-around text-center divide-x divide-moto-gray/80 gap-2 sm:gap-0 ${isMobile ? "border-moto-gray/60" : "border-moto-gray/80 backdrop-blur-xl shadow-2xl"}`}
+            className="mx-auto mt-8 sm:mt-10 w-full max-w-xl rounded-2xl border bg-moto-darker/90 p-4 sm:p-6 grid grid-cols-3 items-stretch gap-0 overflow-hidden"
           >
-            <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
-                {stats.shopCount}
-              </p>
-              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
-                Partner Shops
-              </p>
-            </div>
-            {stats.avgRating !== null && stats.avgRating > 0 && (
-              <div className="px-2 sm:px-4 flex-1 hidden sm:block">
-                <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent flex items-center justify-center gap-1">
-                  <span>{stats.avgRating.toFixed(1)}</span>
-                  <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
-                </p>
-                <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
-                  Average Rating
-                </p>
+            {/* Partner Shops */}
+            <button
+              type="button"
+              onClick={() => scrollTo("map")}
+              className="border-0 bg-transparent w-full h-full text-center py-4 sm:py-6 cursor-pointer transition-colors duration-200 hover:bg-moto-accent/5 focus-visible:outline-2 focus-visible:outline-moto-accent focus-visible:outline-offset-2"
+              aria-label="View partner shops on the map"
+            >
+              <div className="flex flex-col items-center justify-center gap-1 min-w-0">
+                <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">{stats.shopCount}</p>
+                <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-tight sm:tracking-wider text-slate-300 truncate">Partner Shops</p>
               </div>
+            </button>
+
+            {/* Average Rating */}
+            {stats.avgRating !== null && stats.avgRating > 0 && (
+              <button
+                type="button"
+                ref={ratingButtonRef}
+                onClick={() => setShowRatingModal(true)}
+                className="border-0 bg-transparent w-full h-full text-center py-4 sm:py-6 cursor-pointer transition-colors duration-200 hover:bg-moto-accent/5 focus-visible:outline-2 focus-visible:outline-moto-accent focus-visible:outline-offset-2 border-l border-moto-gray/80"
+                aria-label="View rating breakdown"
+              >
+                <div className="flex flex-col items-center justify-center gap-1 min-w-0">
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">{stats.avgRating.toFixed(1)}</p>
+                    <Star size={18} className="fill-amber-400 text-amber-400 shrink-0" />
+                  </div>
+                  <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-tight sm:tracking-wider text-slate-300 truncate">Average Rating</p>
+                </div>
+              </button>
             )}
-            <div className="px-2 sm:px-4 flex-1">
-              <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">
-                {stats.riderCount}
-              </p>
-              <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300 truncate">
-                Trusted by Riders
-              </p>
-            </div>
+
+            {/* Trusted by Riders */}
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("riders-cta");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  el.classList.add("glow-active");
+                  setTimeout(() => el.classList.remove("glow-active"), 1500);
+                } else {
+                  scrollTo("how-it-works");
+                }
+              }}
+              className="border-0 bg-transparent w-full h-full text-center py-4 sm:py-6 cursor-pointer transition-colors duration-200 hover:bg-moto-accent/5 focus-visible:outline-2 focus-visible:outline-moto-accent focus-visible:outline-offset-2 border-l border-moto-gray/80"
+              aria-label="See how MotoLink works"
+            >
+              <div className="flex flex-col items-center justify-center gap-1 min-w-0">
+                <p className="font-display font-black text-3xl sm:text-4xl tabular-nums text-moto-accent">{stats.riderCount}</p>
+                <p className="mt-1 text-[11px] sm:text-xs font-bold uppercase tracking-tight sm:tracking-wider text-slate-300 truncate">Trusted by Riders</p>
+              </div>
+            </button>
           </motion.div>
         </div>
       </HeroSlideshow>
@@ -345,7 +394,7 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
               ))}
             </motion.div>
 
-            <motion.div variants={itemVariants} className="landing-feature-card mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
+            <motion.div ref={ridersCtaRef} id="riders-cta" variants={itemVariants} className="landing-feature-card mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-moto-gray bg-moto-darker px-6 py-7 sm:flex-row">
               <div className="flex items-center gap-4">
                 <div className="flex -space-x-2.5">
                   {stats.topRiders.slice(0, 5).map((name) => (
@@ -582,6 +631,11 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
     </button>
     <Footer onScrollTo={scrollTo} />
     <AIChatModal isOpen={showAIChat} onClose={() => setShowAIChat(false)} />
+    <RatingBreakdownModal
+      isOpen={showRatingModal}
+      onClose={() => setShowRatingModal(false)}
+      buttonRef={ratingButtonRef}
+    />
     <NavigationModal
       isOpen={Boolean(navigateShop)}
       onClose={() => setNavigateShop(null)}

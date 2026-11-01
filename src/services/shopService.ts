@@ -446,6 +446,28 @@ export const getShopReviewSummaries = async (): Promise<ShopReviewSummary[]> => 
   }
 };
 
+export interface RatingDistribution {
+  rating: number;
+  count: number;
+}
+
+/** Count visible reviews per star (1–5) for the rating breakdown modal. */
+export const getRatingDistribution = async (): Promise<RatingDistribution[]> => {
+  const { data, error } = await supabase
+    .from("shop_reviews")
+    .select("rating")
+    .eq("is_visible", true);
+  if (error || !Array.isArray(data)) return [];
+  const dist: RatingDistribution[] = [];
+  for (let rating = 5; rating >= 1; rating--) {
+    dist.push({
+      rating,
+      count: data.filter((row) => (row as Record<string, unknown>).rating === rating).length,
+    });
+  }
+  return dist;
+};
+
 export const sortByDistance = (
   shops: Shop[],
   location?: GeolocationCoordinates,
