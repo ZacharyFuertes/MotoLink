@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import Papa from "papaparse";
+import * as XLSX from "xlsx-js-style";
 import {
   X,
   Upload,
@@ -22,6 +23,7 @@ import {
   validateRows,
   type ParsedRow,
 } from "../utils/shopImportCsv";
+import { createShopOwnerExcelTemplate } from "../utils/shopOwnerExcelTemplate";
 
 type ImportResult = {
   email: string;
@@ -89,47 +91,65 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
     setMissingColumns([]);
     setFileName(file.name);
 
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: "greedy",
-      transformHeader: (header) => normaliseKey(header),
-      complete: (parsed) => {
-        const parseIssues = parsed.errors || [];
-        const data = (parsed.data || []).filter((r) =>
+    const handleParsedData = (data: Record<string, string>[], parseIssues: { message: string }[] = []) => {
+        const filteredData = data.filter((r) =>
           Object.values(r).some((v) => String(v ?? "").trim() !== ""),
         );
 
-        if (data.length === 0) {
+        if (filteredData.length === 0) {
           setRows([]);
           setParseError(
             parseIssues[0]?.message
-              ? `Could not read this CSV: ${parseIssues[0].message}`
-              : "This CSV has no data rows.",
+              ? `Could not read this spreadsheet: ${parseIssues[0].message}`
+              : "This file has no data rows.",
           );
           setStep("upload");
           return;
         }
 
-        const { rows: validated, missingColumns: missing } = validateRows(data);
+        const { rows: validated, missingColumns: missing } = validateRows(filteredData);
 
         if (validated.length > MAX_ROWS) {
           setRows([]);
-          setParseError(
-            `This file has ${validated.length} rows, but the limit is ${MAX_ROWS} per import. Split it into smaller files and import them one at a time.`,
-          );
+          setParseError(`This file has ${validated.length} rows, but the limit is ${MAX_ROWS} per import. Split it into smaller files and import them one at a time.`);
           setStep("upload");
           return;
         }
 
         setRows(validated);
         setMissingColumns(missing);
-        setRowLookup(
-          validated.reduce<Record<string, ParsedRow>>((acc, row) => {
-            if (row.email) acc[row.email] = row;
-            return acc;
-          }, {}),
-        );
+        setRowLookup(validated.reduce<Record<string, ParsedRow>>((acc, row) => {
+          if (row.email) acc[row.email] = row;
+          return acc;
+        }, {}));
         setStep("preview");
+    };
+
+    if (/\.xlsx?$/i.test(file.name)) {
+      void file.arrayBuffer().then((buffer) => {
+        const workbook = XLSX.read(buffer, { type: "array", cellDates: false });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          setParseError("This Excel workbook has no worksheets.");
+          return;
+        }
+        const worksheet = workbook.Sheets[firstSheetName];
+        const data = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { defval: "", raw: false });
+        handleParsedData(data);
+      }).catch((error: unknown) => {
+        setRows([]);
+        setParseError(error instanceof Error ? `Could not read this Excel file: ${error.message}` : "Could not read this Excel file.");
+      });
+      return;
+    }
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: "greedy",
+      transformHeader: (header) => normaliseKey(header),
+      complete: (parsed) => {
+        const parseIssues = parsed.errors || [];
+        handleParsedData(parsed.data || [], parseIssues);
       },
       error: (err) => {
         setRows([]);
@@ -213,6 +233,20 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
     downloadCsv(`shop-owner-import-results-${stamp}.csv`, [header.join(","), ...lines].join("\n"));
   };
 
+  const downloadExcelTemplate = () => {
+    const blob = new Blob([createShopOwnerExcelTemplate()], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "shop-owners-template.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (!open) return null;
 
   return (
@@ -238,7 +272,7 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-100 font-display uppercase tracking-wide">
-                Import Shop Owners (CSV)
+                Import Shop Owners (Excel / CSV)
               </h3>
               <p className="text-[13px] text-slate-400 mt-0.5">
                 Bulk-create owner accounts and their shops. New shops start as{" "}
@@ -269,14 +303,26 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
                       Columns: {TEMPLATE_COLUMNS.join(", ")}
                     </p>
                   </div>
-                  <button
-                    onClick={() => downloadCsv("shop-owners-template.csv", TEMPLATE_CSV)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-moto-accent/15 text-moto-accent text-[13px] font-bold rounded-xl hover:bg-moto-accent/25 transition"
-                  >
-                    <Download className="w-4 h-4" /> Download template
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadExcelTemplate}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[13px] font-bold rounded-xl hover:from-violet-700 hover:to-fuchsia-700 transition"
+                    >
+                      <Download className="w-4 h-4" /> Excel template (.xlsx)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadCsv("shop-owners-template.csv", TEMPLATE_CSV)}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 bg-moto-accent/15 text-moto-accent text-[13px] font-bold rounded-xl hover:bg-moto-accent/25 transition"
+                    >
+                      <Download className="w-4 h-4" /> CSV template
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+                  Fill in the highlighted required columns in Excel and upload the workbook directly. Sample rows are included as a guide; replace or remove them before importing.
+                  <br />
                   <span className="text-slate-300 font-semibold">password</span> is optional leave it
                   blank and a secure temporary password is generated and shown in the results
                   summary (and the results CSV) so you can pass it to the owner.
@@ -289,11 +335,11 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
 
               {/* Picker */}
               <div className="p-4 bg-moto-darker border border-moto-gray rounded-xl">
-                <p className="text-[13px] font-bold text-slate-100 mb-3">Step 2 Choose your CSV</p>
+                <p className="text-[13px] font-bold text-slate-100 mb-3">Step 2 Choose your Excel or CSV file</p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -308,7 +354,7 @@ const AdminShopImportModal: React.FC<AdminShopImportModalProps> = ({
                 >
                   <Upload className="w-6 h-6 text-moto-accent" />
                   <span className="text-sm font-bold text-slate-100">
-                    {fileName || "Click to upload a .csv file"}
+                    {fileName || "Click to upload a .xlsx or .csv file"}
                   </span>
                   <span className="text-xs text-slate-400">
                     Up to {MAX_ROWS} rows per import. Header row required.

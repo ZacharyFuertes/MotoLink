@@ -17,11 +17,13 @@ import {
   FileText,
   RefreshCw,
   TrendingUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { imageService } from "../services/imageService";
 import { Part } from "../types";
+import { createInventoryExcelTemplate } from "../utils/inventoryExcelTemplate";
 
 const parseCSV = (text: string): string[][] => {
   const rows: string[][] = [];
@@ -483,6 +485,42 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
   const openImport = () => {
     resetImport();
     setShowImportForm(true);
+  };
+
+  const downloadInventoryExcelTemplate = () => {
+    const blob = new Blob([createInventoryExcelTemplate()], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "motolink-inventory-template.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadInventoryCsvTemplate = () => {
+    const templateRows: Array<Array<string | number>> = [
+      ["Part Name", "SKU", "Category", "Unit Price", "In Stock", "Reorder Level", "Description"],
+      ["Motorcycle Engine Oil 10W-40", "OIL-10W40-001", "oils", 450, 12, 3, "1L four-stroke engine oil"],
+      ["Front Brake Pads", "BRK-FRONT-001", "brakes", 680, 8, 2, "Front disc brake pad set"],
+    ];
+    const csvCell = (value: string | number): string => {
+      const text = String(value);
+      return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const csv = templateRows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "motolink-inventory-template.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleImportFile = async (file: File) => {
@@ -1024,7 +1062,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                       Import Inventory (CSV)
                     </h3>
                     <p className="text-[12px] text-slate-400 mt-0.5">
-                      Bulk-add parts from a CSV file. Excel users: File → Save As → CSV.
+                      Bulk-add parts from a CSV file. Download the preformatted Excel template below, then save it as CSV to import.
                     </p>
                   </div>
                 </div>
@@ -1071,6 +1109,32 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
               ) : (
                 <>
                   {/* File picker */}
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-moto-gray bg-moto-darker p-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <FileSpreadsheet className="h-5 w-5 shrink-0 text-moto-accent" />
+                      <div>
+                        <p className="text-[12px] font-bold text-slate-100">Start with the inventory template</p>
+                        <p className="text-[11px] text-slate-400">Includes formatted columns and sample rows.</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={downloadInventoryExcelTemplate}
+                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3.5 py-2 text-[12px] font-bold text-white transition hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <Download className="h-4 w-4" /> Excel Template
+                      </button>
+                      <button
+                        type="button"
+                        onClick={downloadInventoryCsvTemplate}
+                        className="inline-flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-gray/40 px-3.5 py-2 text-[12px] font-bold text-slate-100 transition hover:border-moto-accent hover:bg-moto-accent/10 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      >
+                        <Download className="h-4 w-4" /> CSV Template
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="relative">
                     {importFileName ? (
                       <div className="w-full rounded-xl bg-moto-gray/30 border border-moto-gray flex items-center gap-3 px-4 py-6">

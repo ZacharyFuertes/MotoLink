@@ -1738,7 +1738,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Add Some Parts<span className="text-moto-accent">.</span>
                         </h3>
                         <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Optional add parts so the shop has them ready when you arrive.
+                         Choose parts w.
                         </p>
                       </div>
                       {loadingParts || partsCatalogKey !== [...selectedServices].sort().join(",") ? (

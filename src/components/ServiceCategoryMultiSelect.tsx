@@ -50,7 +50,6 @@ const ServiceCategoryMultiSelect: React.FC<ServiceCategoryMultiSelectProps> = ({
     maxHeight: 360,
     above: false,
   });
-  const [triggerVisible, setTriggerVisible] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -69,12 +68,8 @@ const ServiceCategoryMultiSelect: React.FC<ServiceCategoryMultiSelectProps> = ({
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
-    if (trigger.getClientRects().length === 0) {
-      setTriggerVisible(false);
-      return;
-    }
-    setTriggerVisible(true);
     const rect = trigger.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
     const viewportPadding = 12;
     const width = Math.min(Math.max(rect.width, 260), window.innerWidth - viewportPadding * 2);
     const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
@@ -106,14 +101,6 @@ const ServiceCategoryMultiSelect: React.FC<ServiceCategoryMultiSelectProps> = ({
       const target = event.target as Node;
       if (!triggerRef.current?.contains(target) && !popoverRef.current?.contains(target)) onOpenChange(false);
     };
-    const visibilityObserver = new ResizeObserver(() => {
-      if (triggerRef.current?.getClientRects().length === 0) {
-        onOpenChange(false);
-      } else {
-        updatePosition();
-      }
-    });
-    if (triggerRef.current) visibilityObserver.observe(triggerRef.current);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -128,7 +115,6 @@ const ServiceCategoryMultiSelect: React.FC<ServiceCategoryMultiSelectProps> = ({
     window.addEventListener("scroll", updatePosition, true);
     return () => {
       window.cancelAnimationFrame(frame);
-      visibilityObserver.disconnect();
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", updatePosition);
@@ -152,7 +138,7 @@ const ServiceCategoryMultiSelect: React.FC<ServiceCategoryMultiSelectProps> = ({
     }
   };
 
-  const popover = open && triggerVisible && typeof document !== "undefined" ? createPortal(
+  const popover = open && typeof document !== "undefined" ? createPortal(
     <div
       ref={popoverRef}
       role="listbox"

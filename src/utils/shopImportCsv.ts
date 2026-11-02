@@ -36,15 +36,8 @@ export const csvCell = (value: string | number | null | undefined): string => {
 
 type TemplateRow = (string | number)[];
 
-/** Builds a CSV line with correct quoting (values may contain commas). */
-const templateLine = (cells: TemplateRow) => cells.map(csvCell).join(",");
-
-// NOTE: every value below goes through csvCell. Addresses contain commas
-// ("123 Katipunan Ave, Quezon City") and an unquoted comma silently shifts
-// every following column to the left by one.
-export const TEMPLATE_CSV = [
-  TEMPLATE_COLUMNS.join(","),
-  templateLine([
+export const TEMPLATE_ROWS: TemplateRow[] = [
+  [
     "maria.santos@example.com",
     "Maria Santos",
     "Santos Motorcycle Repair",
@@ -55,8 +48,8 @@ export const TEMPLATE_CSV = [
     "",
     14.6488,
     121.0654,
-  ]),
-  templateLine([
+  ],
+  [
     "juan.delacruz@example.com",
     "Juan Dela Cruz",
     "Del Cruz Bike Shop",
@@ -67,7 +60,18 @@ export const TEMPLATE_CSV = [
     "",
     14.581,
     121.035,
-  ]),
+  ],
+];
+
+/** Builds a CSV line with correct quoting (values may contain commas). */
+const templateLine = (cells: TemplateRow) => cells.map(csvCell).join(",");
+
+// NOTE: every value below goes through csvCell. Addresses contain commas
+// ("123 Katipunan Ave, Quezon City") and an unquoted comma silently shifts
+// every following column to the left by one.
+export const TEMPLATE_CSV = [
+  TEMPLATE_COLUMNS.join(","),
+  ...TEMPLATE_ROWS.map(templateLine),
 ].join("\n");
 
 /** One parsed CSV row plus its validation state. */
