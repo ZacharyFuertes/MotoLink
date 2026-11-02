@@ -424,7 +424,7 @@ BEGIN
             AND ma.end_time >= v_rescheduled_time + make_interval(mins => COALESCE(NULLIF(v_target.duration_minutes, 0), 60))
         ) THEN RAISE EXCEPTION 'The selected mechanic has no available shift covering the new appointment time.'; END IF;
 
-        PERFORM pg_advisory_xact_lock(
+        PERFORM pg_advisory_xact_lock(z
           hashtext(p_shop_id::TEXT),
           hashtext(v_rescheduled_mechanic::TEXT || ':' || v_rescheduled_date::TEXT)
         );

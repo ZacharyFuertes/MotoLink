@@ -40,6 +40,7 @@ interface ShopService {
   description: string | null;
   icon: string | null;
   price: number;
+  duration_minutes: number;
   is_active: boolean;
 }
 
@@ -332,7 +333,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             .order("name"),
           supabase
             .from("services_pricing")
-            .select("id, label, description, icon, price, is_active")
+            .select("id, label, description, icon, price, is_active, duration_minutes")
             .eq("shop_id", shopId)
             .eq("is_active", true)
             .order("price", { ascending: true }),
@@ -596,6 +597,9 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                           {svc.description && (
                             <p className="truncate text-xs text-slate-500">{svc.description}</p>
                           )}
+                          <p className="text-[11px] text-slate-400">
+                            Estimated time: {Number(svc.duration_minutes) || 60} min
+                          </p>
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <p className="shop-catalog-price">

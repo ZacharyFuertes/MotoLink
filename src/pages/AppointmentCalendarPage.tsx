@@ -40,7 +40,6 @@ import {
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
-import { notifyOwnerIfStockBecameLow } from "../services/lowStockNotificationService";
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -221,6 +220,20 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
           return;
         }
 
+        // Migrate old requests that predate confirmation-time stock deduction:
+        // only those rows are deducted at completion. New bookings are reserved
+        // atomically by the database when their status changes to confirmed.
+        if (
+          newStatus === "completed" &&
+          !appointment.service_ids?.length &&
+          appointment.parts?.length
+        ) {
+          const { error: stockError } = await supabase.rpc("deduct_legacy_appointment_parts", {
+            p_appointment_id: appointment.id,
+          });
+          if (stockError) throw stockError;
+        }
+
         if (
           (newStatus === "confirmed" || newStatus === "in_progress") &&
           appointment.shop_id &&
@@ -234,39 +247,6 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
             alert("Only administrators can finalize appointments.");
             return;
           }
-        }
-
-        if (newStatus === "completed") {
-          const parts = appointment.parts || [];
-
-          for (const part of parts) {
-            const { data: partData } = await supabase
-              .from("parts")
-              .select("id, name, quantity_in_stock, reorder_level, unit_price")
-              .eq("id", part.part_id)
-              .single();
-
-            if (partData) {
-              const newQty = Math.max(
-                0,
-                partData.quantity_in_stock - part.quantity,
-              );
-              const { error: stockUpdateError } = await supabase
-                .from("parts")
-                .update({
-                  quantity_in_stock: newQty,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", part.part_id);
-              if (stockUpdateError) throw stockUpdateError;
-              void notifyOwnerIfStockBecameLow(partData, {
-                id: partData.id,
-                quantity_in_stock: newQty,
-                reorder_level: partData.reorder_level,
-              });
-            }
-          }
-
         }
 
         if (newStatus === "completed") {

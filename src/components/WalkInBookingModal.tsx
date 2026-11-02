@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -36,6 +36,8 @@ import {
 import { Appointment } from "../types";
 import TimeSlotGrid from "./TimeSlotGrid";
 import DateStrip from "./DateStrip";
+import ServicePartsPicker, { SelectedServicePart } from "./ServicePartsPicker";
+import { validateSelectedServiceParts } from "../services/servicePartsService";
 import ConflictResolutionModal, {
   BookingConflict,
   ConflictResolution,
@@ -84,6 +86,8 @@ interface PendingWalkIn {
   shopId: string;
   payload: Record<string, unknown>;
   requestId: string;
+  serviceIds: string[];
+  parts: SelectedServicePart[];
 }
 
 const intervalsOverlap = (startA: number, endA: number, startB: number, endB: number) =>
@@ -169,7 +173,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
   const [formData, setFormData] = useState(emptyForm);
   const [services, setServices] = useState<CatalogService[]>([]);
+  const [resolvedShopId, setResolvedShopId] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [selectedParts, setSelectedParts] = useState<SelectedServicePart[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesError, setServicesError] = useState("");
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -189,6 +195,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [pastSlots, setPastSlots] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
+  const submitLockRef = useRef(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   /**
@@ -230,7 +237,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setCustomerSearchError("");
     setFormData(emptyForm);
     setServices([]);
+    setResolvedShopId("");
     setSelectedServiceIds([]);
+    setSelectedParts([]);
     setServicesError("");
     setSelectedDate(todayKey());
     setSelectedSlot("");
@@ -261,6 +270,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         if (!shopId) {
           throw new Error("No shop is linked to your account yet.");
         }
+        if (!cancelled) setResolvedShopId(shopId);
 
         const { data, error: catalogError } = await supabase
           .from("services_pricing")
@@ -407,6 +417,13 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       .reduce((total, service) => total + (Number(service.duration_minutes) || 60), 0);
     return duration || 60;
   }, [selectedServiceIds, services]);
+
+  const formatEstimatedDuration = (durationMinutes: number): string => {
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    if (hours === 0) return `${minutes} min`;
+    return `${hours} hr${hours === 1 ? "" : "s"}${minutes > 0 ? ` ${minutes} min` : ""}`;
+  };
 
   const minutesToSlot = (totalMinutes: number): string => {
     const dayMinutes = 24 * 60;
@@ -807,11 +824,18 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setSaving(true);
     setError("");
     try {
-      const { data, error: rpcError } = await supabase.rpc("resolve_walk_in_conflict", {
+      const { data, error: rpcError } = await supabase.rpc("resolve_walk_in_conflict_with_parts", {
         p_shop_id: submission.shopId,
         p_walk_in: submission.payload,
         p_resolutions: resolutions,
         p_request_id: submission.requestId,
+        p_service_ids: submission.serviceIds,
+        p_parts: submission.parts.map((part) => ({
+          part_id: part.id,
+          part_name: part.name,
+          unit_price: part.unit_price,
+          quantity: part.quantity,
+        })),
       });
       if (rpcError) throw rpcError;
       const result = data as { appointment?: Appointment; affected_appointment_ids?: string[] } | null;
@@ -858,40 +882,44 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   };
 
   const handleBook = async () => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setError("");
-    if (schemaReady === false) return setError(SCHEMA_NOT_APPLIED_MESSAGE);
-    if (checkingMechanicSlots) return setError("Wait while mechanic availability is checked.");
-    if (mechanicSlotsError) return setError(mechanicSlotsError);
-    if (!selectedDate || !selectedSlot) return setError("Pick a date and a time slot.");
-    if (!selectableSlots.includes(selectedSlot)) return setError("That time no longer has a mechanic available. Choose another slot.");
+    if (schemaReady === false) { setError(SCHEMA_NOT_APPLIED_MESSAGE); submitLockRef.current = false; return; }
+    if (checkingMechanicSlots) { setError("Wait while mechanic availability is checked."); submitLockRef.current = false; return; }
+    if (mechanicSlotsError) { setError(mechanicSlotsError); submitLockRef.current = false; return; }
+    if (!selectedDate || !selectedSlot) { setError("Pick a date and a time slot."); submitLockRef.current = false; return; }
+    if (!selectableSlots.includes(selectedSlot)) { setError("That time no longer has a mechanic available. Choose another slot."); submitLockRef.current = false; return; }
     if (selectedMechanicId && !mechanicSlotOptions[selectedSlot]?.some((mechanic) => mechanic.id === selectedMechanicId)) {
-      return setError("That mechanic is no longer available for the selected time. Choose another mechanic or slot.");
+      setError("That mechanic is no longer available for the selected time. Choose another mechanic or slot."); submitLockRef.current = false; return;
     }
-    if (isSlotPast(selectedDate, selectedSlot)) return setError("That time has already passed. Pick an earlier date or a later slot.");
+    if (isSlotPast(selectedDate, selectedSlot)) { setError("That time has already passed. Pick an earlier date or a later slot."); submitLockRef.current = false; return; }
 
     let customerId: string | null = null;
     let name = "";
     let phone = "";
     if (identityMode === "registered") {
-      if (!selectedCustomer) return setError("Choose a registered customer, or switch to Walk-in.");
+      if (!selectedCustomer) { setError("Choose a registered customer, or switch to Walk-in."); submitLockRef.current = false; return; }
       customerId = selectedCustomer.id;
       name = selectedCustomer.name;
       phone = selectedCustomer.phone || "";
     } else {
       name = formData.customer_name.trim();
       phone = formData.customer_phone.trim();
-      if (!name || !phone) return setError("Enter the walk-in's name and phone number.");
-      if (formData.customer_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email.trim())) return setError("Enter a valid email address.");
+      if (!name || !phone) { setError("Enter the walk-in's name and phone number."); submitLockRef.current = false; return; }
+      if (formData.customer_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email.trim())) { setError("Enter a valid email address."); submitLockRef.current = false; return; }
     }
-    if (!formData.vehicle_make.trim()) return setError("Enter the vehicle make.");
-    if (servicesLoading) return setError("Wait for the shop's service catalog to finish loading.");
+    if (!formData.vehicle_make.trim()) { setError("Enter the vehicle make."); submitLockRef.current = false; return; }
+    if (servicesLoading) { setError("Wait for the shop's service catalog to finish loading."); submitLockRef.current = false; return; }
     const selectedServices = services.filter((service) => selectedServiceIds.includes(service.id));
-    if (!selectedServices.length) return setError("Choose at least one service from the shop's catalog.");
+    if (!selectedServices.length) { setError("Choose at least one service from the shop's catalog."); submitLockRef.current = false; return; }
 
     setSaving(true);
     try {
       const shopId = await resolveShopId();
       if (!shopId) throw new Error("No shop is linked to your account yet, so this booking cannot be saved.");
+      setResolvedShopId(shopId);
+      await validateSelectedServiceParts(shopId, selectedServiceIds, selectedParts);
       const vehicleDescription = [formData.vehicle_make.trim(), formData.vehicle_model.trim()].filter(Boolean).join(" ");
       const serviceDescription = selectedServices.map((service) => service.label).join(", ");
       const durationMinutes = selectedServices.reduce((total, service) => total + service.duration_minutes, 0);
@@ -911,9 +939,11 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         walk_in_email: customerId ? null : formData.customer_email.trim() || null,
       };
       const requestId = pendingWalkIn?.shopId === shopId && JSON.stringify(pendingWalkIn.payload) === JSON.stringify(payload)
+        && JSON.stringify(pendingWalkIn.serviceIds) === JSON.stringify(selectedServiceIds)
+        && JSON.stringify(pendingWalkIn.parts) === JSON.stringify(selectedParts)
         ? pendingWalkIn.requestId
         : crypto.randomUUID();
-      const submission: PendingWalkIn = { shopId, payload, requestId };
+      const submission: PendingWalkIn = { shopId, payload, requestId, serviceIds: selectedServiceIds, parts: selectedParts };
       setPendingWalkIn(submission);
 
       const found = selectedMechanicId
@@ -929,6 +959,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       setError(mapBookingError(err));
     } finally {
       setSaving(false);
+      submitLockRef.current = false;
     }
   };
 
@@ -1414,7 +1445,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                           </span>
                         )}
                         <span className="mt-1 block text-[10px] text-slate-500">
-                          Estimated duration: {service.duration_minutes} min
+                          Estimated duration: {formatEstimatedDuration(service.duration_minutes)}
                         </span>
                       </span>
                       <span className="whitespace-nowrap text-right font-mono font-bold text-slate-300">
@@ -1425,6 +1456,22 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 </div>
                 )}
               </fieldset>
+
+              {selectedServiceIds.length > 0 && (
+                <section className="space-y-3" aria-label="Walk-in compatible parts">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent">Optional parts</p>
+                    <h4 className="mt-1 font-display text-xl font-black text-slate-100">Add compatible parts</h4>
+                  </div>
+                  <ServicePartsPicker
+                    key={`${resolvedShopId}:${[...selectedServiceIds].sort().join(",")}`}
+                    shopId={resolvedShopId}
+                    services={services.filter((service) => selectedServiceIds.includes(service.id)).map((service) => ({ id: service.id, label: service.label }))}
+                    selectedParts={selectedParts}
+                    onChange={setSelectedParts}
+                  />
+                </section>
+              )}
 
               {formData.vehicle_make.trim() && (
                 <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
@@ -1451,6 +1498,12 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                       .toFixed(2)}
                   </span>
                 </div>
+              )}
+              {selectedServiceIds.length > 0 && (
+                <p className="flex items-center justify-between rounded-xl border border-moto-accent/20 bg-moto-accent/[0.05] px-4 py-3 text-xs">
+                  <span className="font-bold uppercase tracking-wide text-slate-300">Estimated total booking time</span>
+                  <span className="font-mono font-black text-moto-accent">{formatEstimatedDuration(walkInDurationMinutes)}</span>
+                </p>
               )}
             </div>
 

@@ -36,6 +36,7 @@ export interface Part {
     | "exhaust"
     | "filters"
     | "other";
+  category_id?: string | null;
   sku: string;
   unit_price: number;
   quantity_in_stock: number;
@@ -55,6 +56,28 @@ export type AppointmentStatus =
   | "completed"
   | "cancelled";
 
+export interface AppointmentPart {
+  part_id: string;
+  part_name: string;
+  unit_price: number;
+  quantity: number;
+}
+
+export interface ServicePartCategory {
+  id: string;
+  shop_id: string;
+  service_id: string;
+  part_category_id: string;
+  created_at: string;
+}
+
+export interface PartCategory {
+  id: string;
+  shop_id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Appointment {
   id: string;
   booking_id?: string;
@@ -69,6 +92,8 @@ export interface Appointment {
   description?: string;
   mechanic_id?: string | null;
   status: AppointmentStatus;
+  service_ids?: string[];
+  parts_stock_deducted_at?: string | null;
   notes?: string;
   walk_in_name?: string | null;
   walk_in_phone?: string | null;
@@ -76,7 +101,7 @@ export interface Appointment {
   reschedule_reason?: string | null;
   reschedule_requested_at?: string | null;
   reschedule_requested_by?: string | null;
-  parts?: any[];
+  parts?: AppointmentPart[];
   total_amount?: number;
   estimated_price?: number;
   /** Payment method chosen at booking: cash | gcash | maya. */

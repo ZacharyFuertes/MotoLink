@@ -20,7 +20,6 @@ import {
   Settings,
   Hammer,
   Sparkles,
-  Package,
   Plus,
   Loader2,
   Banknote,
@@ -45,6 +44,8 @@ import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import DateStrip from "./DateStrip";
 import TimeSlotGrid from "./TimeSlotGrid";
+import ServicePartsPicker, { SelectedServicePart } from "./ServicePartsPicker";
+import { loadServicePartCatalog, ServicePartCatalog, validateSelectedServiceParts } from "../services/servicePartsService";
 import { normalizeTime } from "../utils/dateTime";
 import { parseOperatingHoursString } from "../services/shopService";
 
@@ -53,23 +54,6 @@ interface VehicleData {
   make: string;
   model: string;
   year: number | string;
-}
-
-interface Part {
-  id: string;
-  name: string;
-  sku: string;
-  unit_price: number;
-  quantity_in_stock: number;
-  category?: string;
-  image_url?: string;
-}
-
-interface SelectedPart {
-  id: string;
-  name: string;
-  unit_price: number;
-  quantity: number;
 }
 
 interface CatalogService {
@@ -146,9 +130,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [hasActiveAppointment, setHasActiveAppointment] = useState(false);
   const [activeAppointmentCheckError, setActiveAppointmentCheckError] = useState("");
   const [activeAppointmentChecking, setActiveAppointmentChecking] = useState(false);
-  const [availableParts, setAvailableParts] = useState<Part[]>([]);
-  const [selectedParts, setSelectedParts] = useState<SelectedPart[]>([]);
+  const [selectedParts, setSelectedParts] = useState<SelectedServicePart[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
+  const [partsAvailableForServices, setPartsAvailableForServices] = useState(false);
+  const [partsCatalogKey, setPartsCatalogKey] = useState("");
+  const submitLockRef = useRef(false);
+  const restoringGuestDraftRef = useRef(false);
+  const [partsCatalog, setPartsCatalog] = useState<ServicePartCatalog>({ parts: [], mappings: [], categories: [] });
   const [lastBookingId, setLastBookingId] = useState("");
   const [copied, setCopied] = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
@@ -183,9 +171,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   // Slide direction for step transitions (1 = forward, -1 = back). Ref is enough
   // because step content re-mounts on every currentStep change.
   const stepDir = useRef(1);
-  const goStep = (delta: number) => {
-    stepDir.current = delta;
-    setCurrentStep((c) => c + delta);
+  const goToNextStep = () => {
+    stepDir.current = 1;
+    if (currentStep === 0 && !loadingParts && partsCatalogKey === [...selectedServices].sort().join(",") && !partsAvailableForServices) {
+      setCurrentStep(2);
+      return;
+    }
+    setCurrentStep((step) => step + 1);
+  };
+
+  const goToPreviousStep = () => {
+    stepDir.current = -1;
+    if (currentStep === 2 && !loadingParts && partsCatalogKey === [...selectedServices].sort().join(",") && !partsAvailableForServices) {
+      setCurrentStep(0);
+      return;
+    }
+    setCurrentStep((step) => Math.max(0, step - 1));
   };
 
   // Snapshot the in-progress booking so a guest can resume at the confirm step
@@ -222,6 +223,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     try {
       const snap = JSON.parse(raw);
       if (snap.shopId && snap.shopId !== shopId) return;
+      restoringGuestDraftRef.current = true;
       setSelectedServices(snap.services || []);
       setSelectedServicePrice(snap.servicePrice || 0);
       setSelectedDate(snap.date || "");
@@ -278,9 +280,122 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     if (isOpen && defaultShopId) {
       fetchServices();
       fetchMechanics();
-      fetchAvailableParts();
     }
   }, [isOpen, defaultShopId, shopId]);
+
+  // Load only categories applicable to the selected services in this shop.
+  // Also reconcile in-memory and guest-draft part selections after service edits.
+  useEffect(() => {
+    let active = true;
+    const shopIdForParts = shopId || defaultShopId;
+    if (!isOpen || selectedServices.length === 0) {
+      if (isOpen && restoringGuestDraftRef.current) return () => { active = false; };
+      setPartsAvailableForServices(false);
+      setPartsCatalog({ parts: [], mappings: [], categories: [] });
+      setPartsCatalogKey([...selectedServices].sort().join(","));
+      setLoadingParts(false);
+      setSelectedParts([]);
+      try {
+        const rawDraft = sessionStorage.getItem(PENDING_BOOKING_KEY);
+        if (rawDraft) {
+          const parsed: unknown = JSON.parse(rawDraft);
+          if (typeof parsed === "object" && parsed !== null && "parts" in parsed) {
+            sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ ...parsed, parts: [] }));
+          }
+        }
+      } catch {
+        // Session storage is optional.
+      }
+      return () => { active = false; };
+    }
+
+    restoringGuestDraftRef.current = false;
+
+    if (!shopIdForParts) {
+      setLoadingParts(true);
+      return () => { active = false; };
+    }
+
+    setLoadingParts(true);
+    setPartsCatalogKey("");
+    setErrorMsg("");
+    void loadServicePartCatalog(shopIdForParts, selectedServices).then((catalog) => {
+      if (!active) return;
+      setPartsCatalog(catalog);
+      setPartsAvailableForServices(catalog.parts.length > 0);
+      setPartsCatalogKey([...selectedServices].sort().join(","));
+      const currentParts = new Map(catalog.parts.map((part) => [part.id, part]));
+      setSelectedParts((current) => {
+        const valid = current
+          .filter((selected) => currentParts.get(selected.id)?.service_ids.some((id) => selectedServices.includes(id)))
+          .map((selected) => {
+            const part = currentParts.get(selected.id);
+            return {
+              ...selected,
+              name: part?.name ?? selected.name,
+              unit_price: part?.unit_price ?? selected.unit_price,
+              quantity: Math.min(selected.quantity, part?.quantity_in_stock ?? 0),
+            };
+          })
+          .filter((selected) => selected.quantity > 0);
+        try {
+          const rawDraft = sessionStorage.getItem(PENDING_BOOKING_KEY);
+          if (rawDraft) {
+            const parsed: unknown = JSON.parse(rawDraft);
+            if (typeof parsed === "object" && parsed !== null && "parts" in parsed) {
+              sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ ...parsed, parts: valid }));
+            }
+          }
+        } catch {
+          // Session storage is optional; the in-memory draft remains valid.
+        }
+        return valid;
+      });
+    }).catch((loadError: unknown) => {
+      if (active) {
+        setPartsCatalog({ parts: [], mappings: [], categories: [] });
+        setPartsAvailableForServices(false);
+        setSelectedParts([]);
+        setPartsCatalogKey([...selectedServices].sort().join(","));
+        setErrorMsg(loadError instanceof Error ? loadError.message : "Could not load compatible parts.");
+        try {
+          const rawDraft = sessionStorage.getItem(PENDING_BOOKING_KEY);
+          if (rawDraft) {
+            const parsed: unknown = JSON.parse(rawDraft);
+            if (typeof parsed === "object" && parsed !== null && "parts" in parsed) {
+              sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ ...parsed, parts: [] }));
+            }
+          }
+        } catch {
+          // Session storage is optional.
+        }
+      }
+    }).finally(() => {
+      if (active) setLoadingParts(false);
+    });
+    return () => { active = false; };
+  }, [isOpen, shopId, defaultShopId, selectedServices]);
+
+  useEffect(() => {
+    const key = [...selectedServices].sort().join(",");
+    if (currentStep === 1 && !loadingParts && partsCatalogKey === key && !partsAvailableForServices) {
+      stepDir.current = 1;
+      setCurrentStep(2);
+    }
+  }, [currentStep, loadingParts, partsCatalogKey, partsAvailableForServices, selectedServices]);
+
+  useEffect(() => {
+    if (!isOpen || currentStep !== 3 || selectedParts.length === 0) return;
+    let active = true;
+    const resolvedShopId = shopId || defaultShopId;
+    if (!resolvedShopId) return;
+    void validateSelectedServiceParts(resolvedShopId, selectedServices, selectedParts)
+      .then(() => { if (active) setErrorMsg(""); })
+      .catch((validationError: unknown) => {
+        if (active) setErrorMsg(validationError instanceof Error ? validationError.message : "A selected part is no longer available. Change it before confirming.");
+      });
+    return () => { active = false; };
+  }, [isOpen, currentStep, shopId, defaultShopId, selectedServices, selectedParts]);
 
   // Load weekdays on which at least one mechanic has an enabled shift that
   // overlaps the shop's opening hours. Dates remain visible in the strip but
@@ -801,26 +916,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     }
   };
 
-  const fetchAvailableParts = async () => {
-    if (!defaultShopId) return;
-    try {
-      setLoadingParts(true);
-      const { data, error } = await supabase
-        .from("parts")
-        .select("id, name, sku, unit_price, quantity_in_stock, category, image_url")
-        .eq("shop_id", defaultShopId)
-        .gt("quantity_in_stock", 0)
-        .order("name", { ascending: true });
-      if (error) throw error;
-      setAvailableParts(data || []);
-    } catch (err) {
-      console.error("Error fetching parts:", err);
-      setAvailableParts([]);
-    } finally {
-      setLoadingParts(false);
-    }
-  };
-
   const fetchBookedSlots = async () => {
     try {
       let query = supabase
@@ -1117,10 +1212,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!user?.id) return;
+    if (!user?.id || submitLockRef.current) return;
+    submitLockRef.current = true;
 
     if (!termsAccepted) {
       setErrorMsg("Please agree to the Terms & Conditions to continue.");
+      submitLockRef.current = false;
       return;
     }
 
@@ -1128,6 +1225,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setErrorMsg(
         activeAppointmentCheckError || "You already have an active appointment. Please wait until it is completed before booking another.",
       );
+      submitLockRef.current = false;
       return;
     }
 
@@ -1141,6 +1239,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setErrorMsg(
           activeAppointmentCheckError || "You already have an active appointment. Please wait until it is completed before booking another.",
         );
+        submitLockRef.current = false;
+        return;
+      }
+
+      if (selectedServices.length === 0) {
+        setErrorMsg("Choose at least one service before confirming.");
+        submitLockRef.current = false;
         return;
       }
 
@@ -1159,8 +1264,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           "Unable to determine your shop. Please close and reopen the booking form.",
         );
         setSubmitting(false);
+        submitLockRef.current = false;
         return;
       }
+
+      await validateSelectedServiceParts(shopIdToUse, selectedServices, selectedParts);
 
       // Create a single appointment with all selected services
       const serviceLabels = selectedServices
@@ -1178,7 +1286,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         quantity: part.quantity,
       }));
 
-      const insertData: any = {
+      const insertData = {
         customer_id: user.id,
         shop_id: shopIdToUse,
         scheduled_date: selectedDate,
@@ -1188,18 +1296,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         service_type: serviceLabels,
         description: `${vehicleDesc} - ${serviceLabels}`,
         status: "pending",
+        service_ids: selectedServices,
         notes: notes || null,
         estimated_price: selectedServicePrice,
         vehicle_id:
           selectedVehicleId && selectedVehicleId !== "manual"
             ? selectedVehicleId
             : null,
+        parts: partsForStorage,
+        ...(partsForStorage.length > 0 ? { total_amount: selectedServicePrice + partsTotal } : {}),
       };
-
-      if (partsForStorage.length > 0) {
-        insertData.parts = partsForStorage;
-        insertData.total_amount = selectedServicePrice + partsTotal;
-      }
 
       const { data, error } = await supabase
         .from("appointments")
@@ -1281,6 +1387,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       );
     } finally {
       setSubmitting(false);
+      submitLockRef.current = false;
     }
   };
 
@@ -1558,6 +1665,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               <p className="text-slate-400 text-xs leading-relaxed font-light">
                                 {svc.desc}
                               </p>
+                              <p className="mt-3 text-xs font-semibold text-slate-300">
+                                Estimated time: {Number(svc.duration_minutes) || 60} min
+                              </p>
                             </motion.button>
                           );
                         })}
@@ -1589,6 +1699,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </span>
                             <span className="text-moto-accent font-mono font-black text-lg">
                               ₱{selectedServicePrice.toFixed(2)}
+                            </span>
+                          </p>
+                          <p className="mt-2 flex items-center justify-between text-xs">
+                            <span className="text-slate-300">Estimated booking time</span>
+                            <span className="font-bold text-moto-accent">
+                              {totalDurationMinutes >= 60
+                                ? `${Math.floor(totalDurationMinutes / 60)} hr${Math.floor(totalDurationMinutes / 60) === 1 ? "" : "s"}${totalDurationMinutes % 60 ? ` ${totalDurationMinutes % 60} min` : ""}`
+                                : `${totalDurationMinutes} min`}
                             </span>
                           </p>
                         </div>
@@ -1623,169 +1741,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Optional add parts so the shop has them ready when you arrive.
                         </p>
                       </div>
-                      {loadingParts ? (
+                      {loadingParts || partsCatalogKey !== [...selectedServices].sort().join(",") ? (
                         <div className="flex items-center justify-center py-12">
                           <div className="w-8 h-8 border-2 border-moto-accent/30 border-t-moto-accent rounded-full animate-spin" />
                         </div>
-                      ) : availableParts.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-moto-gray/80 bg-moto-darker/50 p-8 text-center">
-                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-moto-accent mb-3">
-                            <Wrench size={20} strokeWidth={1.75} />
-                          </div>
-                          <p className="font-display font-bold text-slate-200 uppercase tracking-tight">
-                            No parts available.
-                          </p>
-                          <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
-                            We're restocking check back soon or ask the shop for
-                            the latest catalog.
-                          </p>
-                        </div>
                       ) : (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-1 gap-3">
-                            {availableParts.map((part) => {
-                              const selectedPart = selectedParts.find(
-                                (p) => p.id === part.id,
-                              );
-                              return (
-                                <motion.div
-                                  key={part.id}
-                                  whileHover={{ y: -2 }}
-                                  whileTap={{ scale: 0.995 }}
-                                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                                  className={`p-4 sm:p-5 rounded-2xl border transition-colors duration-200 ${
-                                    selectedPart
-                                      ? "bg-moto-accent/[0.05] border-moto-accent ring-1 ring-moto-accent/30 shadow-lg shadow-moto-accent/5"
-                                      : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
-                                  }`}
-                                >
-                                  <div className="flex items-start gap-4 mb-3">
-                                    <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-moto-gray/30 border border-moto-gray overflow-hidden rounded-xl flex items-center justify-center">
-                                      {part.image_url ? (
-                                        <img src={part.image_url} alt={part.name} className="w-full h-full object-cover" />
-                                      ) : (
-                                        <Package size={24} className="text-slate-400" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-bold text-slate-100 text-sm mb-1 truncate">
-                                        {part.name}
-                                      </p>
-                                      <p className="text-slate-400 text-xs">
-                                        SKU: {part.sku}
-                                      </p>
-                                      <span
-                                        className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                                          part.quantity_in_stock < 5
-                                            ? "bg-[#ff6b6b]/15 text-[#ff6b6b]"
-                                            : "bg-emerald-500/15 text-emerald-300"
-                                        }`}
-                                      >
-                                        <span
-                                          className={`h-1.5 w-1.5 rounded-full ${
-                                            part.quantity_in_stock < 5
-                                              ? "bg-[#ff6b6b]"
-                                              : "bg-emerald-400"
-                                          }`}
-                                        />
-                                        In Stock
-                                      </span>
-                                    </div>
-                                    <p
-                                      className={`font-mono font-bold text-sm ml-4 text-right shrink-0 transition-colors ${
-                                        selectedPart
-                                          ? "text-moto-accent"
-                                          : "text-slate-400"
-                                      }`}
-                                    >
-                                      ₱
-                                      {Number(part.unit_price).toLocaleString()}
-                                    </p>
-                                  </div>
-                                  {selectedPart ? (
-                                    <div className="flex items-center gap-3 pt-3 border-t border-moto-gray/60">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setSelectedParts(
-                                            selectedParts
-                                              .map((p) =>
-                                                p.id === part.id
-                                                  ? {
-                                                      ...p,
-                                                      quantity: p.quantity - 1,
-                                                    }
-                                                  : p,
-                                              )
-                                              .filter((p) => p.quantity > 0),
-                                          )
-                                        }
-                                        className="px-3 py-1.5 border border-moto-accent/60 text-moto-accent hover:bg-moto-accent hover:text-slate-950 transition text-xs font-bold rounded-lg"
-                                      >
-                                        −
-                                      </button>
-                                      <span className="text-slate-100 font-bold text-sm min-w-[30px] text-center">
-                                        {selectedPart.quantity}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          selectedPart.quantity <
-                                            part.quantity_in_stock &&
-                                            setSelectedParts(
-                                              selectedParts.map((p) =>
-                                                p.id === part.id
-                                                  ? {
-                                                      ...p,
-                                                      quantity: p.quantity + 1,
-                                                    }
-                                                  : p,
-                                            ),
-                                        )}
-                                        disabled={
-                                          selectedPart.quantity >=
-                                          part.quantity_in_stock
-                                        }
-                                        className={`px-3 py-1.5 border text-xs font-bold transition rounded-lg ${
-                                          selectedPart.quantity >=
-                                          part.quantity_in_stock
-                                            ? "border-moto-gray text-slate-600 cursor-not-allowed"
-                                            : "border-moto-accent/60 text-moto-accent hover:bg-moto-accent hover:text-slate-950"
-                                        }`}
-                                      >
-                                        +
-                                      </button>
-                                      <span className="text-slate-300 text-xs font-bold ml-auto">
-                                        ₱
-                                        {(
-                                          selectedPart.quantity *
-                                          part.unit_price
-                                        ).toLocaleString()}
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setSelectedParts([
-                                          ...selectedParts,
-                                          {
-                                            id: part.id,
-                                            name: part.name,
-                                            unit_price: part.unit_price,
-                                            quantity: 1,
-                                          },
-                                        ])
-                                      }
-                                      className="w-full py-2.5 rounded-xl border border-moto-gray text-slate-400 hover:border-moto-accent hover:bg-moto-accent/10 hover:text-moto-accent text-[11px] font-bold uppercase tracking-widest transition"
-                                    >
-                                      Add
-                                    </button>
-                                  )}
-                                </motion.div>
-                              );
-                            })}
-                          </div>
+                          <ServicePartsPicker
+                            key={`${shopId || defaultShopId}:${[...selectedServices].sort().join(",")}`}
+                            shopId={shopId || defaultShopId}
+                            services={selectedServices.map((serviceId) => ({
+                              id: serviceId,
+                              label: dynamicServices.find((service) => service.id === serviceId)?.label || "Service",
+                            }))}
+                            selectedParts={selectedParts}
+                            onChange={setSelectedParts}
+                            onAvailabilityChange={(hasParts) => setPartsAvailableForServices(hasParts)}
+                            catalog={partsCatalog}
+                          />
                           {selectedParts.length > 0 && (
                             <div className="mt-6 rounded-2xl border border-moto-accent/20 bg-moto-accent/[0.06] p-5">
                               <div className="space-y-2 mb-3">
@@ -2540,7 +2513,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
               <div className="booking-modal-footer flex items-center justify-between px-5 sm:px-10 py-4 sm:py-6 border-t border-moto-gray flex-shrink-0 bg-moto-dark/80">
                 <motion.button
                   onClick={() =>
-                    currentStep > 0 ? goStep(-1) : onClose()
+                    currentStep > 0 ? goToPreviousStep() : onClose()
                   }
                   whileHover={{ x: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -2565,7 +2538,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                         : undefined
                     }
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    onClick={() => goStep(1)}
+                    onClick={goToNextStep}
                     disabled={
                       !canGoNext() ||
                       (currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
