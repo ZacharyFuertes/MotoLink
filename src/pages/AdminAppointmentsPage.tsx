@@ -26,6 +26,8 @@ interface AdminAppointment {
   booking_id?: string;
   shop_id: string;
   customer_id: string | null;
+  walk_in_name?: string | null;
+  walk_in_request_id?: string | null;
   scheduled_date: string;
   scheduled_time: string;
   service_type: string;
@@ -367,6 +369,7 @@ const AdminAppointmentsPage: React.FC = () => {
               <tbody>
                 {filtered.map((a) => {
                   const st = getAppointmentStatus(a.status);
+                  const isWalkInBooking = Boolean(a.walk_in_request_id || a.walk_in_name || !a.customer_id);
                   return (
                     <tr key={a.id} className="align-top">
                       <td>
@@ -382,7 +385,12 @@ const AdminAppointmentsPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="text-slate-300">
-                        {a.customer?.name || "Guest"}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{a.customer?.name || a.walk_in_name || "Guest"}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${isWalkInBooking ? "bg-violet-500/15 text-violet-300" : "bg-sky-500/15 text-sky-300"}`}>
+                            {isWalkInBooking ? "Walk-in" : "Online"}
+                          </span>
+                        </div>
                       </td>
                       <td className="text-slate-300 max-w-[220px]">
                         <div className="line-clamp-2">

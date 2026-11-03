@@ -186,6 +186,8 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [loadingMechanicDays, setLoadingMechanicDays] = useState(false);
   const [mechanicDaysError, setMechanicDaysError] = useState("");
   const [mechanicSlotOptions, setMechanicSlotOptions] = useState<Record<string, WalkInSlotMechanic[]>>({});
+  const [nextFreeOptions, setNextFreeOptions] = useState<Record<string, { time: string; mechanics: ShopMechanic[] }>>({});
+  const [mechanicCapacityBySlot, setMechanicCapacityBySlot] = useState<Record<string, boolean>>({});
   const [checkingMechanicSlots, setCheckingMechanicSlots] = useState(false);
   const [mechanicSlotsError, setMechanicSlotsError] = useState("");
   const [conflicts, setConflicts] = useState<BookingConflict[]>([]);
@@ -246,6 +248,8 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     setSelectedMechanicId("");
     setMechanicScheduleWeekdays(new Set());
     setMechanicSlotOptions({});
+    setNextFreeOptions({});
+    setMechanicCapacityBySlot({});
     setMechanicSlotsError("");
     setConflicts([]);
     setConflictModalOpen(false);
@@ -581,6 +585,8 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     const loadMechanicSlots = async () => {
       if (!isOpen || !selectedDate || !daySlots.length || !mechanics.length) {
         setMechanicSlotOptions({});
+        setNextFreeOptions({});
+        setMechanicCapacityBySlot({});
         setCheckingMechanicSlots(false);
         return;
       }
@@ -589,55 +595,43 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       try {
         const shopId = await resolveShopId();
         if (!shopId) throw new Error("No shop is linked to your account.");
-        const mechanicIds = mechanics.map((mechanic) => mechanic.id);
-        const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
-        const [shiftsResult, bookingsResult] = await Promise.all([
-          supabase.from("mechanic_availability").select("mechanic_id, shop_id, start_time, end_time, is_available").or(`shop_id.eq.${shopId},shop_id.is.null`).eq("day_of_week", weekday).in("mechanic_id", mechanicIds),
-          supabase.from("appointments").select("id, mechanic_id, customer_id, status, scheduled_time, duration_minutes").eq("shop_id", shopId).eq("scheduled_date", selectedDate).in("status", ["pending", "confirmed", "in_progress"]).in("mechanic_id", mechanicIds),
-        ]);
-        if (shiftsResult.error) throw shiftsResult.error;
-        if (bookingsResult.error) throw bookingsResult.error;
-        const optionsBySlot: Record<string, WalkInSlotMechanic[]> = {};
-        daySlots.forEach((slot) => {
-          const start = timeToMinutes(slot);
-          const end = start + walkInDurationMinutes;
-          const slotOptions: WalkInSlotMechanic[] = [];
-          mechanics.forEach((mechanic) => {
-            const coversDuration = (shiftsResult.data || []).some((shift) =>
-              shift.mechanic_id === mechanic.id &&
-              (shift.shop_id === shopId || shift.shop_id == null) &&
-              shift.is_available &&
-              timeToMinutes(normalizeTime(shift.start_time)) <= start &&
-              timeToMinutes(normalizeTime(shift.end_time)) >= end,
-            );
-            if (!coversDuration) return;
-            const overlapsForMechanic = (bookingsResult.data || []).filter((booking) => {
-              if (booking.mechanic_id !== mechanic.id || !booking.scheduled_time) return false;
-              const bookingStart = timeToMinutes(normalizeTime(booking.scheduled_time));
-              const bookingEnd = bookingStart + (Number(booking.duration_minutes) || 60);
-              return intervalsOverlap(start, end, bookingStart, bookingEnd);
-            });
-            if (!overlapsForMechanic.length) {
-              slotOptions.push({ ...mechanic, availability: "available" });
-              return;
-            }
-            if (overlapsForMechanic.every((booking) =>
-              (booking.status === "pending" || booking.status === "confirmed") && booking.customer_id,
-            )) {
-              slotOptions.push({
-                ...mechanic,
-                availability: "conflict",
-                conflictStatuses: overlapsForMechanic.map((booking) => booking.status),
-              });
-            }
-          });
-          optionsBySlot[slot] = slotOptions;
+        const { data: availabilityRows, error: availabilityError } = await supabase.rpc("get_booking_availability", {
+          p_shop_id: shopId,
+          p_scheduled_date: selectedDate,
+          p_start_times: daySlots,
+          p_duration_minutes: walkInDurationMinutes,
         });
-        if (active) setMechanicSlotOptions(optionsBySlot);
+        if (availabilityError) throw availabilityError;
+        const optionsBySlot: Record<string, WalkInSlotMechanic[]> = {};
+        const nextOptionsBySlot: Record<string, { time: string; mechanics: ShopMechanic[] }> = {};
+        const capacityBySlot: Record<string, boolean> = {};
+        (availabilityRows || []).forEach((row) => {
+          const slot = normalizeTime(row.slot_time);
+          capacityBySlot[slot] = row.is_available === true;
+          const availableIds = new Set<string>(row.available_mechanic_ids || []);
+          const conflictsByMechanic = new Map<string, string[]>((row.conflicting_mechanics || []).map((item: { mechanic_id: string; statuses: string[] }) => [item.mechanic_id, item.statuses]));
+          optionsBySlot[slot] = mechanics.flatMap<WalkInSlotMechanic>((mechanic) => {
+            if (availableIds.has(mechanic.id)) return [{ ...mechanic, availability: "available" as const }];
+            const conflictStatuses = conflictsByMechanic.get(mechanic.id);
+            return conflictStatuses?.length ? [{ ...mechanic, availability: "conflict" as const, conflictStatuses }] : [];
+          });
+          const nextTime = normalizeTime(row.next_free_slot);
+          if (nextTime) {
+            const nextIds = new Set<string>(row.next_free_mechanic_ids || []);
+            nextOptionsBySlot[slot] = { time: nextTime, mechanics: mechanics.filter((mechanic) => nextIds.has(mechanic.id)) };
+          }
+        });
+        if (active) {
+          setMechanicSlotOptions(optionsBySlot);
+          setNextFreeOptions(nextOptionsBySlot);
+          setMechanicCapacityBySlot(capacityBySlot);
+        }
       } catch (availabilityError) {
         console.error("Could not check walk-in mechanic availability:", availabilityError);
         if (active) {
           setMechanicSlotOptions({});
+          setNextFreeOptions({});
+          setMechanicCapacityBySlot({});
           setMechanicSlotsError("Could not verify mechanic availability. Please retry or choose another date.");
         }
       } finally {
@@ -722,7 +716,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
     const { data: rows, error: appointmentsError } = await supabase
       .from("appointments")
-      .select("id, booking_id, customer_id, walk_in_name, status, service_type, scheduled_time, duration_minutes, mechanic_id")
+      .select("id, booking_id, customer_id, walk_in_name, status, service_type, scheduled_time, duration_minutes, mechanic_id, mechanic_preference")
       .eq("shop_id", shopId)
       .eq("scheduled_date", date)
       .eq("mechanic_id", mechanicId)
@@ -802,6 +796,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         booking_id: row.booking_id,
         customer_name: customerNames.get(row.customer_id) || "Online customer",
         status: row.status as "pending" | "confirmed",
+        mechanic_preference: row.mechanic_preference === "any" ? "any" : "specific",
         service_type: row.service_type,
         scheduled_time: normalizeTime(row.scheduled_time),
         duration_minutes: duration,
@@ -890,6 +885,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     if (mechanicSlotsError) { setError(mechanicSlotsError); submitLockRef.current = false; return; }
     if (!selectedDate || !selectedSlot) { setError("Pick a date and a time slot."); submitLockRef.current = false; return; }
     if (!selectableSlots.includes(selectedSlot)) { setError("That time no longer has a mechanic available. Choose another slot."); submitLockRef.current = false; return; }
+    if (!selectedMechanicId && mechanicCapacityBySlot[selectedSlot] !== true) { setError("There is no unassigned shop capacity for that interval. Choose a conflicting online booking to resolve or use the next available slot."); submitLockRef.current = false; return; }
     if (selectedMechanicId && !mechanicSlotOptions[selectedSlot]?.some((mechanic) => mechanic.id === selectedMechanicId)) {
       setError("That mechanic is no longer available for the selected time. Choose another mechanic or slot."); submitLockRef.current = false; return;
     }
@@ -927,6 +923,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         customer_id: customerId,
         vehicle_id: null,
         mechanic_id: selectedMechanicId || null,
+        mechanic_preference: selectedMechanicId ? "specific" : "any",
         scheduled_date: selectedDate,
         scheduled_time: selectedSlot,
         duration_minutes: durationMinutes,
@@ -1351,6 +1348,14 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                       );
                     })}
                   </div>
+                  {!mechanicCapacityBySlot[selectedSlot] && nextFreeOptions[selectedSlot] && (
+                    <p className="rounded-xl border border-cyan-500/25 bg-cyan-500/[0.06] px-4 py-3 text-xs leading-relaxed text-cyan-100">
+                      Next free slot: <strong>{nextFreeOptions[selectedSlot].time}</strong>
+                      {nextFreeOptions[selectedSlot].mechanics.length > 0 && (
+                        <> · Available mechanics: {nextFreeOptions[selectedSlot].mechanics.map((mechanic) => mechanic.name).join(", ")}</>
+                      )}
+                    </p>
+                  )}
                   <p className="text-[11px] leading-relaxed text-slate-400">Mechanics with online pending or confirmed bookings remain selectable; you’ll review those conflicts before saving. Mechanics with in-progress or existing walk-in bookings are unavailable.</p>
                 </section>
               )}

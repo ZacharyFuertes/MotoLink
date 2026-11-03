@@ -91,6 +91,7 @@ export interface Appointment {
   service_type: string;
   description?: string;
   mechanic_id?: string | null;
+  mechanic_preference?: "specific" | "any";
   status: AppointmentStatus;
   service_ids?: string[];
   parts_stock_deducted_at?: string | null;
@@ -98,6 +99,8 @@ export interface Appointment {
   walk_in_name?: string | null;
   walk_in_phone?: string | null;
   walk_in_email?: string | null;
+  walk_in_request_id?: string | null;
+  client_request_id?: string | null;
   reschedule_reason?: string | null;
   reschedule_requested_at?: string | null;
   reschedule_requested_by?: string | null;

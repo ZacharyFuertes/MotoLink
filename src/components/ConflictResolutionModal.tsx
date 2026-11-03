@@ -49,6 +49,7 @@ export interface BookingConflict {
   booking_id?: string | null;
   customer_name: string;
   status: "pending" | "confirmed";
+  mechanic_preference: "specific" | "any";
   service_type: string;
   scheduled_time: string;
   duration_minutes: number;
@@ -273,10 +274,10 @@ const ConflictResolutionModal: React.FC<ConflictResolutionModalProps> = ({
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button type="button" aria-pressed={selectedAction === "reassign_online"} onClick={() => { setActions((current) => ({ ...current, [conflict.id]: "reassign_online" })); setValidationError(""); }} className={`rounded-xl border p-3.5 text-left transition-all ${selectedAction === "reassign_online" ? "border-cyan-500 bg-cyan-50 shadow-[inset_0_0_0_1px_rgba(6,182,212,0.12)]" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}>
+                  {(conflict.status === "pending" || conflict.mechanic_preference === "any") && <button type="button" aria-pressed={selectedAction === "reassign_online"} onClick={() => { setActions((current) => ({ ...current, [conflict.id]: "reassign_online" })); setValidationError(""); }} className={`rounded-xl border p-3.5 text-left transition-all ${selectedAction === "reassign_online" ? "border-cyan-500 bg-cyan-50 shadow-[inset_0_0_0_1px_rgba(6,182,212,0.12)]" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}>
                     <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><ArrowRightLeft size={16} className="text-cyan-700" />Reassign mechanic</span>
                     <span className="mt-1 block text-xs leading-relaxed text-slate-500">Keep the online customer’s date and time unchanged.</span>
-                  </button>
+                  </button>}
                   <button type="button" aria-pressed={selectedAction === "reschedule_online"} onClick={() => { setActions((current) => ({ ...current, [conflict.id]: "reschedule_online" })); setValidationError(""); }} className={`rounded-xl border p-3.5 text-left transition-all ${selectedAction === "reschedule_online" ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"}`}>
                     <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><CalendarClock size={16} className="text-amber-600" />Reschedule booking</span>
                     <span className="mt-1 block text-xs leading-relaxed text-slate-500">Choose a new time. The customer is notified; approval is not required.</span>

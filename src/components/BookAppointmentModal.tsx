@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import { filterMechanicsForTimeSlot } from "../services/mechanicAssignmentService";
 import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail } from "../services/notificationService";
 import {
   startOnlinePayment,
@@ -46,7 +45,7 @@ import DateStrip from "./DateStrip";
 import TimeSlotGrid from "./TimeSlotGrid";
 import ServicePartsPicker, { SelectedServicePart } from "./ServicePartsPicker";
 import { loadServicePartCatalog, ServicePartCatalog, validateSelectedServiceParts } from "../services/servicePartsService";
-import { normalizeTime } from "../utils/dateTime";
+import { isSlotPast, normalizeTime } from "../utils/dateTime";
 import { parseOperatingHoursString } from "../services/shopService";
 
 interface VehicleData {
@@ -125,6 +124,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [pastSlots, setPastSlots] = useState<string[]>([]);
   const [, setLoadingVehicles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [restoredDraftPending, setRestoredDraftPending] = useState(false);
+  const [restoredDraftValidation, setRestoredDraftValidation] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [hasActiveAppointment, setHasActiveAppointment] = useState(false);
@@ -135,6 +136,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [partsAvailableForServices, setPartsAvailableForServices] = useState(false);
   const [partsCatalogKey, setPartsCatalogKey] = useState("");
   const submitLockRef = useRef(false);
+  const clientRequestRef = useRef<{ fingerprint: string; id: string } | null>(null);
   const restoringGuestDraftRef = useRef(false);
   const [partsCatalog, setPartsCatalog] = useState<ServicePartCatalog>({ parts: [], mappings: [], categories: [] });
   const [lastBookingId, setLastBookingId] = useState("");
@@ -224,6 +226,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       const snap = JSON.parse(raw);
       if (snap.shopId && snap.shopId !== shopId) return;
       restoringGuestDraftRef.current = true;
+      setRestoredDraftPending(true);
+      setRestoredDraftValidation("checking");
       setSelectedServices(snap.services || []);
       setSelectedServicePrice(snap.servicePrice || 0);
       setSelectedDate(snap.date || "");
@@ -396,6 +400,74 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       });
     return () => { active = false; };
   }, [isOpen, currentStep, shopId, defaultShopId, selectedServices, selectedParts]);
+
+  useEffect(() => {
+    if (!isOpen || !restoredDraftPending || currentStep !== 3) return;
+    const resolvedShopId = shopId || defaultShopId;
+    const servicesKey = [...selectedServices].sort().join(",");
+    if (!resolvedShopId || !selectedServices.length || loadingParts || partsCatalogKey !== servicesKey) return;
+
+    let active = true;
+    setRestoredDraftValidation("checking");
+    void (async () => {
+      try {
+        if (!selectedDate || !selectedTime || isSlotPast(selectedDate, selectedTime)) {
+          throw new Error("The saved appointment time has passed. Choose a new date and time.");
+        }
+
+        const [serviceResult, shopResult, blockedResult] = await Promise.all([
+          supabase.from("services_pricing").select("id, label, price, duration_minutes").eq("shop_id", resolvedShopId).eq("is_active", true).in("id", selectedServices),
+          supabase.from("shops").select("operating_hours").eq("id", resolvedShopId).maybeSingle(),
+          supabase.from("shop_blocked_hours").select("day_of_week, start_time, end_time").eq("shop_id", resolvedShopId).eq("is_active", true),
+        ]);
+        if (serviceResult.error) throw serviceResult.error;
+        if (shopResult.error) throw shopResult.error;
+        if (blockedResult.error) throw blockedResult.error;
+        if ((serviceResult.data || []).length !== selectedServices.length) {
+          throw new Error("One or more saved services are no longer active at this shop. Review your services.");
+        }
+
+        const duration = (serviceResult.data || []).reduce((total, service) => total + (Number(service.duration_minutes) || 60), 0);
+        setSelectedServicePrice((serviceResult.data || []).reduce((total, service) => total + (Number(service.price) || 0), 0));
+        const schedule = parseOperatingHoursString(shopResult.data?.operating_hours);
+        const weekday = new Date(`${selectedDate}T00:00:00`).getDay();
+        const shopDay = schedule[weekday];
+        const startMinutes = timeToMinutes(normalizeTime(selectedTime));
+        const endMinutes = startMinutes + duration;
+        if (!shopDay?.open || !shopDay.openTime || !shopDay.closeTime || endMinutes > timeToMinutes(shopDay.closeTime)) {
+          throw new Error("The saved time no longer fits the shop's operating hours. Choose a new slot.");
+        }
+        const overlapsBlocked = (blockedResult.data || []).some((window) =>
+          Number(window.day_of_week) === weekday && startMinutes < timeToMinutes(window.end_time) && timeToMinutes(window.start_time) < endMinutes,
+        );
+        if (overlapsBlocked) throw new Error("The saved time now overlaps a shop blocked-hours window. Choose a new slot.");
+
+        await validateSelectedServiceParts(resolvedShopId, selectedServices, selectedParts);
+        const { data: availability, error: availabilityError } = await supabase.rpc("get_booking_availability", {
+          p_shop_id: resolvedShopId,
+          p_scheduled_date: selectedDate,
+          p_start_times: [normalizeTime(selectedTime)],
+          p_duration_minutes: duration,
+        });
+        if (availabilityError) throw availabilityError;
+        const slot = availability?.[0];
+        if (!slot?.is_available) throw new Error("The saved time is no longer available. Choose another slot.");
+        if (selectedMechanicId && !(slot.available_mechanic_ids || []).includes(selectedMechanicId)) {
+          throw new Error("Your saved mechanic is no longer available for that time. Choose another mechanic or slot.");
+        }
+
+        if (!active) return;
+        setRestoredDraftPending(false);
+        setRestoredDraftValidation("valid");
+        setErrorMsg("");
+      } catch (validationError) {
+        if (!active) return;
+        setRestoredDraftValidation("invalid");
+        setErrorMsg(validationError instanceof Error ? validationError.message : "The saved booking could not be revalidated. Review and choose your services, parts, and time again.");
+      }
+    })();
+    return () => { active = false; };
+  }, [isOpen, restoredDraftPending, currentStep, shopId, defaultShopId, selectedServices, selectedParts, selectedDate, selectedTime, selectedMechanicId, loadingParts, partsCatalogKey]);
 
   // Load weekdays on which at least one mechanic has an enabled shift that
   // overlaps the shop's opening hours. Dates remain visible in the strip but
@@ -596,14 +668,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
       setLoadingMechanicsForTime(true);
       try {
-        const startMin = timeToMinutes(normalizeTime(selectedTime));
         const duration = selectedServices.reduce((sum, serviceId) => {
           const service = dynamicServices.find((item) => item.id === serviceId);
           return sum + (service?.duration_minutes || 60);
         }, 0) || 60;
-        const endMin = startMin + duration;
-        // mechanic_availability uses ISO weekdays: Monday=0 through Sunday=6.
-        const weekday = (new Date(`${selectedDate}T00:00:00`).getDay() + 6) % 7;
 
         const { data: mechanics, error: mechanicError } = await supabase
           .from("users")
@@ -613,48 +681,20 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           .order("name");
         if (mechanicError) throw mechanicError;
 
-        const mechanicIds = (mechanics || []).map((mechanic) => mechanic.id);
-        if (mechanicIds.length === 0) {
+        if (!mechanics?.length) {
           if (active) setAvailableMechanicsForTime([]);
           return;
         }
 
-        const [shiftsResult, bookingsResult] = await Promise.all([
-          supabase
-            .from("mechanic_availability")
-            .select("mechanic_id, start_time, end_time, is_available")
-            .in("mechanic_id", mechanicIds)
-            .eq("shop_id", defaultShopId)
-            .eq("day_of_week", weekday),
-          supabase.rpc("get_busy_mechanic_ids_for_slot", {
-            p_shop_id: defaultShopId,
-            p_scheduled_date: selectedDate,
-            p_scheduled_time: normalizeTime(selectedTime),
-            p_duration_minutes: duration,
-          }),
-        ]);
-        if (shiftsResult.error) throw shiftsResult.error;
-        if (bookingsResult.error) throw bookingsResult.error;
-
-        const shiftsByMechanic = new Map<string, typeof shiftsResult.data>();
-        (shiftsResult.data || []).forEach((shift) => {
-          const shifts = shiftsByMechanic.get(shift.mechanic_id) || [];
-          shifts.push(shift);
-          shiftsByMechanic.set(shift.mechanic_id, shifts);
+        const { data: availabilityRows, error: availabilityError } = await supabase.rpc("get_booking_availability", {
+          p_shop_id: defaultShopId,
+          p_scheduled_date: selectedDate,
+          p_start_times: [normalizeTime(selectedTime)],
+          p_duration_minutes: duration,
         });
-
-        const busyMechanicIds = new Set<string>();
-        (bookingsResult.data || []).forEach((booking) => {
-          if (booking.mechanic_id) busyMechanicIds.add(booking.mechanic_id);
-        });
-
-        const availableForSchedule = filterMechanicsForTimeSlot({
-          mechanics: mechanics || [],
-          shiftsByMechanic,
-          busyMechanicIds,
-          startMin,
-          endMin,
-        });
+        if (availabilityError) throw availabilityError;
+        const availableIds = new Set<string>(availabilityRows?.[0]?.available_mechanic_ids || []);
+        const availableForSchedule = mechanics.filter((mechanic) => availableIds.has(mechanic.id));
         const available = mechanicConflictForSlot?.slotKey === mechanicSlotKey
           ? availableForSchedule.filter((mechanic) => mechanic.id !== mechanicConflictForSlot.mechanicId)
           : availableForSchedule;
@@ -1117,7 +1157,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     setMechanicUnavailableSlots([]);
     setMechanicSlotAvailabilityError("");
 
-    void supabase.rpc("get_available_mechanic_slots", {
+    void supabase.rpc("get_booking_availability", {
       p_shop_id: shopIdForSlots,
       p_scheduled_date: selectedDate,
       p_start_times: daySlots,
@@ -1268,12 +1308,36 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         return;
       }
 
+      const { data: activeServiceRows, error: serviceError } = await supabase
+        .from("services_pricing")
+        .select("id, label, price, duration_minutes")
+        .eq("shop_id", shopIdToUse)
+        .eq("is_active", true)
+        .in("id", selectedServices);
+      if (serviceError) throw serviceError;
+      if ((activeServiceRows || []).length !== selectedServices.length) {
+        throw new Error("One or more selected services are no longer active at this shop.");
+      }
+      const authoritativeDuration = (activeServiceRows || []).reduce((total, service) => total + (Number(service.duration_minutes) || 60), 0);
+      const authoritativePrice = (activeServiceRows || []).reduce((total, service) => total + (Number(service.price) || 0), 0);
+      const { data: slotAvailability, error: slotAvailabilityError } = await supabase.rpc("get_booking_availability", {
+        p_shop_id: shopIdToUse,
+        p_scheduled_date: selectedDate,
+        p_start_times: [normalizeTime(selectedTime)],
+        p_duration_minutes: authoritativeDuration,
+      });
+      if (slotAvailabilityError) throw slotAvailabilityError;
+      const currentSlot = slotAvailability?.[0];
+      if (!currentSlot?.is_available || (selectedMechanicId && !(currentSlot.available_mechanic_ids || []).includes(selectedMechanicId))) {
+        throw new Error("The selected appointment slot or mechanic is no longer available. Choose another slot.");
+      }
+
       await validateSelectedServiceParts(shopIdToUse, selectedServices, selectedParts);
 
       // Create a single appointment with all selected services
       const serviceLabels = selectedServices
         .map((svcId) => {
-          const svc = dynamicServices.find((s) => s.id === svcId);
+          const svc = activeServiceRows?.find((s) => s.id === svcId);
           return svc?.label || svcId;
         })
         .join(", ");
@@ -1291,27 +1355,46 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         shop_id: shopIdToUse,
         scheduled_date: selectedDate,
         scheduled_time: selectedTime,
-        duration_minutes: totalDurationMinutes || 60,
+        duration_minutes: authoritativeDuration || 60,
         mechanic_id: selectedMechanicId || null,
+        mechanic_preference: selectedMechanicId ? "specific" : "any",
         service_type: serviceLabels,
         description: `${vehicleDesc} - ${serviceLabels}`,
         status: "pending",
         service_ids: selectedServices,
         notes: notes || null,
-        estimated_price: selectedServicePrice,
+        estimated_price: authoritativePrice,
         vehicle_id:
           selectedVehicleId && selectedVehicleId !== "manual"
             ? selectedVehicleId
             : null,
         parts: partsForStorage,
-        ...(partsForStorage.length > 0 ? { total_amount: selectedServicePrice + partsTotal } : {}),
+        ...(partsForStorage.length > 0 ? { total_amount: authoritativePrice + partsTotal } : {}),
       };
 
-      const { data, error } = await supabase
+      const requestFingerprint = JSON.stringify(insertData);
+      if (!clientRequestRef.current || clientRequestRef.current.fingerprint !== requestFingerprint) {
+        clientRequestRef.current = { fingerprint: requestFingerprint, id: crypto.randomUUID() };
+      }
+      const insertWithRequestId = { ...insertData, client_request_id: clientRequestRef.current.id };
+
+      let { data, error } = await supabase
         .from("appointments")
-        .insert([insertData])
+        .insert([insertWithRequestId])
         .select();
 
+      if (error?.code === "23505") {
+        const replay = await supabase
+          .from("appointments")
+          .select("*")
+          .eq("customer_id", user.id)
+          .eq("client_request_id", clientRequestRef.current.id)
+          .maybeSingle();
+        if (!replay.error && replay.data) {
+          data = [replay.data];
+          error = null;
+        }
+      }
       if (error) throw error;
 
       // Get the created appointment with mechanic details
@@ -1327,6 +1410,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         };
 
         setLastBookingId(appointment.booking_id || "");
+        clientRequestRef.current = null;
         setSuccess(true);
 
         // Notify the shop owner of the new booking request (in-app bell).
@@ -1738,7 +1822,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Add Some Parts<span className="text-moto-accent">.</span>
                         </h3>
                         <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                         Choose parts w.
+                          Choose compatible parts for your selected services. This step is optional.
                         </p>
                       </div>
                       {loadingParts || partsCatalogKey !== [...selectedServices].sort().join(",") ? (
@@ -1977,6 +2061,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       exit={{ opacity: 0, x: -24 * stepDir.current }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
                     >
+                      {restoredDraftPending && restoredDraftValidation === "checking" && (
+                        <p role="status" className="mb-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200">
+                          Rechecking your saved services, parts, appointment time, and mechanic…
+                        </p>
+                      )}
                       <div className="mb-8">
                           <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
                             Step 04 · Confirm
@@ -2595,9 +2684,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     }
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     onClick={handleSubmit}
-                    disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking}
+                    disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking || restoredDraftPending}
                     className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
-                      canGoNext() && !submitting && !hasActiveAppointment && !activeAppointmentChecking
+                      canGoNext() && !submitting && !hasActiveAppointment && !activeAppointmentChecking && !restoredDraftPending
                         ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}
