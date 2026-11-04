@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Check,
   
   Gauge,
   History,
@@ -16,7 +17,6 @@ import {
   MapPin,
   Package,
   Pencil,
-  Plus,
   RotateCcw,
   Settings,
   ShieldCheck,
@@ -109,6 +109,31 @@ const formatDate = (dateStr: string) => {
   });
 };
 
+const formatManilaDateTime = (dateStr: string, time?: string) => {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr}T${(time || "00:00").slice(0, 5)}:00+08:00`);
+  if (Number.isNaN(date.getTime())) return `${formatDate(dateStr)}${time ? ` · ${time}` : ""}`;
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+};
+
+const formatManilaDate = (dateStr: string) => {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr.slice(0, 10)}T12:00:00+08:00`);
+  return Number.isNaN(date.getTime()) ? dateStr.slice(0, 10) : new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric", year: "numeric" }).format(date);
+};
+
+const sentenceCase = (value: string) =>
+  value
+    .toLocaleLowerCase()
+    .replace(/(^|[,/ ])([a-z])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toLocaleUpperCase()}`);
+
 const initials = (name: string) =>
   name
     .split(" ")
@@ -118,8 +143,8 @@ const initials = (name: string) =>
     .join("") || "U";
 
 const fieldClass =
-  "w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 outline-none transition focus:border-moto-accent/50 disabled:opacity-50";
-const labelClass = "mb-1 block text-xs font-medium text-slate-300";
+  "h-10 w-full rounded-lg border border-border-default bg-raised px-3 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60";
+const labelClass = "mb-1.5 block text-[13px] font-medium text-text-secondary";
 
 const emptyBikeForm = {
   make: "",
@@ -134,8 +159,79 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   onOpenShop,
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabKey>("profile");
+  const initialTab = (() => {
+    const raw = window.location.hash.replace("#", "");
+    return ["profile", "history", "saved", "settings"].includes(raw) ? raw as TabKey : "profile";
+  })();
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const [menuOpen, setMenuOpen] = useState(false);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [settingsForm, setSettingsForm] = useState({ name: "", phone: "", address: "" });
+  const [savedSettings, setSavedSettings] = useState({ name: "", phone: "", address: "" });
+  const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({});
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState("");
+
+  const selectTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, "", `#${tab}`);
+  };
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const tab = window.location.hash.replace("#", "") as TabKey;
+      if (["profile", "history", "saved", "settings"].includes(tab)) setActiveTab(tab);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
+    const next = { name: user?.name || "", phone: user?.phone || "", address: user?.address || "" };
+    setSettingsForm(next);
+    setSavedSettings(next);
+  }, [user?.id, user?.name, user?.phone, user?.address]);
+
+  const settingsDirty = JSON.stringify(settingsForm) !== JSON.stringify(savedSettings);
+
+  useEffect(() => {
+    if (!settingsDirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [settingsDirty]);
+
+  const validateSettings = () => {
+    const errors: Record<string, string> = {};
+    if (!settingsForm.name.trim()) errors.name = "Enter your full name.";
+    if (settingsForm.phone.trim() && (!/^[+\d\s-]+$/.test(settingsForm.phone) || settingsForm.phone.replace(/\D/g, "").length < 7)) {
+      errors.phone = "Enter a valid phone number with at least 7 digits.";
+    }
+    setSettingsErrors(errors);
+    return errors;
+  };
+
+  const saveSettings = async () => {
+    if (!user?.id) return;
+    const errors = validateSettings();
+    if (Object.keys(errors).length) {
+      setSettingsMessage("Fix the highlighted fields first.");
+      return;
+    }
+    setSettingsSaving(true);
+    setSettingsMessage("");
+    try {
+      const { error } = await supabase.from("users").update({ name: settingsForm.name.trim(), phone: settingsForm.phone.trim() || null, address: settingsForm.address.trim() || null }).eq("id", user.id);
+      if (error) throw error;
+      setSavedSettings(settingsForm);
+      setSettingsMessage("Changes saved.");
+    } catch (error) {
+      console.error("Could not save customer settings:", error);
+      setSettingsMessage("Could not save your changes. Please try again.");
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([]);
   const [stats, setStats] = useState<Record<string, VehicleStats>>({});
@@ -201,6 +297,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [claiming, setClaiming] = useState(false);
   const [claimError, setClaimError] = useState("");
   const [claimSuccess, setClaimSuccess] = useState("");
+  const [claimOpen, setClaimOpen] = useState(false);
 
   const displayName = user?.name || "Motorist";
   const email = user?.email || "";
@@ -560,7 +657,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   };
   const today = todayKey();
   const canCancelBooking = (entry: HistoryRecord) =>
-    (entry.status === "pending" || entry.status === "confirmed" || entry.status === "reschedule_requested") &&
+    entry.status === "pending" &&
     entry.scheduled_date >= today;
 
   const isUpcomingBooking = (entry: HistoryRecord) =>
@@ -588,6 +685,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     || history.find((entry) => entry.status === "confirmed")
     || history.find((entry) => entry.status === "pending")
     || history[0];
+  const progressSteps = ["pending", "confirmed", "in_progress", "completed"];
   const progressPercent = progressBooking?.status === "completed"
     ? 100
     : progressBooking?.status === "in_progress"
@@ -671,6 +769,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           item.id === appointmentId ? { ...item, status: "cancelled" } : item,
         ),
       );
+      setViewingBooking((current) => current?.id === appointmentId ? { ...current, status: "cancelled" } : current);
+      await refreshData();
       setConfirmCancelId(null);
     } catch (err) {
       console.error("Error cancelling appointment:", err);
@@ -726,19 +826,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   };
 
   return (
-    <div className="profile-page min-h-screen bg-[#090d16] font-sans tracking-tight text-slate-100">
+    <div className="profile-page min-h-screen bg-app font-sans text-text-primary">
       {/* ── Top Navbar ── */}
-      <header className="sticky top-0 z-30 border-b border-moto-gray/80 bg-moto-dark/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-[1080px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-moto-gray-light hover:text-slate-100"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border-default bg-raised px-3 text-sm font-medium text-text-secondary transition hover:border-border-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               <ArrowLeft size={16} /> Back
             </button>
-            <span className="text-lg font-bold text-slate-100">
-              My Garage
+            <span className="text-[22px] font-semibold leading-7 text-text-primary">
+              My account
             </span>
           </div>
 
@@ -746,22 +846,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           <div className="relative">
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/40 px-2.5 py-1.5 transition hover:border-moto-gray-light"
+              className="flex items-center gap-3 rounded-lg border border-border-default bg-raised px-2.5 py-1.5 transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-sm font-bold text-moto-accent">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border-default bg-surface text-sm font-semibold text-brand">
                 {initials(displayName)}
               </span>
               <span className="hidden text-left sm:block">
-                <span className="block text-sm font-semibold text-slate-100">
+                <span className="block text-sm font-semibold text-text-primary">
                   {displayName}
                 </span>
-                <span className="block text-xs text-slate-400">
+                <span className="block text-xs text-text-muted">
                   {email}
                 </span>
               </span>
               <ChevronDown
                 size={15}
-                className={`text-slate-400 transition ${menuOpen ? "rotate-180" : ""}`}
+                className={`text-text-muted transition ${menuOpen ? "rotate-180" : ""}`}
               />
             </button>
 
@@ -771,20 +871,20 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   className="fixed inset-0 z-10"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-xl border border-moto-gray bg-[#0d1420] p-1 shadow-2xl shadow-black/50">
+                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-border-default bg-surface p-1">
                   <button
                     onClick={() => {
-                      setActiveTab("profile");
+                      selectTab("profile");
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-moto-gray/60 hover:text-white"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-hover hover:text-text-primary"
                   >
                     <User size={15} className="text-moto-accent" /> My Profile
                   </button>
-                  <div className="my-1 border-t border-moto-gray" />
+                  <div className="my-1 border-t border-default" />
                   <button
                     onClick={onLogout}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/10"
                   >
                     <LogOut size={15} /> Log Out
                   </button>
@@ -795,74 +895,56 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[28%_1fr]">
-        {/* ── LEFT SIDEBAR ── */}
-        <aside className="space-y-5">
-          {/* Avatar badge card */}
-          <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-xl font-bold text-moto-accent">
+      <main className="mx-auto max-w-[1080px] px-4 py-6 sm:px-6">
+        <section className="min-w-0">
+          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-border-default bg-surface p-5 sm:p-6">
+            <div className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-xl font-semibold text-brand">
               {initials(displayName)}
             </div>
-            <div className="mt-5 space-y-1.5">
-              <h1 className="break-words text-lg font-bold leading-tight text-slate-100">
-                {displayName}
-              </h1>
-              <p className="break-words text-sm leading-snug text-slate-400">{email}</p>
-              {phone && <p className="break-words text-sm leading-snug text-slate-400">{phone}</p>}
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-moto-accent/30 bg-moto-accent/10 px-3 py-1 text-xs font-semibold text-moto-accent">
-                <ShieldCheck size={12} /> Verified Rider
-              </span>
-              {user?.address && (
-                <p className="flex items-center justify-center gap-1 break-words text-sm leading-snug text-slate-400">
-                  <MapPin size={12} /> <span>{user.address}</span>
-                </p>
-              )}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[22px] font-semibold leading-7 text-text-primary">{displayName}</h1>
+                {user?.email && <span className="inline-flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2 py-1 text-xs font-semibold text-ok"><ShieldCheck size={12} /> Verified rider</span>}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-text-secondary">
+                {user?.address && <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{user.address}</span>}
+                {phone && <span className="inline-flex items-center gap-1.5"><User size={13} />{phone}</span>}
+                <span className="inline-flex min-w-0 items-center gap-1.5 truncate"><Tag size={13} />{email}</span>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-5 border-l border-border-default pl-5 text-left sm:ml-auto">
+              <div><p className="text-xl font-semibold tabular-nums text-text-primary">{vehicles.length}</p><p className="text-xs text-text-muted">Motorcycle{vehicles.length === 1 ? "" : "s"}</p></div>
+              <div><p className="text-xl font-semibold tabular-nums text-text-primary">{completedCount}</p><p className="text-xs text-text-muted">Completed services</p></div>
             </div>
           </div>
 
-          {/* Vertical nav tabs */}
-          <nav className="profile-panel space-y-1 rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-2">
-            {NAV_TABS.map((tab) => (
+          <div role="tablist" aria-label="Customer account sections" className="mb-6 flex gap-5 overflow-x-auto border-b border-border-default">
+            {NAV_TABS.map((tab, index) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition ${
-                  activeTab === tab.key
-                    ? "bg-moto-gray/80 font-semibold text-moto-accent"
-                    : "font-medium text-slate-400 hover:bg-moto-gray/50 hover:text-slate-100"
-                }`}
+                ref={(element) => { tabRefs.current[index] = element; }}
+                role="tab"
+                aria-selected={activeTab === tab.key}
+                tabIndex={activeTab === tab.key ? 0 : -1}
+                onClick={() => selectTab(tab.key)}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                  event.preventDefault();
+                  const next = event.key === "ArrowRight" ? (index + 1) % NAV_TABS.length : (index - 1 + NAV_TABS.length) % NAV_TABS.length;
+                  selectTab(NAV_TABS[next].key);
+                  tabRefs.current[next]?.focus();
+                }}
+                className={`shrink-0 border-b-2 px-1 pb-3 text-sm ${activeTab === tab.key ? "border-brand font-semibold text-brand" : "border-transparent font-medium text-text-secondary hover:text-text-primary"}`}
               >
-                <tab.icon size={16} className="shrink-0" />
-                {tab.label}
+                {tab.label === "Profile & Garage" ? "Overview" : tab.label === "Bookings & History" ? <span className="inline-flex items-center gap-1.5">Bookings <span className="rounded-full bg-raised px-1.5 py-0.5 text-xs">{history.length}</span></span> : tab.label === "Saved Shops" ? "Saved shops" : "Account settings"}
               </button>
             ))}
-          </nav>
-
-          {/* Quick stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
-              <Car size={16} className="mb-2 text-moto-accent" />
-              <p className="text-2xl font-bold text-slate-100">
-                {vehicles.length}
-              </p>
-              <p className="text-xs font-medium text-slate-300">Bikes Registered</p>
-            </div>
-            <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-4">
-              <Wrench size={16} className="mb-2 text-moto-accent" />
-              <p className="text-2xl font-bold text-slate-100">
-                {completedCount}
-              </p>
-              <p className="text-xs font-medium text-slate-300">Completed Services</p>
-            </div>
           </div>
-        </aside>
 
-        {/* ── RIGHT MAIN PANEL ── */}
-        <section className="min-w-0">
           {activeTab === "profile" && (
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               {/* My Garage */}
-              <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+              <div className="order-2 profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="text-lg font-bold leading-tight text-slate-100">
@@ -872,12 +954,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       Your registered motorcycles
                     </p>
                   </div>
-                  <button
-                    onClick={openAddBike}
-                    className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
-                  >
-                    <Plus size={15} /> Add Motorcycle
-                  </button>
                 </div>
 
                 {vehicles.length === 0 ? (
@@ -941,14 +1017,22 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         </button>
                       );
                     })}
+                    <button
+                      type="button"
+                      onClick={openAddBike}
+                      className="flex min-h-[150px] items-center justify-center rounded-2xl border border-dashed border-border-strong bg-transparent px-4 text-sm font-medium text-text-secondary transition hover:border-brand hover:bg-brand-tint hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    >
+                      + Add another
+                    </button>
                   </div>
                 )}
               </div>
 
+              <div className="order-1 grid gap-6 min-[900px]:grid-cols-2">
               <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
                 <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-bold leading-tight text-slate-100">Progress report</h2>
+                    <h2 className="text-lg font-bold leading-tight text-slate-100">Active service</h2>
                     <p className="mt-1 text-sm leading-snug text-slate-400">Track your latest booking from confirmation through completion.</p>
                   </div>
                   {progressBooking && (
@@ -973,24 +1057,39 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           <p className="mt-1 truncate text-xs text-slate-400">{progressBooking.shop_name || "Motor repair shop"}</p>
                         </div>
                         <p className="shrink-0 text-xs tabular-nums text-slate-300">
-                          {formatDate(progressBooking.scheduled_date)}{progressBooking.scheduled_time ? ` · ${progressBooking.scheduled_time}` : ""}
+                          {formatManilaDateTime(progressBooking.scheduled_date, progressBooking.scheduled_time)}
                         </p>
                       </div>
 
                       <div className="mt-5">
+                        <div className="relative mb-4 grid grid-cols-4 gap-1">
+                          <div className="absolute left-[12.5%] right-[12.5%] top-3 h-0.5 bg-raised" aria-hidden="true">
+                            <div
+                              className="h-full bg-brand transition-[width] duration-500"
+                              style={{ width: `${Math.max(0, Math.min(100, (progressSteps.indexOf(progressBooking.status) / 3) * 100))}%` }}
+                            />
+                          </div>
+                          {progressSteps.map((step) => {
+                            const stepIndex = progressSteps.indexOf(step);
+                            const currentIndex = progressSteps.indexOf(progressBooking.status);
+                            const done = currentIndex >= stepIndex && currentIndex >= 0;
+                            const current = step === progressBooking.status;
+                            return <div key={step} className="relative z-10 text-center"><div className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full border text-xs ${done ? "border-brand bg-brand text-brand-fg" : current ? "border-2 border-brand text-brand" : "border-border-strong bg-surface text-text-muted"}`}>{done ? <Check size={13} /> : stepIndex + 1}</div><p className={`text-[11px] ${done || current ? "font-semibold text-brand" : "text-text-muted"}`}>{getAppointmentStatus(step).label}</p></div>;
+                          })}
+                        </div>
                         <div className="mb-2 flex items-center justify-between gap-3 text-xs">
                           <span className="font-semibold text-slate-300">Service progress</span>
                           <span className="font-bold tabular-nums text-moto-accent">{progressPercent}%</span>
                         </div>
                         <div
-                          className="h-2.5 overflow-hidden rounded-full bg-moto-gray/80"
+                          className="h-1.5 overflow-hidden rounded-full bg-raised"
                           role="progressbar"
                           aria-valuemin={0}
                           aria-valuemax={100}
                           aria-valuenow={progressPercent}
                           aria-label={`Service progress: ${progressPercent}%`}
                         >
-                          <div className="h-full rounded-full bg-moto-accent transition-[width] duration-500" style={{ width: `${progressPercent}%` }} />
+                          <div className="h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${progressPercent}%` }} />
                         </div>
                         <div className="mt-2 flex justify-between text-[10px] font-medium text-slate-500">
                           <span>Booked</span>
@@ -1022,6 +1121,15 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     </button>
                   </>
                 )}
+              </div>
+
+              <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div><h2 className="text-[15px] font-semibold text-text-primary">Recent bookings</h2><p className="mt-1 text-[13px] text-text-muted">Your four latest services</p></div>
+                  <button type="button" onClick={() => selectTab("history")} className="text-[13px] font-medium text-brand hover:underline">View all</button>
+                </div>
+                {history.slice(0, 4).length === 0 ? <p className="py-6 text-center text-[13px] text-text-muted">No bookings yet.</p> : <div className="divide-y divide-border-default">{history.slice(0, 4).map((booking) => { const status = getAppointmentStatus(booking.status); const amount = bookingAmount(booking); return <button key={booking.id} type="button" onClick={() => openBooking(booking)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-hover/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-medium text-text-primary">{sentenceCase(booking.service_type)}</p><p className="mt-1 truncate text-xs text-text-muted">Schedule: {formatManilaDateTime(booking.scheduled_date, booking.scheduled_time)} · {booking.shop_name || "Motor repair shop"}</p><p className="mt-0.5 truncate text-xs text-text-muted">Placed: {booking.created_at ? formatManilaDate(booking.created_at) : "Not available"}</p></div><span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${status.pill}`}>{status.label}</span><span className="shrink-0 text-[13px] font-semibold tabular-nums text-text-primary">{amount.value != null ? formatMoney(amount.value) : "—"}</span></button>; })}</div>}
+              </div>
               </div>
             </div>
           )}
@@ -1056,19 +1164,24 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </div>
 
               {/* Link a walk-in service booked before this customer had an account */}
-              <div className="mb-5 rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
+              <div className="mb-5 rounded-xl border border-border-default bg-surface">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-moto-accent/10 text-moto-accent">
-                    <Link2 size={16} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-slate-100">
+                  <button type="button" aria-expanded={claimOpen} onClick={() => setClaimOpen((open) => !open)} className="flex min-w-0 flex-1 items-start gap-3 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand">
+                      <Link2 size={16} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-text-primary">
                       Served before you had an account?
-                    </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                    </span>
+                    <span className="mt-0.5 block text-[13px] leading-relaxed text-text-muted">
                       Enter the booking reference from your receipt to attach that
                       service to your profile and track it here.
-                    </p>
+                    </span>
+                    </span>
+                    <ChevronDown size={16} className={`mt-1 shrink-0 text-text-muted transition ${claimOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {claimOpen && <div className="min-w-0 flex-1 border-t border-border-default p-4">
 
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <input
@@ -1085,7 +1198,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       <button
                         onClick={handleClaimWalkIn}
                         disabled={claiming}
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark disabled:opacity-60"
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-fg transition hover:brightness-110 disabled:opacity-60"
                       >
                         {claiming ? (
                           <Loader2 size={16} className="animate-spin" />
@@ -1107,7 +1220,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         {claimSuccess}
                       </p>
                     )}
-                  </div>
+                  </div>}
                 </div>
               </div>
 
@@ -1136,19 +1249,27 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {visibleHistory.map((h) => {
+                  {visibleHistory.map((h, index) => {
                     const st = getAppointmentStatus(h.status);
                     const confirmOpen = confirmCancelId === h.id;
                     const amt = bookingAmount(h);
+                    const previous = visibleHistory[index - 1];
+                    const monthLabel = new Intl.DateTimeFormat("en-PH", { month: "long", year: "numeric", timeZone: "Asia/Manila" }).format(new Date(`${h.scheduled_date}T12:00:00+08:00`));
+                    const previousMonth = previous ? new Intl.DateTimeFormat("en-PH", { month: "long", year: "numeric", timeZone: "Asia/Manila" }).format(new Date(`${previous.scheduled_date}T12:00:00+08:00`)) : "";
+                    const action = h.status === "in_progress" ? "Track" : h.status === "cancelled" ? "Rebook" : h.status === "completed" && !h.has_review ? "Review" : null;
                     return (
+                      <React.Fragment key={h.id}>
+                      {monthLabel !== previousMonth && <p className="pt-2 text-[13px] font-semibold text-text-secondary">{monthLabel}</p>}
                       <div
-                        key={h.id}
                         onClick={() => openBooking(h)}
+                        onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openBooking(h); } }}
+                        role="button"
+                        tabIndex={0}
                         title="View booking details"
-                        className={`cursor-pointer rounded-xl border bg-moto-darker/40 transition ${
+                        className={`cursor-pointer rounded-lg border border-border-default bg-surface transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                           confirmOpen
-                            ? "border-rose-500/40"
-                            : "border-moto-gray/80 hover:border-moto-accent/50 hover:bg-moto-darker"
+                            ? "border-danger/40"
+                            : "hover:border-brand hover:bg-hover"
                         }`}
                       >
                         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
@@ -1159,7 +1280,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                             </div>
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-slate-100">
-                                {h.service_type}
+                                {sentenceCase(h.service_type)}
                               </p>
                               <p className="truncate text-xs text-slate-400">
                                 {h.shop_name || "Motor repair shop"}
@@ -1169,12 +1290,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
                           {/* Date + vehicle */}
                           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 tabular-nums">
-                              <Calendar size={12} className="text-moto-accent" />
-                              {formatDate(h.scheduled_date)}
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-2.5 py-1 tabular-nums">
+                              <Calendar size={12} className="text-brand" />
+                              <span className="block">Schedule: {formatManilaDateTime(h.scheduled_date, h.scheduled_time)}</span>
+                              <span className="mt-0.5 block text-[11px] text-text-muted">Placed: {h.created_at ? formatManilaDate(h.created_at) : "Not available"}</span>
                             </span>
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1">
-                              <Car size={12} className="shrink-0 text-moto-accent" />
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-2.5 py-1">
+                              <Car size={12} className="shrink-0 text-brand" />
                               <span className="max-w-[140px] truncate">
                                 {h.vehicle_name || "Vehicle"}
                               </span>
@@ -1183,8 +1305,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
                           {/* Cost + status */}
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-moto-gray/30 px-2.5 py-1 text-xs font-semibold tabular-nums text-emerald-300">
-                              <span className="text-emerald-400 text-[12px] font-black leading-none">₱</span>
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-2.5 py-1 text-xs font-semibold tabular-nums text-text-primary">
+                              <span className="text-brand text-[12px] font-black leading-none">₱</span>
                               {amt.value != null
                                 ? `${amt.isEstimate ? "Est. " : ""}${formatMoney(amt.value)}`
                                 : "—"}
@@ -1198,37 +1320,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
                           {/* Actions */}
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRebooking(h);
-                              }}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-moto-accent/30 bg-moto-accent/10 px-3 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/20"
-                            >
-                              <RotateCcw size={12} /> Rebook
-                            </button>
-
-                            {h.status === "completed" && h.shop_id && (
-                              h.has_review ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
-                                  <ShieldCheck size={13} /> Reviewed
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setReviewingBooking(h);
-                                    setReviewRating(0);
-                                    setReviewTitle("");
-                                    setReviewComment("");
-                                    setReviewError("");
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400/20"
-                                >
-                                  <Star size={13} /> Review booking
-                                </button>
-                              )
-                            )}
+                            {action && <button onClick={(e) => { e.stopPropagation(); if (action === "Track") openBooking(h); else if (action === "Rebook") setRebooking(h); else { setReviewingBooking(h); setReviewRating(0); setReviewTitle(""); setReviewComment(""); setReviewError(""); } }} className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-raised px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:border-brand hover:text-brand">{action === "Track" ? <MapPin size={13} /> : action === "Rebook" ? <RotateCcw size={12} /> : <Star size={13} />}{action}</button>}
 
                             {canCancelBooking(h) && (
                               <button
@@ -1245,14 +1337,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                               </button>
                             )}
 
-                            <span className="ml-1 text-slate-500 transition group-hover:text-moto-accent">
+                            <span className="ml-1 text-text-muted transition group-hover:text-brand">
                               <ChevronRight size={16} />
                             </span>
                           </div>
                         </div>
 
                         {/* Cancel confirm */}
-                        {confirmOpen && (
+                        {confirmOpen && !viewingBooking && (
                           <div
                             onClick={(e) => e.stopPropagation()}
                             className="flex flex-wrap items-center justify-between gap-3 border-t border-moto-gray/80 px-4 py-3"
@@ -1278,6 +1370,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           </div>
                         )}
                       </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -1349,71 +1442,69 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
           {activeTab === "settings" && (
             <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
-              <h2 className="text-lg font-bold text-slate-100">
-                Account Settings
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Your account details and preferences.
-              </p>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div><h2 className="text-[15px] font-semibold text-text-primary">Account settings</h2><p className="mt-1 text-[13px] text-text-muted">Update the details used for your bookings.</p></div>
+                <span className={`text-[13px] ${settingsDirty ? "text-warn" : "text-text-muted"}`}>{settingsDirty ? "Unsaved changes" : "All changes saved"}</span>
+              </div>
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
-                  <p className="text-xs font-medium text-slate-300">Name</p>
-                  <p className="mt-1 font-semibold text-slate-100">
-                    {displayName}
-                  </p>
+                <div>
+                  <label htmlFor="customer-name" className={labelClass}>Full name</label>
+                  <input id="customer-name" value={settingsForm.name} onChange={(event) => setSettingsForm((current) => ({ ...current, name: event.target.value }))} onBlur={validateSettings} aria-invalid={Boolean(settingsErrors.name)} aria-describedby={settingsErrors.name ? "customer-name-error" : undefined} className={fieldClass} />
+                  {settingsErrors.name && <p id="customer-name-error" className="mt-1 text-[13px] text-danger">{settingsErrors.name}</p>}
                 </div>
-                <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
-                  <p className="text-xs font-medium text-slate-300">Email</p>
-                  <p className="mt-1 font-semibold text-slate-100">{email}</p>
+                <div>
+                  <label htmlFor="customer-email" className={labelClass}>Email</label>
+                  <input id="customer-email" value={email} disabled className={`${fieldClass} opacity-70`} />
+                  <p className="mt-1 text-[13px] text-text-muted">Email can&apos;t be changed here. Contact support to update it.</p>
                 </div>
-                {phone && (
-                  <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
-                    <p className="text-xs font-medium text-slate-300">Phone</p>
-                    <p className="mt-1 font-semibold text-slate-100">
-                      {phone}
-                    </p>
-                  </div>
-                )}
-                {user?.address && (
-                  <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/40 p-4">
-                    <p className="text-xs font-medium text-slate-300">Address</p>
-                    <p className="mt-1 font-semibold text-slate-100">
-                      {user.address}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <label htmlFor="customer-phone" className={labelClass}>Phone number</label>
+                  <input id="customer-phone" value={settingsForm.phone} onChange={(event) => setSettingsForm((current) => ({ ...current, phone: event.target.value }))} onBlur={validateSettings} aria-invalid={Boolean(settingsErrors.phone)} aria-describedby={settingsErrors.phone ? "customer-phone-error" : undefined} className={fieldClass} placeholder="0923 131 4141" />
+                  {settingsErrors.phone && <p id="customer-phone-error" className="mt-1 text-[13px] text-danger">{settingsErrors.phone}</p>}
+                </div>
+                <div>
+                  <label htmlFor="customer-area" className={labelClass}>Area</label>
+                  <input id="customer-area" value={settingsForm.address} onChange={(event) => setSettingsForm((current) => ({ ...current, address: event.target.value }))} className={fieldClass} />
+                  <p className="mt-1 text-[13px] text-text-muted">Helps us show shops near you.</p>
+                </div>
+              </div>
+              {settingsMessage && <p role="status" className={`mt-4 text-[13px] ${settingsMessage.includes("saved") ? "text-ok" : "text-danger"}`}>{settingsMessage}</p>}
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border-default pt-4">
+                <button type="button" disabled={!settingsDirty || settingsSaving} onClick={() => { setSettingsForm(savedSettings); setSettingsErrors({}); setSettingsMessage(""); }} className="h-10 rounded-lg border border-border-strong px-4 text-[13px] font-medium text-text-secondary hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50">Discard</button>
+                <button type="button" disabled={!settingsDirty || settingsSaving} onClick={() => void saveSettings()} className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand px-4 text-[13px] font-semibold text-brand-fg hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">{settingsSaving && <Loader2 size={15} className="animate-spin" />}Save changes</button>
               </div>
             </div>
           )}
         </section>
       </main>
 
-      {/* ── Booking Details Modal ── */}
+      {/* ── Booking Details Drawer ── */}
       {viewingBooking && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) setViewingBooking(null);
           }}
         >
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="booking-detail-title" className="ml-auto flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-border-default bg-surface p-6 shadow-2xl sm:p-8">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
                   <Wrench size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-100">
-                    {viewingBooking.service_type}
+                  <h3 id="booking-detail-title" className="text-[15px] font-semibold text-text-primary">
+                    Booking {String(viewingBooking.booking_id || viewingBooking.id).slice(-6).toUpperCase()}
                   </h3>
-                  <p className="truncate text-xs text-slate-400">
-                    {viewingBooking.shop_name || "Motor repair shop"}
+                  <p className="truncate text-[13px] text-text-secondary">
+                    {sentenceCase(viewingBooking.service_type)} · {viewingBooking.shop_name || "Motor repair shop"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setViewingBooking(null)}
-                className="rounded-lg p-1 text-slate-400 transition hover:text-white"
+                aria-label="Close booking details"
+                className="rounded-lg p-2 text-text-secondary transition hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 ✕
               </button>
@@ -1436,10 +1527,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     Scheduled
                   </p>
                   <p className="font-medium text-slate-100">
-                    {formatDate(viewingBooking.scheduled_date)}
-                    {viewingBooking.scheduled_time
-                      ? ` · ${viewingBooking.scheduled_time}`
-                      : ""}
+                    {formatManilaDateTime(viewingBooking.scheduled_date, viewingBooking.scheduled_time)}
                   </p>
                 </div>
               </div>
@@ -1489,7 +1577,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       Booked on
                     </p>
                     <p className="font-medium text-slate-100">
-                      {formatDate(viewingBooking.created_at.slice(0, 10))}
+                      {formatManilaDate(viewingBooking.created_at)}
                     </p>
                   </div>
                 </div>
@@ -1623,21 +1711,23 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             )}
 
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => {
-                  setRebooking(viewingBooking);
-                  setViewingBooking(null);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
-              >
-                <RotateCcw size={14} /> Rebook
-              </button>
+              {(viewingBooking.status === "completed" || viewingBooking.status === "cancelled") && (
+                <button
+                  onClick={() => {
+                    setRebooking(viewingBooking);
+                    setViewingBooking(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-moto-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-moto-accent-dark active:scale-95"
+                >
+                  <RotateCcw size={14} /> Rebook
+                </button>
+              )}
               {canCancelBooking(viewingBooking) && (
                 <button
                   onClick={() => {
                     setConfirmCancelId(viewingBooking.id);
-                    setViewingBooking(null);
                   }}
+                  disabled={cancellingId === viewingBooking.id}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2.5 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 active:scale-95"
                 >
                   Cancel
@@ -1650,6 +1740,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 Close
               </button>
             </div>
+            {confirmCancelId === viewingBooking.id && (
+              <div className="mt-4 rounded-lg border border-danger/30 bg-danger/10 p-4">
+                <p className="text-sm font-semibold text-text-primary">Cancel this booking?</p>
+                <p className="mt-1 text-[13px] text-text-secondary">This cannot be undone after the shop receives the cancellation.</p>
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <button type="button" onClick={() => setConfirmCancelId(null)} disabled={cancellingId === viewingBooking.id} className="h-9 rounded-md border border-border-strong px-3 text-[13px] font-medium text-text-secondary hover:bg-hover disabled:opacity-50">Keep booking</button>
+                  <button type="button" onClick={() => void handleCancelBooking(viewingBooking.id)} disabled={cancellingId === viewingBooking.id} className="inline-flex h-9 items-center gap-2 rounded-md bg-danger px-3 text-[13px] font-semibold text-white disabled:cursor-wait disabled:opacity-60">
+                    {cancellingId === viewingBooking.id && <Loader2 size={14} className="animate-spin" />}
+                    {cancellingId === viewingBooking.id ? "Cancelling..." : "Yes, cancel booking"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
