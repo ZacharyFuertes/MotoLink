@@ -55,6 +55,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const { language, setLanguage } = useLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [lowStockCount, setLowStockCount] = useState<number | null>(null);
+  const [pendingAppointmentCount, setPendingAppointmentCount] = useState<number | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
   const [shopLoading, setShopLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -81,7 +83,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
     { id: "customers", label: "Customers", icon: Users },
     { id: "services", label: "Services", icon: Wrench },
     { id: "mechanic-availability", label: "Manage Mechanics", icon: Clock },
-    { id: "low-stock", label: "Low Stock", icon: AlertTriangle },
+    { id: "low-stock", label: "Low stock", icon: AlertTriangle },
     { id: "ai-assistant", label: "MotoLink AI", icon: Bot },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -252,7 +254,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="mx-4 border-t border-white/[0.06]" />
 
       {/* Nav items */}
-      <nav className="min-h-0 flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {sidebarItems.map((item) => {
           const Icon = item.icon;
           const isActive = (currentPage || "dashboard") === item.id;
@@ -266,17 +268,29 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               }}
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
               disabled={isLocked && item.id !== "ai-assistant"}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 rounded-md px-[10px] py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isActive
-                  ? "sidebar-nav-active sidebar-nav-active-violet"
-                  : "sidebar-nav-item"
-              } ${isLocked && item.id !== "ai-assistant" ? "opacity-30 cursor-not-allowed" : ""}`}
+                  ? "sidebar-brand-active bg-brand-tint font-semibold text-brand"
+                  : "text-text-secondary hover:bg-hover hover:text-text-primary"
+              } ${
+                isLocked && item.id !== "ai-assistant" ? "cursor-not-allowed opacity-50" : ""
+              }`}
               aria-label={item.id === "ai-assistant" ? "Open MotoLink AI assistant" : undefined}
             >
               <Icon
-                className={`w-[22px] h-[22px] shrink-0 ${isActive ? "text-white" : ""}`}
+                className="h-[18px] w-[18px] shrink-0"
               />
-              {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
+              {(!sidebarCollapsed || isMobile) && <span className="min-w-0 flex-1 text-left">{item.label}</span>}
+              {item.id === "low-stock" && lowStockCount !== null && lowStockCount > 0 && (!sidebarCollapsed || isMobile) && (
+                <span className="ml-auto text-[13px] font-medium tabular-nums text-warn" aria-label={`${lowStockCount} low-stock parts`}>
+                  {lowStockCount}
+                </span>
+              )}
+              {item.id === "appointments" && pendingAppointmentCount !== null && pendingAppointmentCount > 0 && (!sidebarCollapsed || isMobile) && (
+                <span className="ml-auto text-[13px] font-medium tabular-nums text-warn" aria-label={`${pendingAppointmentCount} pending appointments`}>
+                  {pendingAppointmentCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -286,20 +300,16 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="shrink-0 px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 text-[13px] font-bold text-white shadow-lg">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-[13px] font-semibold text-text-primary">
               {shop?.logo_url ? (
-                <img
-                  src={shop.logo_url}
-                  alt={`${shop.name || "Shop"} logo`}
-                  className="h-full w-full object-cover"
-                />
+                <img src={shop.logo_url} alt={`${shop.name || "Shop"} logo`} className="h-full w-full rounded-full object-cover" />
               ) : (
-                user?.name?.charAt(0)?.toUpperCase()
+                (user?.name || "Owner").trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("")
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-[15px] font-medium text-white/90 truncate">{user?.name}</p>
-              <p className="text-xs text-white/40">{getRoleLabel(user.role)}</p>
+              <p className="truncate text-sm font-medium text-text-primary">{user?.name}</p>
+              <p className="text-xs text-text-muted">{getRoleLabel(user.role)}</p>
             </div>
           </div>
         )}
@@ -309,15 +319,15 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               window.location.href = "/";
             });
           }}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+          className="w-full flex items-center gap-3 rounded-md px-[10px] py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <LogOut className="w-[22px] h-[22px] shrink-0" />
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
           {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
         </button>
         <div className="mt-2">
           <ThemeToggle
-            variant="dark"
-            showLabel={!sidebarCollapsed || isMobile}
+            size="md"
+            segmented
             className="w-full justify-center"
           />
         </div>
@@ -326,10 +336,10 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   );
 
   return (
-    <div className="owner-dashboard min-h-screen bg-[#14131A] flex text-[#F3F1F7]">
+    <div className="owner-dashboard flex min-h-screen flex-col bg-app text-text-primary min-[861px]:flex-row">
       {/* Desktop Sidebar */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 lg:flex flex-col sidebar-dark-violet transition-all duration-300 ${
+        className={`sidebar-dark-violet sticky top-0 hidden h-screen shrink-0 flex-col min-[1024px]:flex transition-all duration-300 ${
           sidebarCollapsed ? "w-20" : "w-[260px]"
         }`}
       >
@@ -344,7 +354,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 z-40 hidden bg-black/60 backdrop-blur-sm min-[861px]:block min-[1024px]:hidden"
               onClick={() => setMobileSidebarOpen(false)}
             />
             <motion.aside
@@ -352,13 +362,57 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed left-0 top-0 bottom-0 w-[min(260px,85vw)] sidebar-dark-violet z-50 lg:hidden flex flex-col shadow-2xl"
+              className="sidebar-dark-violet fixed bottom-0 left-0 top-0 z-50 hidden w-[min(260px,85vw)] flex-col min-[861px]:flex min-[1024px]:hidden"
             >
               <SidebarContent isMobile />
             </motion.aside>
           </>
         )}
       </AnimatePresence>
+
+      <div className="min-[861px]:hidden">
+        <nav aria-label="Shop navigation" className="flex gap-1 overflow-x-auto border-b border-border-default bg-surface px-3 py-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = (currentPage || "dashboard") === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => !isLocked && onNavigate?.(item.id)}
+                disabled={isLocked && item.id !== "ai-assistant"}
+                className={`flex shrink-0 items-center gap-2 rounded-md px-[10px] py-2 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${isActive ? "sidebar-brand-active bg-brand-tint font-semibold text-brand" : "text-text-secondary hover:bg-hover hover:text-text-primary"} ${isLocked && item.id !== "ai-assistant" ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                <span>{item.label}</span>
+                {item.id === "low-stock" && lowStockCount !== null && lowStockCount > 0 && <span className="text-[13px] font-medium tabular-nums text-warn">{lowStockCount}</span>}
+                {item.id === "appointments" && pendingAppointmentCount !== null && pendingAppointmentCount > 0 && <span className="text-[13px] font-medium tabular-nums text-warn">{pendingAppointmentCount}</span>}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="flex items-center justify-between gap-3 border-b border-border-default bg-surface px-4 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-xs font-semibold text-text-primary">
+              {shop?.logo_url ? (
+                <img src={shop.logo_url} alt={`${shop.name || "Shop"} logo`} className="h-full w-full rounded-full object-cover" />
+              ) : (
+                (user?.name || "Owner").trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("")
+              )}
+            </span>
+            <span className="min-w-0"><span className="block truncate text-[13px] font-medium text-text-primary">{user?.name}</span><span className="block text-xs text-text-muted">{getRoleLabel(user.role)}</span></span>
+          </div>
+          <button
+            type="button"
+            onClick={() => logout().catch(() => { window.location.href = "/"; })}
+            aria-label="Logout"
+            className="rounded-md p-2 text-text-secondary hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />
+          </button>
+          <ThemeToggle segmented className="w-[180px] shrink-0" />
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -367,7 +421,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors"
+              className="hidden rounded-md p-2 text-text-secondary hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent min-[861px]:inline-flex min-[1024px]:hidden"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -410,7 +464,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   <Bell className="w-5 h-5" />
                 )}
                 {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+                  <span className="absolute right-0 top-0 z-10 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border border-border-strong bg-status-danger-bg px-1 py-0.5 text-xs font-bold text-status-danger-fg">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -516,8 +570,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className={`owner-dashboard-content min-w-0 w-full flex-1 overflow-auto ${
-          currentPage === "appointments"
+        <main className={`owner-dashboard-content min-w-0 w-full flex-1 overflow-auto ${currentPage === "dashboard" ? "dashboard-page-content" : ""} ${
+          currentPage === "appointments" || currentPage === "dashboard"
             ? "bg-moto-dark p-0"
             : "p-3 sm:p-4 lg:p-8"
         }`}>
@@ -631,7 +685,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               </div>
             </motion.div>
           ) : currentPage === "dashboard" ? (
-            <Dashboard onNavigate={onNavigate} />
+            <Dashboard onNavigate={onNavigate} shopName={shop?.name} onLowStockCountChange={setLowStockCount} onPendingCountChange={setPendingAppointmentCount} />
           ) : (
             children
           )}

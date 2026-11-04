@@ -468,6 +468,25 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
     }
   };
 
+  useEffect(() => {
+    if (appointmentsLoading || !resolvedShopId) return;
+    let request: { appointmentId?: string; action?: "confirm" | "decline" } | null = null;
+    try {
+      const raw = sessionStorage.getItem("motolink_dashboard_review_action");
+      if (raw) request = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem("motolink_dashboard_review_action");
+      return;
+    }
+    if (!request?.appointmentId || !request.action) return;
+    const appointment = appointments.find((item) => item.id === request?.appointmentId);
+    if (!appointment) return;
+    sessionStorage.removeItem("motolink_dashboard_review_action");
+    if (appointment.status !== "pending") return;
+    if (request.action === "confirm") void handleStatusChange(appointment.id, "confirmed");
+    else setCancelConfirmId(appointment.id);
+  }, [appointments, appointmentsLoading, resolvedShopId]);
+
   const isOwner = user?.role === "owner" || user?.role === "admin";
   const canViewMechanic = user?.role === "owner";
   const isCustomer = user?.role === "customer";

@@ -7,12 +7,14 @@ import React, {
   useState,
 } from "react";
 
-export type Theme = "dark" | "light";
+export type Theme = "dark" | "light" | "system";
 
 export const THEME_STORAGE_KEY = "motolink_theme";
 
 interface ThemeContextType {
   theme: Theme;
+  /** Resolved "dark" or "light" after applying system preference. */
+  resolvedTheme: "dark" | "light";
   isDark: boolean;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
@@ -20,23 +22,37 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const MEDIA_QUERY = "(prefers-color-scheme: dark)";
+
+const resolveTheme = (theme: Theme): "dark" | "light" => {
+  if (theme !== "system") return theme;
+  return typeof window !== "undefined" && window.matchMedia(MEDIA_QUERY).matches
+    ? "dark"
+    : "light";
+};
+
 const applyThemeClass = (theme: Theme) => {
   const root = document.documentElement;
-  root.classList.toggle("dark", theme === "dark");
-  root.classList.toggle("light", theme === "light");
+  const resolved = resolveTheme(theme);
+  root.classList.toggle("dark", resolved === "dark");
+  root.classList.toggle("light", resolved === "light");
 };
 
 const getInitialTheme = (): Theme => {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "system";
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === "light" ? "light" : "dark";
+  return stored === "light" || stored === "dark" || stored === "system"
+    ? (stored as Theme)
+    : "system";
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [systemPreferenceVersion, setSystemPreferenceVersion] = useState(0);
 
+  // Apply theme class on mount and whenever theme changes.
   useEffect(() => {
     applyThemeClass(theme);
     try {
@@ -44,6 +60,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch {
       /* storage unavailable ignore */
     }
+  }, [theme]);
+
+  // Listen for OS preference changes when in system mode.
+  useEffect(() => {
+    if (theme !== "system") return;
+    const media = window.matchMedia(MEDIA_QUERY);
+    const handler = () => {
+      applyThemeClass("system");
+      setSystemPreferenceVersion((version) => version + 1);
+    };
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
   }, [theme]);
 
   // Briefly enable a global color transition so the whole UI cross-fades when
@@ -65,12 +93,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const toggleTheme = useCallback(() => {
     animateThemeSwap();
-    setThemeState((current) => (current === "dark" ? "light" : "dark"));
-  }, [animateThemeSwap]);
+    setThemeState((current) => {
+      if (current === "dark") return "light";
+      if (current === "light") return "system";
+      return "dark";
+    });
+  }, []);
 
   const value = useMemo<ThemeContextType>(
-    () => ({ theme, isDark: theme === "dark", toggleTheme, setTheme }),
-    [theme, toggleTheme, setTheme],
+    () => {
+      const resolved = resolveTheme(theme);
+      return {
+        theme,
+        resolvedTheme: resolved,
+        isDark: resolved === "dark",
+        toggleTheme,
+        setTheme,
+      };
+    },
+    [theme, toggleTheme, setTheme, systemPreferenceVersion],
   );
 
   return (

@@ -769,12 +769,16 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[15px] font-medium transition-all duration-200 ${
                 isActive
-                  ? "sidebar-nav-active"
-                  : "sidebar-nav-item"
+                  ? "bg-primary/10 border-l-3 border-primary text-primary"
+                  : "bg-hover border-transparent text-secondary hover:bg-hover hover:text-primary"
+              } ${
+                isActive ? "shadow-[0_0_0_1px_rgb(124,58,237,0.2)]" : ""
               }`}
             >
               <Icon
-                className={`w-[22px] h-[22px] shrink-0 ${isActive ? "text-white" : ""}`}
+                className={`w-[22px] h-[22px] shrink-0 ${
+                  isActive ? "text-primary" : "text-muted"
+                }`}
               />
               {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
             </button>
@@ -808,7 +812,7 @@ const AdminPlatformDashboard: React.FC<AdminDashboardProps> = ({
         </button>
         <div className="mt-2">
           <ThemeToggle
-            variant="dark"
+            size="md"
             showLabel={!sidebarCollapsed || isMobile}
             className="w-full justify-center"
           />

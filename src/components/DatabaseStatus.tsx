@@ -79,13 +79,13 @@ export const DatabaseStatus: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="fixed top-4 right-16 sm:top-6 sm:right-6 z-50 flex items-center gap-1.5 sm:gap-2 bg-moto-darker/90 backdrop-blur border border-moto-gray/80 rounded-full px-2.5 sm:px-4 py-1 sm:py-2 shadow-2xl text-[11px] sm:text-xs font-bold text-slate-200"
+      className="database-status-indicator fixed right-28 top-3 z-40 flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium sm:right-32 sm:top-4"
     >
       {status === "testing" ? (
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-3.5 h-3.5 rounded-full border-2"
+          className="h-3.5 w-3.5 rounded-full border-2"
           style={{
             borderColor: getColor(),
             borderTopColor: "transparent",
@@ -96,11 +96,11 @@ export const DatabaseStatus: React.FC = () => {
         <motion.div
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-3.5 h-3.5 rounded-full"
+          className="h-3.5 w-3.5 rounded-full"
           style={{ backgroundColor: getColor() }}
         />
       )}
-      <span className="text-xs text-slate-200 font-bold whitespace-nowrap">
+      <span className="whitespace-nowrap text-[13px] font-medium">
         {getLabel()}
       </span>
     </motion.div>

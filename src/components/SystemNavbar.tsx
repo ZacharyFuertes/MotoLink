@@ -261,7 +261,7 @@ const SystemNavbar: React.FC<NavbarProps> = ({
             </AnimatePresence>
 
             {/* Theme Toggle */}
-            <ThemeToggle variant="light" />
+            <ThemeToggle size="sm" />
 
             {/* AI Chat Button */}
             <motion.button

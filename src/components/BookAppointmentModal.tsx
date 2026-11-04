@@ -1066,7 +1066,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           .select("start_time, end_time, is_available")
           .eq("mechanic_id", selectedMechanicId)
           .eq("shop_id", defaultShopId)
-          .eq("day_of_week", dayIdx);
+          .eq("day_of_week", (dayIdx + 6) % 7);
 
         if (!mechError && mechAvailability) {
           const shopOpenMin = day?.open && day.openTime && day.closeTime

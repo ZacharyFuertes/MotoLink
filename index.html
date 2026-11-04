@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Motolink Autoshop Clientele - Discover trusted nearby auto and motorcycle service shops." />
     <meta name="theme-color" content="#0f0f0f" />
+    <meta name="color-scheme" content="dark light" />
     <title>Motolink Autoshop Clientele</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -14,15 +15,24 @@
      crossorigin=""/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Sora:wght@700;800&display=swap" rel="stylesheet">
     <script>
       // Apply the saved theme before paint to avoid a flash of the wrong theme.
       (function () {
         try {
           var saved = localStorage.getItem("motolink_theme");
-          var theme = saved === "light" ? "light" : "dark";
+          var theme = saved === "light" || saved === "dark" || saved === "system" ? saved : "system";
           var el = document.documentElement;
-          el.classList.add(theme);
+          if (theme === "system") {
+            el.classList.add(
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light"
+            );
+          } else {
+            el.classList.add(theme);
+          }
         } catch (e) {
           document.documentElement.classList.add("dark");
         }
