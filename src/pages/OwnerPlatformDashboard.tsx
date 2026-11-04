@@ -219,13 +219,13 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <>
       {/* Logo area */}
-      <div className="flex items-center justify-between h-16 px-4">
+      <div className="flex h-20 items-center justify-between px-4">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex min-w-0 flex-1 items-center">
             <img
               src="/favicon.svg"
               alt="MotoLink Autoshop Clientele"
-              className="h-12 w-full max-w-[172px] object-contain object-left"
+              className="h-14 w-full max-w-[210px] object-contain object-left"
             />
           </div>
         )}
@@ -268,7 +268,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               }}
               title={sidebarCollapsed && !isMobile ? item.label : undefined}
               disabled={isLocked && item.id !== "ai-assistant"}
-              className={`w-full flex items-center gap-3 rounded-md px-[10px] py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              className={`w-full flex items-center gap-3 rounded-md px-[10px] py-2.5 text-[15px] min-[1440px]:text-base transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isActive
                   ? "sidebar-brand-active bg-brand-tint font-semibold text-brand"
                   : "text-text-secondary hover:bg-hover hover:text-text-primary"
@@ -278,7 +278,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               aria-label={item.id === "ai-assistant" ? "Open MotoLink AI assistant" : undefined}
             >
               <Icon
-                className="h-[18px] w-[18px] shrink-0"
+                className="h-5 w-5 shrink-0"
               />
               {(!sidebarCollapsed || isMobile) && <span className="min-w-0 flex-1 text-left">{item.label}</span>}
               {item.id === "low-stock" && lowStockCount !== null && lowStockCount > 0 && (!sidebarCollapsed || isMobile) && (
@@ -300,7 +300,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       <div className="shrink-0 px-3 py-4 border-t border-white/[0.06]">
         {(!sidebarCollapsed || isMobile) && (
           <div className="flex items-center gap-3 px-3 py-2 mb-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-[13px] font-semibold text-text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-sm font-semibold text-text-primary">
               {shop?.logo_url ? (
                 <img src={shop.logo_url} alt={`${shop.name || "Shop"} logo`} className="h-full w-full rounded-full object-cover" />
               ) : (
@@ -308,8 +308,8 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-text-primary">{user?.name}</p>
-              <p className="text-xs text-text-muted">{getRoleLabel(user.role)}</p>
+              <p className="truncate text-[15px] font-medium text-text-primary">{user?.name}</p>
+              <p className="text-[13px] text-text-muted">{getRoleLabel(user.role)}</p>
             </div>
           </div>
         )}
@@ -319,17 +319,21 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
               window.location.href = "/";
             });
           }}
-          className="w-full flex items-center gap-3 rounded-md px-[10px] py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="w-full flex items-center gap-3 rounded-md px-[10px] py-2.5 text-[15px] min-[1440px]:text-base font-medium text-text-secondary transition-colors hover:bg-hover hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          <LogOut className="h-5 w-5 shrink-0" />
           {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
         </button>
         <div className="mt-2">
-          <ThemeToggle
-            size="md"
-            segmented
-            className="w-full justify-center"
-          />
+          {sidebarCollapsed && !isMobile ? (
+            <ThemeToggle size="md" className="w-full justify-center" />
+          ) : (
+            <ThemeToggle
+              size="md"
+              segmented
+              className="w-full justify-center"
+            />
+          )}
         </div>
       </div>
     </>
@@ -570,7 +574,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className={`owner-dashboard-content min-w-0 w-full flex-1 ${currentPage === "dashboard" ? "dashboard-page-content" : ""} ${
+        <main className={`owner-dashboard-content min-w-0 w-full flex-1 ${currentPage === "dashboard" ? "dashboard-page-content min-[1024px]:h-[calc(100vh-4rem)] min-[1024px]:overflow-y-auto" : ""} ${
           currentPage === "appointments" || currentPage === "dashboard"
             ? "bg-moto-dark p-0"
             : "p-3 sm:p-4 lg:p-8"

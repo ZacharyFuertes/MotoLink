@@ -64,6 +64,7 @@ interface HistoryRecord {
   service_type: string;
   scheduled_date: string;
   scheduled_time?: string;
+  duration_minutes?: number | null;
   description?: string;
   notes?: string;
   created_at?: string;
@@ -163,6 +164,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     laborRate?: number;
     partsUsed?: { name?: string; quantity_used: number; unit_price: number }[];
     totalCost?: number;
+    jobStatus?: string;
+    jobNotes?: string;
+    completedAt?: string;
   } | null>(null);
 
   // Add motorcycle
@@ -210,7 +214,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         supabase
           .from("appointments")
           .select(
-            "id, booking_id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, description, notes, estimated_price, total_amount, status, created_at",
+            "id, booking_id, shop_id, vehicle_id, service_type, scheduled_date, scheduled_time, duration_minutes, description, notes, estimated_price, total_amount, status, created_at",
           )
           .eq("customer_id", user.id)
           .order("scheduled_date", { ascending: false }),
@@ -244,6 +248,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           service_type: a.service_type,
           scheduled_date: a.scheduled_date,
           scheduled_time: a.scheduled_time ?? undefined,
+          duration_minutes: a.duration_minutes ?? null,
           description: a.description ?? undefined,
           notes: a.notes ?? undefined,
           created_at: a.created_at ?? undefined,
@@ -579,6 +584,20 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             : !isUpcomingBooking(h),
         );
 
+  const progressBooking = history.find((entry) => entry.status === "in_progress")
+    || history.find((entry) => entry.status === "confirmed")
+    || history.find((entry) => entry.status === "pending")
+    || history[0];
+  const progressPercent = progressBooking?.status === "completed"
+    ? 100
+    : progressBooking?.status === "in_progress"
+      ? 75
+      : progressBooking?.status === "confirmed"
+        ? 50
+        : progressBooking?.status === "pending"
+          ? 25
+          : 0;
+
   const openBooking = async (h: HistoryRecord) => {
     setViewingBooking(h);
     setBookingDetail(null);
@@ -586,7 +605,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     try {
       const { data: jo } = await supabase
         .from("job_orders")
-        .select("mechanic_id, labor_hours, labor_rate, parts_used, total_cost")
+        .select("mechanic_id, labor_hours, labor_rate, parts_used, total_cost, status, notes, completed_at")
         .eq("appointment_id", h.id)
         .maybeSingle();
 
@@ -626,6 +645,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           laborRate: Number(jo.labor_rate) || 0,
           partsUsed,
           totalCost: Number(jo.total_cost) || 0,
+          jobStatus: jo.status || undefined,
+          jobNotes: jo.notes || undefined,
+          completedAt: jo.completed_at || undefined,
         });
       }
     } catch {
@@ -920,6 +942,85 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       );
                     })}
                   </div>
+                )}
+              </div>
+
+              <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold leading-tight text-slate-100">Progress report</h2>
+                    <p className="mt-1 text-sm leading-snug text-slate-400">Track your latest booking from confirmation through completion.</p>
+                  </div>
+                  {progressBooking && (
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getAppointmentStatus(progressBooking.status).pill}`}>
+                      {getAppointmentStatus(progressBooking.status).label}
+                    </span>
+                  )}
+                </div>
+
+                {!progressBooking ? (
+                  <div className="rounded-xl border border-dashed border-moto-gray p-6 text-center">
+                    <Wrench size={24} className="mx-auto mb-2 text-slate-400" />
+                    <p className="text-sm font-semibold text-slate-300">No service progress yet</p>
+                    <p className="mt-1 text-xs text-slate-400">Your booking progress will appear here once you schedule a service.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-moto-gray/80 bg-moto-darker/50 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-100">{progressBooking.service_type}</p>
+                          <p className="mt-1 truncate text-xs text-slate-400">{progressBooking.shop_name || "Motor repair shop"}</p>
+                        </div>
+                        <p className="shrink-0 text-xs tabular-nums text-slate-300">
+                          {formatDate(progressBooking.scheduled_date)}{progressBooking.scheduled_time ? ` · ${progressBooking.scheduled_time}` : ""}
+                        </p>
+                      </div>
+
+                      <div className="mt-5">
+                        <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                          <span className="font-semibold text-slate-300">Service progress</span>
+                          <span className="font-bold tabular-nums text-moto-accent">{progressPercent}%</span>
+                        </div>
+                        <div
+                          className="h-2.5 overflow-hidden rounded-full bg-moto-gray/80"
+                          role="progressbar"
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={progressPercent}
+                          aria-label={`Service progress: ${progressPercent}%`}
+                        >
+                          <div className="h-full rounded-full bg-moto-accent transition-[width] duration-500" style={{ width: `${progressPercent}%` }} />
+                        </div>
+                        <div className="mt-2 flex justify-between text-[10px] font-medium text-slate-500">
+                          <span>Booked</span>
+                          <span>Confirmed</span>
+                          <span>In progress</span>
+                          <span>Complete</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 text-xs text-slate-300 sm:grid-cols-3">
+                        <p><span className="text-slate-500">Vehicle:</span> {progressBooking.vehicle_name || "Vehicle"}</p>
+                        <p><span className="text-slate-500">Estimated time:</span> {progressBooking.duration_minutes ? `${(progressBooking.duration_minutes / 60).toLocaleString(undefined, { maximumFractionDigits: 1 })} hours` : "Not set"}</p>
+                        <p><span className="text-slate-500">Booking:</span> {progressBooking.booking_id || progressBooking.id.slice(0, 8).toUpperCase()}</p>
+                      </div>
+                      <p className="mt-4 border-t border-moto-gray/70 pt-3 text-xs leading-relaxed text-slate-400">
+                        {progressBooking.status === "in_progress"
+                          ? "Your mechanic is currently working on this service. The shop will update the report when work is complete."
+                          : progressBooking.status === "confirmed"
+                            ? "Your appointment is confirmed. Bring your motorcycle to the shop at the scheduled time."
+                            : progressBooking.status === "completed"
+                              ? "This service is complete. Open Bookings & History for the full work and payment details."
+                              : progressBooking.status === "cancelled"
+                                ? "This booking was cancelled. You can rebook it from Bookings & History."
+                                : "Your booking is waiting for the shop to confirm the appointment."}
+                      </p>
+                    </div>
+                    <button onClick={() => openBooking(progressBooking)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-moto-accent hover:underline">
+                      View detailed progress <ChevronRight size={14} />
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1405,6 +1506,58 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </p>
               </div>
             )}
+
+            <div className="mt-4 rounded-xl border border-moto-accent/20 bg-moto-accent/5 p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-moto-accent">
+                    Progress report
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {viewingBooking.status === "completed"
+                      ? "This service has been completed. Here is the recorded work." 
+                      : viewingBooking.status === "in_progress"
+                        ? "The shop is currently working on this service."
+                        : viewingBooking.status === "confirmed"
+                          ? "Your appointment is confirmed and ready for service."
+                          : "This booking is awaiting the shop's next update."}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-lg border border-moto-gray bg-moto-darker px-2 py-1 text-[11px] font-semibold text-slate-300">
+                  {bookingDetail?.jobStatus
+                    ? getAppointmentStatus(bookingDetail.jobStatus).label
+                    : getAppointmentStatus(viewingBooking.status).label}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {["pending", "confirmed", "in_progress", "completed"].map((step) => {
+                  const order = ["pending", "confirmed", "in_progress", "completed"];
+                  const current = order.indexOf(viewingBooking.status);
+                  const reached = order.indexOf(step) <= current && current >= 0;
+                  return (
+                    <div key={step} className={`rounded-lg border px-2.5 py-2 ${reached ? "border-moto-accent/30 bg-moto-accent/10" : "border-moto-gray/70 bg-moto-darker/40"}`}>
+                      <div className={`mb-1 h-1.5 rounded-full ${reached ? "bg-moto-accent" : "bg-moto-gray"}`} />
+                      <p className={`text-[11px] font-semibold ${reached ? "text-moto-accent" : "text-slate-500"}`}>
+                        {getAppointmentStatus(step).label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 grid gap-2 text-xs text-slate-300 sm:grid-cols-2">
+                <p><span className="text-slate-500">Assigned mechanic:</span> {bookingDetail?.mechanicName || "Not assigned yet"}</p>
+                {bookingDetail?.completedAt && <p><span className="text-slate-500">Completed:</span> {formatDate(bookingDetail.completedAt.slice(0, 10))}</p>}
+              </div>
+
+              {(viewingBooking.notes || bookingDetail?.jobNotes) && (
+                <div className="mt-3 border-t border-moto-gray/70 pt-3">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Shop notes</p>
+                  <p className="whitespace-pre-wrap text-xs leading-relaxed text-slate-300">{bookingDetail?.jobNotes || viewingBooking.notes}</p>
+                </div>
+              )}
+            </div>
 
             {detailLoading && (
               <p className="mt-4 text-xs text-slate-400">

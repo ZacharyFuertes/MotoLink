@@ -35,6 +35,11 @@ interface DashboardSummary {
   activity: Array<{ id: string; kind: string; title: string; detail: string; created_at: string }>;
 }
 
+interface TopSellingItem {
+  name: string;
+  quantity: number;
+}
+
 const EMPTY_SUMMARY: DashboardSummary = {
   days: 7,
   today: "",
@@ -125,13 +130,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [summary, setSummary] = useState<DashboardSummary>(EMPTY_SUMMARY);
   const [revenueTrend, setRevenueTrend] = useState<RevenueDay[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [lowStock, setLowStock] = useState<any[]>([]);
+  const [topSellingItems, setTopSellingItems] = useState<TopSellingItem[]>([]);
   const [chartRange, setChartRange] = useState<DashboardRange>(getInitialRange);
   const [toast, setToast] = useState("");
-  const [restockPartId, setRestockPartId] = useState<string | null>(null);
-  const [restockQuantity, setRestockQuantity] = useState("");
-  const [restockError, setRestockError] = useState("");
-  const [restocking, setRestocking] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const firstLoadAt = useRef(Date.now());
 
@@ -202,7 +203,9 @@ const Dashboard: React.FC<DashboardProps> = ({
     setLoadError(false);
     const started = Date.now();
     try {
-      const [summaryResult, low, upcoming] = await Promise.all([
+      const salesStart = new Date();
+      salesStart.setDate(salesStart.getDate() - 30);
+      const [summaryResult, low, upcoming, salesResult] = await Promise.all([
         supabase.rpc("get_dashboard_summary", { p_shop_id: user.shop_id, p_days: chartRange }),
         inventoryService.getLowStockParts(user.shop_id),
         supabase
@@ -212,6 +215,11 @@ const Dashboard: React.FC<DashboardProps> = ({
           .eq("status", "pending")
           .order("scheduled_date")
           .limit(5),
+        supabase
+          .from("part_sales")
+          .select("quantity_sold, part:parts(name)")
+          .eq("shop_id", user.shop_id)
+          .gte("created_at", salesStart.toISOString()),
       ]);
       if (summaryResult.error) throw summaryResult.error;
       if (upcoming.error) throw upcoming.error;
@@ -221,7 +229,21 @@ const Dashboard: React.FC<DashboardProps> = ({
       setSummary(result);
       setRevenueTrend(result.daily || []);
       setAppointments(upcoming.data || []);
-      setLowStock(stock);
+      if (salesResult.error) {
+        setTopSellingItems([]);
+      } else {
+        const salesByName = new Map<string, number>();
+        (salesResult.data || []).forEach((sale: any) => {
+          const name = sale.part?.name || "Unnamed part";
+          salesByName.set(name, (salesByName.get(name) || 0) + (Number(sale.quantity_sold) || 0));
+        });
+        setTopSellingItems(
+          [...salesByName.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, quantity]) => ({ name, quantity })),
+        );
+      }
       onLowStockCountChange?.(stock.length);
       onPendingCountChange?.(result.pending_count || 0);
     } catch {
@@ -241,15 +263,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     </button>
   );
 
-  const attentionItems = [
-    ...(summary.pending_count > 0
-      ? [{ key: "pending", text: `${summary.pending_count} ${summary.pending_count === 1 ? "booking is" : "bookings are"} waiting for review`, action: "Review", tone: "accent" }]
-      : []),
-    ...(summary.low_stock_count > 0
-      ? [{ key: "stock", text: `${summary.low_stock_count} ${summary.low_stock_count === 1 ? "part is" : "parts are"} low on stock`, action: "Restock", tone: "warn" }]
-      : []),
-  ];
-
   const chartDays = useMemo(() => revenueTrend.slice(-chartRange), [revenueTrend, chartRange]);
   const chartMax = niceMaximum(Math.max(...chartDays.map((day) => day.revenue), 0));
   const chartTicks = Array.from({ length: 5 }, (_, index) => chartMax * (4 - index) / 4);
@@ -259,10 +272,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     null,
   );
   const bestDayIndex = bestDay ? chartDays.findIndex((day) => day.date === bestDay.date) : -1;
-  const reorderThresholds = [...new Set(lowStock.map((part) => Number(part.reorder_level) || 0))];
-  const stockThresholdLabel = reorderThresholds.length === 1
-    ? `${reorderThresholds[0]} or fewer in stock`
-    : "At or below reorder threshold";
   const trendChip = (current: number, previous: number, minimum: number) => {
     if (previous < minimum) return { text: "New", tone: "neutral" };
     const change = ((current - previous) / previous) * 100;
@@ -295,42 +304,6 @@ const Dashboard: React.FC<DashboardProps> = ({
     </svg>;
   };
 
-  const startRestock = (partId: string) => {
-    setRestockPartId(partId);
-    setRestockQuantity("");
-    setRestockError("");
-  };
-
-  const cancelRestock = () => {
-    setRestockPartId(null);
-    setRestockQuantity("");
-    setRestockError("");
-  };
-
-  const submitRestock = async (part: any) => {
-    if (!/^\d+$/.test(restockQuantity) || Number(restockQuantity) <= 0) {
-      setRestockError("Enter a whole number above 0.");
-      return;
-    }
-    setRestockError("");
-    setRestocking(true);
-    const newQuantity = part.quantity_in_stock + Number(restockQuantity);
-    const succeeded = await inventoryService.updatePartStock(part.id, newQuantity);
-    setRestocking(false);
-    if (!succeeded) {
-      setRestockError("Restock failed. Please try again.");
-      return;
-    }
-    const nextStock = lowStock
-      .map((row) => row.id === part.id ? { ...row, quantity_in_stock: newQuantity } : row)
-      .filter((row) => row.quantity_in_stock <= (row.reorder_level || 0));
-    setLowStock(nextStock);
-    setSummary((current) => ({ ...current, low_stock_count: nextStock.length }));
-    onLowStockCountChange?.(nextStock.length);
-    cancelRestock();
-    window.setTimeout(() => void load(true), 500);
-  };
-
   const queueAppointmentAction = (appointmentId: string, action: "confirm" | "decline") => {
     try { sessionStorage.setItem("motolink_dashboard_review_action", JSON.stringify({ appointmentId, action })); } catch { /* navigation still works without storage */ }
     onNavigate?.("appointments");
@@ -345,36 +318,6 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="dashboard-page w-full max-w-[1680px] space-y-4 px-4 py-7 sm:px-8">
       {toast && <div role="status" aria-live="polite" className="fixed bottom-5 right-5 z-50 rounded-lg border border-border-default bg-surface px-4 py-3 text-sm font-medium text-text-primary">{toast}</div>}
-      <section aria-labelledby="attention-heading" className="dashboard-panel overflow-hidden">
-        <div className="border-b border-border-default px-5 py-[14px]">
-          <h2 id="attention-heading" className="dashboard-section-title text-sm font-semibold text-text-primary">Needs attention</h2>
-        </div>
-        {loading ? (
-          <div className="space-y-3 px-5 py-4" aria-label="Loading attention items"><div className="h-4 w-2/3 animate-pulse rounded bg-raised" /><div className="h-4 w-1/2 animate-pulse rounded bg-raised" /></div>
-        ) : loadError ? sectionError("Attention items") : attentionItems.length === 0 ? (
-          <div className="flex items-center gap-3 px-5 py-4 text-sm text-text-secondary">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-ok" aria-hidden="true" />
-            <span>You're all caught up. Nothing needs your attention.</span>
-          </div>
-        ) : (
-          <ul className="divide-y divide-border-default px-4">
-            {attentionItems.map((item) => (
-              <li key={item.key} className="flex min-h-11 items-center gap-3 py-2 text-sm">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${item.tone === "warn" ? "bg-warn" : item.tone === "danger" ? "bg-danger" : "bg-brand"}`} aria-hidden="true" />
-                <span className="min-w-0 flex-1 text-text-primary">{item.text}</span>
-                <button
-                  type="button"
-                  onClick={() => item.key === "stock"
-                    ? document.getElementById("low-stock-panel")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" })
-                    : document.getElementById("pending-appointments-panel")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" })}
-                  className="dashboard-brand-link shrink-0 text-sm font-medium text-brand hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >{item.action}</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <section aria-label="Shop performance metrics" className="grid grid-cols-1 gap-4 min-[640px]:grid-cols-2 min-[1280px]:grid-cols-4">
         {loading ? [0, 1, 2, 3].map((index) => <article key={index} className="dashboard-panel h-[150px] animate-pulse p-5"><div className="h-4 w-24 rounded bg-raised" /><div className="mt-4 h-8 w-36 rounded bg-raised" /><div className="mt-4 h-4 w-28 rounded bg-raised" /></article>) : loadError ? (
           <div className="dashboard-panel col-span-full p-4">{sectionError("Performance metrics")}</div>
@@ -401,9 +344,13 @@ const Dashboard: React.FC<DashboardProps> = ({
             <p className="mt-2 text-[13px] text-text-muted">{summary.pending_count > 0 ? "Needs your decision" : "No booking requests"}</p>
           </article>
           <article className="dashboard-panel dashboard-kpi-cell min-w-0 p-5">
-            <p className="text-[13px] font-medium text-text-secondary">Low stock</p>
-            <p className={`mt-2 text-[26px] font-semibold leading-8 tabular-nums ${summary.low_stock_count > 0 ? "text-warn" : "text-text-primary"}`}><CountUpValue value={summary.low_stock_count} format={(value) => Math.round(value).toLocaleString()} reducedMotion={reducedMotion} /></p>
-            <p className="mt-2 text-[13px] text-text-muted">{summary.low_stock_count > 0 ? "parts to reorder" : "All stock levels healthy"}</p>
+            <p className="text-[13px] font-medium text-text-secondary">Top selling item</p>
+            <p className="mt-2 truncate text-[22px] font-semibold leading-8 text-text-primary" title={topSellingItems[0]?.name || undefined}>
+              {topSellingItems[0]?.name || "No sales yet"}
+            </p>
+            <p className="mt-2 text-[13px] text-text-muted">
+              {topSellingItems[0] ? `${topSellingItems[0].quantity} sold in the last 30 days` : "Sales will appear here"}
+            </p>
           </article>
         </>}
       </section>
@@ -551,62 +498,36 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </article>
 
-        <article id="low-stock-panel" className="dashboard-panel h-full min-w-0 scroll-mt-6 overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default px-5 py-[14px]">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <h2 className="dashboard-section-title text-sm font-semibold text-text-primary">Low stock</h2>
-              <span className="text-[13px] text-text-muted">{stockThresholdLabel}</span>
-            </div>
-            <button type="button" onClick={() => onNavigate?.("inventory")} className="dashboard-brand-link text-[13px] font-medium text-brand hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">Open inventory</button>
+        <article className="dashboard-panel h-full min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-border-default px-5 py-[14px]">
+            <h2 className="dashboard-section-title text-sm font-semibold text-text-primary">Top selling item</h2>
+            <span className="text-[13px] text-text-muted">Last 30 days</span>
           </div>
-          <div className="px-5 py-0">
-          {loading ? <div className="space-y-3 py-2" aria-label="Loading low-stock parts">{[0, 1, 2].map((item) => <div key={item} className="h-12 animate-pulse rounded bg-raised" />)}</div>
-            : loadError ? sectionError("Low stock") : lowStock.length === 0 ? (
-              <div className="flex min-h-40 items-center justify-center text-sm text-text-secondary">All stock levels are healthy</div>
-            ) : (
-              <div className="overflow-x-auto font-['Gill_Sans',sans-serif] font-bold">
-                <table className="dashboard-data-table dashboard-stock-table w-full min-w-0 table-fixed text-left text-[12px]">
-                  <thead><tr className="border-b border-border-default text-text-secondary"><th className="py-1 pr-1  font-medium">Part</th><th className="py-3 pr-3 font-medium">In stock</th><th className="py-2 text-right font-medium">Action</th></tr></thead>
-                  <tbody>{lowStock.map((part) => {
-                    const isEditing = restockPartId === part.id;    
-                    const stockColor = part.quantity_in_stock <= 2 ? "text-danger" : "text-warn"; 
-                    return <React.Fragment key={part.id}>
-                      <tr className="border-b border-border-default last:border-0">
-                        <td className="py-3 pr-3"><p className="font-medium text-text-primary">{part.name}</p><p className="mt-1 text-xs text-text-muted">{part.category || "Part"} · {part.sku || "No SKU"}<span className="sr-only"> · {part.quantity_in_stock} left</span></p><span className={`mt-2 block h-1 w-full overflow-hidden rounded-full bg-raised before:block before:h-full before:rounded-full before:content-[''] ${part.quantity_in_stock <= 2 ? "before:bg-danger" : "before:bg-warn"}`} style={{ "--stock-fill": `${Math.max(4, Math.min(100, (part.quantity_in_stock / Math.max(part.reorder_level, 1)) * 100))}%` } as React.CSSProperties}><span className={`block h-full rounded-full ${part.quantity_in_stock <= 2 ? "bg-danger" : "bg-warn"}`} style={{ width: `${Math.max(4, Math.min(100, (part.quantity_in_stock / Math.max(part.reorder_level, 1)) * 100))}%` }} /></span></td>
-                        <td className={`py-3 pr-3 font-semibold tabular-nums ${stockColor}`}>{part.quantity_in_stock} left</td>
-                        <td className="whitespace-nowrap py-3 text-right">
-                          {isEditing ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <label className="sr-only" htmlFor={`restock-qty-${part.id}`}>Quantity to add for {part.name}</label>
-                              <input
-                                id={`restock-qty-${part.id}`}
-                                type="number"
-                                min="1"
-                                step="1"
-                                inputMode="numeric"
-                                value={restockQuantity}
-                                onChange={(event) => { setRestockQuantity(event.target.value); setRestockError(""); }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") { event.preventDefault(); void submitRestock(part); }
-                                  if (event.key === "Escape") cancelRestock();
-                                }}
-                                aria-invalid={Boolean(restockError)}
-                                aria-describedby={restockError ? `restock-error-${part.id}` : undefined}
-                                className="h-9 w-20 rounded-md border border-border-strong bg-raised px-2 text-sm tabular-nums text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                              />
-                              <button type="button" disabled={restocking} onClick={() => void submitRestock(part)} className="h-9 rounded-md bg-brand px-3 text-[13px] font-semibold text-brand-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60">Add</button>
-                              <button type="button" disabled={restocking} onClick={cancelRestock} className="h-9 px-1 text-[13px] font-medium text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">Cancel</button>
-                            </div>
-                          ) : (
-                            <button type="button" onClick={() => startRestock(part.id)} className="whitespace-nowrap rounded-md border border-border-strong bg-raised px-3 py-2 text-[13px] font-medium text-text-primary hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">Restock</button>
-                          )}
-                        </td>
-                      </tr>
-                      {isEditing && restockError && <tr><td id={`restock-error-${part.id}`} colSpan={3} role="alert" className="pb-2 text-right text-[13px] text-danger">{restockError}</td></tr>}
-                    </React.Fragment>;
-                  })}</tbody>
-                </table>
+          <div className="flex min-h-40 flex-col justify-center px-5 py-4">
+            {loading ? (
+              <div className="space-y-3" aria-label="Loading top selling item">
+                <div className="h-6 w-3/4 animate-pulse rounded bg-raised" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-raised" />
               </div>
+            ) : topSellingItems.length > 0 ? (
+              <div className="space-y-4">
+                {topSellingItems.map((item, index) => {
+                  const max = topSellingItems[0].quantity || 1;
+                  return (
+                    <div key={item.name}>
+                      <div className="mb-1.5 flex items-center justify-between gap-3">
+                        <span className="min-w-0 truncate text-[13px] font-medium text-text-primary" title={item.name}>{index + 1}. {item.name}</span>
+                        <span className="shrink-0 tabular-nums text-[13px] text-text-secondary">{item.quantity}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-raised" role="img" aria-label={`${item.name}: ${item.quantity} units sold`}>
+                        <span className="block h-full rounded-full bg-brand" style={{ width: `${item.quantity / max * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-sm text-text-secondary">No part sales recorded yet.</p>
             )}
           </div>
         </article>

@@ -875,36 +875,36 @@ textarea:focus {
 
 :root,
 .dark {
-  --brand: 139 124 246;
-  --brand-fg: 15 20 32;
-  --brand-tint: 139 124 246 / 0.16;
-  --accent: 139 124 246;
-  --accent-tint: 139 124 246 / 0.16;
-  --accent-fg: 15 20 32;
+  --brand: 53 208 192;
+  --brand-fg: 15 23 35;
+  --brand-tint: 53 208 192 / 0.16;
+  --accent: 53 208 192;
+  --accent-tint: 53 208 192 / 0.16;
+  --accent-fg: 15 23 35;
   --warn: 251 191 36;
   --danger: 248 113 113;
   --ok: 74 222 128;
 
   /* Elevation */
-  --app: 15 20 32;           /* #0F1420 — page canvas */
-  --surface: 21 27 43;       /* #151B2B — cards, sidebars, nav rails */
-  --raised: 28 36 56;        /* #1C2438 — inputs, table headers, dropdowns */
-  --hover: 36 46 71;         /* #242E47 — row hover, active states */
+  --app: 15 23 35;           /* #0F1723 — landing-page canvas */
+  --surface: 11 21 38;       /* #0B1526 — cards, sidebars, nav rails */
+  --raised: 37 51 78;        /* #25334E — inputs, table headers, dropdowns */
+  --hover: 51 69 107;        /* #33456B — row hover, active states */
 
   /* Borders */
-  --border-default: 42 52 80;   /* #2A3450 — subtle dividers */
-  --border-strong: 58 70 104;   /* #3A4668 — focus, active borders */
+  --border-default: 37 51 78;   /* #25334E — subtle dividers */
+  --border-strong: 51 69 107;   /* #33456B — focus, active borders */
 
   /* Typography */
-  --text-primary: 232 236 244;  /* #E8ECF4 — headings, primary labels */
-  --text-secondary: 169 180 200; /* #A9B4C8 — body copy, captions */
-  --text-muted: 135 147 171;    /* #8793AB — helper text, disabled states */
+  --text-primary: 238 242 248;  /* #EEF2F8 — headings, primary labels */
+  --text-secondary: 148 163 184; /* #94A3B8 — body copy, captions */
+  --text-muted: 148 163 184;    /* #94A3B8 — helper text, disabled states */
 
   /* Brand */
-  --primary: 139 124 246;
-  --primary-fg: 15 20 32;
-  --link: 139 124 246;
-  --ring: 139 124 246;
+  --primary: 53 208 192;
+  --primary-fg: 15 23 35;
+  --link: 53 208 192;
+  --ring: 53 208 192;
 
   /* Status pill fills at 15% tint on dark surfaces */
   --status-pending-bg: 251 191 36 / 0.15;   /* #FBBF24 */
