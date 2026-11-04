@@ -559,17 +559,17 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <button type="button" onClick={() => onNavigate?.("inventory")} className="dashboard-brand-link text-[13px] font-medium text-brand hover:underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">Open inventory</button>
           </div>
-          <div className="px-5 py-4">
+          <div className="px-5 py-0">
           {loading ? <div className="space-y-3 py-2" aria-label="Loading low-stock parts">{[0, 1, 2].map((item) => <div key={item} className="h-12 animate-pulse rounded bg-raised" />)}</div>
             : loadError ? sectionError("Low stock") : lowStock.length === 0 ? (
               <div className="flex min-h-40 items-center justify-center text-sm text-text-secondary">All stock levels are healthy</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="dashboard-data-table dashboard-stock-table w-full min-w-0 table-fixed text-left text-[13px]">
-                  <thead><tr className="border-b border-border-default text-text-secondary"><th className="py-2 pr-3 font-medium">Part</th><th className="py-2 pr-3 font-medium">In stock</th><th className="py-2 text-right font-medium">Action</th></tr></thead>
+              <div className="overflow-x-auto font-['Gill_Sans',sans-serif] font-bold">
+                <table className="dashboard-data-table dashboard-stock-table w-full min-w-0 table-fixed text-left text-[12px]">
+                  <thead><tr className="border-b border-border-default text-text-secondary"><th className="py-1 pr-1  font-medium">Part</th><th className="py-3 pr-3 font-medium">In stock</th><th className="py-2 text-right font-medium">Action</th></tr></thead>
                   <tbody>{lowStock.map((part) => {
-                    const isEditing = restockPartId === part.id;
-                    const stockColor = part.quantity_in_stock <= 2 ? "text-danger" : "text-warn";
+                    const isEditing = restockPartId === part.id;    
+                    const stockColor = part.quantity_in_stock <= 2 ? "text-danger" : "text-warn"; 
                     return <React.Fragment key={part.id}>
                       <tr className="border-b border-border-default last:border-0">
                         <td className="py-3 pr-3"><p className="font-medium text-text-primary">{part.name}</p><p className="mt-1 text-xs text-text-muted">{part.category || "Part"} · {part.sku || "No SKU"}<span className="sr-only"> · {part.quantity_in_stock} left</span></p><span className={`mt-2 block h-1 w-full overflow-hidden rounded-full bg-raised before:block before:h-full before:rounded-full before:content-[''] ${part.quantity_in_stock <= 2 ? "before:bg-danger" : "before:bg-warn"}`} style={{ "--stock-fill": `${Math.max(4, Math.min(100, (part.quantity_in_stock / Math.max(part.reorder_level, 1)) * 100))}%` } as React.CSSProperties}><span className={`block h-full rounded-full ${part.quantity_in_stock <= 2 ? "bg-danger" : "bg-warn"}`} style={{ width: `${Math.max(4, Math.min(100, (part.quantity_in_stock / Math.max(part.reorder_level, 1)) * 100))}%` }} /></span></td>
