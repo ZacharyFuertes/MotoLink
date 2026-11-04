@@ -570,7 +570,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
         </header>
 
         {/* Page Content */}
-        <main className={`owner-dashboard-content min-w-0 w-full flex-1 overflow-auto ${currentPage === "dashboard" ? "dashboard-page-content" : ""} ${
+        <main className={`owner-dashboard-content min-w-0 w-full flex-1 ${currentPage === "dashboard" ? "dashboard-page-content" : ""} ${
           currentPage === "appointments" || currentPage === "dashboard"
             ? "bg-moto-dark p-0"
             : "p-3 sm:p-4 lg:p-8"

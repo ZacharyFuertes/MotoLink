@@ -464,43 +464,42 @@ const LocationPicker = ({
       </button>
 
       {/* Bottom address card */}
-      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100">
+      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex items-center gap-3 rounded-lg border border-border-default bg-surface/95 px-3 py-2.5 text-text-primary shadow-sm backdrop-blur-md">
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isPinned ? "bg-ok/10" : "bg-raised"}`}>
           {isPinned ? (
-            <Check size={17} className="text-rose-600" />
+            <Check size={16} className="text-ok" />
           ) : (
-            <LocateFixed size={16} className="text-rose-500" />
+            <LocateFixed size={16} className="text-brand" />
           )}
         </div>
         <div className="min-w-0 flex-1">
           {geocoding && !draftAddress ? (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-[13px] text-text-muted">
               <Loader2 size={14} className="animate-spin" /> Finding address…
             </div>
           ) : (
             <>
-              <div className="truncate text-sm font-semibold text-slate-800">
+              <div className="truncate text-[13px] font-medium text-text-primary">
                 {draftAddress || "Move the map to set your shop's location"}
               </div>
               {draft && (
-                <div className="font-mono text-[11px] text-slate-400">
+                <div className="text-xs tabular-nums text-text-muted">
                   {draft.lat.toFixed(6)}, {draft.lng.toFixed(6)}
                 </div>
               )}
             </>
           )}
         </div>
+        {isPinned && <span className="hidden text-xs font-medium text-ok sm:inline">Pin placed</span>}
         <button
           type="button"
-          onClick={handlePin}
-          disabled={isPinned}
-          className={`shrink-0 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition ${
-            isPinned
-              ? "bg-emerald-600"
-              : "bg-rose-600 shadow-md shadow-rose-600/30 hover:bg-rose-700 active:scale-95"
-          }`}
+          onClick={() => {
+            if (isPinned) setCoords(null);
+            else void handlePin();
+          }}
+          className="shrink-0 rounded-md border border-border-strong bg-raised px-3 py-2 text-xs font-semibold text-text-primary transition hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {isPinned ? "Pinned" : "Pin location"}
+          {isPinned ? "Adjust pin" : "Pin location"}
         </button>
       </div>
 
