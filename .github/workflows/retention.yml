@@ -40,4 +40,4 @@ jobs:
           curl -fsS -X POST "${{ secrets.VERCEL_PROJECT_URL }}/api/shop-retention" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            -d '{"action":"purge"}'
+            -d '{"action":"purge"}

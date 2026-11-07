@@ -7,6 +7,7 @@ export interface SelectedServicePart {
   name: string;
   unit_price: number;
   quantity: number;
+  service_id?: string;
 }
 
 export interface PartsPickerService {
@@ -21,6 +22,7 @@ interface ServicePartsPickerProps {
   onChange: (parts: SelectedServicePart[]) => void;
   onAvailabilityChange?: (hasParts: boolean) => void;
   catalog?: ServicePartCatalog;
+  requirePartsForServices?: boolean;
 }
 
 const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
@@ -30,6 +32,7 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
   onChange,
   onAvailabilityChange,
   catalog: catalogProp,
+  requirePartsForServices = false,
 }) => {
   const [parts, setParts] = useState<ServicePart[]>([]);
   const [categoryNames, setCategoryNames] = useState<Map<string, string>>(new Map());
@@ -79,13 +82,30 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
       });
       setServiceCategories(categoryMap);
       const currentParts = new Map(catalog.parts.map((part) => [part.id, part]));
-      onChangeRef.current(selectedPartsRef.current
+      const compatibleSelections = selectedPartsRef.current
         .filter((selected) => currentParts.has(selected.id) && currentParts.get(selected.id)?.service_ids.some((id) => serviceIdsRef.current.includes(id)))
         .map((selected) => {
           const part = currentParts.get(selected.id);
-          return { ...selected, name: part?.name ?? selected.name, unit_price: part?.unit_price ?? selected.unit_price, quantity: Math.min(selected.quantity, part?.quantity_in_stock ?? 0) };
+          const applicableServiceIds = part?.service_ids.filter((id) => serviceIdsRef.current.includes(id)) ?? [];
+          const serviceId = selected.service_id && applicableServiceIds.includes(selected.service_id)
+            ? selected.service_id
+            : applicableServiceIds[0];
+          return {
+            ...selected,
+            name: part?.name ?? selected.name,
+            unit_price: part?.unit_price ?? selected.unit_price,
+            quantity: requirePartsForServices ? 1 : Math.min(selected.quantity, part?.quantity_in_stock ?? 0),
+            ...(serviceId ? { service_id: serviceId } : {}),
+          };
         })
-        .filter((selected) => selected.quantity > 0));
+        .filter((selected) => selected.quantity > 0);
+      const normalizedSelections = requirePartsForServices
+        ? compatibleSelections.filter((selected, index, list) =>
+          list.findIndex((entry) => entry.service_id === selected.service_id) === index &&
+          (currentParts.get(selected.id)?.quantity_in_stock ?? 0) > 0,
+        )
+        : compatibleSelections;
+      onChangeRef.current(normalizedSelections);
     }).catch((loadError: unknown) => {
       if (!active) return;
       setParts([]);
@@ -97,12 +117,33 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
     return () => { active = false; };
   // selected part/callback refs intentionally do not trigger catalog reloads.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, serviceIdsKey, catalogProp]);
+  }, [shopId, serviceIdsKey, catalogProp, requirePartsForServices]);
 
   useEffect(() => { serviceIdsRef.current = serviceIds; }, [serviceIdsKey]);
 
-  const selectedById = useMemo(() => new Map(selectedParts.map((part) => [part.id, part])), [selectedParts]);
-  const setQuantity = (part: ServicePart, quantity: number) => {
+  const selectionKey = (partId: string, serviceId?: string) =>
+    requirePartsForServices ? `${serviceId || ""}:${partId}` : partId;
+  const selectedById = useMemo(
+    () => new Map(selectedParts.map((part) => [selectionKey(part.id, part.service_id), part])),
+    [selectedParts, requirePartsForServices],
+  );
+  const setQuantity = (part: ServicePart, quantity: number, serviceId?: string) => {
+    if (requirePartsForServices) {
+      if (!serviceId) return;
+      const next = selectedParts.filter((selected) => selected.service_id !== serviceId);
+      if (quantity > 0) {
+        next.push({
+          id: part.id,
+          name: part.name,
+          unit_price: part.unit_price,
+          quantity: 1,
+          service_id: serviceId,
+        });
+      }
+      onChange(next);
+      return;
+    }
+
     if (quantity <= 0) {
       onChange(selectedParts.filter((selected) => selected.id !== part.id));
       return;
@@ -125,11 +166,11 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
       }
       groups.set(service.id, parts.filter((part) =>
         categories.has(part.category_id) && part.service_ids.includes(service.id) &&
-        services.find((candidate) => part.service_ids.includes(candidate.id))?.id === service.id,
+        (requirePartsForServices || services.find((candidate) => part.service_ids.includes(candidate.id))?.id === service.id),
       ));
     });
     return groups;
-  }, [parts, serviceCategories, services]);
+  }, [parts, serviceCategories, services, requirePartsForServices]);
 
   if (loading) {
     return <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" /> Loading compatible parts…</div>;
@@ -148,16 +189,25 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
           <section key={service.id} className="space-y-3" aria-label={`${service.label} compatible parts`}>
             <h4 className="font-display text-sm font-bold uppercase tracking-wide text-moto-accent">{service.label}</h4>
             {!hasCategories ? (
-              <p className="rounded-xl border border-dashed border-moto-gray p-4 text-sm text-slate-400">No parts needed.</p>
+              <p className="rounded-xl border border-dashed border-moto-gray p-4 text-sm text-slate-400">
+                {requirePartsForServices
+                  ? "No compatible parts are configured; this service will continue without parts."
+                  : "No parts needed."}
+              </p>
             ) : serviceParts.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-moto-gray p-4 text-sm text-slate-400"><Wrench size={15} className="mr-2 inline" />No parts available in {categoryLabels.join(", ") || "the compatible categories"}.</p>
+              <p className="rounded-xl border border-dashed border-moto-gray p-4 text-sm text-slate-400">
+                <Wrench size={15} className="mr-2 inline" />
+                {requirePartsForServices
+                  ? `No in-stock parts in ${categoryLabels.join(", ") || "the compatible categories"}; this service will continue without parts.`
+                  : `No parts available in ${categoryLabels.join(", ") || "the compatible categories"}.`}
+              </p>
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 {serviceParts.map((part) => {
-                  const selected = selectedById.get(part.id);
+                  const selected = selectedById.get(selectionKey(part.id, service.id));
                   const shared = part.service_ids.some((id) => id !== service.id && services.some((entry) => entry.id === id));
                   const firstApplicableService = services.find((entry) => part.service_ids.includes(entry.id));
-                  if (shared && firstApplicableService?.id !== service.id) return null;
+                  if (shared && firstApplicableService?.id !== service.id && !requirePartsForServices) return null;
                   const outOfStock = part.quantity_in_stock < 1;
                   return (
                     <article key={part.id} className={`flex items-center gap-4 rounded-2xl border p-4 ${selected ? "border-moto-accent bg-moto-accent/[0.05]" : "border-moto-gray bg-moto-darker"}`}>
@@ -166,18 +216,22 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-slate-100">{part.name}</p>
-                        <p className="text-xs text-slate-400">{part.category_name}{part.sku ? ` · SKU ${part.sku}` : ""}</p>
+                        <p className="text-xs text-slate-400">{part.category_name}</p>
                         {outOfStock ? <span className="text-xs font-semibold text-rose-300">Out of stock</span> : <span className="text-xs text-emerald-300">{part.quantity_in_stock} available</span>}
                       </div>
                       <p className="font-mono text-sm font-bold text-slate-200">₱{part.unit_price.toLocaleString()}</p>
                       {selected ? (
-                        <div className="flex items-center gap-2">
-                          <button type="button" aria-label={`Decrease ${part.name} quantity`} onClick={() => setQuantity(part, selected.quantity - 1)} className="rounded-lg border border-moto-accent/50 px-2.5 py-1 text-moto-accent">−</button>
-                          <span className="min-w-5 text-center text-sm font-bold text-white">{selected.quantity}</span>
-                          <button type="button" aria-label={`Increase ${part.name} quantity`} disabled={selected.quantity >= part.quantity_in_stock} onClick={() => setQuantity(part, selected.quantity + 1)} className="rounded-lg border border-moto-accent/50 px-2.5 py-1 text-moto-accent disabled:cursor-not-allowed disabled:opacity-40">+</button>
-                        </div>
+                        requirePartsForServices ? (
+                          <span className="shrink-0 rounded-full border border-moto-accent/40 bg-moto-accent/10 px-3 py-1.5 text-xs font-bold text-moto-accent">Chosen · 1 pc</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <button type="button" aria-label={`Decrease ${part.name} quantity`} onClick={() => setQuantity(part, selected.quantity - 1)} className="rounded-lg border border-moto-accent/50 px-2.5 py-1 text-moto-accent">−</button>
+                            <span className="min-w-5 text-center text-sm font-bold text-white">{selected.quantity}</span>
+                            <button type="button" aria-label={`Increase ${part.name} quantity`} disabled={selected.quantity >= part.quantity_in_stock} onClick={() => setQuantity(part, selected.quantity + 1)} className="rounded-lg border border-moto-accent/50 px-2.5 py-1 text-moto-accent disabled:cursor-not-allowed disabled:opacity-40">+</button>
+                          </div>
+                        )
                       ) : (
-                        <button type="button" disabled={outOfStock} onClick={() => setQuantity(part, 1)} className="rounded-lg border border-moto-accent/50 px-3 py-2 text-xs font-bold uppercase text-moto-accent disabled:cursor-not-allowed disabled:opacity-40">{outOfStock ? "Unavailable" : "Add"}</button>
+                        <button type="button" disabled={outOfStock} onClick={() => setQuantity(part, 1, service.id)} className="rounded-lg border border-moto-accent/50 px-3 py-2 text-xs font-bold uppercase text-moto-accent disabled:cursor-not-allowed disabled:opacity-40">{outOfStock ? "Unavailable" : requirePartsForServices ? "Choose" : "Add"}</button>
                       )}
                     </article>
                   );
@@ -188,7 +242,11 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
         );
       })}
       {services.every((service) => !serviceCategories.get(service.id)?.size) && (
-        <p className="rounded-xl border border-moto-gray bg-moto-darker p-5 text-center text-sm text-slate-400">No parts needed for the selected services.</p>
+        <p className="rounded-xl border border-moto-gray bg-moto-darker p-5 text-center text-sm text-slate-400">
+          {requirePartsForServices
+            ? "No compatible parts are configured; the selected services will continue without parts."
+            : "No parts needed for the selected services."}
+        </p>
       )}
     </div>
   );

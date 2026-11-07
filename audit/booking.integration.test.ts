@@ -200,7 +200,12 @@ suite("MotoLink disposable booking integration", () => {
     if (cleanupShopId && cleanupAdmin) await cleanupAdmin.from("shops").delete().eq("id", cleanupShopId);
     for (const email of fixtureEmails) {
       const { data } = await cleanupAdmin!.from("users").select("id").eq("email", email).maybeSingle();
-      if (data?.id) await cleanupAdmin!.auth.admin.deleteUser(data.id);
+      if (data?.id) {
+        // F1 intentionally prohibits deleting mechanic profiles. Convert only
+        // disposable fixture accounts to customer before auth-user cleanup.
+        await cleanupAdmin!.from("users").update({ role: "customer" }).eq("id", data.id);
+        await cleanupAdmin!.auth.admin.deleteUser(data.id);
+      }
     }
     await cleanupPool?.end();
   }, 60_000);
@@ -328,6 +333,75 @@ suite("MotoLink disposable booking integration", () => {
     expect(data?.[0].available_mechanic_ids).toEqual(expect.arrayContaining(f.mechanicIds));
     expect(data?.[0]).toHaveProperty("next_free_slot");
     expect(data?.[0]).toHaveProperty("next_free_mechanic_ids");
+  });
+
+  it("deactivates without deleting history, reassigns upcoming bookings, and blocks mechanic deletion", async () => {
+    const appointment = await insertAppointment({ customerId: f.customerId, mechanicId: f.mechanicIds[0], start: "08:00", status: "pending" });
+    const completedHistory = await insertAppointment({ customerId: f.otherCustomerId, mechanicId: f.mechanicIds[0], start: "17:00", status: "completed" });
+    const result = await f.owner.rpc("deactivate_mechanic", {
+      p_mechanic_id: f.mechanicIds[0], p_action: "reassign", p_replacement_mechanic_id: f.mechanicIds[1],
+    });
+    expect(result.error).toBeNull();
+    expect(result.data.affected_appointment_ids).toContain(appointment.id);
+
+    const updatedAppointment = await f.admin.from("appointments").select("mechanic_id, status").eq("id", appointment.id).single();
+    expect(updatedAppointment.data).toEqual({ mechanic_id: f.mechanicIds[1], status: "pending" });
+    const preservedHistory = await f.admin.from("appointments").select("mechanic_id, status").eq("id", completedHistory.id).single();
+    expect(preservedHistory.data).toEqual({ mechanic_id: f.mechanicIds[0], status: "completed" });
+    const inactiveMechanic = await f.admin.from("users").select("is_active").eq("id", f.mechanicIds[0]).single();
+    expect(inactiveMechanic.data?.is_active).toBe(false);
+    const preservedShift = await f.admin.from("mechanic_availability").select("is_available").eq("mechanic_id", f.mechanicIds[0]).eq("shop_id", f.shopId).single();
+    expect(preservedShift.data?.is_available).toBe(false);
+
+    const availability = await f.customer.rpc("get_booking_availability", {
+      p_shop_id: f.shopId, p_scheduled_date: f.testDate, p_start_times: ["08:00"], p_duration_minutes: 30,
+    });
+    expect(availability.data?.[0].available_mechanic_ids).not.toContain(f.mechanicIds[0]);
+    const hardDelete = await f.admin.from("users").delete().eq("id", f.mechanicIds[0]);
+    expect(hardDelete.error).not.toBeNull();
+
+    await f.owner.rpc("reactivate_mechanic", { p_mechanic_id: f.mechanicIds[0] });
+    const reactivated = await f.admin.from("users").select("is_active").eq("id", f.mechanicIds[0]).single();
+    expect(reactivated.data?.is_active).toBe(true);
+    const restoredShift = await f.admin.from("mechanic_availability").select("is_available").eq("mechanic_id", f.mechanicIds[0]).eq("shop_id", f.shopId).single();
+    expect(restoredShift.data?.is_available).toBe(true);
+  });
+
+  it("deactivates by unassigning pending bookings and rejects assignment to inactive mechanics", async () => {
+    const appointment = await insertAppointment({ customerId: f.customerId, mechanicId: f.mechanicIds[0], start: "09:00", status: "pending" });
+    const result = await f.owner.rpc("deactivate_mechanic", {
+      p_mechanic_id: f.mechanicIds[0], p_action: "unassign", p_replacement_mechanic_id: null,
+    });
+    expect(result.error).toBeNull();
+    const updated = await f.admin.from("appointments").select("mechanic_id").eq("id", appointment.id).single();
+    expect(updated.data?.mechanic_id).toBeNull();
+
+    const inactiveAssignmentTarget = await f.admin.from("appointments").insert({
+      customer_id: f.customerId, shop_id: f.shopId, scheduled_date: f.testDate, scheduled_time: "10:00",
+      duration_minutes: 30, service_type: "inactive assignment test", status: "confirmed",
+    }).select("id").single();
+    expect(inactiveAssignmentTarget.error).toBeNull();
+    const assignment = await f.owner.rpc("assign_mechanic_to_appointment", {
+      p_appointment_id: inactiveAssignmentTarget.data!.id, p_mechanic_id: f.mechanicIds[0],
+    });
+    expect(assignment.error).not.toBeNull();
+
+    await f.owner.rpc("reactivate_mechanic", { p_mechanic_id: f.mechanicIds[0] });
+  });
+
+  it("blocks deactivation while an in-progress or confirmed-specific booking needs F6 resolution", async () => {
+    await insertAppointment({ customerId: f.customerId, mechanicId: f.mechanicIds[0], start: "08:00", status: "in_progress" });
+    const inProgress = await f.owner.rpc("deactivate_mechanic", {
+      p_mechanic_id: f.mechanicIds[0], p_action: "unassign", p_replacement_mechanic_id: null,
+    });
+    expect(inProgress.error).not.toBeNull();
+
+    await deleteAppointments();
+    await insertAppointment({ customerId: f.customerId, mechanicId: f.mechanicIds[0], start: "08:00", status: "confirmed", preference: "specific" });
+    const confirmedSpecific = await f.owner.rpc("deactivate_mechanic", {
+      p_mechanic_id: f.mechanicIds[0], p_action: "unassign", p_replacement_mechanic_id: null,
+    });
+    expect(confirmedSpecific.error).not.toBeNull();
   });
 
   it("resolves pending conflicts, rejects confirmed-specific reassignment, allows confirmed-any, and protects in-progress", async () => {

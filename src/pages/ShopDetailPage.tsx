@@ -329,6 +329,7 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             .from("users")
             .select("id, name")
             .eq("role", "mechanic")
+            .eq("is_active", true)
             .eq("shop_id", shopId)
             .order("name"),
           supabase
@@ -457,7 +458,8 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
       <div className="shop-detail-layout relative z-10 mx-auto grid max-w-7xl grid-cols-1 gap-5 px-4 py-5 pb-28 sm:gap-7 sm:px-6 sm:py-8 sm:pb-32 lg:grid-cols-12">
         {/* ────────────────────────────── SHOP PROFILE & CATALOG ────────────────────────────── */}
         <aside className="contents">
-          {/* ── Shop Profile Card ── */}
+          {/* ── Combined Shop Profile & Gallery Card ── */}
+          <div className="shop-hero-panel order-1 grid grid-cols-1 overflow-hidden lg:col-span-12 lg:grid-cols-12">
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -534,6 +536,86 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               </div>
             )}
           </motion.section>
+
+          <section
+            className="shop-gallery-frame order-2 min-w-0 overflow-hidden lg:col-span-9"
+            onKeyDown={handleGalleryKey}
+          >
+            {galleryFiltered.length === 0 ? (
+              <div className="shop-empty-state p-8 text-center">
+                <ImageIcon size={30} className="mx-auto mb-2 text-slate-600" />
+                <p className="text-sm font-semibold text-slate-300">No photos yet</p>
+                <p className="mt-1 text-xs text-slate-500">This shop hasn't uploaded any photos.</p>
+              </div>
+            ) : (
+              <>
+                <div
+                  tabIndex={0}
+                  onFocus={() => setGalleryFocused(true)}
+                  onBlur={() => setGalleryFocused(false)}
+                  className="shop-gallery-viewer group relative h-[240px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent/60 sm:h-[320px] lg:h-[390px]"
+                  aria-label="Gallery viewer"
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={galleryFiltered[galleryIndex]?.id || "gallery"}
+                      src={activePhoto?.image_url}
+                      alt={activePhoto?.caption || `${shop.name} photo`}
+                      initial={{ opacity: 0, scale: 1.02 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35, ease: "easeInOut" }}
+                      className="h-full w-full object-cover"
+                    />
+                  </AnimatePresence>
+                  {galleryFiltered.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(-1)}
+                        aria-label="Previous photo"
+                        className="shop-gallery-arrow absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGallery(1)}
+                        aria-label="Next photo"
+                        className="shop-gallery-arrow absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {galleryFiltered.length > 1 && (
+                  <div className="shop-gallery-thumbs flex gap-2 overflow-x-auto px-3 py-2.5 sm:px-4">
+                    {galleryFiltered.map((photo, i) => (
+                      <button
+                        key={photo.id}
+                        type="button"
+                        onClick={() => setGalleryIndex(i)}
+                        aria-label={`View photo ${i + 1}`}
+                        aria-current={i === galleryIndex}
+                        className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
+                          i === galleryIndex ? "is-current" : "opacity-65 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={photo.image_url}
+                          alt={photo.caption || `Thumbnail ${i + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+          </div>
 
           {/* ── Catalog Tabs & Lists ── */}
           <section className="shop-catalog-panel order-4 p-4 sm:p-6 lg:col-span-12">
@@ -716,92 +798,6 @@ const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
 
         {/* ────────────────────────────── RIGHT MAIN PANEL ────────────────────────────── */}
         <main className="contents">
-          <section
-            className="shop-gallery-frame order-2 min-w-0 overflow-hidden lg:col-span-9"
-            onKeyDown={handleGalleryKey}
-          >
-            {galleryFiltered.length === 0 ? (
-              <div className="shop-empty-state p-8 text-center">
-                <ImageIcon size={30} className="mx-auto mb-2 text-slate-600" />
-                <p className="text-sm font-semibold text-slate-300">No photos yet</p>
-                <p className="mt-1 text-xs text-slate-500">This shop hasn't uploaded any photos.</p>
-              </div>
-            ) : (
-              <>
-                <div
-                  tabIndex={0}
-                  onFocus={() => setGalleryFocused(true)}
-                  onBlur={() => setGalleryFocused(false)}
-                  className="shop-gallery-viewer group relative h-[240px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent/60 sm:h-[320px] lg:h-[390px]"
-                  aria-label="Gallery viewer"
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={galleryFiltered[galleryIndex]?.id || "gallery"}
-                      src={activePhoto?.image_url}
-                      alt={activePhoto?.caption || `${shop.name} photo`}
-                      initial={{ opacity: 0, scale: 1.02 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.35, ease: "easeInOut" }}
-                      className="h-full w-full object-cover"
-                    />
-                  </AnimatePresence>
-                  {galleryFiltered.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => moveGallery(-1)}
-                        aria-label="Previous photo"
-                        className="shop-gallery-arrow absolute left-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveGallery(1)}
-                        aria-label="Next photo"
-                        className="shop-gallery-arrow absolute right-3 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center text-slate-200 backdrop-blur-md transition hover:text-moto-accent active:scale-95"
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                    </>
-                  )}
-                  {activePhoto?.caption && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-moto-dark/90 via-moto-dark/20 to-transparent px-4 pb-3 pt-10">
-                      <p className="text-xs font-semibold text-white">{activePhoto.caption}</p>
-                    </div>
-                  )}
-                </div>
-
-                {galleryFiltered.length > 1 && (
-                    <div className="shop-gallery-thumbs flex gap-2 overflow-x-auto px-3 py-2.5 sm:px-4">
-                    {galleryFiltered.map((photo, i) => (
-                      <button
-                        key={photo.id}
-                        type="button"
-                        onClick={() => setGalleryIndex(i)}
-                        aria-label={`View photo ${i + 1}`}
-                        aria-current={i === galleryIndex}
-                        className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border transition ${
-                          i === galleryIndex
-                            ? "is-current"
-                              : "opacity-65 hover:opacity-100"
-                        }`}
-                      >
-                        <img
-                          src={photo.image_url}
-                          alt={photo.caption || `Thumbnail ${i + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-
           {/* ── Merged Info & Hours Grid ── */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}

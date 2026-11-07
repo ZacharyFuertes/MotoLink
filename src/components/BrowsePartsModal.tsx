@@ -17,7 +17,6 @@ import {
   Cable,
   SlidersHorizontal,
   ArrowLeft,
-  Box,
   CheckCircle,
   Eye,
 } from "lucide-react";
@@ -223,15 +222,6 @@ const BrowsePartsModal: React.FC<BrowsePartsModalProps> = ({
                     </div>
                   )}
 
-                  {/* SKU */}
-                  {selectedPart.sku && (
-                    <div className="flex items-center gap-2 mb-4">
-                      <Box size={14} className="text-slate-500" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        SKU: {selectedPart.sku}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

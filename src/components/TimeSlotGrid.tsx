@@ -68,8 +68,9 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
       )}
 
       <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-        {slots.filter((slot) => !takenSlots.includes(slot) && !pastSlots.includes(slot)).map((slot) => {
-          const disabled = loading;
+        {slots.map((slot) => {
+          const unavailable = takenSlots.includes(slot) || pastSlots.includes(slot);
+          const disabled = loading || unavailable;
           const isActive = value === slot;
           const { hour, meridiem } = splitSlotLabel(slot);
 
@@ -81,7 +82,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
               aria-pressed={isActive}
               aria-disabled={disabled}
               title={
-                loading ? "Checking mechanic availability" : `Book ${hour}:00 ${meridiem}`
+                loading ? "Checking mechanic availability" : unavailable ? `${hour}:00 ${meridiem} unavailable` : `Book ${hour}:00 ${meridiem}`
               }
               onClick={() => onChange(slot)}
               className={`relative flex h-12 w-full flex-col items-center justify-center
@@ -89,14 +90,16 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                           ${
                             isActive
                               ? "border-moto-accent bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/20"
-                              : disabled
+                              : loading
                                 ? "cursor-wait border-moto-gray bg-moto-dark text-slate-600"
+                                : unavailable
+                                  ? "cursor-not-allowed border-moto-gray/70 bg-moto-dark/40 text-slate-500 opacity-55 line-through"
                                 : "border-moto-gray bg-moto-darker text-slate-300 hover:border-moto-accent hover:text-moto-accent"
                           }`}
             >
               <span
                 className={`text-sm font-bold leading-none tabular-nums ${
-                  disabled ? "opacity-50" : ""
+                  loading ? "opacity-50" : ""
                 }`}
               >
                 {hour}
@@ -105,7 +108,7 @@ const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
                 className={`mt-0.5 text-[9px] font-bold uppercase leading-none tracking-wider ${
                   isActive
                     ? "text-slate-900/70"
-                    : disabled
+                    : loading
                       ? "text-slate-700"
                       : "text-slate-500"
                 }`}

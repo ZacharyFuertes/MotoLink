@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MotoLink booking modal prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bgp:#E7EBF2;--b1:#FFB36B80;--b2:#7CC4B880;--scrim:#E8ECF3C7;--glass:#FFFFFFA8;--glass2:#FFFFFF66;--card:#FFFFFF99;--line:#14203120;--edge:#FFFFFFCC;--tx:#14181F;--mu:#566070;--ac:#F0933C;--acx:#A94F07;--on:#1A0F03;--sh:0 30px 80px #1B2A4440;color-scheme:light}
+[data-theme=dark]{--bgp:#0B0C0E;--b1:#F0933C38;--b2:#3E8F8A38;--scrim:#07080AD9;--glass:#17181C99;--glass2:#FFFFFF08;--card:#FFFFFF0D;--line:#FFFFFF1A;--edge:#FFFFFF2E;--tx:#F2F1EE;--mu:#A9A8A2;--acx:#F3A55F;--sh:0 30px 80px #000A;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bgp);color:var(--tx);font:400 15px/1.45 'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+button{font:inherit;color:inherit;cursor:pointer}button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acx);outline-offset:2px}
+.page{padding:56px 24px;max-width:720px;margin:0 auto}.page h1{font-size:30px;margin:0 0 8px;font-weight:700;letter-spacing:-.02em}.page p{color:var(--mu);margin:0 0 24px}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px;margin-left:12px;vertical-align:middle}.seg button{border:0;background:none;padding:8px 14px;border-radius:9px;color:var(--mu);font-size:13px;transition:background .2s,color .2s}.seg .on{background:var(--glass);color:var(--tx);box-shadow:0 1px 3px #0002}
+.btn{height:50px;border-radius:14px;border:0;background:var(--ac);color:var(--on);font-weight:600;font-size:15px;width:100%;padding:0 20px;box-shadow:0 8px 20px -6px #F0933C99;transition:transform .15s,box-shadow .15s,filter .2s}.btn:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.05);box-shadow:0 12px 24px -8px #F0933CAA}.btn:active:not(:disabled){transform:translateY(1px) scale(.99);box-shadow:0 4px 10px -4px #F0933C99}.btn:disabled{background:var(--card);color:var(--mu);box-shadow:none;cursor:not-allowed;border:1px solid var(--line)}.btn.in{width:auto}
+.btn.busy{position:relative;overflow:hidden}.btn.busy::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--ac);transform-origin:left;animation:bar .9s linear forwards}
+.lk{width:100%;background:none;border:0;color:var(--mu);font-weight:500;font-size:14px;height:44px;margin-top:4px;border-radius:10px;transition:color .15s,background .15s}.lk:hover{color:var(--tx);background:var(--card)}
+.ov{position:fixed;inset:0;background:var(--scrim);display:none;align-items:center;justify-content:center;padding:16px;z-index:5;overflow:hidden}.ov.open{display:flex;animation:fade .2s ease-out}
+.ov::before,.ov::after{content:"";position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(70px);pointer-events:none;animation:drift 18s ease-in-out infinite alternate}.ov::before{background:var(--b1);left:8%;top:6%}.ov::after{background:var(--b2);right:6%;bottom:2%;animation-delay:-9s}
+.m{position:relative;z-index:1;width:1040px;max-width:100%;height:min(740px,100%);background:var(--glass);-webkit-backdrop-filter:blur(28px) saturate(160%);backdrop-filter:blur(28px) saturate(160%);border:1px solid var(--edge);border-radius:24px;box-shadow:var(--sh),inset 0 1px 0 #FFFFFF55;display:flex;flex-direction:column;overflow:hidden}.ov.open .m{animation:rise .45s cubic-bezier(.16,1,.3,1)}
+.h{display:flex;align-items:center;justify-content:space-between;padding:20px 28px 0}.h b{font-size:20px;font-weight:700;letter-spacing:-.01em}.h small{display:block;color:var(--mu);font-size:13px}
+.x{height:40px;padding:0 14px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--mu);font-size:13px;font-weight:500;transition:color .15s,background .15s}.x:hover{color:var(--tx);background:var(--glass)}
+.st{position:relative;display:flex;gap:6px;padding:14px 22px 12px;border-bottom:1px solid var(--line);overflow-x:auto}.st::after{content:"";position:absolute;left:0;bottom:-1px;height:2px;width:calc(var(--p,.25)*100%);background:var(--ac);transition:width .45s cubic-bezier(.16,1,.3,1)}
+.st button{display:flex;align-items:center;gap:8px;border:0;background:none;padding:6px 12px 6px 6px;border-radius:999px;font-size:13px;color:var(--mu);white-space:nowrap;transition:background .2s,color .2s}.st button:disabled{cursor:default}.st .cur{background:var(--card);color:var(--tx);font-weight:600}
+.st i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);font-style:normal;display:grid;place-items:center;font-size:12px;font-weight:600}.cur i{background:var(--ac);border-color:var(--ac);color:var(--on)}.dn i{background:#F0933C33;border-color:transparent}
+.dn i::after,.sel .ck::after{content:"";width:9px;height:5px;border-left:2px solid var(--acx);border-bottom:2px solid var(--acx);transform:rotate(-45deg) translate(1px,-1px)}.sel .ck::after{border-color:var(--on)}
+.bd{flex:1;display:grid;grid-template-columns:1fr 316px;min-height:0}.bd.one{grid-template-columns:1fr}.bd.one #r{display:none}
+#l{padding:24px 28px;overflow-y:auto}#r{background:var(--glass2);border-left:1px solid var(--line);padding:24px;display:flex;flex-direction:column;overflow-y:auto}
+h2{margin:0;font-size:28px;font-weight:700;letter-spacing:-.025em;line-height:1.1}.sub{color:var(--mu);font-size:14px;margin:6px 0 18px}
+.row{display:flex;align-items:center;gap:14px;padding:12px 16px;border:1px solid var(--line);background:var(--card);border-radius:14px;margin-bottom:8px;width:100%;text-align:left;min-height:58px;transition:transform .18s cubic-bezier(.16,1,.3,1),border-color .18s,background .18s,box-shadow .18s}.row:not(:disabled):not(.free):hover{transform:translateY(-1px);box-shadow:0 8px 20px -10px #0004;border-color:var(--edge)}.row:disabled{opacity:.5;cursor:not-allowed}.row.free{cursor:default}
+.row.sel{border-color:var(--ac);background:#F0933C1F;box-shadow:0 0 0 1px var(--ac)}
+.ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--mu);display:grid;place-items:center;flex:none;transition:background .18s,border-color .18s}.ck.r{border-radius:50%}.sel .ck{background:var(--ac);border-color:var(--ac)}
+.nm{display:block;font-weight:600;font-size:15px}.ds{display:block;color:var(--mu);font-size:13px;margin-top:2px}.pr,.tm,.sl span:last-child,.tt b,.ref span,.q span,.g.dates .dc b,.ts{font-family:'DM Mono',ui-monospace,monospace}.pr{margin-left:auto;font-weight:500;white-space:nowrap;min-width:64px;text-align:right;font-size:14px}.tm{width:64px;text-align:right;color:var(--mu);font-size:13px}.hd{display:none}
+.rt{font-size:13px;font-weight:600;color:var(--mu)}.rg{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--mu);margin:16px 0 2px}.ed{background:none;border:0;color:var(--acx);font-size:12px;font-weight:600;padding:4px 0}
+.sl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;margin-top:8px}.sl span:last-child{white-space:nowrap;font-size:13px}
+.tt{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:14px;margin:20px 0 8px;font-size:14px;color:var(--mu)}.tt b{font-size:22px;font-weight:500;color:var(--tx)}.cap{font-size:13px;color:var(--mu);line-height:1.4;margin:0 0 12px;min-height:18px}.act{margin-top:auto}
+.gl{font-size:13px;font-weight:600;color:var(--mu);margin:22px 0 10px}.g{display:flex;flex-wrap:wrap;gap:8px}
+.th{width:44px;height:44px;border-radius:10px;background:var(--line);flex:none}.q{display:flex;align-items:center;gap:4px;margin-left:16px}.q button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:18px;transition:background .15s}.q button:hover:not(:disabled){background:var(--glass)}.q button:disabled{opacity:.4}.q span{width:28px;text-align:center;font-weight:500}
+.add{height:40px;padding:0 18px;border-radius:10px;border:1px solid var(--acx);background:none;color:var(--acx);font-weight:600;font-size:14px;margin-left:16px;transition:background .15s}.add:hover{background:#F0933C22}
+.dc{border:1px solid var(--line);background:var(--card);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--tx);transition:transform .15s,background .15s,border-color .15s}.dc:hover:not(.on){transform:translateY(-1px);border-color:var(--edge)}
+.g.dates{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;max-width:460px}.wd{font-size:12px;font-weight:600;color:var(--mu);text-align:center}.g.dates .dc{height:46px}.g.dates .dc b{font-size:16px;font-weight:500;color:inherit}
+.dc.on,.ts.on{background:var(--ac);border-color:var(--ac);color:var(--on)}.ts{width:calc(25% - 6px);min-width:96px;height:46px;border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:12px;font-size:13px;transition:transform .15s,background .15s,border-color .15s}.ts:hover:not(.on):not(:disabled){transform:translateY(-1px);border-color:var(--edge)}.ts:disabled{color:var(--mu);opacity:.5;text-decoration:line-through;cursor:not-allowed}.ts.on{font-weight:500}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.av{width:40px;height:40px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
+.in{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--tx);font:inherit;font-size:14px;transition:border-color .15s,box-shadow .15s}.in::placeholder{color:var(--mu)}.in:focus{border-color:var(--ac);outline:none;box-shadow:0 0 0 3px #F0933C33}textarea.in{height:88px;resize:none}
+.f3{display:grid;grid-template-columns:1fr 1fr 90px;gap:8px}.chk{display:flex;gap:10px;align-items:center;margin-top:20px;font-size:14px}.chk input{width:20px;height:20px;accent-color:#E8761A}.chk b{color:var(--acx);font-weight:600}
+.note{border:1px dashed var(--line);border-radius:12px;padding:10px 14px;color:var(--mu);font-size:13px;margin-top:8px}
+.ok{text-align:center;max-width:460px;margin:40px auto}.ok .tick{width:68px;height:68px;border-radius:50%;background:#F0933C2B;display:grid;place-items:center;margin:0 auto 20px;animation:tickpop .5s cubic-bezier(.3,1.5,.5,1)}.ok .tick::after{content:"";width:24px;height:13px;border-left:3px solid var(--acx);border-bottom:3px solid var(--acx);transform:rotate(-45deg) translate(2px,-3px);animation:draw .35s .25s ease-out both}
+.ref{display:flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px;margin:20px 0;font-size:20px;font-weight:500;letter-spacing:.06em}.ref button{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 12px;font-size:13px;letter-spacing:0}
+@keyframes fade{from{opacity:0}}@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.97)}}@keyframes up{from{opacity:0;transform:translateY(10px)}}@keyframes pop{0%{transform:scale(.98)}55%{transform:scale(1.012)}}@keyframes bar{from{transform:scaleX(0)}}@keyframes tickpop{from{opacity:0;transform:scale(.4)}}@keyframes draw{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0)}}@keyframes drift{to{transform:translate(60px,40px) scale(1.12)}}
+#l.in-f>*,#l.in-b>*{animation:up .45s cubic-bezier(.16,1,.3,1) both}.pop{animation:pop .22s ease-out}
+@media(max-width:820px){.ov{padding:0}.m{border-radius:0;border:0;height:100%}.bd{grid-template-columns:1fr}#l{padding:20px 16px}#r{border-left:0;border-top:1px solid var(--line);padding:12px 16px}.det{display:none}.tt{margin:0 0 6px;padding-top:0;border:0}.ts{width:calc(50% - 4px)}.f3{grid-template-columns:1fr 1fr}.h{padding:16px 16px 0}.st{padding:10px 12px}.ov::before,.ov::after{width:320px;height:320px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page"><h1>MotoLink Autoshop</h1><p>Click Book a service to try the booking flow.</p>
+<button class="btn in" id="open">Book a service</button>
+<span class="seg" role="group" aria-label="Preview as"><button data-au="0" class="on">Guest</button><button data-au="1">Signed in</button></span><span class="seg" role="group" aria-label="Theme"><button data-th="light">Light</button><button data-th="dark">Dark</button></span></div>
+<div class="ov" id="ov"><div class="m" role="dialog" aria-modal="true" aria-labelledby="ttl">
+<div class="h"><div><b id="ttl">Book a service</b><small>MotoLink Autoshop</small></div><div style="display:flex;gap:8px"><button class="x" data-a="theme">Dark mode</button><button class="x" data-a="close">Close</button></div></div>
+<nav class="st" id="st" aria-label="Booking steps"></nav>
+<div class="bd" id="bd"><div id="l"></div><aside id="r"></aside></div></div></div>
+<script>
+const SV=[{id:"air",n:"Air Filter Service & Replacement",d:"Clean the air box and replace the filter element",m:20,p:100},{id:"tire",n:"Tire Mount & Balancing",d:"Replace the tire and valve stem, balance, set pressure",m:30,p:100},{id:"brake",n:"Brake Pad & Shoe Replacement",d:"Replace worn pads or drum shoes, test lever travel",m:40,p:150},{id:"oil",n:"Engine Oil & Filter Change",d:"Drain old oil, replace the filter, refill",m:30,p:200},{id:"shock",n:"Rear Shock Absorber Installation",d:"Remove worn rear shocks and fit new ones",m:60,p:200},{id:"elec",n:"Electrical System & Wiring Repair",d:"Diagnose battery, wiring and charging faults",m:60,p:300}];
+const PT=[{id:"valve",n:"Straight Brass Tubeless Valve Stem",s:29,p:50,sv:["tire"]},{id:"tyre",n:"Tubeless Motorcycle Tire (90/90-14)",s:7,p:1250,sv:["tire"]},{id:"filter",n:"High-Flow Replacement Air Filter",s:13,p:2880,sv:["air"]}];
+const MECH=[{id:"kj",n:"Kuya J",i:"KJ"},{id:"mb",n:"Mang Ben",i:"MB"}];
+const BUSY={kj:{"2026-11-10":[13],"2026-11-12":[8,9,10]},mb:{"2026-11-10":[9,10]}};
+const DATES=[["2026-11-09","Mon",9],["2026-11-10","Tue",10],["2026-11-11","Wed",11],["2026-11-12","Thu",12],["2026-11-13","Fri",13],["2026-11-14","Sat",14],["2026-11-16","Mon",16],["2026-11-17","Tue",17],["2026-11-18","Wed",18],["2026-11-19","Thu",19],["2026-11-20","Fri",20],["2026-11-21","Sat",21]];
+const HRS=[8,9,10,11,12,13,14,15],CLOSE=960,STEPS=["Services","Parts","Schedule","Review"];
+let V,S,AUTH=false;
+const init=()=>({step:0,svc:[],parts:{},date:null,time:null,mech:null,veh:null,manual:"",adding:false,nv:{make:"",model:"",year:""},notes:"",terms:false,sending:false,done:false,ref:"",copied:false});
+const $=s=>document.querySelector(s),M=n=>"₱"+n.toLocaleString("en-PH"),esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sv=id=>SV.find(s=>s.id===id),dur=()=>S.svc.reduce((a,i)=>a+sv(i).m,0);
+const dTxt=m=>m>=60?Math.floor(m/60)+" hr"+(m%60?" "+m%60+" min":""):m+" min";
+const tf=m=>{const h=Math.floor(m/60),mm=m%60;return(h>12?h-12:h)+":"+String(mm).padStart(2,"0")+(h>=12?" PM":" AM")};
+const partsFor=()=>PT.filter(p=>p.sv.some(i=>S.svc.includes(i)));
+const pSel=()=>PT.filter(p=>S.parts[p.id]>0);
+const svcTot=()=>S.svc.reduce((a,i)=>a+sv(i).p,0),partTot=()=>pSel().reduce((a,p)=>a+p.p*S.parts[p.id],0);
+const free=(m,d,h)=>{const a=h*60,b=a+dur();return!(BUSY[m.id][d]||[]).some(x=>a<(x+1)*60&&x*60<b)};
+const mechsAt=(d,h)=>MECH.filter(m=>free(m,d,h));
+const slotOK=(d,h)=>h*60+dur()<=CLOSE&&mechsAt(d,h).length>0;
+const vehOK=()=>AUTH?!!S.veh:S.manual.trim().length>0;
+const dl=()=>{const d=DATES.find(x=>x[0]===S.date);return d?d[1]+", Nov "+d[2]:""};
+const range=()=>tf(S.time*60)+" – "+tf(S.time*60+dur());
+function fix(){S.parts=Object.fromEntries(Object.entries(S.parts).filter(([k])=>partsFor().some(p=>p.id===k)));if(S.time!=null&&!slotOK(S.date,S.time)){S.time=null;S.mech=null}else if(S.mech&&!mechsAt(S.date,S.time).some(m=>m.id===S.mech))S.mech=null}
+function setTheme(t){document.documentElement.dataset.theme=t;document.querySelectorAll("[data-th]").forEach(b=>b.classList.toggle("on",b.dataset.th===t));const tb=$('[data-a="theme"]');if(tb)tb.textContent=t==="dark"?"Light mode":"Dark mode"}setTheme(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark");
+function stepper(){$("#st").style.setProperty("--p",(S.done?4:S.step+1)/4);$("#st").innerHTML=STEPS.map((n,i)=>{const dn=i<S.step||S.done,cur=i===S.step&&!S.done;return`<button class="${cur?"cur":dn?"dn":""}" ${dn&&!S.done?`data-a="go" data-v="${i}"`:"disabled"} ${cur?'aria-current="step"':""}><i>${dn?"":i+1}</i>${n}</button>`}).join("")}
+function stepL(){
+if(S.done)return`<div class="ok"><div class="tick"></div><h2>Request sent</h2><p class="sub">${esc("The shop will confirm your appointment. Keep this reference to look up your booking.")}</p><div class="ref"><span>${S.ref}</span><button data-a="copy">${S.copied?"Copied":"Copy"}</button></div><p class="sub">${dl()} · ${range()} · ${M(svcTot()+partTot())} estimate</p><button class="btn in" data-a="close">Done</button></div>`;
+if(S.step===0)return`<h2>Services</h2><p class="sub">Pick one or more.</p><div class="hd"><span>Service</span><span>Time</span><span>Price</span></div>`+SV.map(s=>{const on=S.svc.includes(s.id);return`<button class="row${on?" sel":""}" data-a="svc" data-v="${s.id}" aria-pressed="${on}"><span class="ck"></span><span><span class="nm">${s.n}</span><span class="ds">${s.d}</span></span><span class="tm" style="margin-left:auto">${s.m} min</span><span class="pr" style="margin-left:0">${M(s.p)}</span></button>`}).join("");
+if(S.step===1){let h=`<h2>Parts</h2><p class="sub">Optional. Parts that fit the services you picked.</p>`;S.svc.filter(i=>PT.some(p=>p.sv.includes(i))).forEach((i,k)=>{h+=`<div class="gl" ${k?"":'style="margin-top:0"'}>${sv(i).n}</div>`+PT.filter(p=>p.sv.includes(i)).map(p=>{const q=S.parts[p.id]||0;return`<div class="row free${q?" sel":""}"><span class="th"></span><span><span class="nm">${p.n}</span><span class="ds">${p.s} in stock</span></span><span class="pr">${M(p.p)}</span>`+(q?`<span class="q"><button data-a="pm" data-v="${p.id}" aria-label="Less">−</button><span>${q}</span><button data-a="pp" data-v="${p.id}" aria-label="More" ${q>=p.s?"disabled":""}>+</button></span>`:`<button class="add" data-a="pp" data-v="${p.id}">Add</button>`)+`</div>`}).join("")});return h}
+if(S.step===2){let h=`<h2>Date and time</h2><p class="sub">Days with a mechanic on shift. Your visit takes ${dTxt(dur())}.</p><div class="rt" style="margin-bottom:10px">November 2026</div><div class="g dates"><span class="wd">Mon</span><span class="wd">Tue</span><span class="wd">Wed</span><span class="wd">Thu</span><span class="wd">Fri</span><span class="wd">Sat</span>`+DATES.map(d=>`<button class="dc${S.date===d[0]?" on":""}" data-a="date" data-v="${d[0]}" aria-pressed="${S.date===d[0]}"><b>${d[2]}</b><span class="sr">${d[1]}</span></button>`).join("")+`</div>`;
+if(!S.date)return h+`<div class="note">Pick a day first. Start times depend on your ${dTxt(dur())} visit.</div>`;
+h+=`<div class="gl">Start time</div><div class="g">`+HRS.map(x=>`<button class="ts${S.time===x?" on":""}" data-a="time" data-v="${x}" ${slotOK(S.date,x)?"":"disabled"} aria-pressed="${S.time===x}">${tf(x*60)}</button>`).join("")+`</div><div class="note">Struck-through times are booked or would end after the 4:00 PM close.</div>`;
+if(S.time!=null){h+=`<div class="gl">Mechanics free for the full ${dTxt(dur())}</div>`+mechsAt(S.date,S.time).map(m=>{const on=S.mech===m.id;return`<button class="row${on?" sel":""}" data-a="mech" data-v="${m.id}" aria-pressed="${on}"><span class="av">${m.i}</span><span><span class="nm">${m.n}</span><span class="ds">Available ${range()}</span></span><span class="ck r" style="margin-left:auto"></span></button>`}).join("")}return h}
+const pay=(a,b,c,d)=>`<div class="row${d?"":" sel"}" style="flex:1;margin:0;${d?"opacity:.55":""}"><span class="ck r"></span><span><span class="nm">${a}</span><span class="ds">${b}</span></span></div>`;
+let h=`<h2>Review</h2><p class="sub">${AUTH?"Send this request to the shop.":"Log in to send this request to the shop."}</p><div class="gl" style="margin-top:0">Payment</div><div>${pay("Pay at the shop","Cash on arrival")}${pay("GCash","Not available",0,1)}${pay("Maya","Not available",0,1)}</div><div class="gl">Motorcycle (required)</div>`;
+if(!AUTH)h+=`<input class="in" data-i="manual" placeholder="Make and model, e.g. Honda Click 150i" value="${esc(S.manual)}" aria-label="Motorcycle">`;
+else{h+=V.map(v=>`<button class="row${S.veh===v.id?" sel":""}" data-a="veh" data-v="${v.id}" aria-pressed="${S.veh===v.id}"><span><span class="nm">${esc(v.n)}</span></span><span class="ck r" style="margin-left:auto"></span></button>`).join("");
+h+=S.adding?`<div class="f3"><input class="in" data-i="make" placeholder="Make" value="${esc(S.nv.make)}" aria-label="Make"><input class="in" data-i="model" placeholder="Model" value="${esc(S.nv.model)}" aria-label="Model"><input class="in" data-i="year" type="number" placeholder="Year" value="${esc(S.nv.year)}" aria-label="Year"></div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn in" data-a="savev" ${S.nv.make.trim()&&S.nv.model.trim()?"":"disabled"}>Save to my account</button><button class="lk" style="width:auto;margin:0;padding:0 16px" data-a="canv">Cancel</button></div>`:`<button class="lk" style="width:auto;text-align:left;color:var(--ac);margin:0;padding:0" data-a="addv">+ Add another motorcycle</button>`}
+h+=`<div class="gl">Notes (optional)</div><textarea class="in" data-i="notes" placeholder="Symptoms, noises, anything the mechanic should know" aria-label="Notes">${esc(S.notes)}</textarea><label class="chk"><input type="checkbox" data-c="terms" ${S.terms?"checked":""}><span>I agree to the MotoLink <b>Terms &amp; Conditions</b></span></label>`;return h}
+function det(){let h="";const ed=i=>S.step===3?`<button class="ed" data-a="go" data-v="${i}">Edit</button>`:"";
+if(!S.svc.length)return`<p class="cap" style="margin-top:12px">No services picked yet.</p>`;
+h+=`<div class="rg"><span>Services</span>${ed(0)}</div>`+S.svc.map(i=>`<div class="sl"><span>${sv(i).n}</span><span>${M(sv(i).p)}</span></div>`).join("");
+if(pSel().length)h+=`<div class="rg"><span>Parts</span>${ed(1)}</div>`+pSel().map(p=>`<div class="sl"><span>${p.n} × ${S.parts[p.id]}</span><span>${M(p.p*S.parts[p.id])}</span></div>`).join("");
+if(S.date&&S.time!=null)h+=`<div class="rg"><span>Visit · ${dTxt(dur())}</span>${ed(2)}</div><div class="sl"><span>${dl()} · ${range()}</span></div>`+(S.mech?`<div class="sl"><span>Mechanic: ${MECH.find(m=>m.id===S.mech).n}</span></div>`:"");
+return h}
+function aside(){if(S.done)return;let hint="",lab="Continue",dis=false,sec="";
+if(S.step===0){dis=!S.svc.length;lab=partsFor().length?"Continue to parts":"Continue to schedule";hint=dis?"Pick at least one service.":dTxt(dur())+" total."}
+if(S.step===1){lab=pSel().length?"Continue to schedule":"Skip parts";hint="Parts are charged at the shop."}
+if(S.step===2){lab="Review booking";const miss=!S.date?"Choose a date.":S.time==null?"Choose a start time.":!S.mech?"Choose a mechanic.":"";dis=!!miss;hint=miss}
+if(S.step===3){const miss=!vehOK()?"Add your motorcycle.":!S.terms?"Accept the terms to continue.":"";lab=S.sending?"Sending…":AUTH?"Send request":"Log in to send request";dis=!!miss||S.sending;hint=miss||"This stays a request until the shop confirms it.";if(!AUTH)sec=`<button class="lk" data-a="auth">Create an account</button>`}
+const act=S.step===3?(AUTH?"send":"auth"):"next";
+$("#r").innerHTML=`<div class="rt">Your booking</div><div class="det">${det()}</div><div class="tt"><span>Estimate</span><b>${M(svcTot()+partTot())}</b></div><p class="cap" aria-live="polite">${hint}</p><div class="act"><button class="btn${S.sending?" busy":""}" data-a="${act}" ${dis?"disabled":""}>${lab}</button>${sec}<button class="lk" data-a="back">${S.step?"Back":"Cancel"}</button></div>`;const tb=$(".tt b"),t=svcTot()+partTot(),f=aside.t??t;aside.t=t;if(f!==t&&!matchMedia("(prefers-reduced-motion:reduce)").matches){const t0=performance.now();(function s(n){const p=Math.min(1,(n-t0)/260);tb.textContent=M(Math.round(f+(t-f)*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(s)})(t0)}}
+let lastN=-1;function render(){$("#bd").className="bd"+(S.done?" one":"");stepper();const L=$("#l"),n=S.done?9:S.step;L.innerHTML=stepL();if(n!==lastN){L.classList.remove("in-f","in-b");void L.offsetWidth;L.classList.add(n>=lastN?"in-f":"in-b");lastN=n;[...L.children].forEach((c,i)=>c.style.animationDelay=Math.min(i,11)*32+"ms");clearTimeout(render.t);render.t=setTimeout(()=>L.classList.remove("in-f","in-b"),700)}aside()}
+function next(){S.step=S.step===0&&!partsFor().length?2:S.step+1;render();$("#l").scrollTop=0}
+function back(){if(!S.step)return close();S.step=S.step===2&&!partsFor().length?0:S.step-1;render()}
+function open(){S=init();lastN=-1;aside.t=0;$("#ov").classList.remove("open");void $("#ov").offsetWidth;$("#ov").classList.add("open");render();$("#open").blur()}
+function close(){$("#ov").classList.remove("open");$("#open").focus()}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-a],[data-au],[data-th]");if(!t)return;if(t.dataset.th){setTheme(t.dataset.th);return}if(t.dataset.au!==undefined){AUTH=t.dataset.au==="1";document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b===t));return}
+const a=t.dataset.a,v=t.dataset.v;
+if(a==="close")close();else if(a==="theme")setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");else if(a==="next")next();else if(a==="back")back();else if(a==="go"){S.step=+v;render()}
+else if(a==="svc"){S.svc=S.svc.includes(v)?S.svc.filter(x=>x!==v):[...S.svc,v];fix();render()}
+else if(a==="pp"){S.parts[v]=(S.parts[v]||0)+1;render()}else if(a==="pm"){S.parts[v]=(S.parts[v]||1)-1;if(!S.parts[v])delete S.parts[v];render()}
+else if(a==="date"){S.date=v;S.time=null;S.mech=null;render()}
+else if(a==="time"){S.time=+v;const m=mechsAt(S.date,S.time);S.mech=m.length===1?m[0].id:null;render()}
+else if(a==="mech"){S.mech=v;render()}
+else if(a==="veh"){S.veh=v;render()}else if(a==="addv"){S.adding=true;render()}else if(a==="canv"){S.adding=false;render()}
+else if(a==="savev"){const id="v"+Date.now(),n=[S.nv.make.trim(),S.nv.model.trim()].join(" ")+(S.nv.year?" ("+S.nv.year+")":"");V.push({id,n});S.veh=id;S.adding=false;S.nv={make:"",model:"",year:""};render()}
+else if(a==="auth"){AUTH=true;document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.au==="1"));if(S.manual.trim()){V.push({id:"m",n:S.manual.trim()});S.veh="m"}render()}
+else if(a==="send"){S.sending=true;aside();setTimeout(()=>{S.sending=false;S.done=true;S.ref="ML-"+Math.random().toString(36).slice(2,8).toUpperCase();render()},900)}
+else if(a==="copy"){try{navigator.clipboard.writeText(S.ref)}catch(_){}S.copied=true;render()}if(v!==undefined&&"svc date time mech veh".includes(a)){const el=document.querySelector('[data-a="'+a+'"][data-v="'+v+'"]');if(el)el.classList.add("pop")}});
+document.addEventListener("input",e=>{const k=e.target.dataset.i;if(!k)return;if(k==="manual"||k==="notes")S[k]=e.target.value;else{S.nv[k]=e.target.value;const b=$('[data-a="savev"]');if(b)b.disabled=!(S.nv.make.trim()&&S.nv.model.trim())}aside()});
+document.addEventListener("change",e=>{if(e.target.dataset.c==="terms"){S.terms=e.target.checked;aside()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#ov").classList.contains("open"))close()});
+$("#ov").addEventListener("click",e=>{if(e.target.id==="ov")close()});$("#open").addEventListener("click",()=>{V=[{id:"v1",n:"Honda Click 150i (2022)"},{id:"v2",n:"Yamaha Mio i 125 (2020)"}];open()});
+V=[{id:"v1",n:"Honda Click 150i (2022)"},{id:"v2",n:"Yamaha Mio i 125 (2020)"}];open();
+</script>
+</body>
+</html>

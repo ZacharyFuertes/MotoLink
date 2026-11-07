@@ -325,6 +325,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
           .select("id, name, phone")
           .eq("shop_id", shopId)
           .eq("role", "mechanic")
+          .eq("is_active", true)
           .order("name");
         if (mechanicError) throw mechanicError;
         if (active) setMechanics((data || []).map((item) => ({ id: item.id, name: item.name || "Mechanic", phone: item.phone })));
@@ -706,6 +707,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       .select("id, name")
       .eq("shop_id", shopId)
       .eq("role", "mechanic")
+      .eq("is_active", true)
       .order("name");
     if (shopMechanicsError) throw shopMechanicsError;
     const shopMechanics = (shopMechanicRows || []).map((mechanic) => ({

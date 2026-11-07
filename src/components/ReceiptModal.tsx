@@ -211,9 +211,6 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({
                           <p className="text-slate-900 font-bold">
                             {part.part_name}
                           </p>
-                          <p className="text-[10px] text-slate-500">
-                            SKU: {part.part_id}
-                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-slate-900 font-bold">

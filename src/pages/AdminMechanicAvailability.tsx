@@ -6,11 +6,13 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../services/supabaseClient'
 import { getShopByOwnerId } from '../services/shopService'
 import { normalizeTime } from '../utils/dateTime'
+import { sendBookingUpdatedEmail, sendRescheduleNoticeToCustomer } from '../services/notificationService'
 
 interface Mechanic {
   id: string
   name: string
   email: string
+  is_active: boolean
 }
 
 interface Availability {
@@ -31,6 +33,7 @@ interface AssignedAppointment {
   scheduled_time: string | null
   service_type: string
   status: string
+  mechanic_preference: 'specific' | 'any'
 }
 
 interface AdminMechanicAvailabilityProps {
@@ -57,9 +60,10 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   const [dayFilter, setDayFilter] = useState('all')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showAddMechanic, setShowAddMechanic] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<Mechanic | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [confirmationInput, setConfirmationInput] = useState('')
+  const [mechanicAction, setMechanicAction] = useState<Mechanic | null>(null)
+  const [updatingMechanicStatus, setUpdatingMechanicStatus] = useState(false)
+  const [deactivationAction, setDeactivationAction] = useState<'reassign' | 'unassign'>('unassign')
+  const [replacementMechanicId, setReplacementMechanicId] = useState('')
   const [formData, setFormData] = useState({
     mechanic_id: '',
     day_of_week: 'Monday',
@@ -116,7 +120,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
       let mechQuery = supabase
         .from('users')
-        .select('id, name, email')
+        .select('id, name, email, is_active')
         .eq('role', 'mechanic')
 
       if (ownerShopId) {
@@ -162,7 +166,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
       const { data: bookings, error: bookingError } = await supabase
         .from('appointments')
-        .select('id, booking_id, mechanic_id, scheduled_date, scheduled_time, service_type, status')
+        .select('id, booking_id, mechanic_id, scheduled_date, scheduled_time, service_type, status, mechanic_preference')
         .eq('shop_id', ownerShopId)
         .not('mechanic_id', 'is', null)
         .in('status', ['pending', 'confirmed', 'in_progress'])
@@ -330,53 +334,76 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     }
   }
 
-  const handleDeleteMechanic = async () => {
-    if (!deleteConfirm) return
+  const isUpcomingBooking = (booking: AssignedAppointment) => {
+    const time = booking.scheduled_time || '00:00'
+    const startsAt = new Date(`${booking.scheduled_date}T${normalizeTime(time)}:00+08:00`)
+    return Number.isFinite(startsAt.getTime()) && startsAt.getTime() >= Date.now()
+  }
 
+  const upcomingBookings = (mechanic: Mechanic) => assignedAppointments.filter((booking) =>
+    booking.mechanic_id === mechanic.id &&
+    ['pending', 'confirmed', 'in_progress'].includes(booking.status) &&
+    isUpcomingBooking(booking),
+  )
+
+  const hasInProgressBooking = (mechanic: Mechanic) => assignedAppointments.some((booking) =>
+    booking.mechanic_id === mechanic.id && booking.status === 'in_progress',
+  )
+
+  const hasConfirmedSpecificBooking = (mechanic: Mechanic) => upcomingBookings(mechanic).some((booking) =>
+    booking.status === 'confirmed' && booking.mechanic_preference === 'specific',
+  )
+
+  const handleDeactivateMechanic = async () => {
+    if (!mechanicAction) return
+    if (hasInProgressBooking(mechanicAction) || hasConfirmedSpecificBooking(mechanicAction)) return
+
+    setUpdatingMechanicStatus(true)
     try {
-      setDeleting(true)
+      const { data, error } = await supabase.rpc('deactivate_mechanic', {
+        p_mechanic_id: mechanicAction.id,
+        p_action: deactivationAction,
+        p_replacement_mechanic_id: deactivationAction === 'reassign' ? replacementMechanicId : null,
+      })
+      if (error) throw error
 
-      try {
-        await supabase
-          .from('job_orders')
-          .delete()
-          .eq('mechanic_id', deleteConfirm.id)
-          .eq('shop_id', resolvedShopId || user?.shop_id || null)
-      } catch (e) {}
-
-      try {
-        await supabase
-          .from('mechanic_availability')
-          .delete()
-          .eq('mechanic_id', deleteConfirm.id)
-          .eq('shop_id', resolvedShopId || user?.shop_id || null)
-      } catch (e) {}
-
-      try {
-        await supabase
-          .from('appointments')
-          .delete()
-          .eq('mechanic_id', deleteConfirm.id)
-          .eq('shop_id', resolvedShopId || user?.shop_id || null)
-      } catch (e) {}
-
-      const { error: userError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', deleteConfirm.id)
-
-      if (userError) throw userError
-
-      setMechanics(mechanics.filter((m) => m.id !== deleteConfirm.id))
-      setAvailability(availability.filter((a) => a.mechanic_id !== deleteConfirm.id))
-      if (selectedMechanic === deleteConfirm.id) setSelectedMechanic(null)
-      setDeleteConfirm(null)
-      setConfirmationInput('')
-    } catch (err) {
-      console.error('Error deleting mechanic:', err)
-      alert('Error deleting mechanic. Please try again.')
+      const result = data as { affected_appointment_ids?: string[] } | null
+      const ids = result?.affected_appointment_ids || []
+      const notificationResults = await Promise.allSettled(ids.map((appointmentId) =>
+        deactivationAction === 'reassign'
+          ? sendRescheduleNoticeToCustomer(appointmentId, 'reassigned')
+          : sendBookingUpdatedEmail(appointmentId),
+      ))
+      const failedNotifications = notificationResults.filter((item) =>
+        item.status === 'rejected' || (!item.value.success && !item.value.skipped && !item.value.notConfigured),
+      ).length
+      setMechanics((current) => current.map((item) => item.id === mechanicAction.id ? { ...item, is_active: false } : item))
+      setMechanicAction(null)
+      if (selectedMechanic === mechanicAction.id) setSelectedMechanic(null)
+      await fetchData()
+      alert(failedNotifications
+        ? `Mechanic deactivated. ${failedNotifications} customer email notification(s) could not be sent.`
+        : 'Mechanic deactivated. Affected customers were notified by email where a contact is available.')
+    } catch (err: any) {
+      console.error('Error deactivating mechanic:', err)
+      alert(err?.message || 'Could not deactivate this mechanic.')
     } finally {
-      setDeleting(false)
+      setUpdatingMechanicStatus(false)
+    }
+  }
+
+  const handleReactivateMechanic = async (mechanic: Mechanic) => {
+    setUpdatingMechanicStatus(true)
+    try {
+      const { error } = await supabase.rpc('reactivate_mechanic', { p_mechanic_id: mechanic.id })
+      if (error) throw error
+      setMechanics((current) => current.map((item) => item.id === mechanic.id ? { ...item, is_active: true } : item))
+      await fetchData()
+    } catch (err: any) {
+      console.error('Error reactivating mechanic:', err)
+      alert(err?.message || 'Could not reactivate this mechanic.')
+    } finally {
+      setUpdatingMechanicStatus(false)
     }
   }
 
@@ -399,12 +426,13 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
   }
 
   const selectedMechanicData = mechanics.find((m) => m.id === selectedMechanic)
+  const activeMechanicIds = new Set(mechanics.filter((mechanic) => mechanic.is_active).map((mechanic) => mechanic.id))
   const visibleMechanics = mechanics.filter((mechanic) =>
     `${mechanic.name} ${mechanic.email}`.toLowerCase().includes(mechanicSearch.toLowerCase()),
   )
   const mechanicAvailability = selectedMechanic
-    ? availability.filter((a) => a.mechanic_id === selectedMechanic)
-    : availability
+    ? selectedMechanicData?.is_active ? availability.filter((a) => a.mechanic_id === selectedMechanic) : []
+    : availability.filter((slot) => activeMechanicIds.has(slot.mechanic_id))
   const filteredAvailability = mechanicAvailability.filter((slot) => {
     const dayName = typeof slot.day_of_week === 'number'
       ? daysOfWeek[slot.day_of_week]
@@ -417,8 +445,9 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
     const dayB = typeof b.day_of_week === 'number' ? b.day_of_week : daysOfWeek.indexOf(b.day_of_week)
     return dayA - dayB || a.start_time.localeCompare(b.start_time)
   })
-  const availableCount = availability.filter((slot) => slot.is_available).length
-  const unavailableCount = availability.length - availableCount
+  const activeAvailability = availability.filter((slot) => activeMechanicIds.has(slot.mechanic_id))
+  const availableCount = activeAvailability.filter((slot) => slot.is_available).length
+  const unavailableCount = activeAvailability.length - availableCount
 
   const inputClass =
     "w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-moto-accent focus:bg-moto-darker focus:ring-2 focus:ring-moto-accent/20 transition"
@@ -466,8 +495,8 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
               setShowAddMechanic(false)
               setFormData((current) => ({ ...current, mechanic_id: selectedMechanic || current.mechanic_id }))
             }}
-            disabled={mechanics.length === 0}
-            title={mechanics.length === 0 ? 'Add a mechanic before creating a shift' : undefined}
+            disabled={!mechanics.some((mechanic) => mechanic.is_active)}
+            title={!mechanics.some((mechanic) => mechanic.is_active) ? 'Add or reactivate a mechanic before creating a shift' : undefined}
             className="flex items-center gap-2 rounded-xl bg-moto-gray px-4 py-2 text-[13px] font-bold text-white shadow-sm shadow-slate-800/20 transition hover:bg-moto-darker disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus size={16} /> Add Shift Schedule
@@ -477,7 +506,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { label: 'Team members', value: mechanics.length, icon: Users, tone: 'text-moto-accent bg-moto-accent/10' },
+          { label: 'Active mechanics', value: mechanics.filter((mechanic) => mechanic.is_active).length, icon: Users, tone: 'text-moto-accent bg-moto-accent/10' },
           { label: 'Available shifts', value: availableCount, icon: CheckCircle2, tone: 'text-emerald-400 bg-emerald-500/10' },
           { label: 'Unavailable shifts', value: unavailableCount, icon: Clock, tone: 'text-amber-300 bg-amber-500/10' },
         ].map((stat) => (
@@ -523,17 +552,18 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                   : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
               }`}
             >
-              <span className="flex items-center justify-between">All mechanics <span className="text-[11px] opacity-70">{availability.length} shifts</span></span>
+              <span className="flex items-center justify-between">Active mechanics <span className="text-[11px] opacity-70">{activeAvailability.length} shifts</span></span>
             </button>
             {visibleMechanics.map((mechanic) => {
-              const shiftCount = availability.filter((slot) => slot.mechanic_id === mechanic.id).length
+              const shiftCount = mechanic.is_active ? availability.filter((slot) => slot.mechanic_id === mechanic.id).length : 0
               const bookingCount = assignedAppointments.filter((booking) => booking.mechanic_id === mechanic.id).length
               const isSelected = selectedMechanic === mechanic.id
               return (
               <div key={mechanic.id} className="flex items-center gap-1.5">
                 <button
-                  onClick={() => setSelectedMechanic(mechanic.id)}
-                  className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border p-2.5 text-left transition ${
+                  onClick={() => mechanic.is_active && setSelectedMechanic(mechanic.id)}
+                  disabled={!mechanic.is_active}
+                  className={`flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border p-2.5 text-left transition disabled:cursor-not-allowed disabled:opacity-70 ${
                     isSelected
                       ? 'bg-moto-accent/15 text-moto-accent border-moto-accent/30 font-bold'
                       : 'border-transparent text-slate-300 hover:bg-moto-gray/40'
@@ -541,23 +571,33 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-moto-accent/15 text-xs font-black uppercase text-moto-accent">{mechanic.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2)}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-slate-100">{mechanic.name}</span>
+                    <span className="block truncate text-[13px] font-semibold text-slate-100">{mechanic.name}{!mechanic.is_active && <span className="ml-2 text-[10px] font-bold uppercase text-amber-300">Inactive</span>}</span>
                     <span className="mt-0.5 block truncate text-[11px] text-slate-400">{mechanic.email}</span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block rounded-full bg-moto-gray/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{shiftCount} shifts</span>
-                    <span className={`mt-1 block text-[9px] font-semibold ${bookingCount ? 'text-amber-300' : 'text-slate-500'}`}>{bookingCount} assigned</span>
+                    {mechanic.is_active ? <>
+                      <span className="block rounded-full bg-moto-gray/50 px-2 py-0.5 text-[10px] font-bold text-slate-300">{shiftCount} shifts</span>
+                      <span className={`mt-1 block text-[9px] font-semibold ${bookingCount ? 'text-amber-300' : 'text-slate-500'}`}>{bookingCount} assigned</span>
+                    </> : <span className="block text-[10px] font-semibold text-amber-300">Inactive</span>}
                   </span>
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    setDeleteConfirm(mechanic)
+                    if (mechanic.is_active) {
+                      setDeactivationAction('unassign')
+                      setReplacementMechanicId('')
+                      setMechanicAction(mechanic)
+                    } else {
+                      void handleReactivateMechanic(mechanic)
+                    }
                   }}
-                  className="p-1.5 rounded-lg hover:bg-red-500/15 text-slate-300 hover:text-red-400 transition"
-                  title="Remove Mechanic"
+                  disabled={updatingMechanicStatus}
+                  className={`p-1.5 rounded-lg transition ${mechanic.is_active ? 'hover:bg-amber-500/15 text-slate-300 hover:text-amber-300' : 'hover:bg-emerald-500/15 text-emerald-300 hover:text-emerald-200'}`}
+                  title={mechanic.is_active ? 'Deactivate mechanic' : 'Reactivate mechanic'}
+                  aria-label={mechanic.is_active ? `Deactivate ${mechanic.name}` : `Reactivate ${mechanic.name}`}
                 >
-                  <Trash2 size={14} />
+                  {mechanic.is_active ? <X size={14} /> : <CheckCircle2 size={14} />}
                 </button>
               </div>
             )})}
@@ -719,7 +759,7 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
                       className={inputClass}
                     >
                       <option value="">Select a mechanic</option>
-                      {mechanics.map((m) => (
+                      {mechanics.filter((m) => m.is_active).map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.name}
                         </option>
@@ -946,68 +986,105 @@ const AdminMechanicAvailability: React.FC<AdminMechanicAvailabilityProps> = ({ o
         </div>
       </div>
 
-      {/* Delete Mechanic Confirmation Modal */}
+      {/* Deactivate mechanic and resolve eligible upcoming bookings */}
       <AnimatePresence>
-        {deleteConfirm && (
+        {mechanicAction && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setDeleteConfirm(null)}
+            onClick={() => !updatingMechanicStatus && setMechanicAction(null)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="dashboard-card max-w-md w-full p-6 shadow-2xl"
+              className="dashboard-card max-h-[90vh] max-w-xl w-full overflow-y-auto p-6 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-bold text-slate-100" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Delete Mechanic
+                  Deactivate Mechanic
                 </h3>
                 <button
-                  onClick={() => setDeleteConfirm(null)}
+                  onClick={() => setMechanicAction(null)}
                   className="p-1.5 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition"
+                  disabled={updatingMechanicStatus}
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="mb-6 space-y-3">
+              <div className="mb-5 space-y-3">
                 <p className="text-[13px] text-slate-200 leading-relaxed">
-                  Are you sure you want to delete mechanic <span className="font-bold text-slate-100">{deleteConfirm.name}</span>?
+                  Deactivate <span className="font-bold text-slate-100">{mechanicAction.name}</span>? Their profile, shifts, and booking history will be retained. There are <strong>{upcomingBookings(mechanicAction).length}</strong> upcoming pending/confirmed/in-progress booking(s).
                 </p>
-                <p className="text-[13px] text-slate-300">
-                  To confirm, type <span className="font-mono font-bold text-slate-100">CONFIRM</span> below.
-                </p>
-                <input
-                  type="text"
-                  placeholder="Type CONFIRM"
-                  value={confirmationInput}
-                  onChange={(e) => setConfirmationInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-moto-darker border border-moto-gray rounded-xl text-sm font-bold text-slate-100 placeholder-slate-500 focus:outline-none focus:border-red-500 focus:bg-moto-darker transition"
-                />
+                {upcomingBookings(mechanicAction).length > 0 && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-200">
+                      Upcoming booking action
+                      <select
+                        value={deactivationAction}
+                        onChange={(event) => setDeactivationAction(event.target.value as 'reassign' | 'unassign')}
+                        className="mt-1.5 w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm text-slate-100"
+                        disabled={updatingMechanicStatus}
+                      >
+                        <option value="unassign">Set unassigned and notify customers</option>
+                        <option value="reassign">Reassign all to another active mechanic</option>
+                      </select>
+                    </label>
+                    {deactivationAction === 'reassign' && (
+                      <label className="block text-xs font-bold text-slate-200">
+                        Replacement mechanic
+                        <select
+                          value={replacementMechanicId}
+                          onChange={(event) => setReplacementMechanicId(event.target.value)}
+                          className="mt-1.5 w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm text-slate-100"
+                          disabled={updatingMechanicStatus}
+                        >
+                          <option value="">Choose an active mechanic</option>
+                          {mechanics.filter((mechanic) => mechanic.is_active && mechanic.id !== mechanicAction.id).map((mechanic) => (
+                            <option key={mechanic.id} value={mechanic.id}>{mechanic.name}</option>
+                          ))}
+                        </select>
+                        <span className="mt-1 block font-normal text-slate-400">The database validates shift coverage and overlap for every booking. If the replacement is unavailable for any one booking, the whole deactivation is rejected.</span>
+                      </label>
+                    )}
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-moto-gray p-3">
+                      {upcomingBookings(mechanicAction).map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between gap-3 text-xs">
+                          <span className="min-w-0 truncate text-slate-200">{booking.booking_id || booking.service_type || 'Booking'} · {booking.scheduled_date}{booking.scheduled_time ? ` ${formatTime(booking.scheduled_time)}` : ''}</span>
+                          <span className="shrink-0 rounded-md bg-moto-gray/60 px-1.5 py-0.5 font-semibold text-slate-300">{booking.status.replace('_', ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {hasInProgressBooking(mechanicAction) && (
+                  <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">This mechanic has an in-progress booking. Complete it before deactivation.</p>
+                )}
+                {hasConfirmedSpecificBooking(mechanicAction) && (
+                  <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">A confirmed booking where the customer chose this mechanic must be resolved through the customer reschedule/acceptance flow before deactivation.</p>
+                )}
               </div>
 
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    setDeleteConfirm(null)
-                    setConfirmationInput('')
+                    setMechanicAction(null)
                   }}
-                  disabled={deleting}
+                  disabled={updatingMechanicStatus}
                   className="flex-1 px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleDeleteMechanic}
-                  disabled={deleting || confirmationInput !== 'CONFIRM'}
-                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-red-600/20"
+                  onClick={() => void handleDeactivateMechanic()}
+                  disabled={updatingMechanicStatus || hasInProgressBooking(mechanicAction) || hasConfirmedSpecificBooking(mechanicAction) || (upcomingBookings(mechanicAction).length > 0 && deactivationAction === 'reassign' && !replacementMechanicId)}
+                  className="flex-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[13px] font-bold rounded-xl transition disabled:opacity-50 shadow-sm shadow-amber-600/20"
                 >
-                  {deleting ? 'Deleting...' : 'Delete Mechanic'}
+                  {updatingMechanicStatus ? 'Deactivating...' : 'Deactivate Mechanic'}
                 </button>
               </div>
             </motion.div>

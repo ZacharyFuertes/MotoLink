@@ -77,6 +77,7 @@ export const getAssignableMechanics = async (
     .from("users")
     .select("id, name, email")
     .eq("role", "mechanic")
+    .eq("is_active", true)
     .eq("shop_id", appointment.shop_id)
     .order("name");
   if (mechanicError) throw mechanicError;

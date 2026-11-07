@@ -22,11 +22,12 @@ import {
   Sparkles,
   Plus,
   Loader2,
-  Banknote,
   QrCode,
-  User,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../services/supabaseClient";
 import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail } from "../services/notificationService";
 import {
@@ -77,11 +78,29 @@ interface BookAppointmentModalProps {
   services?: CatalogService[];
 }
 
-const STEPS = ["Service", "Parts", "Date & Time", "Confirm"];
+const STEPS = ["Services", "Parts", "Schedule", "Review"];
 
 // Persisted across the guest → auth redirect so a signed-out user can resume
 // their partially-built booking at the confirm step after authenticating.
 const PENDING_BOOKING_KEY = "motolink_pending_booking";
+
+const aggregateSelectedServiceParts = (parts: SelectedServicePart[]): SelectedServicePart[] => {
+  const grouped = new Map<string, SelectedServicePart>();
+  parts.forEach((part) => {
+    const existing = grouped.get(part.id);
+    if (existing) {
+      existing.quantity += part.quantity;
+    } else {
+      grouped.set(part.id, {
+        id: part.id,
+        name: part.name,
+        unit_price: part.unit_price,
+        quantity: part.quantity,
+      });
+    }
+  });
+  return [...grouped.values()];
+};
 
 const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   isOpen,
@@ -93,6 +112,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   services: servicesProp,
 }) => {
   const { user, isAuthenticated } = useAuth();
+  const { isDark, setTheme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedServicePrice, setSelectedServicePrice] = useState(0);
@@ -133,8 +153,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [activeAppointmentChecking, setActiveAppointmentChecking] = useState(false);
   const [selectedParts, setSelectedParts] = useState<SelectedServicePart[]>([]);
   const [loadingParts, setLoadingParts] = useState(false);
-  const [partsAvailableForServices, setPartsAvailableForServices] = useState(false);
   const [partsCatalogKey, setPartsCatalogKey] = useState("");
+  const [partsCatalogError, setPartsCatalogError] = useState("");
   const submitLockRef = useRef(false);
   const clientRequestRef = useRef<{ fingerprint: string; id: string } | null>(null);
   const restoringGuestDraftRef = useRef(false);
@@ -169,26 +189,43 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const receiptRef = useRef<any>(null);
 
   const onlinePaymentsAvailable = shopPaymentEnabled && providerReady === true;
+  const selectedServicesKey = [...selectedServices].sort().join(",");
+  const partsCatalogReady =
+    selectedServices.length > 0 && !loadingParts && !partsCatalogError && partsCatalogKey === selectedServicesKey;
+  const servicesWithoutAvailableParts = selectedServices.filter((serviceId) =>
+    !partsCatalog.parts.some((part) =>
+      part.service_ids.includes(serviceId) && part.quantity_in_stock > 0,
+    ),
+  );
+  const servicesMissingPartSelection = selectedServices.filter((serviceId) =>
+    partsCatalog.parts.some((part) =>
+      part.service_ids.includes(serviceId) && part.quantity_in_stock > 0,
+    ) && !selectedParts.some((selected) => {
+      const part = partsCatalog.parts.find((candidate) => candidate.id === selected.id);
+      return Boolean(
+        selected.service_id === serviceId &&
+        part?.service_ids.includes(serviceId) &&
+        part.quantity_in_stock > 0 &&
+        selected.quantity > 0 &&
+        selected.quantity <= part.quantity_in_stock,
+      );
+    }),
+  );
+  const partsSelectionComplete =
+    partsCatalogReady &&
+    servicesMissingPartSelection.length === 0;
 
-  // Slide direction for step transitions (1 = forward, -1 = back). Ref is enough
-  // because step content re-mounts on every currentStep change.
-  const stepDir = useRef(1);
   const goToNextStep = () => {
-    stepDir.current = 1;
-    if (currentStep === 0 && !loadingParts && partsCatalogKey === [...selectedServices].sort().join(",") && !partsAvailableForServices) {
-      setCurrentStep(2);
-      return;
-    }
+    if (!canGoNext()) return;
     setCurrentStep((step) => step + 1);
   };
 
   const goToPreviousStep = () => {
-    stepDir.current = -1;
-    if (currentStep === 2 && !loadingParts && partsCatalogKey === [...selectedServices].sort().join(",") && !partsAvailableForServices) {
-      setCurrentStep(0);
-      return;
-    }
     setCurrentStep((step) => Math.max(0, step - 1));
+  };
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
   };
 
   // Snapshot the in-progress booking so a guest can resume at the confirm step
@@ -294,9 +331,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     const shopIdForParts = shopId || defaultShopId;
     if (!isOpen || selectedServices.length === 0) {
       if (isOpen && restoringGuestDraftRef.current) return () => { active = false; };
-      setPartsAvailableForServices(false);
       setPartsCatalog({ parts: [], mappings: [], categories: [] });
       setPartsCatalogKey([...selectedServices].sort().join(","));
+      setPartsCatalogError("");
       setLoadingParts(false);
       setSelectedParts([]);
       try {
@@ -322,11 +359,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
     setLoadingParts(true);
     setPartsCatalogKey("");
+    setPartsCatalogError("");
     setErrorMsg("");
     void loadServicePartCatalog(shopIdForParts, selectedServices).then((catalog) => {
       if (!active) return;
       setPartsCatalog(catalog);
-      setPartsAvailableForServices(catalog.parts.length > 0);
       setPartsCatalogKey([...selectedServices].sort().join(","));
       const currentParts = new Map(catalog.parts.map((part) => [part.id, part]));
       setSelectedParts((current) => {
@@ -334,34 +371,47 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           .filter((selected) => currentParts.get(selected.id)?.service_ids.some((id) => selectedServices.includes(id)))
           .map((selected) => {
             const part = currentParts.get(selected.id);
+            const compatibleServiceIds = part?.service_ids.filter((id) => selectedServices.includes(id)) ?? [];
+            const serviceId = selected.service_id && compatibleServiceIds.includes(selected.service_id)
+              ? selected.service_id
+              : compatibleServiceIds[0];
             return {
               ...selected,
               name: part?.name ?? selected.name,
               unit_price: part?.unit_price ?? selected.unit_price,
-              quantity: Math.min(selected.quantity, part?.quantity_in_stock ?? 0),
+              quantity: 1,
+              service_id: serviceId,
             };
           })
-          .filter((selected) => selected.quantity > 0);
+          .filter((selected) =>
+            selected.quantity > 0 &&
+            Boolean(selected.service_id) &&
+            (currentParts.get(selected.id)?.quantity_in_stock ?? 0) > 0,
+          );
+        const onePartPerService = valid.filter((selected, index, list) =>
+          list.findIndex((entry) => entry.service_id === selected.service_id) === index,
+        );
         try {
           const rawDraft = sessionStorage.getItem(PENDING_BOOKING_KEY);
           if (rawDraft) {
             const parsed: unknown = JSON.parse(rawDraft);
             if (typeof parsed === "object" && parsed !== null && "parts" in parsed) {
-              sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ ...parsed, parts: valid }));
+              sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify({ ...parsed, parts: onePartPerService }));
             }
           }
         } catch {
           // Session storage is optional; the in-memory draft remains valid.
         }
-        return valid;
+        return onePartPerService;
       });
     }).catch((loadError: unknown) => {
       if (active) {
         setPartsCatalog({ parts: [], mappings: [], categories: [] });
-        setPartsAvailableForServices(false);
         setSelectedParts([]);
         setPartsCatalogKey([...selectedServices].sort().join(","));
-        setErrorMsg(loadError instanceof Error ? loadError.message : "Could not load compatible parts.");
+        const message = loadError instanceof Error ? loadError.message : "Could not load compatible parts.";
+        setPartsCatalogError(message);
+        setErrorMsg(message);
         try {
           const rawDraft = sessionStorage.getItem(PENDING_BOOKING_KEY);
           if (rawDraft) {
@@ -381,19 +431,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   }, [isOpen, shopId, defaultShopId, selectedServices]);
 
   useEffect(() => {
-    const key = [...selectedServices].sort().join(",");
-    if (currentStep === 1 && !loadingParts && partsCatalogKey === key && !partsAvailableForServices) {
-      stepDir.current = 1;
-      setCurrentStep(2);
-    }
-  }, [currentStep, loadingParts, partsCatalogKey, partsAvailableForServices, selectedServices]);
-
-  useEffect(() => {
     if (!isOpen || currentStep !== 3 || selectedParts.length === 0) return;
     let active = true;
     const resolvedShopId = shopId || defaultShopId;
     if (!resolvedShopId) return;
-    void validateSelectedServiceParts(resolvedShopId, selectedServices, selectedParts)
+    void validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts))
       .then(() => { if (active) setErrorMsg(""); })
       .catch((validationError: unknown) => {
         if (active) setErrorMsg(validationError instanceof Error ? validationError.message : "A selected part is no longer available. Change it before confirming.");
@@ -442,7 +484,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         );
         if (overlapsBlocked) throw new Error("The saved time now overlaps a shop blocked-hours window. Choose a new slot.");
 
-        await validateSelectedServiceParts(resolvedShopId, selectedServices, selectedParts);
+        await validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts));
         const { data: availability, error: availabilityError } = await supabase.rpc("get_booking_availability", {
           p_shop_id: resolvedShopId,
           p_scheduled_date: selectedDate,
@@ -677,6 +719,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           .from("users")
           .select("id, name, phone")
           .eq("role", "mechanic")
+          .eq("is_active", true)
           .eq("shop_id", defaultShopId)
           .order("name");
         if (mechanicError) throw mechanicError;
@@ -947,6 +990,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .from("users")
         .select("id, name, phone")
         .eq("role", "mechanic")
+        .eq("is_active", true)
         .eq("shop_id", defaultShopId)
         .order("name");
       if (error) throw error;
@@ -1239,13 +1283,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       case 0:
         return selectedServices.length > 0;
       case 1:
-        return true; // Parts step is optional
+        return partsSelectionComplete;
       case 2:
         return !!selectedDate && !!selectedTime && !!selectedMechanicId;
       case 3:
-        return !!selectedDate && !!selectedTime;
-      case 4:
-        return !!(selectedVehicleId || vehicleInfo.trim()) && termsAccepted;
+        return !!selectedDate && !!selectedTime && !!selectedMechanicId &&
+          !!(selectedVehicleId || vehicleInfo.trim()) && termsAccepted && partsSelectionComplete;
       default:
         return false;
     }
@@ -1257,6 +1300,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
     if (!termsAccepted) {
       setErrorMsg("Please agree to the Terms & Conditions to continue.");
+      submitLockRef.current = false;
+      return;
+    }
+
+    if (!partsSelectionComplete) {
+      setCurrentStep(1);
+      setErrorMsg(partsCatalogError
+        ? "Compatible parts could not be verified. Please close and reopen booking before continuing."
+        : "Choose at least one in-stock compatible part for each service that has parts available.");
       submitLockRef.current = false;
       return;
     }
@@ -1332,7 +1384,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         throw new Error("The selected appointment slot or mechanic is no longer available. Choose another slot.");
       }
 
-      await validateSelectedServiceParts(shopIdToUse, selectedServices, selectedParts);
+      await validateSelectedServiceParts(shopIdToUse, selectedServices, aggregateSelectedServiceParts(selectedParts));
 
       // Create a single appointment with all selected services
       const serviceLabels = selectedServices
@@ -1343,7 +1395,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         .join(", ");
 
       // Format parts for storage
-      const partsForStorage = selectedParts.map((part) => ({
+      const partsForStorage = aggregateSelectedServiceParts(selectedParts).map((part) => ({
         part_id: part.id,
         part_name: part.name,
         unit_price: part.unit_price,
@@ -1461,7 +1513,6 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setMechanicConflictForSlot({ slotKey: mechanicSlotKey, mechanicId: selectedMechanicId });
         setSelectedMechanicId(null);
         setErrorMsg("");
-        stepDir.current = -1;
         setCurrentStep(2);
         setMechanicAvailabilityRefreshKey((key) => key + 1);
         return;
@@ -1498,99 +1549,73 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           }}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 30 }}
+                initial={{ scale: 0.97, opacity: 0, y: 18 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 30 }}
-            transition={{ type: "spring", damping: 26, stiffness: 320 }}
-            className="booking-modal-shell bg-moto-darker rounded-2xl w-full sm:max-w-[1100px] h-[95vh] sm:h-auto sm:max-h-[94vh] overflow-hidden border border-moto-gray shadow-2xl shadow-black/50 bg-[radial-gradient(circle_at_top_left,rgba(53,208,192,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.10),transparent_30%)] flex flex-col"
+                exit={{ scale: 0.985, opacity: 0, y: 8 }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="booking-modal-shell bg-moto-darker rounded-2xl w-full sm:max-w-[1040px] h-[95vh] sm:h-[min(740px,94vh)] overflow-hidden border border-moto-gray shadow-2xl shadow-black/50 flex flex-col"
           >
           {/* ── Header ── */}
-          <div className="booking-modal-header flex items-center justify-between px-5 sm:px-8 py-5 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
-            <div className="flex items-center gap-4">
-              <div className="booking-modal-icon w-11 h-11 rounded-2xl bg-moto-accent/15 border border-moto-accent/40 text-moto-accent flex items-center justify-center shrink-0 shadow-lg shadow-moto-accent/10">
-                <ClipboardList size={20} strokeWidth={1.75} />
-              </div>
-              <div className="flex flex-col">
-                <p className="text-xs font-bold tracking-widest text-moto-accent uppercase">
-                  Appointment
-                </p>
-                <h2 className="font-display font-black text-2xl sm:text-3xl text-slate-100 tracking-tight leading-none mt-0.5">
-                  {success ? "Appointment Booked" : "Book A Service"}
-                  <span className="text-moto-accent">.</span>
-                </h2>
-                <p className="text-slate-300 text-sm mt-1">
-                  Scheduling takes less than 2 minutes
-                </p>
-              </div>
+          <div className="booking-modal-header flex items-center justify-between px-5 sm:px-7 py-4 border-b border-moto-gray/80 flex-shrink-0 bg-moto-darker/50">
+            <div className="min-w-0">
+              <h2 className="font-display text-xl font-bold tracking-tight text-slate-100">
+                {success ? "Booking request sent" : "Book a service"}
+              </h2>
+              <p className="text-sm text-slate-400">MotoLink Autoshop</p>
             </div>
-            <motion.button
-              onClick={onClose}
-              whileHover={{ scale: 1.06, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 400, damping: 22 }}
-              aria-label="Close booking"
-              className="booking-modal-close p-2.5 rounded-lg border border-moto-gray bg-moto-darker hover:bg-moto-gray hover:border-moto-accent/40 transition-colors text-slate-300 hover:text-white shrink-0"
-            >
-              <X size={18} strokeWidth={1.75} />
-            </motion.button>
+            <div className="booking-modal-header-actions flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                className="booking-modal-utility-button"
+              >
+                {isDark ? <Sun size={15} /> : <Moon size={15} />}
+                <span>{isDark ? "Light mode" : "Dark mode"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close booking"
+                className="booking-modal-utility-button"
+              >
+                Close
+              </button>
+            </div>
           </div>
 
           {!success ? (
             <>
               {/* ── Step Indicator ── */}
-              <div className="booking-modal-steps flex items-center px-5 sm:px-8 py-4 sm:py-5 border-b border-moto-gray/80 bg-moto-darker/50 overflow-x-auto flex-shrink-0 scrollbar-hide">
+              <nav className="booking-modal-steps flex flex-shrink-0 items-center gap-1 overflow-x-auto border-b border-moto-gray/80 bg-moto-darker/50 px-4 py-3 sm:px-6" aria-label="Booking steps">
                 {STEPS.map((step, i) => {
                   const done = i < currentStep;
                   const active = i === currentStep;
                   return (
-                    <div key={step} className="flex items-center shrink-0">
-                      <div className="flex items-center gap-3">
-                        <motion.div
-                          animate={{ scale: active ? 1.05 : 1 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 22 }}
-                          className={`relative flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors duration-200 ${
-                            done
-                              ? "bg-moto-accent text-slate-950 shadow-lg shadow-moto-accent/30"
-                              : active
-                                ? "bg-moto-accent/15 text-moto-accent ring-2 ring-moto-accent/40"
-                                : "bg-moto-darker text-slate-500 border border-moto-gray"
-                          }`}
-                        >
-                          {done ? (
-                            <Check size={14} strokeWidth={3.5} />
-                          ) : (
-                            <span className="font-semibold">{i + 1}</span>
-                          )}
-                          {active && (
-                            <span className="absolute inset-0 rounded-full ring-2 ring-moto-accent/20 animate-pulse" />
-                          )}
-                        </motion.div>
-                        <span
-                          className={`whitespace-nowrap text-xs ${
-                            active
-                              ? "text-moto-accent font-semibold"
-                              : done
-                                ? "text-slate-200 font-medium"
-                                : "text-slate-500 font-medium"
-                          }`}
-                        >
-                          {step}
-                        </span>
-                      </div>
-                      {i < STEPS.length - 1 && (
-                        <div className="relative mx-3 sm:mx-4 h-[3px] w-8 sm:w-14 rounded-full bg-moto-gray/70 overflow-hidden">
-                          <div
-                            className="absolute inset-y-0 left-0 rounded-full bg-moto-accent transition-all duration-300 ease-out"
-                            style={{
-                              width: done ? "100%" : active ? "45%" : "0%",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      key={step}
+                      type="button"
+                      disabled={!done}
+                      aria-current={active ? "step" : undefined}
+                      aria-label={done ? `Go back to ${step}` : `${step}${active ? ", current step" : ""}`}
+                      onClick={() => done && goToStep(i)}
+                      className={`booking-step-button flex shrink-0 items-center gap-2 rounded-full border-0 bg-transparent px-2 py-1.5 text-sm transition-colors ${active ? "is-current" : done ? "is-done" : "is-future"}`}
+                    >
+                      <motion.span
+                        animate={{ scale: active ? 1.04 : 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                        className={`booking-step-number ${active ? "is-current" : done ? "is-done" : "is-future"}`}
+                      >
+                        {done ? <Check size={12} strokeWidth={3} /> : i + 1}
+                      </motion.span>
+                      <span>{step}</span>
+                    </button>
                   );
                 })}
-              </div>
+                <span className="booking-steps-progress" aria-hidden="true">
+                  <span style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }} />
+                </span>
+              </nav>
 
               {/* ── Error Message ── */}
               <AnimatePresence>
@@ -1606,28 +1631,26 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 )}
               </AnimatePresence>
 
-              {/* ── Step Content (scrollable) ── */}
-              <div className="booking-modal-content flex-1 overflow-y-auto px-5 sm:px-8 py-6 sm:py-8 bg-moto-dark/40">
+              {/* ── Step content + live booking summary ── */}
+              <div className="booking-modal-main flex-1 min-h-0">
+              <div className="booking-modal-content min-w-0 overflow-y-auto px-5 sm:px-8 py-6 sm:py-8 bg-moto-dark/40">
                 <AnimatePresence mode="wait">
                   {/* Step 1: Select Service */}
                   {currentStep === 0 && (
                     <motion.div
                       key="service"
-                      initial={{ opacity: 0, x: 24 * stepDir.current }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 * stepDir.current }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="booking-step-panel"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <div className="mb-8">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                          Step 01 · Choose
-                        </p>
-                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Pick Your Services<span className="text-moto-accent">.</span>
+                        <h3 className="font-display text-3xl font-bold tracking-tight text-slate-100 leading-tight">
+                          Services
                         </h3>
-                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Select one or more services for your motorcycle you can add
-                          parts next.
+                        <p className="text-slate-400 text-sm mt-1.5">
+                          Pick one or more services.
                         </p>
                       </div>
                       {hasActiveAppointment && (
@@ -1658,14 +1681,19 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <Loader2 size={15} className="animate-spin text-moto-accent" /> Checking your active bookings…
                         </div>
                       )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {dynamicServices.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-darker/60 px-6 py-10 text-center">
+                          <Wrench size={24} className="mx-auto text-moto-accent" />
+                          <p className="mt-3 text-base font-semibold text-slate-100">Services aren’t available right now</p>
+                          <p className="mt-1 text-sm text-slate-400">Please try again later or contact the shop.</p>
+                        </div>
+                      ) : <div className="booking-service-list space-y-2">
                         {dynamicServices.map((svc) => {
-                          const Icon = svc.icon;
                           const isActive = selectedServices.includes(svc.id);
                           return (
                             <motion.button
                               key={svc.id}
-                              whileHover={hasActiveAppointment || activeAppointmentChecking ? undefined : { y: -3 }}
+                              whileHover={hasActiveAppointment || activeAppointmentChecking ? undefined : { x: 2 }}
                               whileTap={hasActiveAppointment || activeAppointmentChecking ? undefined : { scale: 0.98 }}
                               transition={{ type: "spring", stiffness: 400, damping: 22 }}
                               onClick={() => {
@@ -1695,71 +1723,37 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 });
                                 setSelectedServicePrice(totalPrice);
                               }}
+                              aria-pressed={isActive}
                               disabled={hasActiveAppointment || activeAppointmentChecking}
-                              className={`group relative flex flex-col p-5 sm:p-6 text-left rounded-2xl border transition-all duration-200 ${
+                              className={`booking-service-row group relative flex w-full items-center gap-3 sm:gap-4 p-3 sm:p-4 text-left rounded-2xl border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-moto-accent focus-visible:ring-offset-2 focus-visible:ring-offset-moto-darker ${
                                 isActive
                                   ? "bg-moto-accent/[0.07] border-moto-accent ring-1 ring-moto-accent/40 shadow-lg shadow-moto-accent/10"
                                   : "bg-moto-darker border-moto-gray hover:border-moto-accent/60 hover:shadow-lg hover:shadow-moto-accent/5"
                               } ${hasActiveAppointment || activeAppointmentChecking ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
-                              <div className="flex justify-between items-start mb-5">
-                                <div
-                                  className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200 ${
-                                    isActive
-                                      ? "bg-moto-accent/15 text-moto-accent shadow-lg shadow-moto-accent/10"
-                                      : "bg-moto-gray/40 text-slate-400 group-hover:bg-moto-accent/10 group-hover:text-moto-accent"
+                              <span className={`booking-selection-check ${isActive ? "is-selected" : ""}`} aria-hidden="true">
+                                {isActive && <Check size={12} strokeWidth={3} />}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={`truncate font-semibold text-sm sm:text-base leading-snug transition-colors duration-200 ${
+                                    isActive ? "text-moto-accent" : "text-slate-100 group-hover:text-moto-accent"
                                   }`}
                                 >
-                                  <Icon size={24} strokeWidth={1.75} />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {svc.price !== undefined && (
-                                    <span
-                                      className={`px-2.5 py-1 rounded-full border font-mono font-bold text-[11px] tracking-wider transition-colors ${
-                                        isActive
-                                          ? "border-moto-accent/50 bg-moto-accent/10 text-moto-accent"
-                                          : "border-moto-gray text-slate-500 group-hover:border-moto-accent/40"
-                                      }`}
-                                    >
-                                      ₱{Number(svc.price).toFixed(2)}
-                                    </span>
-                                  )}
-                                  <motion.span
-                                    animate={{ scale: isActive ? 1 : 0.9 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                                    className={`flex h-5 w-5 items-center justify-center rounded-md border-2 transition-colors duration-200 ${
-                                      isActive
-                                        ? "bg-moto-accent border-moto-accent text-slate-950"
-                                        : "border-slate-500 text-transparent group-hover:border-moto-accent"
-                                    }`}
-                                  >
-                                    <Check size={12} strokeWidth={3.5} />
-                                  </motion.span>
-                                </div>
+                                  {svc.label}
+                                </p>
+                                {svc.desc && <p className="mt-1 line-clamp-2 text-xs sm:text-sm leading-relaxed text-slate-400">{svc.desc}</p>}
                               </div>
-                              <p
-                                className={`font-display text-lg font-black uppercase tracking-wide mb-1.5 leading-tight transition-colors duration-200 ${
-                                  isActive
-                                    ? "text-moto-accent"
-                                    : "text-slate-100 group-hover:text-moto-accent"
-                                }`}
-                              >
-                                {svc.label}
-                              </p>
-                              <p className="text-slate-400 text-xs leading-relaxed font-light">
-                                {svc.desc}
-                              </p>
-                              <p className="mt-3 text-xs font-semibold text-slate-300">
-                                Estimated time: {Number(svc.duration_minutes) || 60} min
-                              </p>
+                              <span className="booking-service-duration">{Number(svc.duration_minutes) || 60} min</span>
+                              {svc.price !== undefined && <span className="booking-service-price">₱{Number(svc.price).toLocaleString("en-PH")}</span>}
                             </motion.button>
                           );
                         })}
-                      </div>
+                      </div>}
                       {selectedServices.length > 0 && (
-                        <div className="mt-6 rounded-2xl border border-moto-accent/20 bg-moto-accent/[0.06] p-5 sm:p-6">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-3">
-                            Selected Services · {selectedServices.length}
+                        <div className="booking-inline-selection mt-6 rounded-2xl border border-moto-accent/20 bg-moto-accent/[0.06] p-5 sm:p-6">
+                          <p className="text-sm font-semibold text-moto-accent mb-3">
+                            Your selection · {selectedServices.length} {selectedServices.length === 1 ? "service" : "services"}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {selectedServices.map((svcId) => {
@@ -1769,7 +1763,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               return (
                                 <span
                                   key={svcId}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-moto-accent/10 border border-moto-accent/40 text-moto-accent px-3 py-1 text-[11px] font-bold tracking-wider uppercase"
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-moto-accent/10 border border-moto-accent/40 text-moto-accent px-3 py-1.5 text-xs font-semibold"
                                 >
                                   <Check size={11} strokeWidth={3.5} />
                                   {svc?.label}
@@ -1778,15 +1772,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             })}
                           </div>
                           <p className="flex items-center justify-between mt-4 pt-3 border-t border-moto-accent/15">
-                            <span className="text-slate-300 text-xs font-bold uppercase tracking-wider">
-                              Estimated Service Total
+                            <span className="text-slate-200 text-sm font-medium">
+                              Service estimate
                             </span>
                             <span className="text-moto-accent font-mono font-black text-lg">
                               ₱{selectedServicePrice.toFixed(2)}
                             </span>
                           </p>
                           <p className="mt-2 flex items-center justify-between text-xs">
-                            <span className="text-slate-300">Estimated booking time</span>
+                            <span className="text-slate-300">Estimated visit length</span>
                             <span className="font-bold text-moto-accent">
                               {totalDurationMinutes >= 60
                                 ? `${Math.floor(totalDurationMinutes / 60)} hr${Math.floor(totalDurationMinutes / 60) === 1 ? "" : "s"}${totalDurationMinutes % 60 ? ` ${totalDurationMinutes % 60} min` : ""}`
@@ -1797,9 +1791,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       )}
                       <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-slate-400">
                         <Info size={14} className="text-moto-accent shrink-0 mt-0.5" />
-                        <p className="text-xs font-light leading-relaxed">
-                          The final price may vary depending on the motorcycle's overall
-                          condition and assessment.
+                        <p className="text-sm leading-relaxed">
+                          The shop will confirm the final price after inspecting your motorcycle.
                         </p>
                       </div>
                     </motion.div>
@@ -1809,20 +1802,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   {currentStep === 1 && (
                     <motion.div
                       key="parts"
-                      initial={{ opacity: 0, x: 24 * stepDir.current }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 * stepDir.current }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="booking-step-panel"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <div className="mb-8">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                          Step 02 · Optional
-                        </p>
-                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Add Some Parts<span className="text-moto-accent">.</span>
+                        <h3 className="font-display text-3xl font-bold tracking-tight text-slate-100 leading-tight">
+                          Parts
                         </h3>
-                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Choose compatible parts for your selected services. This step is optional.
+                        <p className="text-slate-400 text-sm mt-1.5">
+                          Choose at least one in-stock compatible part for each service that has parts available. Services without available parts continue without parts.
                         </p>
                       </div>
                       {loadingParts || partsCatalogKey !== [...selectedServices].sort().join(",") ? (
@@ -1840,16 +1831,31 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             }))}
                             selectedParts={selectedParts}
                             onChange={setSelectedParts}
-                            onAvailabilityChange={(hasParts) => setPartsAvailableForServices(hasParts)}
                             catalog={partsCatalog}
+                            requirePartsForServices
                           />
+                          {!loadingParts && partsCatalogKey === selectedServicesKey && partsCatalogError && (
+                            <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                              Compatible parts could not be loaded. Please close and reopen booking before continuing.
+                            </p>
+                          )}
+                          {partsCatalogReady && servicesWithoutAvailableParts.length > 0 && servicesMissingPartSelection.length === 0 && (
+                            <p role="status" className="rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-sm text-slate-400">
+                              No in-stock compatible parts are listed for {servicesWithoutAvailableParts.map((serviceId) => dynamicServices.find((service) => service.id === serviceId)?.label || "a selected service").join(", ")}; those services will continue without parts.
+                            </p>
+                          )}
+                          {partsCatalogReady && servicesMissingPartSelection.length > 0 && (
+                            <p role="status" className="rounded-xl border border-moto-accent/30 bg-moto-accent/10 px-4 py-3 text-sm text-moto-accent">
+                              Select at least one compatible part for {servicesMissingPartSelection.map((serviceId) => dynamicServices.find((service) => service.id === serviceId)?.label || "each selected service").join(", ")} to continue.
+                            </p>
+                          )}
                           {selectedParts.length > 0 && (
                             <div className="mt-6 rounded-2xl border border-moto-accent/20 bg-moto-accent/[0.06] p-5">
                               <div className="space-y-2 mb-3">
                                 {selectedParts.map((part) => (
                                   <div
-                                    key={part.id}
-                                    className="flex items-center justify-between text-xs"
+                                    key={`${part.service_id || "service"}:${part.id}`}
+                                    className="flex items-center justify-between gap-4 text-sm"
                                   >
                                     <span className="text-slate-300">
                                       {part.name} x{part.quantity}
@@ -1865,7 +1871,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               </div>
                               <div className="border-t border-moto-accent/15 pt-3">
                                 <p className="flex items-center justify-between text-sm font-bold">
-                                  <span className="text-slate-300">Parts Total</span>
+                                  <span className="text-slate-200">Parts estimate</span>
                                   <span className="text-moto-accent font-mono font-bold text-lg">
                                     ₱
                                     {selectedParts
@@ -1888,24 +1894,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   {currentStep === 2 && (
                     <motion.div
                       key="datetime"
-                      initial={{ opacity: 0, x: 24 * stepDir.current }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 * stepDir.current }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="booking-step-panel"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                     >
                       <div className="mb-8">
-                        <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                          Step 03 · Schedule
-                        </p>
-                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Pick Date &amp; Time<span className="text-moto-accent">.</span>
+                        <h3 className="font-display text-3xl font-bold tracking-tight text-slate-100 leading-tight">
+                          Date and time
                         </h3>
-                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Choose when you'd like to bring your motorcycle in.
+                        <p className="text-slate-400 text-sm mt-1.5">
+                          Days with a mechanic on shift. Your visit takes {totalDurationMinutes} min.
                         </p>
                       </div>
 
-                      <div className="mb-8">
+                      <div className="booking-date-strip mb-6">
                         <DateStrip
                           value={selectedDate}
                           onChange={(next) => {
@@ -1917,7 +1921,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           }}
                           includeToday={false}
                           skipSundays={false}
-                          label="Pick a date"
+                          label={selectedDate
+                            ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+                            : new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
                           isDateHidden={(dateKey) => {
                             if (loadingMechanicScheduleDays) return false;
                             const date = new Date(`${dateKey}T00:00:00`);
@@ -1933,23 +1939,23 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               <Loader2 size={12} className="animate-spin" /> Checking mechanic schedules…
                             </p>
                           ) : (
-                            <p className="text-slate-500">Only dates with scheduled mechanics are shown.</p>
+                            <p className="text-slate-300 text-sm">Dates are available when the shop has a mechanic on shift.</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="mb-8">
+                      <div className="booking-time-slots mb-7">
                         {mechanicSlotAvailabilityError && (
                           <p role="alert" className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-300">
                             {mechanicSlotAvailabilityError}
                           </p>
                         )}
                         <TimeSlotGrid
-                          slots={checkingMechanicSlots ? [] : daySlots.filter((time) => !unavailableSlots.includes(time))}
+                          slots={checkingMechanicSlots ? [] : daySlots}
                           value={selectedTime}
                           onChange={handleTimeSelect}
-                          takenSlots={[]}
-                          pastSlots={[]}
+                          takenSlots={unavailableSlots}
+                          pastSlots={pastSlots}
                           loading={checkingMechanicSlots}
                           label="Pick a time"
                         />
@@ -1959,27 +1965,26 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       {selectedDate && selectedTime && (
                         <>
                           <div className="mb-8">
-                            <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                              Step 03b · Choose Mechanic
+                            <p className="text-xs font-semibold uppercase tracking-widest text-moto-accent mb-2">
+                              Available mechanics
                             </p>
-                            <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                              Pick Your Mechanic<span className="text-moto-accent">.</span>
+                            <h3 className="font-display text-xl font-bold tracking-tight text-slate-100 leading-tight">
+                              Choose a mechanic
                             </h3>
-                            <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                              Select the mechanic who will handle your service
-                              at {selectedTime}.
+                            <p className="text-slate-300 text-sm mt-2">
+                              Choose a mechanic available at {formatTime(selectedTime)}.
                             </p>
                           </div>
 
                           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-moto-accent/20 bg-moto-accent/[0.05] px-4 py-3">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-moto-accent">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1.5 text-sm font-semibold text-moto-accent">
                               <CalendarDays size={13} /> {selectedDate}
                             </span>
-                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-moto-accent">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-moto-accent/10 px-3 py-1.5 text-sm font-semibold text-moto-accent">
                               <Clock size={13} /> {formatTime(selectedTime)}
                             </span>
-                            <span className="text-xs text-slate-400">
-                              Showing mechanics with a matching shift and no overlapping booking.
+                            <span className="text-sm text-slate-300">
+                              Only mechanics free for the full visit are shown.
                             </span>
                           </div>
 
@@ -1998,11 +2003,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-moto-accent/10 border border-moto-accent/30 text-moto-accent mb-3">
                                 <Wrench size={20} strokeWidth={1.75} />
                               </div>
-                              <p className="font-display font-bold text-slate-200 uppercase tracking-tight">
-                                No Mechanics Available
+                              <p className="font-display text-lg font-bold text-slate-100">
+                                No mechanics available at this time
                               </p>
-                              <p className="text-slate-400 text-sm font-light mt-1.5 max-w-xs mx-auto">
-                                No mechanic has a matching shift without an overlapping booking. Choose another date or time, or contact the shop.
+                              <p className="text-slate-300 text-sm mt-2 max-w-md mx-auto">
+                                Try another time or date. The shop may not have a free mechanic for this visit length.
                               </p>
                               <button
                                 type="button"
@@ -2010,13 +2015,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   setSelectedTime("");
                                   setSelectedMechanicId(null);
                                 }}
-                                className="mt-4 rounded-lg border border-moto-gray px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-300 transition hover:border-moto-accent hover:text-moto-accent"
+                                className="mt-4 rounded-lg border border-moto-gray px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-moto-accent hover:text-moto-accent"
                               >
-                                Choose another time
+                                Pick another time
                               </button>
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="booking-mechanics-grid grid grid-cols-1 gap-2">
                               {availableMechanicsForTime.map((mechanic) => {
                                 const isSelected = selectedMechanicId === mechanic.id;
                                 return (
@@ -2025,19 +2030,21 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     type="button"
                                     onClick={() => setSelectedMechanicId(mechanic.id)}
                                     aria-pressed={isSelected}
-                                    className={`group flex min-h-32 flex-col items-center justify-center gap-2 rounded-2xl border p-5 text-center transition-all duration-200 ${isSelected ? "bg-moto-accent/10 border-moto-accent ring-2 ring-moto-accent/25 shadow-lg shadow-moto-accent/10" : "bg-moto-darker border-moto-gray hover:-translate-y-0.5 hover:border-moto-accent/60 hover:bg-moto-accent/[0.04]"}`}
+                                    className={`group flex min-h-16 items-center justify-start gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${isSelected ? "bg-moto-accent/10 border-moto-accent ring-1 ring-moto-accent/25" : "bg-moto-darker border-moto-gray hover:border-moto-accent/60 hover:bg-moto-accent/[0.04]"}`}
                                   >
-                                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors ${isSelected ? "bg-moto-accent text-slate-950" : "bg-moto-accent/10 text-moto-accent group-hover:bg-moto-accent/15"}`}>
-                                      <User size={24} strokeWidth={1.75} />
+                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${isSelected ? "bg-moto-accent text-slate-950" : "bg-moto-gray/60 text-slate-300 group-hover:bg-moto-accent/15 group-hover:text-moto-accent"}`}>
+                                      {(mechanic.name || "M").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
                                     </div>
-                                    <p className="font-bold text-slate-100 text-sm">
+                                    <div className="min-w-0 flex-1">
+                                    <p className="truncate font-semibold text-slate-100 text-sm">
                                       {mechanic.name || "Shop mechanic"}
                                     </p>
                                     {mechanic.phone && (
-                                      <p className="text-xs text-slate-400">
+                                      <p className="truncate text-xs text-slate-400">
                                         {mechanic.phone}
                                       </p>
                                     )}
+                                    </div>
                                     <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${isSelected ? "bg-moto-accent text-slate-950" : "bg-emerald-500/10 text-emerald-300"}`}>
                                       {isSelected ? <Check size={11} /> : <CheckCircle size={11} />}
                                       {isSelected ? "Selected" : "Available"}
@@ -2056,50 +2063,46 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   {currentStep === 3 && (
                     <motion.div
                       key="confirm"
-                      initial={{ opacity: 0, x: 24 * stepDir.current }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -24 * stepDir.current }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className="booking-step-panel"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                     >
                       {restoredDraftPending && restoredDraftValidation === "checking" && (
-                        <p role="status" className="mb-4 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-200">
+                        <p role="status" className="mb-4 rounded-xl border border-moto-accent/30 bg-moto-accent/10 px-4 py-3 text-sm text-moto-accent">
                           Rechecking your saved services, parts, appointment time, and mechanic…
                         </p>
                       )}
                       <div className="mb-8">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-moto-accent mb-2">
-                            Step 04 · Confirm
-                        </p>
-                        <h3 className="font-display text-3xl sm:text-4xl font-black tracking-tight text-slate-100 leading-none">
-                          Review & Confirm<span className="text-moto-accent">.</span>
+                          <h3 className="font-display text-3xl font-bold tracking-tight text-slate-100 leading-tight">
+                            Review
                         </h3>
-                        <p className="text-slate-400 text-sm sm:text-base font-light mt-2.5">
-                          Double-check everything before you book.
+                          <p className="text-slate-400 text-sm mt-1.5">
+                            {isAuthenticated ? "Send this request to the shop." : "Log in to send this request to the shop."}
                         </p>
                       </div>
 
                       {!isAuthenticated && (
-                        <div className="bg-moto-accent/10 border border-moto-accent/30 text-slate-100 p-6 rounded-2xl mb-8">
-                          <p className="font-display text-lg uppercase tracking-wide mb-1 flex items-center gap-2">
+                        <div className="booking-review-auth-note bg-moto-accent/10 border border-moto-accent/30 text-slate-100 p-6 rounded-2xl mb-8">
+                          <p className="font-display text-lg font-bold mb-1 flex items-center gap-2">
                             <Sparkles size={18} className="text-moto-accent" />
-                            Sign-Up To Confirm Your Booking
+                            Create an account to request this booking
                           </p>
-                          <p className="text-slate-300 text-sm font-light">
-                            Create a free account (or log in) to lock in this
-                            appointment. Your selections will be saved so you can
-                            finish right where you left off.
+                          <p className="text-slate-300 text-sm">
+                            Your choices are saved. Sign up or log in to send the request to the shop.
                           </p>
                         </div>
                       )}
 
-                      <div className="bg-moto-darker/80 p-6 sm:p-8 border border-moto-gray mb-8 rounded-2xl">
+                      <div className="booking-review-details bg-moto-darker/80 p-6 sm:p-8 border border-moto-gray mb-8 rounded-2xl">
                         <div className="grid grid-cols-2 gap-6">
                           <div className="flex items-center gap-3 col-span-2 rounded-2xl border border-moto-gray/70 bg-moto-dark/50 p-4">
                             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-moto-accent/15 border border-moto-accent/30 text-moto-accent shrink-0">
                               <Car size={18} strokeWidth={1.75} />
                             </span>
                             <span className="min-w-0">
-                              <span className="block text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                              <span className="block text-xs font-semibold text-slate-300">
                                 Vehicle
                               </span>
                               <span className="block text-slate-100 font-semibold text-sm truncate uppercase mt-0.5">
@@ -2119,7 +2122,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 col-span-2">
-                            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                            <span className="text-sm font-semibold text-slate-200">
                               Services
                             </span>
                             <div className="flex flex-wrap gap-2 mt-2">
@@ -2140,13 +2143,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           </div>
                           {selectedParts.length > 0 && (
                             <div className="flex flex-col gap-1 col-span-2">
-                              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                              <span className="text-sm font-semibold text-slate-200">
                                 Parts
                               </span>
                               <div className="space-y-1.5 mt-2">
                                 {selectedParts.map((part) => (
                                   <div
-                                    key={part.id}
+                                    key={`${part.service_id || "service"}:${part.id}`}
                                     className="flex items-center justify-between text-sm"
                                   >
                                     <span className="text-slate-300">
@@ -2164,18 +2167,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </div>
                           )}
 <div className="flex flex-col gap-1 col-span-2">
-                              <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-                                Total Cost
+                              <span className="text-sm font-semibold text-slate-200">
+                                Cost estimate
                               </span>
                               <div className="mt-2 rounded-2xl border border-moto-gray/70 bg-moto-dark/50 p-4 space-y-2.5">
                                 <p className="flex items-center justify-between text-xs font-bold">
-                                  <span className="text-slate-400">Service</span>
+                                  <span className="text-slate-300">Services</span>
                                   <span className="text-slate-200 font-mono">
                                     ₱{selectedServicePrice.toLocaleString()}
                                   </span>
                                 </p>
                                 <p className="flex items-center justify-between text-xs font-bold">
-                                  <span className="text-slate-400">Parts</span>
+                                  <span className="text-slate-300">Parts</span>
                                   <span className="text-slate-200 font-mono">
                                     ₱
                                     {selectedParts
@@ -2188,8 +2191,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   </span>
                                 </p>
                                 <div className="flex items-center justify-between rounded-xl border border-moto-accent/40 bg-moto-accent/10 px-4 py-3">
-                                  <span className="text-moto-accent text-sm font-bold uppercase tracking-wide">
-                                    Estimated Total
+                                  <span className="text-moto-accent text-sm font-bold">
+                                    Estimated total
                                   </span>
                                   <span className="text-moto-accent font-mono font-black text-2xl">
                                     ₱
@@ -2204,14 +2207,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   </span>
                                 </div>
                                 {paymentMethod !== "cash" && onlinePaymentsAvailable && (
-                                  <div className="flex items-center justify-between rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3">
-                                    <span className="text-cyan-300 text-xs font-bold uppercase tracking-wide">
+                                  <div className="flex items-center justify-between rounded-xl border border-moto-accent/40 bg-moto-accent/10 px-4 py-3">
+                                    <span className="text-moto-accent text-xs font-bold uppercase tracking-wide">
                                       Reservation Deposit
                                       {shopDeposit.deposit_type === "percent"
                                         ? ` · ${shopDeposit.deposit_value}%`
                                         : ""}
                                     </span>
-                                    <span className="text-cyan-200 font-mono font-black text-lg">
+                                    <span className="text-moto-accent font-mono font-black text-lg">
                                       ₱{depositAmount.toLocaleString()}
                                     </span>
                                   </div>
@@ -2222,14 +2225,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                   size={14}
                                   className="text-moto-accent shrink-0 mt-0.5"
                                 />
-                                <p className="text-xs font-light leading-relaxed">
-                                  The final price may vary depending on the
-                                  motorcycle's overall condition and assessment.
+                                <p className="text-sm leading-relaxed">
+                                  The shop will confirm the final price after inspecting your motorcycle.
                                 </p>
                               </div>
                             </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                            <span className="text-sm font-semibold text-slate-200">
                               Mechanic
                             </span>
                             <span className="text-slate-100 font-medium text-sm">
@@ -2237,7 +2239,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                            <span className="text-sm font-semibold text-slate-200">
                               Date
                             </span>
                             <span className="text-slate-100 font-medium text-sm">
@@ -2245,7 +2247,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
+                            <span className="text-sm font-semibold text-slate-200">
                               Time
                             </span>
                             <span className="text-slate-100 font-medium text-sm">
@@ -2257,38 +2259,33 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
                       {/* Payment Method */}
                       <div className="mt-8 space-y-3">
-                        <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-                          Payment Method
+                        <label className="text-sm font-semibold text-slate-200">
+                          Payment
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="booking-payment-list space-y-2">
                           <button
                             type="button"
+                            aria-pressed={paymentMethod === "cash"}
                             onClick={() => setPaymentMethod("cash")}
-                            className={`flex items-start gap-3 p-4 text-left rounded-2xl border transition-all duration-200 ${
+                            className={`booking-payment-row flex w-full items-center gap-3 p-3 text-left rounded-xl border transition-all duration-200 ${paymentMethod === "cash" ? "is-selected" : ""} ${
                               paymentMethod === "cash"
                                 ? "bg-moto-accent/[0.07] border-moto-accent ring-1 ring-moto-accent/40"
                                 : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
                             }`}
                           >
-                            <span
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
-                                paymentMethod === "cash"
-                                  ? "bg-moto-accent text-slate-950"
-                                  : "bg-moto-gray/40 text-slate-400"
-                              }`}
-                            >
-                              <Banknote size={18} strokeWidth={1.75} />
+                            <span className={`booking-payment-indicator ${paymentMethod === "cash" ? "is-selected" : ""}`}>
+                              {paymentMethod === "cash" && <Check size={12} strokeWidth={3} />}
                             </span>
                             <span className="min-w-0">
                               <span
-                                className={`block text-xs font-bold uppercase tracking-wide ${
+                                className={`block text-sm font-semibold ${
                                   paymentMethod === "cash" ? "text-moto-accent" : "text-slate-100"
                                 }`}
                               >
                                 Cash at shop
                               </span>
-                              <span className="block text-[11px] text-slate-400 mt-0.5">
-                                Pay when you arrive.
+                              <span className="block text-sm text-slate-400 mt-0.5">
+                                Cash on arrival
                               </span>
                             </span>
                           </button>
@@ -2300,41 +2297,34 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               <button
                                 key={m}
                                 type="button"
+                                aria-pressed={selected}
                                 disabled={unavailable}
                                 onClick={() => setPaymentMethod(m)}
                                 aria-disabled={unavailable}
-                                className={`flex items-start gap-3 p-4 text-left rounded-2xl border transition-all duration-200 ${
+                                className={`booking-payment-row flex w-full items-center gap-3 p-3 text-left rounded-xl border transition-all duration-200 ${selected ? "is-selected" : ""} ${
                                   unavailable
                                     ? "bg-moto-darker/60 border-moto-gray/60 opacity-60 cursor-not-allowed"
                                     : selected
-                                      ? "bg-cyan-500/[0.08] border-cyan-500 ring-1 ring-cyan-500/40"
-                                      : "bg-moto-darker border-moto-gray hover:border-cyan-500/60"
+                                      ? "bg-moto-accent/[0.08] border-moto-accent ring-1 ring-moto-accent/40"
+                                      : "bg-moto-darker border-moto-gray hover:border-moto-accent/60"
                                 }`}
                               >
-                                <span
-                                  className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
-                                    unavailable
-                                      ? "bg-moto-gray/30 text-slate-500"
-                                      : selected
-                                        ? "bg-cyan-500 text-slate-950"
-                                        : "bg-moto-gray/40 text-slate-400"
-                                  }`}
-                                >
-                                  <QrCode size={18} strokeWidth={1.75} />
+                                <span className={`booking-payment-indicator ${selected ? "is-selected" : ""}`}>
+                                  {selected && <Check size={12} strokeWidth={3} />}
                                 </span>
                                 <span className="min-w-0">
                                   <span
-                                    className={`block text-xs font-bold uppercase tracking-wide ${
+                                    className={`block text-sm font-semibold ${
                                       unavailable
                                         ? "text-slate-500"
                                         : selected
-                                          ? "text-cyan-300"
+                                          ? "text-moto-accent"
                                           : "text-slate-100"
                                     }`}
                                   >
                                     {m === "gcash" ? "GCash" : "Maya"}
                                   </span>
-                                  <span className="block text-[11px] text-slate-400 mt-0.5">
+                                  <span className="block text-sm text-slate-400 mt-0.5">
                                     {unavailable
                                       ? "Unavailable"
                                       : `Pay ₱${depositAmount.toLocaleString()} deposit`}
@@ -2349,21 +2339,18 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <div className="flex items-start gap-2.5 rounded-xl border border-moto-gray/70 bg-moto-darker/60 px-4 py-3 text-slate-400">
                             <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
                             <p className="text-xs font-light leading-relaxed">
-                              Online payment isn't available for this shop right now you'll
-                              pay at the counter when you arrive. No QR will be shown.
+                              Online payment is unavailable. Pay at the shop when you arrive.
                             </p>
                           </div>
                         )}
 
                         {paymentMethod !== "cash" && onlinePaymentsAvailable && (
-                          <div className="flex items-start gap-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/[0.07] px-4 py-3 text-cyan-200">
-                            <QrCode size={14} className="text-cyan-300 shrink-0 mt-0.5" />
+                          <div className="flex items-start gap-2.5 rounded-xl border border-moto-accent/30 bg-moto-accent/[0.07] px-4 py-3 text-slate-200">
+                            <QrCode size={14} className="text-moto-accent shrink-0 mt-0.5" />
                             <p className="text-xs font-light leading-relaxed">
-                              A reservation deposit of{" "}
+                              A deposit of{" "}
                               <span className="font-bold">₱{depositAmount.toLocaleString()}</span>{" "}
-                              via {paymentMethod === "gcash" ? "GCash" : "Maya"} is required to
-                              lock in your slot. After you confirm, scan the QR to pay otherwise
-                              pay the balance at the shop.
+                              via {paymentMethod === "gcash" ? "GCash" : "Maya"} is required. After sending your request, scan the QR to pay. Pay any remaining balance at the shop.
                             </p>
                           </div>
                         )}
@@ -2372,8 +2359,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       <div className="space-y-6">
                         {/* Motorcycle Selection */}
                         <div className="space-y-4">
-                          <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-                            Select Your Motorcycle *
+                          <label className="text-sm font-semibold text-slate-200">
+                            Your motorcycle <span className="text-rose-300">*</span>
                           </label>
 
                           {/* Saved vehicles from the customer's account */}
@@ -2462,7 +2449,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             <div className="rounded-2xl border border-moto-gray bg-moto-darker/80 p-5 space-y-3">
                               <div className="flex items-center justify-between">
                                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
-                                  Add New Motorcycle
+                                  Add a motorcycle
                                 </p>
                                 {/* Manual-entry mode toggles the free-text field */}
                                 <button
@@ -2578,15 +2565,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           )}
                         </div>
                         <div className="space-y-4">
-                          <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-300">
-                            Additional Notes
+                          <label className="text-sm font-semibold text-slate-200">
+                            Notes <span className="font-normal text-slate-400">(optional)</span>
                           </label>
                           <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder="ANY SPECIFIC ISSUES OR REQUESTS?"
+                            placeholder="Tell the shop about any issues or requests"
                             rows={3}
-                            className="w-full bg-moto-darker text-slate-100 px-4 py-4 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs resize-none"
+                            className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl text-sm resize-none"
                           />
                         </div>
                         <div className="pt-2 border-t border-moto-gray">
@@ -2598,20 +2585,167 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 </AnimatePresence>
               </div>
 
+              <aside className="booking-modal-summary" aria-label="Your booking summary">
+                <div className="booking-summary-heading">
+                  <div>
+                    <p className="booking-summary-eyebrow">Your booking</p>
+                    <h3>Summary</h3>
+                  </div>
+                  <span className="booking-summary-count">
+                    {selectedServices.length} {selectedServices.length === 1 ? "service" : "services"}
+                  </span>
+                </div>
+
+                {selectedServices.length === 0 ? (
+                  <p className="booking-summary-empty">Choose a service to start your booking.</p>
+                ) : (
+                  <>
+                    <div className="booking-summary-section">
+                      <div className="booking-summary-label-row">
+                        <span className="booking-summary-label">Services</span>
+                        {currentStep > 0 && <button type="button" onClick={() => goToStep(0)}>Edit</button>}
+                      </div>
+                      {selectedServices.map((serviceId) => {
+                        const service = dynamicServices.find((item) => item.id === serviceId);
+                        return (
+                          <div className="booking-summary-line" key={serviceId}>
+                            <span>{service?.label || "Service"}</span>
+                            <span>₱{(Number(service?.price) || 0).toLocaleString("en-PH")}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {selectedParts.length > 0 && (
+                      <div className="booking-summary-section">
+                        <div className="booking-summary-label-row">
+                          <span className="booking-summary-label">Parts</span>
+                          {currentStep > 1 && <button type="button" onClick={() => goToStep(1)}>Edit</button>}
+                        </div>
+                        {selectedParts.map((part) => (
+                          <div className="booking-summary-line" key={`${part.service_id || "service"}:${part.id}`}>
+                            <span>{part.name} × {part.quantity}</span>
+                            <span>₱{(part.unit_price * part.quantity).toLocaleString("en-PH")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(selectedDate || selectedTime || selectedMechanicId) && (
+                      <div className="booking-summary-section">
+                        <div className="booking-summary-label-row">
+                          <span className="booking-summary-label">Visit</span>
+                          {currentStep > 2 && <button type="button" onClick={() => goToStep(2)}>Edit</button>}
+                        </div>
+                        {selectedDate && <p className="booking-summary-detail">{selectedDate}</p>}
+                        {selectedTime && <p className="booking-summary-detail">{formatTime(selectedTime)}</p>}
+                        {selectedMechanicId && <p className="booking-summary-detail">{availableMechanicsForTime.find((mechanic) => mechanic.id === selectedMechanicId)?.name || "Selected mechanic"}</p>}
+                        {totalDurationMinutes > 0 && <p className="booking-summary-detail">About {totalDurationMinutes} minutes</p>}
+                      </div>
+                    )}
+
+                  </>
+                )}
+
+                <div className="booking-summary-total">
+                  <span>Estimate</span>
+                  <strong>₱{estimatedTotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <p className="booking-summary-caption">
+                  {selectedServices.length ? "Parts are charged at the shop. The final price is confirmed after inspection." : "Pick at least one service."}
+                </p>
+
+                <div className="booking-summary-actions">
+                  <p className="booking-summary-hint" aria-live="polite">
+                    {currentStep === 0
+                      ? selectedServices.length ? `${totalDurationMinutes} minute visit` : "Pick at least one service to continue."
+                      : currentStep === 1
+                        ? !partsCatalogReady
+                          ? "Loading compatible parts…"
+                          : servicesMissingPartSelection.length > 0
+                            ? "Choose a part for every service that has compatible parts available."
+                            : servicesWithoutAvailableParts.length > 0
+                              ? "Services without available parts will continue without parts."
+                              : "Parts selected for every service with compatible options."
+                        : currentStep === 2
+                          ? !selectedDate ? "Choose a visit date." : !selectedTime ? "Choose a start time." : !selectedMechanicId ? "Choose an available mechanic." : "Your visit time is ready to review."
+                          : !partsSelectionComplete
+                            ? "Go back to Parts and choose a compatible part for every service that has parts available."
+                            : !selectedVehicleId && !vehicleInfo.trim()
+                              ? "Add your motorcycle to continue."
+                              : !termsAccepted
+                                ? "Accept the terms to send your request."
+                                : !isAuthenticated
+                                  ? "Log in or create an account to send your request."
+                                  : "Your booking stays pending until the shop confirms it."}
+                  </p>
+
+                  {currentStep < STEPS.length - 1 ? (
+                    <button
+                      type="button"
+                      className="booking-summary-primary"
+                      disabled={!canGoNext() || (currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))}
+                      onClick={goToNextStep}
+                    >
+                      {currentStep === 0
+                        ? "Continue to parts"
+                        : currentStep === 1
+                          ? "Continue to schedule"
+                          : "Review booking"}
+                      <ChevronRight size={17} />
+                    </button>
+                  ) : !isAuthenticated ? (
+                    <div className="booking-summary-auth-actions">
+                      <button type="button" className="booking-summary-primary" disabled={!canGoNext()} onClick={() => requireAuth("login")}>
+                        Log in to send request <ChevronRight size={17} />
+                      </button>
+                      <button type="button" className="booking-summary-secondary" disabled={!canGoNext()} onClick={() => requireAuth("signup")}>
+                        Create an account
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`booking-summary-primary ${submitting ? "is-busy" : ""}`}
+                      disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking || restoredDraftPending}
+                      onClick={handleSubmit}
+                    >
+                      {submitting ? "Sending request…" : "Send booking request"}
+                      {!submitting && <ChevronRight size={17} />}
+                    </button>
+                  )}
+
+                  <button type="button" className="booking-summary-back" onClick={currentStep > 0 ? goToPreviousStep : onClose}>
+                    {currentStep > 0 ? "Back" : "Cancel booking"}
+                  </button>
+                </div>
+              </aside>
+              </div>
+
               {/* ── Footer ── */}
-              <div className="booking-modal-footer flex items-center justify-between px-5 sm:px-10 py-4 sm:py-6 border-t border-moto-gray flex-shrink-0 bg-moto-dark/80">
-                <motion.button
-                  onClick={() =>
-                    currentStep > 0 ? goToPreviousStep() : onClose()
-                  }
-                  whileHover={{ x: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="flex items-center gap-3 px-8 py-3.5 border border-moto-gray bg-moto-darker text-slate-400 hover:text-white hover:bg-moto-gray/30 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl hover:-translate-y-0.5"
-                >
-                  <ChevronLeft size={14} />{" "}
-                  {currentStep > 0 ? "BACK" : "CANCEL"}
-                </motion.button>
+              <div className="booking-modal-footer flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-4 border-t border-moto-gray flex-shrink-0 bg-moto-dark/90">
+                <div className="flex min-w-0 items-center gap-3">
+                  <motion.button
+                    onClick={() => currentStep > 0 ? goToPreviousStep() : onClose()}
+                    whileHover={{ x: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="flex shrink-0 items-center gap-2 rounded-xl border border-moto-gray bg-moto-darker px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-400 hover:text-white"
+                  >
+                    <ChevronLeft size={16} /> {currentStep > 0 ? "Back" : "Cancel"}
+                  </motion.button>
+                  {selectedServices.length > 0 && (
+                    <div className="min-w-0" aria-live="polite">
+                      <p className="truncate text-sm font-semibold text-slate-100">
+                        {selectedServices.length} {selectedServices.length === 1 ? "service" : "services"}
+                        {totalDurationMinutes > 0 ? ` · ${totalDurationMinutes} min` : ""}
+                      </p>
+                      <p className="truncate text-xs text-slate-300">
+                        Estimate ₱{(selectedServicePrice + partsTotal).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  )}
+                </div>
                 {currentStep < STEPS.length - 1 ? (
                   <motion.button
                     whileHover={
@@ -2632,30 +2766,30 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       !canGoNext() ||
                       (currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                     }
-                    className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`booking-modal-primary flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all duration-200 sm:px-8 ${
                       canGoNext() &&
                       !(currentStep === 0 && (hasActiveAppointment || activeAppointmentChecking))
                         ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
                     }`}
                   >
-                    NEXT <ChevronRight size={14} />
+                    {currentStep === 2 ? "Review booking" : "Continue"} <ChevronRight size={16} />
                   </motion.button>
                 ) : !isAuthenticated ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex w-full items-center gap-2 sm:w-auto">
                     <motion.button
                       whileHover={termsAccepted ? { y: -2, scale: 1.02 } : undefined}
                       whileTap={termsAccepted ? { scale: 0.98 } : undefined}
                       transition={{ duration: 0.15, ease: "easeOut" }}
                       onClick={() => requireAuth("signup")}
                       disabled={!termsAccepted}
-                      className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                      className={`booking-modal-primary flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 sm:flex-none sm:px-6 ${
                         termsAccepted
                           ? "bg-moto-accent text-slate-950 hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                           : "bg-moto-gray/40 border border-moto-gray text-slate-500 cursor-not-allowed"
                       }`}
                     >
-                      Sign Up <ChevronRight size={14} />
+                      Create account <ChevronRight size={16} />
                     </motion.button>
                     <motion.button
                       whileHover={termsAccepted ? { y: -2 } : undefined}
@@ -2663,13 +2797,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                       transition={{ duration: 0.15, ease: "easeOut" }}
                       onClick={() => requireAuth("login")}
                       disabled={!termsAccepted}
-                      className={`flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 sm:flex-none sm:px-6 ${
                         termsAccepted
                           ? "border border-moto-gray bg-moto-darker text-slate-100 hover:bg-moto-gray/30 hover:-translate-y-0.5"
                           : "border border-moto-gray bg-moto-darker/50 text-slate-600 cursor-not-allowed"
                       }`}
                     >
-                      Log In
+                      Log in
                     </motion.button>
                   </div>
                 ) : (
@@ -2685,7 +2819,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     onClick={handleSubmit}
                     disabled={!canGoNext() || submitting || hasActiveAppointment || activeAppointmentChecking || restoredDraftPending}
-                    className={`booking-modal-primary flex items-center gap-3 px-8 py-3.5 transition-all duration-200 uppercase text-[11px] tracking-[0.15em] font-bold rounded-xl ${
+                    className={`booking-modal-primary flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-bold transition-all duration-200 sm:w-auto sm:px-8 ${
                       canGoNext() && !submitting && !hasActiveAppointment && !activeAppointmentChecking && !restoredDraftPending
                         ? "bg-moto-accent hover:bg-moto-accent-dark text-slate-950 shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
                         : "bg-moto-gray/40 border border-moto-gray text-slate-600 cursor-not-allowed"
@@ -2694,11 +2828,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                     {submitting ? (
                       <>
                         <span className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                        PROCESSING...
+                        Sending request…
                       </>
                     ) : (
                       <>
-                        CONFIRM <ChevronRight size={14} />
+                        Send booking request <ChevronRight size={16} />
                       </>
                     )}
                   </motion.button>
@@ -2732,12 +2866,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 </motion.div>
               </motion.div>
               <h3 className="font-display text-4xl sm:text-5xl text-slate-100 font-black tracking-tight mb-4 text-center">
-                APPOINTMENT BOOKED
+                Booking request sent
               </h3>
               {lastBookingId && (
                 <div className="mb-5 px-6 py-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
                   <p className="text-[11px] uppercase tracking-[0.15em] font-bold text-emerald-300 mb-1">
-                    Booking Reference
+                    Booking reference
                   </p>
                   <div className="flex items-center justify-center gap-3">
                     <p className="font-display text-2xl text-emerald-200 tracking-wider">
@@ -2762,15 +2896,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                   <p className="text-xs font-light leading-relaxed">{paymentNotice}</p>
                 </div>
               )}
-              <p className="text-slate-400 mb-4 text-sm text-center max-w-md font-light">
-                Your appointment has been successfully scheduled. You'll receive
-                a confirmation soon.
+              <p className="text-slate-200 mb-4 text-base text-center max-w-md">
+                Your request is with the shop. You’ll receive an update when they confirm your appointment.
               </p>
               <div className="flex items-start justify-center gap-2 mb-10 px-6 py-3 max-w-md text-center">
                 <Camera size={15} className="text-slate-400 shrink-0 mt-0.5" />
-                <p className="text-slate-400 text-sm font-light leading-relaxed">
-                  Please save this Booking ID or take a screenshot you'll need
-                  to show it at the shop counter when you arrive.
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Save this reference so you can find your booking later.
                 </p>
               </div>
               <motion.button
@@ -2780,7 +2912,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                 onClick={onClose}
                 className="px-10 py-4 bg-moto-accent text-slate-950 uppercase font-bold tracking-[0.15em] text-xs transition-all duration-200 hover:bg-moto-accent-dark rounded-2xl shadow-lg shadow-moto-accent/25 hover:-translate-y-0.5"
               >
-                DONE
+                Done
               </motion.button>
             </motion.div>
           )}
