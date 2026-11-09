@@ -7,6 +7,7 @@
 
 import { supabase } from "./supabaseClient";
 import { requestEmail, EmailTemplate } from "./sendgridClient";
+import { requestAppointmentStatusSms, AppointmentSmsStatus } from "./appointmentSmsClient";
 
 // ─── In-App Notifications (owner/shop bell) ───────────────────────────────────
 
@@ -97,6 +98,12 @@ export const sendBookingCancelledEmail = async (appointmentId: string) =>
 /** Email the shop owner when a customer books an appointment. */
 export const sendOwnerBookingEmail = async (appointmentId: string) =>
   sendEmailForAppointment("owner-booking", appointmentId);
+
+/** Queue one consent-aware Textbee SMS for a persisted appointment status. */
+export const sendAppointmentStatusSms = async (
+  appointmentId: string,
+  status: AppointmentSmsStatus,
+) => requestAppointmentStatusSms(appointmentId, status);
 
 // ─── Shop owner booking notification ──────────────────────────────────────────
 

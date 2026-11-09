@@ -14,6 +14,8 @@ import {
   Trash2,
   MapPin,
   Lock,
+  Bell,
+  MessageSquare,
   Eye,
   EyeOff,
   AlertCircle,
@@ -39,6 +41,7 @@ interface CustomerSettingsModalProps {
 const TABS = [
   { key: "profile" as const, label: "Profile", icon: User },
   { key: "vehicles" as const, label: "Vehicles", icon: Car },
+  { key: "notifications" as const, label: "Notifications", icon: Bell },
   { key: "security" as const, label: "Security", icon: Lock },
 ];
 
@@ -72,6 +75,9 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [smsSettingsLoading, setSmsSettingsLoading] = useState(false);
+  const [savingSmsSettings, setSavingSmsSettings] = useState(false);
 
   // Vehicles
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
@@ -90,7 +96,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "profile" | "vehicles" | "security"
+    "profile" | "vehicles" | "notifications" | "security"
   >("profile");
 
   useEffect(() => {
@@ -103,6 +109,35 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
       setError("");
       setSuccess("");
     }
+  }, [isOpen, user?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !user?.id) return;
+    let active = true;
+    setSmsSettingsLoading(true);
+    void supabase
+      .from("customer_notification_settings")
+      .select("sms_notifications_enabled")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data, error: settingsError }) => {
+        if (!active) return;
+        if (settingsError) {
+          setSmsEnabled(false);
+          setError("SMS preferences could not be loaded. Apply the SMS notification migration and try again.");
+          return;
+        }
+        setSmsEnabled(data?.sms_notifications_enabled === true);
+      })
+      .catch(() => {
+        if (!active) return;
+        setSmsEnabled(false);
+        setError("SMS preferences could not be loaded. Please try again later.");
+      })
+      .finally(() => {
+        if (active) setSmsSettingsLoading(false);
+      });
+    return () => { active = false; };
   }, [isOpen, user?.id]);
 
   const fetchVehicles = async () => {
@@ -150,6 +185,32 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
       setError("Failed to update profile. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSmsPreference = async () => {
+    if (!user?.id) return;
+    setSavingSmsSettings(true);
+    setError("");
+    setSuccess("");
+    const consentUpdatedAt = new Date().toISOString();
+    try {
+      const { error: preferenceError } = await supabase
+        .from("customer_notification_settings")
+        .upsert({
+          user_id: user.id,
+          sms_notifications_enabled: smsEnabled,
+          sms_consent_updated_at: consentUpdatedAt,
+          updated_at: consentUpdatedAt,
+        }, { onConflict: "user_id" });
+      if (preferenceError) throw preferenceError;
+      setSuccess(smsEnabled ? "SMS status updates enabled." : "SMS status updates disabled.");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (preferenceError) {
+      console.error("Could not save SMS notification preference:", preferenceError);
+      setError("Could not save SMS preferences. Confirm the SMS notification migration is applied and try again.");
+    } finally {
+      setSavingSmsSettings(false);
     }
   };
 
@@ -619,6 +680,59 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Notification Preferences Tab ── */}
+              {activeTab === "notifications" && (
+                <motion.div
+                  key="notifications"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                >
+                  <div className={sectionClass}>
+                    <h3 className={sectionTitleClass}>
+                      <Bell size={14} className="text-moto-accent" /> Notification preferences
+                    </h3>
+                    {smsSettingsLoading ? (
+                      <div role="status" className="flex items-center gap-2 py-4 text-sm text-slate-400">
+                        <Loader size={15} className="animate-spin" /> Loading SMS preferences…
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-moto-gray bg-moto-darker/60 p-4">
+                          <input
+                            type="checkbox"
+                            checked={smsEnabled}
+                            onChange={(event) => setSmsEnabled(event.target.checked)}
+                            className="mt-0.5 accent-moto-accent"
+                          />
+                          <MessageSquare size={18} className="mt-0.5 shrink-0 text-moto-accent" />
+                          <span>
+                            <span className="block text-sm font-bold text-slate-100">SMS appointment status updates</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-slate-400">
+                              Receive a text when your booking is confirmed, work starts, or service is completed. Messages go to the phone number on your profile. Standard carrier rates may apply. You can turn this off at any time.
+                            </span>
+                          </span>
+                        </label>
+                        <p className="text-xs text-slate-500">
+                          SMS consent is separate from email preferences. Walk-in bookings require the customer’s separate consent at booking time.
+                        </p>
+                        <div className="border-t border-moto-gray pt-4">
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveSmsPreference()}
+                            disabled={savingSmsSettings || smsSettingsLoading}
+                            className={primaryBtnClass}
+                          >
+                            {savingSmsSettings ? <Loader size={14} className="animate-spin" /> : <Save size={14} />}
+                            {savingSmsSettings ? "SAVING..." : "SAVE SMS PREFERENCE"}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -48,7 +48,7 @@ describe("MotoLink booking audit safeguards (source-contract tests)", () => {
   });
 
   it("preserves specific-vs-any preference and protects confirmed specific and in-progress appointments", () => {
-    expect(migration).toContain("ADD COLUMN IF NOT EXISTS mechanic_preference TEXT NOT NULL DEFAULT 'specific'");
+    expect(migration).toContain("ADD COLUMN mechanic_preference TEXT NOT NULL DEFAULT 'specific'");
     expect(migration).toContain("CASE WHEN mechanic_id IS NULL THEN 'any' ELSE 'specific' END");
     expect(migration).toContain("OLD.status = 'confirmed'");
     expect(migration).toContain("OLD.mechanic_preference = 'specific'");
@@ -67,7 +67,7 @@ describe("MotoLink booking audit safeguards (source-contract tests)", () => {
   it("revalidates restored guest services, parts, shop hours, slot and mechanic before confirm", () => {
     expect(online).toContain("restoredDraftPending");
     expect(online).toContain("One or more saved services are no longer active at this shop.");
-    expect(online).toContain("validateSelectedServiceParts(resolvedShopId, selectedServices, selectedParts)");
+    expect(online).toContain("validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts))");
     expect(online).toContain("get_booking_availability");
     expect(online).toContain("restoredDraftPending}");
   });

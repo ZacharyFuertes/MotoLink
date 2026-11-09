@@ -320,6 +320,17 @@ CREATE TABLE invoices (
    VITE_GROQ_API_KEY=gsk_xxxxx...
    ```
 
+### Textbee appointment SMS
+
+Appointment status texts are sent only for **Confirmed**, **In Progress**, and **Completed**. Registered customers must opt in under Account Settings → Notifications; walk-in customers must separately opt in when the owner creates their booking. SMS consent is independent from email preferences.
+
+1. Revoke and replace any Textbee API key that has been shared or exposed. Do not copy a real API key into source code, a `VITE_` variable, or a committed file.
+2. Apply [`supabase/migrations/20261110000100_textbee_sms_notifications.sql`](supabase/migrations/20261110000100_textbee_sms_notifications.sql) in the Supabase SQL Editor.
+3. In Vercel Project → Settings → Environment Variables, set server-only `TEXTBEE_API_KEY`, optional `TEXTBEE_DEVICE_ID`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`. Never use a `VITE_` prefix for these server credentials. `.env.example` contains placeholders only.
+4. Pair and enable the Android device in Textbee. The app posts to Textbee’s documented `POST https://api.textbee.dev/api/v1/gateway/send-sms` endpoint. A success response means the SMS was queued, not delivered; check the returned batch ID in Textbee for delivery status.
+
+The API credential stays server-side. The endpoint resolves the booking and recipient itself, requires opt-in, normalizes Philippine mobile numbers, and deduplicates sends by appointment/status. SMS failures do not block status updates. An uncertain timeout is not automatically retried because Textbee may already have queued the message. See the [Textbee sending guide](https://textbee.dev/docs/sending-sms/sending-sms).
+
 ---
 
 ##Testing the System

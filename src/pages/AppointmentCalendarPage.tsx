@@ -42,6 +42,7 @@ import {
   sendServiceInProgressEmail,
   sendBookingConfirmationEmail,
   sendBookingCancelledEmail,
+  sendAppointmentStatusSms,
 } from "../services/notificationService";
 import { jobOrderService } from "../services/jobOrderService";
 import { invoiceService } from "../services/invoiceService";
@@ -448,6 +449,31 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
           } else if (emailResult?.skipped) {
             showToast("Appointment updated. Customer email preferences were respected.", "info");
           }
+        }
+
+        if (
+          appointment.status !== newStatus &&
+          (newStatus === "confirmed" || newStatus === "in_progress" || newStatus === "completed")
+        ) {
+          void sendAppointmentStatusSms(appointment.id, newStatus)
+            .then((smsResult) => {
+              if (smsResult.notConfigured) {
+                showToast("Appointment updated, but SMS delivery is not configured.", "info");
+              } else if (smsResult.queued) {
+                showToast("Appointment updated. Customer status SMS queued.", "success");
+              } else if (!smsResult.skipped) {
+                showToast(
+                  smsResult.uncertain
+                    ? "Appointment updated, but SMS delivery status is uncertain. It was not retried."
+                    : `Appointment updated, but SMS was not sent: ${smsResult.error || "Unknown error."}`,
+                  "error",
+                );
+              }
+            })
+            .catch((smsError) => {
+              console.error("Could not request appointment status SMS:", smsError);
+              showToast("Appointment updated, but the SMS request failed.", "error");
+            });
         }
 
         setAppointments(

@@ -289,6 +289,8 @@ export interface CustomerNotificationSettings {
   id?: string;
   user_id: string;
   email_notifications_enabled: boolean;
+  sms_notifications_enabled?: boolean;
+  sms_consent_updated_at?: string | null;
   updated_at?: string;
 }
 
