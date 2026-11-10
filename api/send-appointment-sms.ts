@@ -8,6 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   AppointmentSmsStatus,
   buildAppointmentStatusSms,
+  isSmsDeliveryLogUnavailable,
   normalizeSmsPhone,
   sendTextbeeSms,
 } from "./_lib/textbee";
@@ -106,27 +107,42 @@ export default async function handler(req: any, res: any) {
     }
 
     const record = async (state: "sending" | "skipped" | "failed" | "unknown" | "accepted", reasonCode?: string, textbeeBatchId?: string | null) => {
-      const { data, error } = await db.from("appointment_sms_deliveries").insert({
-        appointment_id: appointment.id,
-        target_status: status,
-        state,
-        reason_code: reasonCode || null,
-        textbee_batch_id: textbeeBatchId || null,
-        updated_at: new Date().toISOString(),
-      }).select("id").single();
-      if (error?.code === "23505") return { duplicate: true as const, id: null };
-      if (error || !data) throw error || new Error("Could not record SMS delivery state.");
-      return { duplicate: false as const, id: data.id as string };
+      try {
+        const { data, error } = await db.from("appointment_sms_deliveries").insert({
+          appointment_id: appointment.id,
+          target_status: status,
+          state,
+          reason_code: reasonCode || null,
+          textbee_batch_id: textbeeBatchId || null,
+          updated_at: new Date().toISOString(),
+        }).select("id").single();
+        if (error?.code === "23505") return { duplicate: true as const, id: null, unavailable: false as const };
+        if (error || !data) throw error || new Error("Could not record SMS delivery state.");
+        return { duplicate: false as const, id: data.id as string, unavailable: false as const };
+      } catch (error: any) {
+        if (isSmsDeliveryLogUnavailable(error)) {
+          return { duplicate: false as const, id: null, unavailable: true as const };
+        }
+        throw error;
+      }
     };
 
     const updateRecord = async (id: string, state: "accepted" | "failed" | "unknown", reasonCode?: string, textbeeBatchId?: string | null) => {
-      const { error } = await db.from("appointment_sms_deliveries").update({
-        state,
-        reason_code: reasonCode || null,
-        textbee_batch_id: textbeeBatchId || null,
-        updated_at: new Date().toISOString(),
-      }).eq("id", id);
-      if (error) console.error("[appointment-sms] Could not update delivery log state:", error.message);
+      try {
+        const { error } = await db.from("appointment_sms_deliveries").update({
+          state,
+          reason_code: reasonCode || null,
+          textbee_batch_id: textbeeBatchId || null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", id);
+        if (error && !isSmsDeliveryLogUnavailable(error)) {
+          console.error("[appointment-sms] Could not update delivery log state:", error.message);
+        }
+      } catch (error: any) {
+        if (!isSmsDeliveryLogUnavailable(error)) {
+          console.error("[appointment-sms] Could not update delivery log state:", error?.message || error);
+        }
+      }
     };
 
     const skip = async (reasonCode: string) => {
@@ -144,6 +160,14 @@ export default async function handler(req: any, res: any) {
     if (!recipient) return skip("phone_number_invalid");
 
     const claimed = await record("sending");
+    if (claimed.unavailable) {
+      return reply(res, 200, {
+        success: true,
+        skipped: true,
+        reason: "sms_delivery_log_unavailable",
+        warn: "SMS delivery logging is not enabled in this deployment yet; the appointment still completed successfully.",
+      });
+    }
     if (claimed.duplicate) return reply(res, 200, { success: true, skipped: true, duplicate: true, reason: "status_sms_already_claimed" });
 
     const message = buildAppointmentStatusSms({

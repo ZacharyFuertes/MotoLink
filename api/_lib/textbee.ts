@@ -50,6 +50,19 @@ export const buildAppointmentStatusSms = (context: AppointmentSmsContext): strin
   return `${greeting} service for MotoLink booking ${reference} at ${shop} is complete and ready for pickup.`;
 };
 
+export const isSmsDeliveryLogUnavailable = (error: any): boolean => {
+  const message = typeof error?.message === "string" ? error.message : "";
+  const code = typeof error?.code === "string" ? error.code : "";
+
+  return (
+    code === "42P01" ||
+    code === "42703" ||
+    /relation .*appointment_sms_deliveries.* does not exist/i.test(message) ||
+    /column .* does not exist/i.test(message) ||
+    /permission denied.*appointment_sms_deliveries/i.test(message)
+  );
+};
+
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export const sendTextbeeSms = async (options: {

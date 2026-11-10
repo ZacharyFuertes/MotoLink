@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAppointmentStatusSms, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
+import { buildAppointmentStatusSms, isSmsDeliveryLogUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
 
 const jsonResponse = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status,
@@ -33,6 +33,12 @@ describe("Textbee appointment SMS helpers", () => {
     expect(buildAppointmentStatusSms({ ...base, status: "in_progress" })).toContain("now in progress");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).toContain("ready for pickup");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).not.toMatch(/[🏍️✅]/u);
+  });
+
+  it("flags missing delivery-table schema as a non-fatal runtime issue", () => {
+    expect(isSmsDeliveryLogUnavailable({ code: "42P01", message: 'relation "public.appointment_sms_deliveries" does not exist' })).toBe(true);
+    expect(isSmsDeliveryLogUnavailable({ code: "42703", message: 'column "updated_at" of relation "appointment_sms_deliveries" does not exist' })).toBe(true);
+    expect(isSmsDeliveryLogUnavailable({ message: "Textbee rejected the message", code: "400" })).toBe(false);
   });
 
   it("posts the documented payload and returns the queued Textbee batch ID", async () => {
