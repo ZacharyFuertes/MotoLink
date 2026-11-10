@@ -67,6 +67,38 @@ const getShopIdFromUrl = (): string | null => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
+const AppLoadingSkeleton: React.FC = () => (
+  <div role="status" aria-label="Loading MotoLink" className="min-h-screen bg-app px-4 py-4 text-text-primary sm:px-6">
+    <div className="mx-auto max-w-7xl">
+      <div className="flex h-14 items-center justify-between border-b border-border-default" aria-hidden="true">
+        <div className="h-7 w-32 animate-pulse rounded-md bg-raised" />
+        <div className="hidden items-center gap-3 sm:flex">
+          <div className="h-8 w-20 animate-pulse rounded-md bg-raised" />
+          <div className="h-8 w-24 animate-pulse rounded-md bg-raised" />
+          <div className="h-8 w-8 animate-pulse rounded-md bg-raised" />
+        </div>
+      </div>
+      <div className="grid gap-4 py-6 lg:grid-cols-[220px_minmax(0,1fr)]" aria-hidden="true">
+        <aside className="hidden space-y-3 rounded-md border border-border-default bg-surface p-4 lg:block">
+          <div className="mb-5 h-4 w-28 animate-pulse rounded-md bg-raised" />
+          {[0, 1, 2, 3, 4].map((item) => <div key={item} className="h-9 animate-pulse rounded-md bg-raised" />)}
+        </aside>
+        <main className="space-y-4">
+          <div className="space-y-3 rounded-md border border-border-default bg-surface p-5">
+            <div className="h-6 w-48 max-w-full animate-pulse rounded-md bg-raised" />
+            <div className="h-4 w-72 max-w-full animate-pulse rounded-md bg-raised" />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((item) => <div key={item} className="h-36 animate-pulse rounded-md border border-border-default bg-surface p-4" />)}
+          </div>
+          <div className="h-64 animate-pulse rounded-md border border-border-default bg-surface" />
+        </main>
+      </div>
+      <span className="sr-only">Loading your account</span>
+    </div>
+  </div>
+);
+
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isLoading, isInitialized, logout } = useAuth();
 
@@ -285,14 +317,7 @@ const AppContent: React.FC = () => {
   // Wait for stored-session hydration before rendering or validating a saved
   // route; otherwise the initial unauthenticated render can clear moto_last_page.
   if (!isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-moto-dark text-slate-100">
-        <div className="text-center">
-          <p className="text-xl font-semibold mb-2">Restoring your session...</p>
-          <div className="animate-spin h-10 w-10 border-4 border-moto-accent border-t-transparent rounded-full mx-auto" />
-        </div>
-      </div>
-    );
+    return <AppLoadingSkeleton />;
   }
 
   // If auth loading and we're NOT on a login screen, show a spinner placeholder.
@@ -300,16 +325,7 @@ const AppContent: React.FC = () => {
   // mounted through login this lets its role guard + onLoginSuccess fire (the
   // wrong-portal guard is dead code if the login page unmounts mid-login).
   if (isLoading && !isLoginScreen) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-moto-dark text-slate-100">
-        <div className="text-center">
-          <p className="text-xl font-semibold mb-2">
-            Checking authentication and role permissions...
-          </p>
-          <div className="animate-spin h-10 w-10 border-4 border-moto-accent border-t-transparent rounded-full mx-auto" />
-        </div>
-      </div>
-    );
+    return <AppLoadingSkeleton />;
   }
 
   // If not authenticated, or still on a login screen awaiting role confirmation,

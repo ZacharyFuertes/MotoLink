@@ -79,7 +79,7 @@ export const DatabaseStatus: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, scale: 0 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="database-status-indicator fixed right-28 top-3 z-40 flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium sm:right-32 sm:top-4"
+      className="database-status-indicator fixed right-4 top-24 z-30 flex items-center gap-2 rounded-md px-3 py-1.5 text-[13px] font-medium sm:right-6"
     >
       {status === "testing" ? (
         <motion.div

@@ -7,7 +7,7 @@ interface HeroSlideshowProps {
 
 const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ children }) => {
   return (
-    <div className="keep-dark relative w-full min-h-screen py-24 sm:py-28 lg:py-0 lg:h-[100vh] overflow-hidden bg-black flex items-center justify-center">
+    <div className="keep-dark relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-black pb-10 pt-24 sm:pb-12 sm:pt-28 lg:min-h-screen">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -17,10 +17,9 @@ const HeroSlideshow: React.FC<HeroSlideshowProps> = ({ children }) => {
         }}
       />
 
-      {/* Gradient Overlays dark navy wash + bottom fade for readability */}
-      <div className="absolute inset-0 bg-gradient-overlay" />
-      <div className="absolute inset-0 bg-moto-dark/70" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-moto-dark to-transparent" />
+      {/* Restrained gray scrim keeps the photo visible while preserving contrast. */}
+      <div className="hero-photo-scrim absolute inset-0 bg-gray-900/35" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-moto-dark/85 via-moto-dark/35 to-transparent" />
 
       {/* Content */}
       <div className="hero-content relative z-10 flex w-full flex-col items-center justify-center px-4 text-center sm:px-6 lg:px-8">

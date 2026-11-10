@@ -272,11 +272,11 @@ const MotolinkLanding = ({ isAuthenticated, onLoginRequired, onBook, onOpenShopR
       >
         <HeroSlideshow>
           <div className="w-full max-w-4xl px-2 sm:px-0">
-          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(3.25rem,8vw,6.5rem)] leading-1.15 tracking-[0.01em]">
-            <span className="text-white xs:drop-shadow-[0_0_12px_rgba(255,255,255,0.25),0_0_30px_rgba(255,255,255,0.12)] drop-shadow-[0_0_24px_rgba(255,255,255,0.45),0_0_70px_rgba(255,255,255,0.25)]">Find Your</span>
-            <span className="block text-moto-accent xs:drop-shadow-[0_0_10px_rgba(45,212,191,0.5),0_0_30px_rgba(45,212,191,0.3)] drop-shadow-[0_0_24px_rgba(45,212,191,0.75),0_0_70px_rgba(45,212,191,0.45)]">Motor Shop.</span>
+          <motion.h1 initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.08, willChange: "transform, opacity" }} className="font-display font-black text-[clamp(3.25rem,8vw,6.5rem)] leading-1.15 tracking-[0.01em] text-white drop-shadow-[0_2px_12px_rgba(2,6,23,0.8)]">
+            <span className="xs:drop-shadow-[0_0_14px_rgba(255,255,255,0.35),0_0_34px_rgba(15,23,42,0.28)] drop-shadow-[0_0_26px_rgba(255,255,255,0.35),0_0_70px_rgba(15,23,42,0.42)]">Find Your</span>
+            <span className="mt-1 block text-[#6be7dc] xs:drop-shadow-[0_0_14px_rgba(107,231,220,0.7),0_0_32px_rgba(107,231,220,0.4)] drop-shadow-[0_0_26px_rgba(107,231,220,0.7),0_0_80px_rgba(15,23,42,0.5)]">Motor Shop.</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-[1.75rem] max-w-[560px] text-[1.15rem] sm:text-[1.25rem] font-medium leading-1.8 tracking-[0.015em] text-white/65 text-center text-wrap-balance xs:drop-shadow-[0_0_10px_rgba(255,255,255,0.12)] drop-shadow-[0_0_18px_rgba(255,255,255,0.15)]">
+          <motion.p initial={{ opacity: 0, y: isMobile ? 10 : 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.16, willChange: "transform, opacity" }} className="mx-auto mt-[1.75rem] max-w-[560px] text-[1.15rem] sm:text-[1.25rem] font-medium leading-1.8 tracking-[0.015em] text-white/90 text-center text-wrap-balance drop-shadow-[0_3px_14px_rgba(2,6,23,0.72)]">
             Locate trusted motorcycle shops near you for services, parts, and mechanics across the Philippines.
           </motion.p>
 

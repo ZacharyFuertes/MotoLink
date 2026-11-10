@@ -17,14 +17,24 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPA
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const TEXTBEE_API_KEY = process.env.TEXTBEE_API_KEY || "";
 const TEXTBEE_DEVICE_ID = process.env.TEXTBEE_DEVICE_ID || "";
+const MISSING_SERVER_ENV = [
+  !SUPABASE_URL && "SUPABASE_URL",
+  !SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
+  !TEXTBEE_API_KEY && "TEXTBEE_API_KEY",
+].filter(Boolean) as string[];
 const ALLOWED_STATUSES = new Set<AppointmentSmsStatus>(["confirmed", "in_progress", "completed"]);
 
 const reply = (res: any, status: number, body: Record<string, unknown>) => res.status(status).json(body);
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return reply(res, 405, { success: false, error: "Method not allowed." });
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !TEXTBEE_API_KEY) {
-    return reply(res, 503, { success: false, notConfigured: true, error: "SMS service is not configured." });
+  if (MISSING_SERVER_ENV.length > 0) {
+    return reply(res, 503, {
+      success: false,
+      notConfigured: true,
+      missing: MISSING_SERVER_ENV,
+      error: "SMS service is not configured in Vercel. Set the required server environment variables.",
+    });
   }
 
   const { appointmentId, status, accessToken } = req.body || {};

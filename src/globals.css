@@ -1228,15 +1228,207 @@ html.light .owner-dashboard textarea::placeholder {
 /* ── Profile ("My Garage") page: main panels get a solid, raised surface so
    they stand out against the page in both themes ── */
 .profile-page .profile-panel {
-  background-color: rgb(var(--moto-darker));
-  border-color: rgb(var(--moto-gray));
-  box-shadow: 0 16px 38px -22px rgba(0, 0, 0, 0.55);
+  background-color: rgb(var(--surface));
+  border-color: rgb(var(--border-default));
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3), 0 14px 28px -16px rgb(0 0 0 / 0.78), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.025);
+}
+.profile-page :is(h1, h2, h3) {
+  color: rgb(var(--text-primary));
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+.profile-page :is([class~="text-xs"], [class*="text-[10px]"], [class*="text-[11px]"], [class*="text-[12px]"], [class*="text-[13px]"]) {
+  font-size: 0.75rem !important;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.profile-page label {
+  color: rgb(var(--text-primary));
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.profile-page {
+  --brand: 53 208 192;
+  --accent: 53 208 192;
+  --brand-fg: 15 23 35;
+  --accent-fg: 15 23 35;
+  --brand-tint: 37 51 78;
+  --accent-tint: 37 51 78;
+}
+html.light .profile-page {
+  --brand: 15 118 110;
+  --accent: 15 118 110;
+  --brand-fg: 255 255 255;
+  --accent-fg: 255 255 255;
+  --brand-tint: 243 244 246;
+  --accent-tint: 243 244 246;
+}
+.profile-page .rounded-lg,
+.profile-page .rounded-xl,
+.profile-page .rounded-full:not(.profile-avatar) {
+  border-radius: 6px;
+}
+.profile-page .rounded-2xl {
+  border-radius: 8px;
+}
+.profile-page :is(button, input, textarea, select) {
+  transition-duration: 100ms;
+}
+.profile-page [class*="bg-moto-darker"],
+.profile-page [class*="bg-moto-dark"] {
+  background-color: rgb(var(--surface)) !important;
+  background-image: none !important;
+}
+.profile-page [class*="border-moto-gray"] {
+  border-color: rgb(var(--border-default)) !important;
+}
+.profile-page [class*="text-slate-50"],
+.profile-page [class*="text-slate-100"],
+.profile-page [class*="text-slate-200"] {
+  color: rgb(var(--text-primary)) !important;
+}
+.profile-page [class*="text-slate-300"],
+.profile-page [class*="text-slate-400"] {
+  color: rgb(var(--text-secondary)) !important;
+}
+.profile-page [class*="text-slate-500"],
+.profile-page [class*="text-slate-600"] {
+  color: rgb(var(--text-muted)) !important;
+}
+.profile-page [class*="text-slate-950"] {
+  color: rgb(var(--brand-fg)) !important;
+}
+.profile-page [class*="text-moto-accent"] {
+  color: rgb(var(--brand)) !important;
+}
+.profile-page [class~="bg-moto-accent"] {
+  background-color: rgb(var(--brand)) !important;
+}
+.profile-page [class*="bg-[#0d1420]"] {
+  background-color: rgb(var(--surface)) !important;
+}
+.profile-page [class*="bg-moto-accent/"] {
+  background-color: rgb(var(--brand-tint)) !important;
+}
+.profile-page [class*="border-moto-accent/"] {
+  border-color: rgb(var(--border-strong)) !important;
+}
+.profile-page .profile-panel,
+.profile-page article,
+.profile-page [role="menu"],
+.profile-page [role="dialog"],
+.profile-page button.group,
+.profile-page [role="button"] {
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3), 0 14px 28px -16px rgb(0 0 0 / 0.78), inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.025);
+}
+.profile-page :is(article, [role="button"], button.group):hover {
+  box-shadow: 0 3px 8px rgb(0 0 0 / 0.34), 0 18px 32px -16px rgb(0 0 0 / 0.82), inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+.profile-page [class*="group-hover:translate"] {
+  transform: none !important;
+}
+.profile-page :is(button, input, textarea, select):focus-visible {
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 1px;
+  box-shadow: none;
+}
+.profile-page :is(input, textarea, select) {
+  border-color: rgb(var(--border-default));
+  background-color: rgb(var(--raised));
+  color: rgb(var(--text-primary));
+}
+.profile-page :is(input, textarea, select):focus-visible {
+  border-color: rgb(var(--brand));
+  outline: 2px solid rgb(var(--brand));
+  outline-offset: 1px;
+  box-shadow: none;
+}
+.profile-page :is(input, textarea, select)::placeholder {
+  color: rgb(var(--text-muted));
+}
+.profile-page [role="menu"] {
+  animation: profile-popover-in 150ms ease-out both;
+}
+@keyframes profile-popover-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 html.light .profile-page .profile-panel {
-  border-color: #b9d4e2;
-  box-shadow:
-    0 14px 34px -22px rgba(15, 118, 110, 0.2),
-    0 8px 20px -18px rgba(15, 23, 42, 0.16);
+  border-color: rgb(var(--border-default));
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.1), 0 14px 28px -16px rgb(15 23 42 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 1px rgb(255 255 255 / 0.45);
+}
+html.light .profile-page :is(article, [role="menu"], [role="dialog"], button.group, [role="button"]) {
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.1), 0 14px 28px -16px rgb(15 23 42 / 0.3), inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 1px rgb(255 255 255 / 0.45);
+}
+html.light .profile-page :is(article, [role="button"], button.group):hover {
+  box-shadow: 0 3px 8px rgb(15 23 42 / 0.13), 0 18px 32px -16px rgb(15 23 42 / 0.34), inset 0 1px 0 rgb(255 255 255 / 1), inset 0 0 0 1px rgb(255 255 255 / 0.6);
+}
+
+@keyframes profile-progress-reveal {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.profile-progress-fill {
+  transform-origin: left center;
+  animation: profile-progress-reveal 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transition: width 500ms ease-out;
+}
+
+@keyframes profile-progress-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(420%); }
+}
+
+.profile-progress-sweep {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.34), transparent);
+  animation: profile-progress-sweep 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-page *,
+  .profile-page *::before,
+  .profile-page *::after,
+  .profile-progress-fill {
+    animation: none;
+    transition: none;
+  }
+  .profile-progress-sweep {
+    animation: none;
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .profile-page .profile-panel {
+    padding: 1rem;
+  }
+
+  .profile-page [role="dialog"] {
+    max-height: 100dvh;
+  }
+
+  .profile-page [role="dialog"] :is(h1, h2, h3),
+  .profile-page [role="dialog"] p,
+  .profile-page [role="dialog"] dd {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 359px) {
+  .profile-page main {
+    padding-inline: 0.75rem;
+  }
+
+  .profile-page [role="tab"] {
+    padding-inline: 0.5rem;
+  }
+
+  .profile-page [role="dialog"] {
+    padding: 0.75rem;
+  }
 }
 
 /* ── Light theme: charts & selection ── */
@@ -1284,13 +1476,26 @@ html.light [class~="bg-moto-dark/70"]:not(.keep-dark):not(.keep-dark *) {
   background-color: rgba(15, 23, 42, 0.3);
 }
 
-/* Light theme: hero is lighter now, so the white copy gets a dark soft shadow
-   to keep its contrast over the (brighter) photo. */
+/* Light theme: hero is lighter now, so the white copy gets a darker, stronger
+   shadow to keep its contrast over the brighter photo. */
 html.light .hero-content h1,
 html.light .hero-content p {
   text-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.45),
-    0 4px 18px rgba(0, 0, 0, 0.35);
+    0 3px 8px rgba(2, 6, 23, 0.75),
+    0 12px 26px rgba(2, 6, 23, 0.42);
+}
+html.light .hero-content h1,
+html.light .hero-content p,
+.hero-content h1,
+.hero-content p {
+  color: #ffffff;
+}
+
+.hero-content h1,
+.hero-content p {
+  text-shadow:
+    0 3px 8px rgba(2, 6, 23, 0.7),
+    0 12px 26px rgba(2, 6, 23, 0.38);
 }
 
 /* Light theme: navbar adapts to the section it overlaps. Over the hero
@@ -1313,62 +1518,6 @@ html.light .nav-scrolled .text-emerald-300 {
 /* Accent text needs a deeper teal to stay legible on light surfaces */
 html.light .text-moto-accent:not(.keep-dark):not(.keep-dark *) {
   color: #0d9488;
-}
-
-/* Landing page light mode: a softly layered canvas, crisp cards, and restrained
-   teal detail rather than dark-mode panels simply recolored white. */
-html.light .landing-page {
-  color: #182333;
-  background-color: #f4f6f9;
-}
-html.light .landing-page .landing-section--white {
-  background-color: #ffffff;
-}
-html.light .landing-page .landing-section--soft {
-  background-color: #f4f6f9;
-}
-html.light .landing-page .landing-feature-card {
-  border-color: #e1e6ed;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(24, 35, 51, 0.035), 0 12px 30px -24px rgba(24, 35, 51, 0.24);
-}
-html.light .landing-page .landing-feature-card:hover {
-  border-color: #b9d9d4;
-  box-shadow: 0 16px 34px -24px rgba(15, 118, 110, 0.28);
-}
-html.light .landing-page .landing-cta-panel {
-  border-color: #cfe5e1;
-  background: linear-gradient(135deg, #ffffff 0%, #f1f8f7 56%, #eaf4f2 100%);
-  box-shadow: 0 20px 55px -38px rgba(15, 118, 110, 0.26);
-}
-html.light .landing-page .landing-shop-card {
-  border-color: #e1e6ed;
-  background: #ffffff;
-  box-shadow: 0 18px 42px -30px rgba(24, 35, 51, 0.38);
-}
-html.light .landing-page .landing-shop-card:hover {
-  border-color: #9ecfc8;
-  box-shadow: 0 20px 48px -28px rgba(15, 118, 110, 0.28);
-}
-html.light .landing-page .landing-shop-card [class~="bg-moto-darker"],
-html.light .landing-page .landing-shop-card [class~="bg-moto-darker/80"] {
-  background-color: #f7f9fb;
-}
-html.light .landing-page .landing-shop-card [class~="border-moto-gray/40"],
-html.light .landing-page .landing-shop-card [class~="border-moto-gray/60"] {
-  border-color: #e7ebf0;
-}
-html.light .landing-page .landing-shop-card [class~="text-slate-200"] {
-  color: #334155;
-}
-html.light .landing-page .landing-shop-card [class~="text-slate-400"] {
-  color: #64748b;
-}
-html.light .landing-page .landing-shop-card [class~="text-white"] {
-  color: #334155;
-}
-html.light .landing-page .landing-shop-card [class~="bg-moto-gray"] {
-  background-color: #eef2f6;
 }
 
 /* ── Public workshop profile: editorial garage / service-manual direction ── */

@@ -32,6 +32,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import BookAppointmentModal from "../components/BookAppointmentModal";
 import ServiceHistoryModal from "../components/ServiceHistoryModal";
+import ThemeToggle from "../components/ThemeToggle";
 import VehicleMakeModelFields from "../components/VehicleMakeModelFields";
 import { getAppointmentStatus } from "../utils/appointmentStatus";
 import { cancelCustomerAppointment, claimWalkInAppointment } from "../services/appointmentService";
@@ -144,7 +145,7 @@ const initials = (name: string) =>
 
 const fieldClass =
   "h-10 w-full rounded-lg border border-border-default bg-raised px-3 text-sm text-text-primary outline-none transition placeholder:text-text-muted focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60";
-const labelClass = "mb-1.5 block text-[13px] font-medium text-text-secondary";
+const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 
 const emptyBikeForm = {
   make: "",
@@ -171,6 +172,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const [settingsErrors, setSettingsErrors] = useState<Record<string, string>>({});
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState("");
+  const [profileDataLoading, setProfileDataLoading] = useState(true);
 
   const selectTab = (tab: TabKey) => {
     setActiveTab(tab);
@@ -304,7 +306,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const phone = user?.phone || "";
 
   const refreshData = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setProfileDataLoading(false);
+      return;
+    }
     try {
       const [vehiclesResult, appointmentsResult] = await Promise.allSettled([
         getMyVehicles(user.id),
@@ -398,6 +403,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       );
     } catch (err) {
       console.error("Error loading profile data:", err);
+    } finally {
+      setProfileDataLoading(false);
     }
   };
 
@@ -828,27 +835,32 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   return (
     <div className="profile-page min-h-screen bg-app font-sans text-text-primary">
       {/* ── Top Navbar ── */}
-      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1080px] items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-border-default bg-surface">
+        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border-default bg-raised px-3 text-sm font-medium text-text-secondary transition hover:border-border-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-border-default bg-surface px-3 text-sm font-medium text-text-secondary transition-colors duration-100 hover:border-border-strong hover:text-text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1"
             >
               <ArrowLeft size={16} /> Back
             </button>
-            <span className="text-[22px] font-semibold leading-7 text-text-primary">
-              My account
-            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">Customer account</p>
+              <p className="text-sm font-semibold text-text-primary">My profile</p>
+            </div>
           </div>
 
-          {/* Avatar dropdown */}
-          <div className="relative">
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
+            <ThemeToggle segmented className="w-[184px] sm:w-[210px]" />
+            {/* Avatar dropdown */}
+            <div className="relative">
             <button
               onClick={() => setMenuOpen((o) => !o)}
-              className="flex items-center gap-3 rounded-lg border border-border-default bg-raised px-2.5 py-1.5 transition hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              className="flex h-10 items-center gap-2 rounded-md border border-border-default bg-surface px-2 transition-colors duration-100 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-border-default bg-surface text-sm font-semibold text-brand">
+              <span className="profile-avatar flex h-9 w-9 items-center justify-center rounded-full border border-border-default bg-surface text-sm font-semibold text-brand">
                 {initials(displayName)}
               </span>
               <span className="hidden text-left sm:block">
@@ -859,10 +871,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   {email}
                 </span>
               </span>
-              <ChevronDown
-                size={15}
-                className={`text-text-muted transition ${menuOpen ? "rotate-180" : ""}`}
-              />
+              <ChevronDown size={15} className={`text-text-muted transition-transform duration-100 ${menuOpen ? "rotate-180" : ""}`} />
             </button>
 
             {menuOpen && (
@@ -871,34 +880,52 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   className="fixed inset-0 z-10"
                   onClick={() => setMenuOpen(false)}
                 />
-                <div className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-lg border border-border-default bg-surface p-1">
+                <div role="menu" className="absolute right-0 z-20 mt-2 w-56 overflow-hidden rounded-md border border-border-default bg-surface p-1">
                   <button
                     onClick={() => {
                       selectTab("profile");
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-hover hover:text-text-primary"
+                    role="menuitem"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-text-secondary transition-colors duration-100 hover:bg-hover hover:text-text-primary"
                   >
                     <User size={15} className="text-moto-accent" /> My Profile
                   </button>
                   <div className="my-1 border-t border-default" />
                   <button
                     onClick={onLogout}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/10"
+                    role="menuitem"
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-danger transition-colors duration-100 hover:bg-danger/10"
                   >
                     <LogOut size={15} /> Log Out
                   </button>
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1080px] px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
         <section className="min-w-0">
-          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border border-border-default bg-surface p-5 sm:p-6">
-            <div className="flex h-[76px] w-[76px] shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-xl font-semibold text-brand">
+          <div className="profile-panel mb-5 flex flex-wrap items-center gap-4 rounded-lg border border-border-default bg-surface p-4 sm:p-5">
+            {profileDataLoading ? (
+              <>
+                <div className="profile-avatar h-16 w-16 shrink-0 animate-pulse rounded-full bg-raised" aria-hidden="true" />
+                <div className="min-w-0 flex-1 space-y-2" aria-hidden="true">
+                  <div className="h-5 w-44 max-w-full animate-pulse rounded-md bg-raised" />
+                  <div className="h-3 w-64 max-w-full animate-pulse rounded-md bg-raised" />
+                </div>
+                <div className="flex w-full gap-3 border-t border-border-default pt-3 sm:w-auto sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0" aria-hidden="true">
+                  <div className="h-10 w-20 animate-pulse rounded-md bg-raised" />
+                  <div className="h-10 w-24 animate-pulse rounded-md bg-raised" />
+                </div>
+                <span className="sr-only" role="status">Loading your profile</span>
+              </>
+            ) : (
+              <>
+            <div className="profile-avatar flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-border-default bg-raised text-lg font-semibold text-brand">
               {initials(displayName)}
             </div>
             <div className="min-w-0 flex-1">
@@ -906,19 +933,25 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 <h1 className="text-[22px] font-semibold leading-7 text-text-primary">{displayName}</h1>
                 {user?.email && <span className="inline-flex items-center gap-1 rounded-full border border-ok/30 bg-ok/10 px-2 py-1 text-xs font-semibold text-ok"><ShieldCheck size={12} /> Verified rider</span>}
               </div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-text-secondary">
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
                 {user?.address && <span className="inline-flex items-center gap-1.5"><MapPin size={13} />{user.address}</span>}
                 {phone && <span className="inline-flex items-center gap-1.5"><User size={13} />{phone}</span>}
                 <span className="inline-flex min-w-0 items-center gap-1.5 truncate"><Tag size={13} />{email}</span>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-5 border-l border-border-default pl-5 text-left sm:ml-auto">
-              <div><p className="text-xl font-semibold tabular-nums text-text-primary">{vehicles.length}</p><p className="text-xs text-text-muted">Motorcycle{vehicles.length === 1 ? "" : "s"}</p></div>
-              <div><p className="text-xl font-semibold tabular-nums text-text-primary">{completedCount}</p><p className="text-xs text-text-muted">Completed services</p></div>
+            <div className="flex w-full flex-wrap items-center gap-x-5 gap-y-3 border-t border-border-default pt-3 sm:w-auto sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+              <div><p className="text-lg font-semibold tabular-nums text-text-primary">{vehicles.length}</p><p className="text-xs text-text-muted">Motorcycle{vehicles.length === 1 ? "" : "s"}</p></div>
+              <div><p className="text-lg font-semibold tabular-nums text-text-primary">{completedCount}</p><p className="text-xs text-text-muted">Completed services</p></div>
+              <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                <button type="button" onClick={() => selectTab("settings")} className="inline-flex h-9 items-center gap-2 rounded-md border border-border-default bg-surface px-3 text-xs font-semibold text-text-secondary transition-colors duration-100 hover:border-border-strong hover:text-text-primary active:scale-[0.98]"><Pencil size={14} /> Edit profile</button>
+                <button type="button" onClick={openAddBike} className="inline-flex h-9 items-center gap-2 rounded-md bg-brand px-3 text-xs font-semibold text-brand-fg transition-colors duration-100 hover:brightness-95 active:scale-[0.98]"><Car size={14} /> Add bike</button>
+              </div>
             </div>
+              </>
+            )}
           </div>
 
-          <div role="tablist" aria-label="Customer account sections" className="mb-6 flex gap-5 overflow-x-auto border-b border-border-default">
+          <div role="tablist" aria-label="Customer account sections" className="mb-6 flex gap-1 overflow-x-auto border-b border-border-default">
             {NAV_TABS.map((tab, index) => (
               <button
                 key={tab.key}
@@ -934,14 +967,37 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   selectTab(NAV_TABS[next].key);
                   tabRefs.current[next]?.focus();
                 }}
-                className={`shrink-0 border-b-2 px-1 pb-3 text-sm ${activeTab === tab.key ? "border-brand font-semibold text-brand" : "border-transparent font-medium text-text-secondary hover:text-text-primary"}`}
+                className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 ${activeTab === tab.key ? "border-brand font-semibold text-brand" : "border-transparent font-medium text-text-secondary hover:text-text-primary"}`}
               >
-                {tab.label === "Profile & Garage" ? "Overview" : tab.label === "Bookings & History" ? <span className="inline-flex items-center gap-1.5">Bookings <span className="rounded-full bg-raised px-1.5 py-0.5 text-xs">{history.length}</span></span> : tab.label === "Saved Shops" ? "Saved shops" : "Account settings"}
+                <tab.icon size={15} aria-hidden="true" />
+                {tab.label === "Profile & Garage" ? "Overview" : tab.label === "Bookings & History" ? <span className="inline-flex items-center gap-1.5">Bookings <span className="rounded-md bg-raised px-1.5 py-0.5 text-xs">{history.length}</span></span> : tab.label === "Saved Shops" ? "Saved shops" : "Account settings"}
               </button>
             ))}
           </div>
 
-          {activeTab === "profile" && (
+          {profileDataLoading && (
+            <div role="status" aria-label="Loading profile content" className="space-y-4">
+              <div className="grid gap-4 min-[900px]:grid-cols-2" aria-hidden="true">
+                {[0, 1].map((item) => (
+                  <div key={item} className="profile-panel space-y-4 rounded-lg border border-border-default bg-surface p-5">
+                    <div className="h-5 w-36 animate-pulse rounded-md bg-raised" />
+                    <div className="h-3 w-56 max-w-full animate-pulse rounded-md bg-raised" />
+                    <div className="h-28 animate-pulse rounded-md bg-raised" />
+                    <div className="h-2 w-full animate-pulse rounded-md bg-raised" />
+                  </div>
+                ))}
+              </div>
+              <div className="profile-panel space-y-4 rounded-lg border border-border-default bg-surface p-5" aria-hidden="true">
+                <div className="h-5 w-32 animate-pulse rounded-md bg-raised" />
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {[0, 1, 2].map((item) => <div key={item} className="h-28 animate-pulse rounded-md bg-raised" />)}
+                </div>
+              </div>
+              <span className="sr-only">Loading your bookings and garage</span>
+            </div>
+          )}
+
+          {!profileDataLoading && activeTab === "profile" && (
             <div className="flex flex-col gap-6">
               {/* My Garage */}
               <div className="order-2 profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
@@ -977,7 +1033,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           type="button"
                           onClick={() => setVehicleDetailId(v.id)}
                           disabled={busy}
-                          className="group flex flex-col rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 text-left transition hover:border-moto-accent/50 hover:shadow-lg hover:shadow-black/20 active:scale-[0.99] disabled:opacity-50"
+                          className="group flex flex-col rounded-2xl border border-moto-gray/80 bg-moto-darker/40 p-5 text-left transition-colors duration-100 hover:border-moto-accent/50 active:scale-[0.98] disabled:opacity-50"
                         >
                           <div className="mb-4 flex items-start justify-between gap-2">
                             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
@@ -1089,7 +1145,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           aria-valuenow={progressPercent}
                           aria-label={`Service progress: ${progressPercent}%`}
                         >
-                          <div className="h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${progressPercent}%` }} />
+                          <div className="profile-progress-fill relative h-full rounded-full bg-brand" style={{ width: `${progressPercent}%` }}>
+                            {progressBooking.status === "in_progress" && (
+                              <span aria-hidden="true" className="profile-progress-sweep absolute inset-y-0 left-0 w-8" />
+                            )}
+                          </div>
                         </div>
                         <div className="mt-2 flex justify-between text-[10px] font-medium text-slate-500">
                           <span>Booked</span>
@@ -1128,13 +1188,13 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   <div><h2 className="text-[15px] font-semibold text-text-primary">Recent bookings</h2><p className="mt-1 text-[13px] text-text-muted">Your four latest services</p></div>
                   <button type="button" onClick={() => selectTab("history")} className="text-[13px] font-medium text-brand hover:underline">View all</button>
                 </div>
-                {history.slice(0, 4).length === 0 ? <p className="py-6 text-center text-[13px] text-text-muted">No bookings yet.</p> : <div className="divide-y divide-border-default">{history.slice(0, 4).map((booking) => { const status = getAppointmentStatus(booking.status); const amount = bookingAmount(booking); return <button key={booking.id} type="button" onClick={() => openBooking(booking)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-hover/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"><div className="min-w-0 flex-1"><p className="truncate text-[13px] font-medium text-text-primary">{sentenceCase(booking.service_type)}</p><p className="mt-1 truncate text-xs text-text-muted">Schedule: {formatManilaDateTime(booking.scheduled_date, booking.scheduled_time)} · {booking.shop_name || "Motor repair shop"}</p><p className="mt-0.5 truncate text-xs text-text-muted">Placed: {booking.created_at ? formatManilaDate(booking.created_at) : "Not available"}</p></div><span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${status.pill}`}>{status.label}</span><span className="shrink-0 text-[13px] font-semibold tabular-nums text-text-primary">{amount.value != null ? formatMoney(amount.value) : "—"}</span></button>; })}</div>}
+                {history.slice(0, 4).length === 0 ? <p className="py-6 text-center text-[13px] text-text-muted">No bookings yet.</p> : <div className="divide-y divide-border-default">{history.slice(0, 4).map((booking) => { const status = getAppointmentStatus(booking.status); const amount = bookingAmount(booking); return <button key={booking.id} type="button" onClick={() => openBooking(booking)} className="flex w-full flex-wrap items-center gap-2 py-3 text-left hover:bg-hover/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:flex-nowrap sm:gap-3"><div className="min-w-0 flex-[1_1_100%] sm:flex-1"><p className="truncate text-[13px] font-medium text-text-primary">{sentenceCase(booking.service_type)}</p><p className="mt-1 truncate text-xs text-text-muted">Schedule: {formatManilaDateTime(booking.scheduled_date, booking.scheduled_time)} · {booking.shop_name || "Motor repair shop"}</p><p className="mt-0.5 truncate text-xs text-text-muted">Placed: {booking.created_at ? formatManilaDate(booking.created_at) : "Not available"}</p></div><span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-semibold ${status.pill}`}>{status.label}</span><span className="shrink-0 text-[13px] font-semibold tabular-nums text-text-primary">{amount.value != null ? formatMoney(amount.value) : "—"}</span></button>; })}</div>}
               </div>
               </div>
             </div>
           )}
 
-          {activeTab === "history" && (
+          {!profileDataLoading && activeTab === "history" && (
             <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
@@ -1272,7 +1332,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                             : "hover:border-brand hover:bg-hover"
                         }`}
                       >
-                        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+                        <div className="flex flex-col gap-3 p-3 sm:p-4 lg:flex-row lg:items-center lg:gap-4">
                           {/* Service + shop */}
                           <div className="flex min-w-0 flex-1 items-center gap-3">
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
@@ -1289,11 +1349,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           </div>
 
                           {/* Date + vehicle */}
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-2.5 py-1 tabular-nums">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-300">
+                            <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-lg bg-raised px-2.5 py-1 tabular-nums">
                               <Calendar size={12} className="text-brand" />
-                              <span className="block">Schedule: {formatManilaDateTime(h.scheduled_date, h.scheduled_time)}</span>
-                              <span className="mt-0.5 block text-[11px] text-text-muted">Placed: {h.created_at ? formatManilaDate(h.created_at) : "Not available"}</span>
+                              <span className="min-w-0 break-words">Schedule: {formatManilaDateTime(h.scheduled_date, h.scheduled_time)}</span>
+                              <span className="basis-full pl-5 text-[11px] text-text-muted">Placed: {h.created_at ? formatManilaDate(h.created_at) : "Not available"}</span>
                             </span>
                             <span className="inline-flex items-center gap-1.5 rounded-lg bg-raised px-2.5 py-1">
                               <Car size={12} className="shrink-0 text-brand" />
@@ -1319,7 +1379,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {action && <button onClick={(e) => { e.stopPropagation(); if (action === "Track") openBooking(h); else if (action === "Rebook") setRebooking(h); else { setReviewingBooking(h); setReviewRating(0); setReviewTitle(""); setReviewComment(""); setReviewError(""); } }} className="inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-raised px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:border-brand hover:text-brand">{action === "Track" ? <MapPin size={13} /> : action === "Rebook" ? <RotateCcw size={12} /> : <Star size={13} />}{action}</button>}
 
                             {canCancelBooking(h) && (
@@ -1378,7 +1438,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </div>
           )}
 
-          {activeTab === "saved" && (
+          {!profileDataLoading && activeTab === "saved" && (
             <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <h2 className="text-lg font-bold text-slate-100">
                 Saved Shops
@@ -1393,8 +1453,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
               )}
               {savedShopsLoading ? (
-                <div className="mt-8 flex items-center justify-center gap-3 py-12 text-sm text-slate-400">
-                  <Loader2 size={18} className="animate-spin text-moto-accent" /> Loading saved shops…
+                <div role="status" aria-label="Loading saved shops" className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[0, 1, 2, 3].map((item) => (
+                    <div key={item} className="flex items-center gap-3 rounded-md border border-border-default bg-surface p-3" aria-hidden="true">
+                      <div className="h-12 w-12 animate-pulse rounded-md bg-raised" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="h-4 w-36 max-w-full animate-pulse rounded-md bg-raised" />
+                        <div className="h-3 w-48 max-w-full animate-pulse rounded-md bg-raised" />
+                      </div>
+                    </div>
+                  ))}
+                  <span className="sr-only">Loading saved shops</span>
                 </div>
               ) : savedShops.length === 0 ? (
                 <div className="mt-8 rounded-xl border border-dashed border-moto-gray p-12 text-center">
@@ -1405,7 +1474,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               ) : (
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {savedShops.map(({ shop, savedAt }) => (
-                    <article key={shop.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/45 p-3.5">
+                    <article key={shop.id} className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-moto-gray/80 bg-moto-darker/45 p-3.5">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-moto-gray bg-moto-dark">
                         {shop.logo_url ? (
                           <img src={shop.logo_url} alt={`${shop.name} logo`} className="h-full w-full object-contain p-1" />
@@ -1418,7 +1487,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         <p className="mt-0.5 truncate text-xs text-slate-400">{[shop.city, shop.address].filter(Boolean).join(" · ")}</p>
                         <p className="mt-1 text-[10px] text-slate-500">Saved {formatDate(savedAt.slice(0, 10))}</p>
                       </div>
-                      <div className="flex shrink-0 flex-col gap-1.5">
+                      <div className="flex w-full shrink-0 flex-row gap-2 sm:w-auto sm:flex-col sm:pl-0">
                         {onOpenShop && (
                           <button type="button" onClick={() => onOpenShop(shop.id)} className="rounded-lg bg-moto-accent px-2.5 py-1.5 text-xs font-bold text-slate-950 transition hover:bg-moto-accent-dark">
                             View
@@ -1440,7 +1509,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </div>
           )}
 
-          {activeTab === "settings" && (
+          {!profileDataLoading && activeTab === "settings" && (
             <div className="profile-panel rounded-2xl border border-moto-gray/80 bg-moto-darker/30 p-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div><h2 className="text-[15px] font-semibold text-text-primary">Account settings</h2><p className="mt-1 text-[13px] text-text-muted">Update the details used for your bookings.</p></div>
@@ -1481,12 +1550,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       {/* ── Booking Details Drawer ── */}
       {viewingBooking && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/50"
           onClick={(e) => {
             if (e.target === e.currentTarget) setViewingBooking(null);
           }}
         >
-          <div role="dialog" aria-modal="true" aria-labelledby="booking-detail-title" className="ml-auto flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+          <div role="dialog" aria-modal="true" aria-labelledby="booking-detail-title" className="ml-auto flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-border-default bg-surface p-4 sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-moto-accent/10 text-moto-accent">
@@ -1760,14 +1829,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       {/* ── Add Motorcycle Modal ── */}
       {showBikeModal && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowBikeModal(false);
           }}
         >
-          <div className="w-full max-w-md rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="add-bike-title" className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-4 sm:p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-100">
+              <h3 id="add-bike-title" className="text-lg font-bold text-slate-100">
                 Add Motorcycle
               </h3>
               <button
@@ -1790,7 +1859,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               labelClassName={labelClass}
               idPrefix="add-bike"
             >
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                 <div>
                   <label className={labelClass}>Year</label>
                   <input
@@ -1839,14 +1908,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       {/* ── Edit Motorcycle Modal ── */}
       {editingId && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) setEditingId(null);
           }}
         >
-          <div className="w-full max-w-md rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="edit-bike-title" className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-4 sm:p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-100">
+              <h3 id="edit-bike-title" className="text-lg font-bold text-slate-100">
                 Edit Motorcycle
               </h3>
               <button
@@ -1869,7 +1938,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               labelClassName={labelClass}
               idPrefix="edit-bike"
             >
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
                 <div>
                   <label className={labelClass}>Year</label>
                   <input
@@ -1901,7 +1970,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             {editError && (
               <p className="mt-3 text-sm text-rose-400">{editError}</p>
             )}
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <button
                 onClick={handleSaveBike}
                 disabled={savingEdit}
@@ -1937,19 +2006,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       {/* ── My Garage: Vehicle Details Modal ── */}
       {detailVehicle && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center sm:p-6"
           onClick={(e) => {
             if (e.target === e.currentTarget) setVehicleDetailId(null);
           }}
         >
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-moto-gray bg-[#0d1420]">
+          <div role="dialog" aria-modal="true" aria-labelledby="vehicle-detail-title" className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-moto-gray bg-[#0d1420]">
             <div className="flex items-start justify-between gap-3 border-b border-moto-gray/70 px-6 py-5">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-moto-gray bg-moto-darker text-moto-accent">
                   <Car size={20} />
                 </span>
                 <div className="min-w-0">
-                  <h3 className="truncate text-lg font-bold text-slate-100">
+                  <h3 id="vehicle-detail-title" className="truncate text-lg font-bold text-slate-100">
                     {vehicleLabel(detailVehicle)}
                   </h3>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
@@ -1974,7 +2043,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
               </button>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+            <div className="max-h-[70dvh] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               {detailVehicle.engine_number && (
                 <p className="flex items-center gap-2 text-sm text-slate-300">
                   <Gauge size={14} className="text-slate-400" />
@@ -2138,19 +2207,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       {/* ── Review Booking Modal ── */}
       {reviewingBooking && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) setReviewingBooking(null);
           }}
         >
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="review-booking-title" className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-moto-gray bg-[#0d1420] p-4 sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
                   <Star size={22} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-slate-100">
+                  <h3 id="review-booking-title" className="text-base font-bold text-slate-100">
                     Review: {reviewingBooking.service_type}
                   </h3>
                   <p className="truncate text-xs text-slate-400">
