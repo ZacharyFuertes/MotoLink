@@ -14,6 +14,38 @@ export interface AppointmentSmsContext {
   scheduledTime?: string | null;
 }
 
+export const buildOwnerAppointmentSms = (context: {
+  shopName?: string | null;
+  customerName?: string | null;
+  serviceType?: string | null;
+  bookingRef?: string | null;
+  scheduledDate?: string | null;
+  scheduledTime?: string | null;
+}): string => {
+  const shop = cleanSmsText(context.shopName || "your shop", 40);
+  const customer = cleanSmsText(context.customerName || "A customer", 32);
+  const service = cleanSmsText(context.serviceType || "a service", 48);
+  const reference = cleanSmsText(context.bookingRef || "", 24);
+  const schedule = [context.scheduledDate, context.scheduledTime]
+    .filter(Boolean)
+    .map((value) => cleanSmsText(String(value), 20))
+    .join(" ");
+  return `MotoLink: New appointment at ${shop}. ${customer} booked ${service}${schedule ? ` for ${schedule}` : ""}.${reference ? ` Ref: ${reference}.` : ""}`;
+};
+
+export const buildOwnerLowStockSms = (context: {
+  shopName?: string | null;
+  partName: string;
+  quantity: number;
+  reorderLevel: number;
+}): string => {
+  const shop = cleanSmsText(context.shopName || "your shop", 40);
+  const part = cleanSmsText(context.partName, 48);
+  return context.quantity <= 0
+    ? `MotoLink: ${part} is out of stock at ${shop}. Please restock.`
+    : `MotoLink: Low stock at ${shop}: ${part} has ${context.quantity} left (reorder at ${context.reorderLevel}).`;
+};
+
 const cleanSmsText = (value: string, maxLength: number): string =>
   value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
 

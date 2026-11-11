@@ -29,7 +29,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../services/supabaseClient";
-import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail } from "../services/notificationService";
+import { notifyOwnerOfNewAppointment, sendBookingRequestReceivedEmail, sendOwnerBookingEmail, sendOwnerNewAppointmentSms } from "../services/notificationService";
 import {
   startOnlinePayment,
   computeDeposit,
@@ -1480,6 +1480,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         // when the owner changes the appointment status to confirmed.
         sendBookingRequestReceivedEmail(appointment.id);
         sendOwnerBookingEmail(appointment.id);
+        void sendOwnerNewAppointmentSms(appointment.id).then((sms) => {
+          if (!sms.success && !sms.skipped && !sms.notConfigured) {
+            console.warn("Could not send new-appointment SMS to shop owner:", sms.error);
+          }
+        });
 
         if (paymentMethod === "cash") {
           // Cash bookings hand off to the receipt immediately (existing flow).

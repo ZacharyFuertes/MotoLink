@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/migrations/20261110000100_textbee_sms_notifications.sql");
 const endpoint = read("../api/send-appointment-sms.ts");
+const ownerEndpoint = read("../api/send-owner-appointment-sms.ts");
+const lowStockEndpoint = read("../api/send-low-stock-alert.ts");
+const ownerMigration = read("../supabase/migrations/20261111000100_owner_sms_alerts.sql");
 const page = read("../src/pages/AppointmentCalendarPage.tsx");
+const booking = read("../src/components/BookAppointmentModal.tsx");
+const shopSettings = read("../src/pages/ShopSettingsPage.tsx");
 const settings = read("../src/components/CustomerSettingsModal.tsx");
 const walkIn = read("../src/components/WalkInBookingModal.tsx");
 
@@ -41,5 +46,19 @@ describe("Textbee appointment SMS source safeguards", () => {
     const smsIndex = page.indexOf("sendAppointmentStatusSms(appointment.id, newStatus)");
     expect(statusUpdateIndex).toBeGreaterThan(-1);
     expect(smsIndex).toBeGreaterThan(statusUpdateIndex);
+  });
+
+  it("routes new appointment and low-stock SMS to the private owner phone", () => {
+    expect(booking).toContain("sendOwnerNewAppointmentSms(appointment.id)");
+    expect(ownerEndpoint).toContain('.select("id, phone")');
+    expect(ownerEndpoint).toContain("normalizeSmsPhone(owner.phone)");
+    expect(ownerEndpoint).toContain("process.env.TEXTBEE_API_KEY");
+    expect(ownerEndpoint).not.toContain("VITE_TEXTBEE_API_KEY");
+    expect(lowStockEndpoint).toContain("buildOwnerLowStockSms");
+    expect(lowStockEndpoint).toContain("owner?.phone");
+    expect(shopSettings).toContain("shop-owner-sms-phone");
+    expect(shopSettings).toContain(".update({ phone: ownerSmsPhone.trim() || null })");
+    expect(ownerMigration).toContain("owner_sms_deliveries");
+    expect(ownerMigration).toContain("REVOKE ALL ON public.owner_sms_deliveries FROM PUBLIC, anon, authenticated");
   });
 });

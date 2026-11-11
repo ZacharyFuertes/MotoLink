@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAppointmentStatusSms, isSmsDeliveryLogUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
+import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
 
 const jsonResponse = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status,
@@ -33,6 +33,21 @@ describe("Textbee appointment SMS helpers", () => {
     expect(buildAppointmentStatusSms({ ...base, status: "in_progress" })).toContain("now in progress");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).toContain("ready for pickup");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).not.toMatch(/[🏍️✅]/u);
+  });
+
+  it("builds owner alerts for new appointments and low stock", () => {
+    expect(buildOwnerAppointmentSms({
+      shopName: "MotoLink Garage",
+      customerName: "Mina",
+      serviceType: "Oil change",
+      bookingRef: "MTL-123",
+      scheduledDate: "2026-11-12",
+      scheduledTime: "09:00",
+    })).toContain("New appointment at MotoLink Garage. Mina booked Oil change for 2026-11-12 09:00. Ref: MTL-123.");
+    expect(buildOwnerLowStockSms({ shopName: "MotoLink Garage", partName: "Brake Pads", quantity: 2, reorderLevel: 5 }))
+      .toContain("Brake Pads has 2 left (reorder at 5)");
+    expect(buildOwnerLowStockSms({ shopName: "MotoLink Garage", partName: "Brake Pads", quantity: 0, reorderLevel: 5 }))
+      .toContain("Brake Pads is out of stock");
   });
 
   it("flags missing delivery-table schema as a non-fatal runtime issue", () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -62,6 +62,9 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState<"all" | "unread">("all");
+  const notificationButtonRef = useRef<HTMLButtonElement>(null);
 
   const shopStatus =
     shop?.status ?? (shop ? (shop.is_active ? "ACTIVE" : "PENDING") : undefined);
@@ -109,12 +112,17 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   }, [user?.shop_id, user?.role]);
 
   const refreshNotifications = async () => {
-    const [list, unread] = await Promise.all([
-      getMyNotifications(20),
-      getUnreadNotificationCount(),
-    ]);
-    setNotifications(list);
-    setUnreadCount(unread);
+    setNotificationsLoading(true);
+    try {
+      const [list, unread] = await Promise.all([
+        getMyNotifications(20),
+        getUnreadNotificationCount(),
+      ]);
+      setNotifications(list);
+      setUnreadCount(unread);
+    } finally {
+      setNotificationsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -146,6 +154,18 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
   const handleOpenNotifications = () => {
     setNotificationsOpen((prev) => !prev);
   };
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setNotificationsOpen(false);
+        notificationButtonRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [notificationsOpen]);
 
   const handleNotificationClick = async (notification: AppNotification) => {
     await markNotificationRead(notification.id);
@@ -421,7 +441,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 dashboard-header min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8">
+        <header className="sticky top-0 z-[60] dashboard-header min-h-16 flex items-center justify-between gap-2 px-3 sm:px-4 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -457,10 +477,14 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
             </button>
             <div className="relative">
               <button
+                ref={notificationButtonRef}
+                type="button"
                 onClick={handleOpenNotifications}
-                className="p-2 rounded-xl hover:bg-moto-gray/40 text-slate-300 hover:text-moto-accent transition-colors relative"
+                className="relative rounded-xl p-2.5 text-text-secondary transition-colors hover:bg-hover hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 title="Notifications"
                 aria-label="Notifications"
+                aria-expanded={notificationsOpen}
+                aria-controls="owner-notifications-panel"
               >
                 {unreadCount > 0 ? (
                   <BellRing className="w-5 h-5" />
@@ -468,7 +492,7 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                   <Bell className="w-5 h-5" />
                 )}
                 {unreadCount > 0 && (
-                  <span className="absolute right-0 top-0 z-10 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border border-border-strong bg-status-danger-bg px-1 py-0.5 text-xs font-bold text-status-danger-fg">
+                  <span className="absolute -right-0.5 -top-0.5 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-danger px-1 text-[10px] font-bold leading-none text-white shadow-sm">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -478,23 +502,26 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                 {notificationsOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-40"
+                      className="fixed inset-0 z-[61] cursor-default"
                       onClick={() => setNotificationsOpen(false)}
                       aria-hidden="true"
                     />
                     <motion.div
+                    id="owner-notifications-panel"
+                    role="dialog"
+                    aria-label="Shop notifications"
                     initial={{ opacity: 0, y: -8, scale: 0.97 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl bg-moto-darker border border-moto-gray shadow-xl shadow-black/40 overflow-hidden z-50"
+                    className="absolute right-0 top-full z-[62] mt-2 flex max-h-[min(34rem,calc(100dvh-5rem))] w-[min(25rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-border-default bg-surface shadow-2xl shadow-black/30"
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-moto-gray bg-moto-dark">
+                    <div className="flex items-start justify-between gap-3 border-b border-border-default bg-raised px-4 py-3.5">
                       <div>
-                        <p className="text-base font-bold text-slate-100">
+                        <p className="text-base font-bold text-text-primary">
                           Notifications
                         </p>
-                        <p className="text-xs text-slate-400">
+                        <p className="mt-0.5 text-xs text-text-muted" aria-live="polite">
                           {unreadCount > 0
                             ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"} for your shop`
                             : "You're all caught up"}
@@ -502,54 +529,86 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                       </div>
                       {unreadCount > 0 && (
                         <button
+                          type="button"
                           onClick={handleMarkAllRead}
-                          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-moto-accent hover:text-moto-accent px-2.5 py-1.5 rounded-lg hover:bg-moto-gray/40 transition"
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand transition hover:bg-brand-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                         >
-                          <CheckCheck className="w-4 h-4" /> Mark all read
+                          <CheckCheck className="h-4 w-4" /> <span className="hidden min-[380px]:inline">Mark all read</span><span className="min-[380px]:hidden">Read all</span>
                         </button>
                       )}
                     </div>
 
-                    <div className="max-h-[360px] overflow-y-auto divide-y divide-moto-gray/40">
-                      {notifications.length === 0 ? (
-                        <div className="px-4 py-12 text-center">
-                          <Inbox className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                          <p className="text-base font-semibold text-slate-200">
-                            No notifications yet
+                    <div className="flex items-center gap-1 border-b border-border-default px-3 py-2">
+                      {(["all", "unread"] as const).map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => setNotificationFilter(filter)}
+                          aria-pressed={notificationFilter === filter}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${notificationFilter === filter ? "bg-brand-tint text-brand" : "text-text-muted hover:bg-hover hover:text-text-primary"}`}
+                        >
+                          {filter === "all" ? "All" : `Unread${unreadCount ? ` (${unreadCount})` : ""}`}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="min-h-0 flex-1 divide-y divide-border-default overflow-y-auto overscroll-contain">
+                      {notificationsLoading && notifications.length === 0 ? (
+                        <div className="space-y-3 p-4" aria-label="Loading notifications">
+                          {[0, 1, 2].map((item) => (
+                            <div key={item} className="animate-pulse rounded-xl border border-border-default p-3">
+                              <div className="h-3 w-2/3 rounded bg-raised" />
+                              <div className="mt-2 h-3 w-full rounded bg-raised" />
+                              <div className="mt-2 h-3 w-1/3 rounded bg-raised" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (notificationFilter === "unread"
+                        ? notifications.filter((notification) => !notification.read)
+                        : notifications).length === 0 ? (
+                        <div className="px-5 py-10 text-center">
+                          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-tint text-brand">
+                            <Inbox className="h-6 w-6" />
+                          </span>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {notificationFilter === "unread" ? "No unread notifications" : "You're all caught up"}
                           </p>
-                          <p className="text-sm text-slate-400 mt-1">
-                            New bookings and shop updates will appear here.
+                          <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                            {notificationFilter === "unread" ? "New bookings and shop alerts will show here." : "New bookings and shop updates will appear here."}
                           </p>
                         </div>
                       ) : (
-                        notifications.map((notification) => (
+                        (notificationFilter === "unread"
+                          ? notifications.filter((notification) => !notification.read)
+                          : notifications).map((notification) => (
                           <button
                             key={notification.id}
+                            type="button"
                             onClick={() =>
                               handleNotificationClick(notification)
                             }
-                            className={`w-full text-left px-4 py-3.5 transition ${
+                            className={`group w-full px-4 py-3.5 text-left transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
                               notification.read
-                                ? "bg-moto-darker hover:bg-moto-gray/30"
-                                : "bg-moto-accent/10 hover:bg-moto-accent/15"
+                                ? "bg-surface hover:bg-hover"
+                                : "bg-brand-tint/50 hover:bg-brand-tint"
                             }`}
                           >
                             <div className="flex items-start gap-3">
                               <span
-                                className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${
+                                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
                                   notification.read
                                     ? "bg-transparent"
-                                    : "bg-moto-accent"
+                                    : "bg-brand"
                                 }`}
                               />
                               <div className="min-w-0">
-                                <p className="text-[15px] font-bold text-slate-100">
+                                <p className="break-words text-sm font-bold text-text-primary">
                                   {notification.subject || "Shop update"}
                                 </p>
-                                <p className="text-[13px] text-slate-300 mt-0.5 leading-relaxed">
+                                <p className="mt-1 break-words text-[13px] leading-relaxed text-text-secondary">
                                   {notification.message || "New activity for your shop."}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-1.5 uppercase tracking-wider font-medium">
+                                <p className="mt-2 text-[11px] font-medium text-text-muted">
                                   {new Date(
                                     notification.created_at,
                                   ).toLocaleString(undefined, {
@@ -564,6 +623,9 @@ const OwnerPlatformDashboard: React.FC<OwnerDashboardProps> = ({
                           </button>
                         ))
                       )}
+                    </div>
+                    <div className="border-t border-border-default px-4 py-2 text-center text-[11px] text-text-muted">
+                      Showing your latest {notifications.length} notification{notifications.length === 1 ? "" : "s"}
                     </div>
                   </motion.div>
                   </>

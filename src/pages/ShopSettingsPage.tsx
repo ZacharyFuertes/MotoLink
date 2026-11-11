@@ -29,6 +29,7 @@ import {
   Ban,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../services/supabaseClient";
 import { getShopById, updateShop, updateShopAvailability, parseOperatingHoursString, ShopBlockedHour, getShopBlockedHours, saveShopBlockedHours, deleteShopBlockedHour } from "../services/shopService";
 import { getPaymentConfig } from "../services/paymentService";
 import { Shop } from "../types/shop";
@@ -136,6 +137,9 @@ const emptyShop: Shop = {
 
 const ShopSettingsPage: React.FC<ShopSettingsPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
+  const [ownerSmsPhone, setOwnerSmsPhone] = useState(user?.phone || "");
+  const [savedOwnerSmsPhone, setSavedOwnerSmsPhone] = useState(user?.phone || "");
+  const [ownerSmsSaveMessage, setOwnerSmsSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 const [shop, setShop] = useState<Shop>(emptyShop);
 const [schedule, setSchedule] = useState<DaySchedule[]>(emptyDaySchedule);
 const [savedSnapshot, setSavedSnapshot] = useState<ShopProfileSnapshot | null>(null);
@@ -178,6 +182,12 @@ const [loading, setLoading] = useState(true);
   // owner's ability to flip online payments on (no point enabling a feature
   // that physically can't charge anyone).
   const [providerConfigured, setProviderConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const phone = user?.phone || "";
+    setOwnerSmsPhone(phone);
+    setSavedOwnerSmsPhone(phone);
+  }, [user?.id, user?.phone]);
 
   useEffect(() => {
     let mounted = true;
@@ -376,11 +386,12 @@ const [loading, setLoading] = useState(true);
       ...value,
       is_open: savedSnapshot.shop.is_open,
     });
-    return JSON.stringify({ shop: normalizeShop(shop), schedule }) !== JSON.stringify({
-      shop: normalizeShop(savedSnapshot.shop),
-      schedule: savedSnapshot.schedule,
-    });
-  }, [savedSnapshot, shop, schedule]);
+    return ownerSmsPhone !== savedOwnerSmsPhone ||
+      JSON.stringify({ shop: normalizeShop(shop), schedule }) !== JSON.stringify({
+        shop: normalizeShop(savedSnapshot.shop),
+        schedule: savedSnapshot.schedule,
+      });
+  }, [savedSnapshot, shop, schedule, ownerSmsPhone, savedOwnerSmsPhone]);
 
   const fieldErrors = useMemo(() => {
     const errors: Record<string, string> = {};
@@ -390,11 +401,12 @@ const [loading, setLoading] = useState(true);
     if (!shop.city.trim()) errors.city = "Enter your city.";
     if (!shop.phone?.trim()) errors.phone = "Enter a phone number.";
     else if (!/^[+\d\s-]+$/.test(shop.phone) || shop.phone.replace(/\D/g, "").length < 7) errors.phone = "Enter a valid phone number with at least 7 digits.";
+    if (ownerSmsPhone.trim() && (!/^[+\d\s().-]+$/.test(ownerSmsPhone) || ownerSmsPhone.replace(/\D/g, "").length < 8)) errors.ownerSmsPhone = "Enter a valid mobile number or leave this blank.";
     if (shop.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shop.email.trim())) errors.email = "Enter a valid email address.";
     if (Object.keys(scheduleIssues).length) errors.hours = "Fix the highlighted operating hours.";
     if (shop.online_payment_enabled === true && (!(Number(shop.deposit_value) > 0) || (shop.deposit_type === "percent" && Number(shop.deposit_value) > 100))) errors.deposit = "Enter a valid deposit amount or percentage.";
     return errors;
-  }, [shop, scheduleIssues]);
+  }, [shop, scheduleIssues, ownerSmsPhone]);
 
   const validationVisible = (field: string) => saveAttempted || validatedFields[field];
   const fieldError = (field: string) => validationVisible(field) ? fieldErrors[field] : undefined;
@@ -442,6 +454,7 @@ const [loading, setLoading] = useState(true);
     if (currentLogo && currentLogo !== savedSnapshot.shop.logo_url) void imageService.deleteShopLogo(currentLogo);
     setShop(savedSnapshot.shop);
     setSchedule(savedSnapshot.schedule);
+    setOwnerSmsPhone(savedOwnerSmsPhone);
     setScheduleTouched(false);
     setValidatedFields({});
     setSaveAttempted(false);
@@ -572,7 +585,7 @@ const [loading, setLoading] = useState(true);
       setSaving(false);
       setMessage({ type: "error", text: `Fix ${invalidFields.length} field${invalidFields.length === 1 ? "" : "s"} before saving.` });
       const firstInvalid = invalidFields[0];
-      const section = firstInvalid === "city" || firstInvalid === "phone" || firstInvalid === "email"
+      const section = firstInvalid === "city" || firstInvalid === "phone" || firstInvalid === "email" || firstInvalid === "ownerSmsPhone"
         ? "shop-profile-contact"
         : firstInvalid === "hours" ? "shop-profile-hours" : firstInvalid === "deposit" ? "shop-profile-booking" : "shop-profile-branding";
       document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -609,13 +622,24 @@ const [loading, setLoading] = useState(true);
         Object.entries(allUpdates).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(baseline[key as keyof Shop])),
       ) as Partial<Shop>;
       if (scheduleTouched && operatingHours !== savedSnapshot?.shop.operating_hours) updates.operating_hours = operatingHours;
-      if (Object.keys(updates).length === 0) {
+      const ownerPhoneChanged = ownerSmsPhone.trim() !== savedOwnerSmsPhone.trim();
+      if (Object.keys(updates).length === 0 && !ownerPhoneChanged) {
         setSaving(false);
         return;
       }
-      const updated = await updateShop(user.shop_id, updates);
+      const updated = Object.keys(updates).length > 0
+        ? await updateShop(user.shop_id, updates)
+        : shop;
 
       if (!updated) throw new Error("Save failed.");
+      if (ownerPhoneChanged) {
+        const { error: ownerPhoneError } = await supabase
+          .from("users")
+          .update({ phone: ownerSmsPhone.trim() || null })
+          .eq("id", user.id);
+        if (ownerPhoneError) throw ownerPhoneError;
+        setSavedOwnerSmsPhone(ownerSmsPhone.trim());
+      }
       if (savedSnapshot?.shop.logo_url && savedSnapshot.shop.logo_url !== updated.logo_url) {
         void imageService.deleteShopLogo(savedSnapshot.shop.logo_url);
       }
@@ -636,6 +660,46 @@ const [loading, setLoading] = useState(true);
       setMessage({
         type: "error",
         text: err instanceof Error ? err.message : "Failed to save shop details.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveOwnerSmsPhone = async () => {
+    if (!user?.id || saving) return;
+    const phone = ownerSmsPhone.trim();
+    const digits = phone.replace(/\D/g, "");
+    if (phone && (!/^[+\d\s().-]+$/.test(phone) || digits.length < 8)) {
+      markValidated("ownerSmsPhone");
+      setOwnerSmsSaveMessage({ type: "error", text: "Enter a valid mobile number before saving." });
+      return;
+    }
+
+    setSaving(true);
+    setOwnerSmsSaveMessage(null);
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .update({ phone: phone || null })
+        .eq("id", user.id)
+        .select("id, phone")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Your number was not saved. Check that you are signed in to the correct owner account, then try again.");
+
+      const savedPhone = data.phone || "";
+      setOwnerSmsPhone(savedPhone);
+      setSavedOwnerSmsPhone(savedPhone);
+      setOwnerSmsSaveMessage({
+        type: "success",
+        text: savedPhone ? "SMS alert number saved." : "SMS alerts disabled; no number is set.",
+      });
+    } catch (error) {
+      console.error("Could not save owner SMS alert number:", error);
+      setOwnerSmsSaveMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Could not save the SMS alert number. Please try again.",
       });
     } finally {
       setSaving(false);
@@ -988,6 +1052,42 @@ const [loading, setLoading] = useState(true);
                   className={inputClass}
                 />
                 {fieldError("phone") && <p id="shop-phone-error" className="mt-1 text-[13px] text-danger">{fieldError("phone")}</p>}
+              </div>
+              <div>
+                <label htmlFor="shop-owner-sms-phone" className={labelClass}><Phone className="w-4 h-4 text-brand" /> Owner SMS alert number</label>
+                <input
+                  id="shop-owner-sms-phone"
+                  type="tel"
+                  inputMode="tel"
+                  value={ownerSmsPhone}
+                  onChange={(e) => {
+                    setOwnerSmsPhone(e.target.value.replace(/[^0-9+ ().-]/g, ""));
+                    setOwnerSmsSaveMessage(null);
+                  }}
+                  onBlur={() => markValidated("ownerSmsPhone")}
+                  aria-invalid={Boolean(fieldError("ownerSmsPhone"))}
+                  aria-describedby={fieldError("ownerSmsPhone") ? "shop-owner-sms-phone-error" : "shop-owner-sms-phone-help"}
+                  placeholder="09XX XXX XXXX"
+                  className={inputClass}
+                />
+                {fieldError("ownerSmsPhone") ? (
+                  <p id="shop-owner-sms-phone-error" className="mt-1 text-[13px] text-danger">{fieldError("ownerSmsPhone")}</p>
+                ) : (
+                  <p id="shop-owner-sms-phone-help" className="mt-1 text-xs text-text-muted">Private number for new appointment and low-stock SMS alerts; it is not shown to customers.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleSaveOwnerSmsPhone()}
+                  disabled={ownerSmsPhone.trim() === savedOwnerSmsPhone.trim() || saving}
+                  className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-[13px] font-semibold text-brand-fg transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving ? <><Loader className="h-4 w-4 animate-spin" />Saving…</> : <><Save className="h-4 w-4" />Save changes</>}
+                </button>
+                {ownerSmsSaveMessage && (
+                  <p role={ownerSmsSaveMessage.type === "error" ? "alert" : "status"} className={`mt-2 text-[13px] ${ownerSmsSaveMessage.type === "success" ? "text-ok" : "text-danger"}`}>
+                    {ownerSmsSaveMessage.text}
+                  </p>
+                )}
               </div>
               <div>
                 <label htmlFor="shop-email" className={labelClass}><Mail className="w-4 h-4 text-brand" /> Contact email</label>

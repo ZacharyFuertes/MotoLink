@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { postAuthenticatedJson } from "./authenticatedApi";
 
 export type AppointmentSmsStatus = "confirmed" | "in_progress" | "completed";
 
@@ -19,16 +19,10 @@ export const requestAppointmentStatusSms = async (
   appointmentId: string,
   status: AppointmentSmsStatus,
 ): Promise<AppointmentSmsResult> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) return { success: false, error: "Not signed in." };
-
   try {
-    const response = await fetch("/api/send-appointment-sms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ appointmentId, status, accessToken: session.access_token }),
-    });
-    const body = await response.json().catch(() => null);
+    const request = await postAuthenticatedJson("/api/send-appointment-sms", { appointmentId, status });
+    if (!request.response) return { success: false, error: request.error };
+    const { response, body } = request;
     if (!response.ok) {
       const error = typeof body?.error === "string" ? body.error : `SMS request failed (${response.status}).`;
       return {

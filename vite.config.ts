@@ -11,6 +11,7 @@ const localEmailApi = {
       '/api/send-low-stock-alert': '/api/send-low-stock-alert.ts',
       '/api/send-shop-approved': '/api/send-shop-approved.ts',
       '/api/send-appointment-sms': '/api/send-appointment-sms.ts',
+      '/api/send-owner-appointment-sms': '/api/send-owner-appointment-sms.ts',
     };
 
     server.middlewares.use(async (req: any, res: any, next: (error?: unknown) => void) => {

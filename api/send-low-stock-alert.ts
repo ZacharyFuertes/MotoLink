@@ -1,15 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
+import { buildOwnerLowStockSms, normalizeSmsPhone, sendTextbeeSms } from "./_lib/textbee.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 const GMAIL_USER = (process.env.GMAIL_USER || "").trim();
 const GMAIL_APP_PASS = (process.env.GMAIL_APP_PASS || "").replace(/\s+/g, "");
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
 const FROM_NAME = process.env.SENDGRID_FROM_NAME || "MotoLink";
+const TEXTBEE_API_KEY = process.env.TEXTBEE_API_KEY || "";
+const TEXTBEE_DEVICE_ID = process.env.TEXTBEE_DEVICE_ID || "";
 
 const escapeHtml = (value: string): string =>
   value
@@ -49,13 +51,9 @@ export default async function handler(req: any, res: any) {
     const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
-    const auth = createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY,
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    );
-    const { data: authData, error: authError } = await auth.auth.getUser(token);
+    const { data: authData, error: authError } = await db.auth.getUser(token);
     if (authError || !authData?.user) {
+      console.warn("[low-stock-alert] Supabase rejected the caller session:", authError?.code || authError?.message || "user not found");
       return res.status(401).json({ success: false, error: "Session is invalid." });
     }
 
@@ -74,14 +72,14 @@ export default async function handler(req: any, res: any) {
       .maybeSingle();
     let { data: owner } = await db
       .from("users")
-      .select("id, email, name")
+      .select("id, email, name, phone")
       .eq("role", "owner")
       .eq("shop_id", part.shop_id)
       .maybeSingle();
     if (!owner && shop?.owner_id) {
       const { data: ownerById } = await db
         .from("users")
-        .select("id, email, name")
+        .select("id, email, name, phone")
         .eq("id", shop.owner_id)
         .eq("role", "owner")
         .maybeSingle();
@@ -120,9 +118,7 @@ export default async function handler(req: any, res: any) {
 
     const recipientId = shop?.owner_id || owner?.id;
     const recipientEmail = owner?.email;
-    if (!recipientId || !recipientEmail) {
-      return res.status(200).json({ success: false, error: "Shop owner email is unavailable." });
-    }
+    if (!recipientId) return res.status(200).json({ success: false, error: "Shop owner account is unavailable." });
 
     const subject = currentQty <= 0 ? `Out of stock: ${part.name}` : `Low stock alert: ${part.name}`;
     const message = messageFor({ name: part.name, quantity_in_stock: currentQty, reorder_level: reorderLevel });
@@ -158,6 +154,45 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ success: false, error: "Could not create the low-stock notification." });
     }
 
+    let smsQueued = false;
+    const ownerPhone = owner?.phone ? normalizeSmsPhone(owner.phone) : null;
+    if (ownerPhone && TEXTBEE_API_KEY) {
+      const { data: delivery, error: deliveryError } = await db
+        .from("owner_sms_deliveries")
+        .insert({
+          notification_id: notification.data.id,
+          notification_type: "low_stock",
+          state: "sending",
+        })
+        .select("id")
+        .single();
+      if (deliveryError?.code === "23505") {
+        console.info(`[low-stock-alert] owner SMS already claimed for notification ${notification.data.id}`);
+      } else if (deliveryError || !delivery) {
+        console.error("[low-stock-alert] Could not claim owner SMS delivery:", deliveryError);
+      } else {
+        const smsResult = await sendTextbeeSms({
+          apiKey: TEXTBEE_API_KEY,
+          deviceId: TEXTBEE_DEVICE_ID || undefined,
+          recipient: ownerPhone,
+          message: buildOwnerLowStockSms({
+            shopName: shop?.name,
+            partName: part.name,
+            quantity: currentQty,
+            reorderLevel,
+          }),
+        });
+        smsQueued = smsResult.kind === "accepted";
+        await db.from("owner_sms_deliveries").update({
+          state: smsResult.kind,
+          reason_code: smsResult.kind === "accepted" ? smsResult.warning || null : smsResult.reason,
+          textbee_batch_id: smsResult.kind === "accepted" ? smsResult.smsBatchId : null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", delivery.id);
+        if (!smsQueued) console.warn("[low-stock-alert] Owner SMS was not accepted:", smsResult.kind === "accepted" ? "" : smsResult.reason);
+      }
+    }
+
     const shopName = shop?.name || "your shop";
     const details = [
       `<tr><td style="padding:10px 14px;color:#64748b;">Item</td><td style="padding:10px 14px;color:#0f172a;font-weight:700;">${escapeHtml(part.name)}</td></tr>`,
@@ -169,6 +204,13 @@ export default async function handler(req: any, res: any) {
     const text = `MOTOLINK INVENTORY ALERT\n${shopName}\n\n${message}\nSKU: ${part.sku || "Not set"}\nCurrent stock: ${currentQty}\nReorder level: ${reorderLevel}\n\nOpen your MotoLink dashboard and visit Low Stock Alerts.`;
 
     try {
+      if (!recipientEmail) {
+        if (smsQueued) {
+          await db.from("notifications").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", notification.data.id);
+          return res.status(200).json({ success: true, smsQueued, emailSkipped: true });
+        }
+        return res.status(200).json({ success: true, smsQueued, emailSkipped: true, warn: "Shop owner email and SMS number are unavailable or SMS is not configured." });
+      }
       if (GMAIL_USER && GMAIL_APP_PASS) {
         const transporter = nodemailer.createTransport({ service: "gmail", host: "smtp.gmail.com", port: 465, secure: true, auth: { user: GMAIL_USER, pass: GMAIL_APP_PASS } });
         await transporter.sendMail({ from: `"${FROM_NAME}" <${GMAIL_USER}>`, to: recipientEmail, subject, html, text });
@@ -181,12 +223,12 @@ export default async function handler(req: any, res: any) {
 
       await db.from("notifications").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", notification.data.id);
       console.log(`[low-stock-alert] emailed shop owner for part ${part.id}`);
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, smsQueued });
     } catch (emailError: any) {
       const errorText = emailError?.message || "Email delivery failed.";
       console.error("[low-stock-alert] email delivery failed:", errorText);
       await db.from("notifications").update({ status: "failed", message: `${message} Email delivery failed: ${errorText}` }).eq("id", notification.data.id);
-      return res.status(200).json({ success: false, error: "Low-stock notification was recorded, but email delivery failed." });
+      return res.status(200).json({ success: false, smsQueued, error: "Low-stock notification was recorded, but email delivery failed." });
     }
   } catch (error: any) {
     console.error("[low-stock-alert] handler failed:", error);

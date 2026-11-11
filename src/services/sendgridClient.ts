@@ -6,7 +6,7 @@
  * appointment, and the function resolves all recipient/content server-side.
  */
 
-import { supabase } from "./supabaseClient";
+import { postAuthenticatedJson } from "./authenticatedApi";
 
 export type EmailTemplate =
   | "booking-request-received"
@@ -37,26 +37,10 @@ export const requestEmail = async (
   template: EmailTemplate,
   appointmentId: string,
 ): Promise<EmailRequestResult> => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    return { success: false, error: "Not signed in." };
-  }
-
   try {
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        template,
-        appointmentId,
-        accessToken: session.access_token,
-      }),
-    });
-
-    const body = await response.json().catch(() => null);
+    const request = await postAuthenticatedJson("/api/send-email", { template, appointmentId });
+    if (!request.response) return { success: false, error: request.error };
+    const { response, body } = request;
 
     if (!response.ok) {
       const notConfigured =

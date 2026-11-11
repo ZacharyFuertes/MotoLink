@@ -14,7 +14,6 @@ import {
 } from "./_lib/textbee.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const TEXTBEE_API_KEY = process.env.TEXTBEE_API_KEY || "";
 const TEXTBEE_DEVICE_ID = process.env.TEXTBEE_DEVICE_ID || "";
@@ -45,20 +44,16 @@ export default async function handler(req: any, res: any) {
   if (typeof status !== "string" || !ALLOWED_STATUSES.has(status as AppointmentSmsStatus)) {
     return reply(res, 400, { success: false, error: "Unsupported appointment SMS status." });
   }
-  if (!SUPABASE_ANON_KEY) {
-    return reply(res, 503, { success: false, notConfigured: true, error: "SMS authorization is not configured." });
-  }
-
   try {
-    const auth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-    const { data: authData, error: authError } = await auth.auth.getUser(accessToken);
-    if (authError || !authData?.user) return reply(res, 401, { success: false, error: "Session is invalid." });
-
     const db = createClient<any>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+    const { data: authData, error: authError } = await db.auth.getUser(accessToken);
+    if (authError || !authData?.user) {
+      console.warn("[appointment-sms] Supabase rejected the caller session:", authError?.code || authError?.message || "user not found");
+      return reply(res, 401, { success: false, error: "Session is invalid." });
+    }
+
     const [{ data: caller, error: callerError }, { data: appointment, error: appointmentError }] = await Promise.all([
       db.from("users").select("id, role").eq("id", authData.user.id).maybeSingle(),
       db.from("appointments")
@@ -154,6 +149,18 @@ export default async function handler(req: any, res: any) {
       }
       return reply(res, 200, { success: true, skipped: true, ...(claimed.duplicate ? { duplicate: true } : {}), reason: reasonCode });
     };
+
+    let consent = appointment.walk_in_sms_consent === true;
+    if (appointment.customer_id) {
+      const { data: settings, error: settingsError } = await db
+        .from("customer_notification_settings")
+        .select("sms_notifications_enabled")
+        .eq("user_id", appointment.customer_id)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
+      consent = settings?.sms_notifications_enabled === true;
+    }
+    if (!consent) return skip("sms_consent_missing");
 
     if (!phone) return skip("phone_number_missing");
     const recipient = normalizeSmsPhone(phone);

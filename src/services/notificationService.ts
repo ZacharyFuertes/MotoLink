@@ -6,6 +6,7 @@
  */
 
 import { supabase } from "./supabaseClient";
+import { postAuthenticatedJson } from "./authenticatedApi";
 import { requestEmail, EmailTemplate } from "./sendgridClient";
 import { requestAppointmentStatusSms, AppointmentSmsStatus } from "./appointmentSmsClient";
 
@@ -98,6 +99,30 @@ export const sendBookingCancelledEmail = async (appointmentId: string) =>
 /** Email the shop owner when a customer books an appointment. */
 export const sendOwnerBookingEmail = async (appointmentId: string) =>
   sendEmailForAppointment("owner-booking", appointmentId);
+
+/** Send the shop owner an SMS when a customer appointment is persisted. */
+export const sendOwnerNewAppointmentSms = async (
+  appointmentId: string,
+): Promise<{ success: boolean; queued?: boolean; skipped?: boolean; notConfigured?: boolean; error?: string }> => {
+  try {
+    const request = await postAuthenticatedJson("/api/send-owner-appointment-sms", { appointmentId });
+    if (!request.response) return { success: false, error: request.error };
+    const { response, body } = request;
+    if (!response.ok) {
+      return {
+        success: false,
+        ...(body?.notConfigured ? { notConfigured: true } : {}),
+        error: typeof body?.error === "string" ? body.error : `SMS request failed (${response.status}).`,
+      };
+    }
+    return body && typeof body.success === "boolean"
+      ? body as { success: boolean; queued?: boolean; skipped?: boolean; notConfigured?: boolean; error?: string }
+      : { success: false, error: "SMS service returned an invalid response." };
+  } catch (error) {
+    console.warn("Could not request owner appointment SMS:", error);
+    return { success: false, error: "Network error requesting SMS." };
+  }
+};
 
 /** Queue one consent-aware Textbee SMS for a persisted appointment status. */
 export const sendAppointmentStatusSms = async (

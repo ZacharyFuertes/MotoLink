@@ -16,8 +16,6 @@ import nodemailer from "nodemailer";
 
 const SUPABASE_URL =
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "";
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "";
@@ -442,15 +440,14 @@ export default async function handler(req: any, res: any) {
   }
 
   // 1) Verify the caller's Supabase session.
-  const auth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY || SUPABASE_SERVICE_ROLE_KEY);
-  const { data: authData, error: authError } = await auth.auth.getUser(accessToken);
-  if (authError || !authData?.user) {
-    return res.status(401).json({ success: false, error: "Session is invalid." });
-  }
-
   const db = createClient<any>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  const { data: authData, error: authError } = await db.auth.getUser(accessToken);
+  if (authError || !authData?.user) {
+    console.warn("[send-email] Supabase rejected the caller session:", authError?.code || authError?.message || "user not found");
+    return res.status(401).json({ success: false, error: "Session is invalid." });
+  }
 
   // 2) Resolve the appointment + related rows server-side.
   let { data: appointmentData, error: apptError } = await db
