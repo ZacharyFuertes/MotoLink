@@ -17,13 +17,11 @@ import {
   FileText,
   RefreshCw,
   TrendingUp,
-  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { imageService } from "../services/imageService";
 import { Part } from "../types";
-import { createInventoryExcelTemplate } from "../utils/inventoryExcelTemplate";
 
 const parseCSV = (text: string): string[][] => {
   const rows: string[][] = [];
@@ -105,6 +103,21 @@ const CATEGORY_ALIASES: Record<string, Part["category"]> = {
   filter: "filters",
 };
 
+const generateAutoSku = (name: string, reserved: Set<string>): string => {
+  const token = name.trim().replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toUpperCase();
+  const prefix = (token || "ITEM").slice(0, 12).replace(/-+$/g, "") || "ITEM";
+  let candidate = `MOTO-${prefix}`;
+  let counter = 1;
+
+  while (reserved.has(candidate.toLowerCase())) {
+    candidate = `MOTO-${prefix}-${String(counter).padStart(3, "0")}`;
+    counter += 1;
+  }
+
+  reserved.add(candidate.toLowerCase());
+  return candidate;
+};
+
 const categoryColors: Record<string, string> = {
   brakes: "#ef4444",
   tires: "#64748b",
@@ -169,6 +182,11 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
       quantity_in_stock: number;
       reorder_level: number;
       description: string;
+      missingCategory: boolean;
+      missingDescription: boolean;
+      missingUnitPrice: boolean;
+      missingQuantity: boolean;
+      missingReorderLevel: boolean;
     }[]
   >([]);
   const [importError, setImportError] = useState("");
@@ -178,6 +196,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     failed: number;
   } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [reviewImportIndex, setReviewImportIndex] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<PartFormData>({
@@ -480,6 +499,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     setImportPreview([]);
     setImportError("");
     setImportSummary(null);
+    setReviewImportIndex(null);
   };
 
   const openImport = () => {
@@ -487,25 +507,11 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     setShowImportForm(true);
   };
 
-  const downloadInventoryExcelTemplate = () => {
-    const blob = new Blob([createInventoryExcelTemplate()], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "motolink-inventory-template.xlsx";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
   const downloadInventoryCsvTemplate = () => {
     const templateRows: Array<Array<string | number>> = [
-      ["Part Name", "SKU", "Category", "Unit Price", "In Stock", "Reorder Level", "Description"],
-      ["Motorcycle Engine Oil 10W-40", "OIL-10W40-001", "oils", 450, 12, 3, "1L four-stroke engine oil"],
-      ["Front Brake Pads", "BRK-FRONT-001", "brakes", 680, 8, 2, "Front disc brake pad set"],
+      ["Part Name", "Category", "Unit Price", "In Stock", "Reorder Level", "Description"],
+      ["Motorcycle Engine Oil 10W-40", "oils", 450, 12, 3, "1L four-stroke engine oil"],
+      ["Front Brake Pads", "brakes", 680, 8, 2, "Front disc brake pad set"],
     ];
     const csvCell = (value: string | number): string => {
       const text = String(value);
@@ -544,9 +550,9 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
 
     const nameIdx = col("name");
     const skuIdx = col("sku");
-    if (nameIdx === -1 || skuIdx === -1) {
+    if (nameIdx === -1) {
       setImportError(
-        'CSV must include "Part Name" and "SKU" columns. Use the exported file as a template.',
+        'CSV must include "Part Name" column. Use the exported file as a template.',
       );
       return;
     }
@@ -557,46 +563,105 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     const reorderIdx = col("reorder_level");
     const descIdx = col("description");
 
-    const existingSkus = new Set(
+    const reservedSkus = new Set(
       parts.map((p) => p.sku.trim().toLowerCase()),
     );
-    const seenSkus = new Set<string>();
     const preview: typeof importPreview = [];
 
     parsed.slice(1).forEach((r) => {
       const name = (r[nameIdx] || "").trim();
-      const sku = (r[skuIdx] || "").trim();
-      if (!name || !sku) return;
-      const skuKey = sku.toLowerCase();
-      if (existingSkus.has(skuKey) || seenSkus.has(skuKey)) return;
-      seenSkus.add(skuKey);
+      if (!name) return;
+
+      const providedSku = skuIdx !== -1 ? (r[skuIdx] || "").trim() : "";
+      let sku = providedSku;
+      if (providedSku) {
+        const skuKey = providedSku.toLowerCase();
+        if (reservedSkus.has(skuKey)) return;
+        reservedSkus.add(skuKey);
+      } else {
+        sku = generateAutoSku(name, reservedSkus);
+      }
 
       const catRaw = (r[catIdx] || "").trim().toLowerCase();
       const category = CATEGORY_ALIASES[catRaw] || "other";
+      const description = (r[descIdx] || "").trim();
+      const priceRaw = (r[priceIdx] || "").replace(/[₱,\s]/g, "");
+      const quantityRaw = (r[qtyIdx] || "").trim();
+      const reorderRaw = (r[reorderIdx] || "").trim();
+      const parsedPrice = Number.parseFloat(priceRaw);
+      const parsedQuantity = Number.parseInt(quantityRaw, 10);
+      const parsedReorderLevel = Number.parseInt(reorderRaw, 10);
       preview.push({
         name,
         sku,
         category,
-        unit_price:
-          parseFloat((r[priceIdx] || "").replace(/[₱,\s]/g, "")) || 0,
-        quantity_in_stock:
-          parseInt((r[qtyIdx] || "").replace(/[\s]/g, ""), 10) || 0,
-        reorder_level:
-          parseInt((r[reorderIdx] || "").replace(/[\s]/g, ""), 10) || 5,
-        description: (r[descIdx] || "").trim(),
+        unit_price: Number.isFinite(parsedPrice) ? parsedPrice : 0,
+        quantity_in_stock: Number.isFinite(parsedQuantity) ? parsedQuantity : 0,
+        reorder_level: Number.isFinite(parsedReorderLevel) ? parsedReorderLevel : 5,
+        description,
+        missingCategory: !catRaw || !CATEGORY_ALIASES[catRaw],
+        missingDescription: !description,
+        missingUnitPrice: !priceRaw || !Number.isFinite(parsedPrice),
+        missingQuantity: !quantityRaw || !Number.isFinite(parsedQuantity),
+        missingReorderLevel: !reorderRaw || !Number.isFinite(parsedReorderLevel),
       });
     });
 
     setImportPreview(preview);
+    if (preview.length > 0) {
+      const firstPendingReviewIndex = preview.findIndex(
+        (item) =>
+          item.missingCategory ||
+          item.missingDescription ||
+          item.missingUnitPrice ||
+          item.missingQuantity ||
+          item.missingReorderLevel,
+      );
+      setReviewImportIndex(firstPendingReviewIndex >= 0 ? firstPendingReviewIndex : null);
+    }
     if (preview.length === 0) {
       setImportError(
-        "No new items to import every row is missing a name/SKU or uses a SKU that already exists in your inventory.",
+        "No new items to import. Every row is missing a valid name or uses a SKU that already exists in your inventory.",
       );
     }
   };
 
+  const updateImportItem = (
+    index: number,
+    updates: Partial<(typeof importPreview)[number]>,
+  ) => {
+    setImportPreview((current) =>
+      current.map((item, idx) => {
+        if (idx !== index) return item;
+        return {
+          ...item,
+          ...updates,
+          ...(updates.category !== undefined ? { missingCategory: false } : {}),
+          ...(updates.description !== undefined
+            ? { missingDescription: !updates.description.trim() }
+            : {}),
+          ...(updates.unit_price !== undefined ? { missingUnitPrice: false } : {}),
+          ...(updates.quantity_in_stock !== undefined ? { missingQuantity: false } : {}),
+          ...(updates.reorder_level !== undefined ? { missingReorderLevel: false } : {}),
+        };
+      }),
+    );
+  };
+
   const handleImportSubmit = async () => {
     if (importPreview.length === 0 || importing) return;
+    const nextIncompleteIndex = importPreview.findIndex(
+      (item) =>
+        item.missingCategory ||
+        item.missingDescription ||
+        item.missingUnitPrice ||
+        item.missingQuantity ||
+        item.missingReorderLevel,
+    );
+    if (nextIncompleteIndex !== -1) {
+      setReviewImportIndex(nextIncompleteIndex);
+      return;
+    }
     setImporting(true);
     try {
       const rows = importPreview.map((p) => ({
@@ -624,6 +689,27 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     } finally {
       setImporting(false);
     }
+  };
+
+  const reviewImportItem =
+    reviewImportIndex !== null && reviewImportIndex >= 0
+      ? importPreview[reviewImportIndex] ?? null
+      : null;
+
+  const closeReviewImportModal = () => setReviewImportIndex(null);
+
+  const goToNextReviewItem = () => {
+    const startIndex = reviewImportIndex === null ? 0 : reviewImportIndex + 1;
+    const nextIndex = importPreview.findIndex(
+      (item, index) =>
+        index >= startIndex &&
+        (item.missingCategory ||
+          item.missingDescription ||
+          item.missingUnitPrice ||
+          item.missingQuantity ||
+          item.missingReorderLevel),
+    );
+    setReviewImportIndex(nextIndex >= 0 ? nextIndex : null);
   };
 
   const inputClass =
@@ -1037,6 +1123,162 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
 
       {/* Import CSV Modal */}
       <AnimatePresence>
+        {reviewImportItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+            onClick={closeReviewImportModal}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="dashboard-card w-full max-w-lg p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-moto-accent">
+                    New item added
+                  </p>
+                  <h3 className="mt-1 text-xl font-bold text-slate-100">
+                    Review item details
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeReviewImportModal}
+                  className="rounded-xl p-2 hover:bg-moto-gray/40 text-slate-400 hover:text-slate-100 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-moto-gray bg-moto-darker/80 p-4 mb-5">
+                <p className="text-sm font-semibold text-slate-100">{reviewImportItem.name}</p>
+                <p className="mt-1 text-[11px] text-slate-400 font-mono">{reviewImportItem.sku}</p>
+              </div>
+
+              <div className="grid gap-4">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    Category
+                  </label>
+                  <select
+                    value={reviewImportItem.category}
+                    onChange={(e) =>
+                      updateImportItem(reviewImportIndex ?? 0, {
+                        category: e.target.value as Part["category"],
+                      })
+                    }
+                    className="w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm text-slate-100 focus:border-moto-accent focus:outline-none"
+                  >
+                    {Object.keys(categoryColors).map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    Description
+                  </label>
+                  <textarea
+                    value={reviewImportItem.description}
+                    onChange={(e) =>
+                      updateImportItem(reviewImportIndex ?? 0, { description: e.target.value })
+                    }
+                    rows={4}
+                    placeholder="Add a short product description"
+                    className="w-full resize-none rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:border-moto-accent focus:outline-none"
+                  />
+                </div>
+
+                {(reviewImportItem.missingUnitPrice ||
+                  reviewImportItem.missingQuantity ||
+                  reviewImportItem.missingReorderLevel) && (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {reviewImportItem.missingUnitPrice && (
+                      <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        Unit price
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={reviewImportItem.unit_price}
+                          onChange={(e) =>
+                            updateImportItem(reviewImportIndex ?? 0, {
+                              unit_price: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="mt-1.5 w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm font-normal normal-case text-slate-100 focus:border-moto-accent focus:outline-none"
+                        />
+                      </label>
+                    )}
+                    {reviewImportItem.missingQuantity && (
+                      <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        In stock
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={reviewImportItem.quantity_in_stock}
+                          onChange={(e) =>
+                            updateImportItem(reviewImportIndex ?? 0, {
+                              quantity_in_stock: Number.parseInt(e.target.value, 10) || 0,
+                            })
+                          }
+                          className="mt-1.5 w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm font-normal normal-case text-slate-100 focus:border-moto-accent focus:outline-none"
+                        />
+                      </label>
+                    )}
+                    {reviewImportItem.missingReorderLevel && (
+                      <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        Reorder level
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={reviewImportItem.reorder_level}
+                          onChange={(e) =>
+                            updateImportItem(reviewImportIndex ?? 0, {
+                              reorder_level: Number.parseInt(e.target.value, 10) || 0,
+                            })
+                          }
+                          className="mt-1.5 w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2.5 text-sm font-normal normal-case text-slate-100 focus:border-moto-accent focus:outline-none"
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={closeReviewImportModal}
+                  className="px-4 py-2.5 bg-moto-gray/40 hover:bg-moto-gray/60 text-slate-200 text-[13px] font-bold rounded-xl transition"
+                >
+                  Save later
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNextReviewItem}
+                  className="px-5 py-2.5 bg-moto-accent text-slate-950 text-[13px] font-bold rounded-xl transition hover:bg-moto-accent-dark shadow-lg shadow-moto-accent/25"
+                >
+                  {reviewImportIndex !== null && reviewImportIndex < importPreview.length - 1
+                    ? "Next item"
+                    : "Finish review"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
         {showImportForm && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -1062,7 +1304,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                       Import Inventory (CSV)
                     </h3>
                     <p className="text-[12px] text-slate-400 mt-0.5">
-                      Bulk-add parts from a CSV file. Download the preformatted Excel template below, then save it as CSV to import.
+                      Bulk-add parts from a CSV file using the downloadable CSV template.
                     </p>
                   </div>
                 </div>
@@ -1111,20 +1353,13 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                   {/* File picker */}
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-moto-gray bg-moto-darker p-3.5">
                     <div className="flex items-center gap-2.5">
-                      <FileSpreadsheet className="h-5 w-5 shrink-0 text-moto-accent" />
+                      <FileText className="h-5 w-5 shrink-0 text-moto-accent" />
                       <div>
                         <p className="text-[12px] font-bold text-slate-100">Start with the inventory template</p>
-                        <p className="text-[11px] text-slate-400">Includes formatted columns and sample rows.</p>
+                            <p className="text-[11px] text-slate-400">CSV template with sample rows.</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={downloadInventoryExcelTemplate}
-                        className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-3.5 py-2 text-[12px] font-bold text-white transition hover:from-violet-700 hover:to-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                      >
-                        <Download className="h-4 w-4" /> Excel Template
-                      </button>
                       <button
                         type="button"
                         onClick={downloadInventoryCsvTemplate}
@@ -1181,10 +1416,9 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                       Expected columns
                     </p>
                     <p className="text-[12px] text-slate-300 leading-relaxed">
-                      <span className="text-slate-100 font-semibold">Part Name</span>
-                      {" · "}
-                      <span className="text-slate-100 font-semibold">SKU</span> (required), then any of:
-                      Category, Unit Price, In Stock, Reorder Level, Description.
+                      <span className="text-slate-100 font-semibold">Part Name</span> is required.
+                      SKU is auto-generated when you import, so you do not need to type it manually.
+                      Optional columns: Category, Unit Price, In Stock, Reorder Level, Description.
                       Category accepts: brakes, tires, oils, electrical, suspension, exhaust, filters.
                     </p>
                   </div>
@@ -1200,25 +1434,62 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                   {importPreview.length > 0 && (
                     <div className="mt-4">
                       <p className="text-[12px] font-bold text-slate-200 mb-2">
-                        {importPreview.length} new item(s) ready to import
+                        {importPreview.length} new item(s) ready for review
                       </p>
-                      <div className="max-h-44 overflow-y-auto rounded-xl border border-moto-gray divide-y divide-moto-gray/50 bg-moto-darker">
-                        {importPreview.map((p) => (
+                      <p className="mb-3 text-[11px] text-slate-400">
+                        Choose a category and add a short description before importing.
+                      </p>
+                      <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border border-moto-gray bg-moto-darker p-3">
+                        {importPreview.map((p, index) => (
                           <div
-                            key={p.sku}
-                            className="flex items-center justify-between px-3.5 py-2.5 text-[12px]"
+                            key={`${p.sku}-${index}`}
+                            className="rounded-xl border border-moto-gray bg-moto-black/20 p-3 text-[12px]"
                           >
-                            <div className="min-w-0">
-                              <p className="text-slate-200 font-semibold truncate">
-                                {p.name}
-                              </p>
-                              <p className="text-slate-400 font-mono text-[11px]">
-                                {p.sku} · {p.category}
-                              </p>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-slate-200 font-semibold">{p.name}</p>
+                                <p className="mt-0.5 text-[11px] text-slate-400 font-mono">{p.sku}</p>
+                              </div>
+                              <span className="shrink-0 text-slate-300 tabular-nums">
+                                ₱{p.unit_price.toLocaleString()} · {p.quantity_in_stock} pcs
+                              </span>
                             </div>
-                            <span className="ml-3 text-slate-300 tabular-nums shrink-0">
-                              ₱{p.unit_price.toLocaleString()} · {p.quantity_in_stock} pcs
-                            </span>
+
+                            <div className="mt-3 grid gap-3 sm:grid-cols-[180px_1fr]">
+                              <div>
+                                <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                                  Category
+                                </label>
+                                <select
+                                  value={p.category}
+                                  onChange={(e) =>
+                                    updateImportItem(index, {
+                                      category: e.target.value as Part["category"],
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-moto-gray bg-moto-darker px-3 py-2 text-sm text-slate-100 focus:border-moto-accent focus:outline-none"
+                                >
+                                  {Object.keys(categoryColors).map((cat) => (
+                                    <option key={cat} value={cat}>
+                                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                                  Description
+                                </label>
+                                <textarea
+                                  value={p.description}
+                                  onChange={(e) => updateImportItem(index, { description: e.target.value })}
+                                  rows={2}
+                                  placeholder="Add item description"
+                                  className="w-full resize-none rounded-xl border border-moto-gray bg-moto-darker px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-moto-accent focus:outline-none"
+                                />
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>

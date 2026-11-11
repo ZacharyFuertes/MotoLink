@@ -2,7 +2,6 @@ import * as XLSX from "xlsx-js-style";
 
 const HEADERS = [
   "Part Name",
-  "SKU",
   "Category",
   "Unit Price",
   "In Stock",
@@ -11,19 +10,19 @@ const HEADERS = [
 ];
 
 const SAMPLE_ROWS = [
-  ["Motorcycle Engine Oil 10W-40", "OIL-10W40-001", "oils", 450, 12, 3, "1L four-stroke engine oil"],
-  ["Front Brake Pads", "BRK-FRONT-001", "brakes", 680, 8, 2, "Front disc brake pad set"],
+  ["Motorcycle Engine Oil 10W-40", "oils", 450, 12, 3, "1L four-stroke engine oil"],
+  ["Front Brake Pads", "brakes", 680, 8, 2, "Front disc brake pad set"],
 ];
 
 export const createInventoryExcelTemplate = (): ArrayBuffer => {
   const worksheet = XLSX.utils.aoa_to_sheet([HEADERS, ...SAMPLE_ROWS]);
   worksheet["!cols"] = [
-    { wch: 32 }, { wch: 22 }, { wch: 18 }, { wch: 16 },
+    { wch: 32 }, { wch: 18 }, { wch: 16 },
     { wch: 14 }, { wch: 18 }, { wch: 44 },
   ];
   worksheet["!rows"] = [{ hpt: 30 }, ...SAMPLE_ROWS.map(() => ({ hpt: 28 }))];
   worksheet["!freeze"] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", activePane: "bottomLeft", state: "frozen" };
-  worksheet["!autofilter"] = { ref: `A1:G${SAMPLE_ROWS.length + 1}` };
+  worksheet["!autofilter"] = { ref: `A1:F${SAMPLE_ROWS.length + 1}` };
 
   HEADERS.forEach((_, index) => {
     const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: index })];
@@ -51,11 +50,11 @@ export const createInventoryExcelTemplate = (): ArrayBuffer => {
   const guideRows = [
     ["Inventory Import — Quick Guide"],
     ["Fill in the Inventory sheet. Keep the header row unchanged and add one part per row."],
-    ["Required: Part Name and SKU. SKU must be unique in this shop."],
+    ["Required: Part Name. SKU is auto-generated when you import this file."],
     ["Optional: Category, Unit Price, In Stock, Reorder Level, Description."],
     ["Categories: brakes, tires, oils, electrical, suspension, exhaust, filters, other."],
     ["Replace or delete the sample rows before importing. Blank optional values use the app defaults."],
-    ["Importing this workbook adds new parts; existing or duplicate SKUs are skipped."],
+    ["Importing this workbook adds new parts; existing or duplicate item names are skipped automatically."],
   ];
   const guide = XLSX.utils.aoa_to_sheet(guideRows);
   guide["!cols"] = [{ wch: 112 }];
