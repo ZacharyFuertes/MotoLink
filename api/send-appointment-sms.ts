@@ -11,7 +11,7 @@ import {
   isSmsDeliveryLogUnavailable,
   normalizeSmsPhone,
   sendTextbeeSms,
-} from "./_lib/textbee";
+} from "./_lib/textbee.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
