@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/migrations/20261110000100_textbee_sms_notifications.sql");
+const eventMigration = read("../supabase/migrations/20261112000200_appointment_cancellation_reschedule_sms.sql");
 const endpoint = read("../api/send-appointment-sms.ts");
 const ownerEndpoint = read("../api/send-owner-appointment-sms.ts");
 const lowStockEndpoint = read("../api/send-low-stock-alert.ts");
@@ -14,10 +15,15 @@ const settings = read("../src/components/CustomerSettingsModal.tsx");
 const walkIn = read("../src/components/WalkInBookingModal.tsx");
 
 describe("Textbee appointment SMS source safeguards", () => {
-  it("limits SMS to the three requested appointment states and requires persisted state", () => {
-    expect(endpoint).toContain('["confirmed", "in_progress", "completed"]');
+  it("limits SMS to supported lifecycle events and requires persisted state", () => {
+    expect(endpoint).toContain('["confirmed", "in_progress", "completed", "cancelled", "rescheduled"]');
     expect(endpoint).toContain("appointment.status !== status");
     expect(page).toContain('newStatus === "confirmed" || newStatus === "in_progress" || newStatus === "completed"');
+    expect(page).toContain('newStatus === "cancelled"');
+    expect(endpoint).toContain("isCustomerCancellation");
+    expect(endpoint).toContain("rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}");
+    expect(eventMigration).toContain("UNIQUE (appointment_id, event_key)");
+    expect(eventMigration).toContain("'cancelled', 'rescheduled'");
   });
 
   it("requires customer opt-in or explicit walk-in consent", () => {
@@ -46,6 +52,18 @@ describe("Textbee appointment SMS source safeguards", () => {
     const smsIndex = page.indexOf("sendAppointmentStatusSms(appointment.id, newStatus)");
     expect(statusUpdateIndex).toBeGreaterThan(-1);
     expect(smsIndex).toBeGreaterThan(statusUpdateIndex);
+  });
+
+  it("sends cancellation and reschedule SMS only after their database operation succeeds", () => {
+    const profile = read("../src/pages/UserProfilePage.tsx");
+    const appointmentModal = read("../src/components/ViewAppointmentsModal.tsx");
+    const walkInModal = read("../src/components/WalkInBookingModal.tsx");
+    expect(profile.indexOf("await cancelCustomerAppointment(appointmentId)"))
+      .toBeLessThan(profile.indexOf('sendAppointmentStatusSms(appointmentId, "cancelled")'));
+    expect(appointmentModal.indexOf("await cancelCustomerAppointment(appointmentId)"))
+      .toBeLessThan(appointmentModal.indexOf('sendAppointmentStatusSms(appointmentId, "cancelled")'));
+    expect(walkInModal.indexOf("if (rpcError) throw rpcError"))
+      .toBeLessThan(walkInModal.indexOf('sendAppointmentStatusSms(appointmentId, "rescheduled")'));
   });
 
   it("routes new appointment and low-stock SMS to the private owner phone", () => {

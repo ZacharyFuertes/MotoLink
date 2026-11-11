@@ -1,6 +1,6 @@
 import { postAuthenticatedJson } from "./authenticatedApi";
 
-export type AppointmentSmsStatus = "confirmed" | "in_progress" | "completed";
+export type AppointmentSmsStatus = "confirmed" | "in_progress" | "completed" | "cancelled" | "rescheduled";
 
 export interface AppointmentSmsResult {
   success: boolean;

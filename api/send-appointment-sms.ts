@@ -22,7 +22,7 @@ const MISSING_SERVER_ENV = [
   !SUPABASE_SERVICE_ROLE_KEY && "SUPABASE_SERVICE_ROLE_KEY",
   !TEXTBEE_API_KEY && "TEXTBEE_API_KEY",
 ].filter(Boolean) as string[];
-const ALLOWED_STATUSES = new Set<AppointmentSmsStatus>(["confirmed", "in_progress", "completed"]);
+const ALLOWED_STATUSES = new Set<AppointmentSmsStatus>(["confirmed", "in_progress", "completed", "cancelled", "rescheduled"]);
 
 const reply = (res: any, status: number, body: Record<string, unknown>) => res.status(status).json(body);
 
@@ -62,12 +62,17 @@ export default async function handler(req: any, res: any) {
         .maybeSingle(),
     ]);
     if (callerError) throw callerError;
-    if (!caller || (caller.role !== "owner" && caller.role !== "admin")) {
-      return reply(res, 403, { success: false, error: "Only shop staff can request appointment status SMS." });
-    }
     if (appointmentError) throw appointmentError;
     if (!appointment) return reply(res, 404, { success: false, error: "Appointment not found." });
-    if (appointment.status !== status) {
+    if (!caller) return reply(res, 403, { success: false, error: "Not authorized to request appointment SMS." });
+    const isStaff = caller.role === "owner" || caller.role === "admin";
+    const isCustomerCancellation = status === "cancelled" && appointment.customer_id === caller.id;
+    if (!isStaff && !isCustomerCancellation) {
+      return reply(res, 403, { success: false, error: "Not authorized to request appointment SMS." });
+    }
+    if (status === "rescheduled"
+      ? (!isStaff || !["pending", "confirmed"].includes(appointment.status))
+      : appointment.status !== status) {
       return reply(res, 409, { success: false, error: "Appointment status has not reached the requested state." });
     }
 
@@ -78,7 +83,7 @@ export default async function handler(req: any, res: any) {
       .maybeSingle();
     if (shopError) throw shopError;
     if (!shop) return reply(res, 404, { success: false, error: "Shop not found." });
-    if (caller.role !== "admin" && shop.owner_id !== caller.id) {
+    if (isStaff && caller.role !== "admin" && shop.owner_id !== caller.id) {
       return reply(res, 403, { success: false, error: "Not authorized for this shop." });
     }
 
@@ -106,6 +111,9 @@ export default async function handler(req: any, res: any) {
         const { data, error } = await db.from("appointment_sms_deliveries").insert({
           appointment_id: appointment.id,
           target_status: status,
+          event_key: status === "rescheduled"
+            ? `rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}`
+            : status,
           state,
           reason_code: reasonCode || null,
           textbee_batch_id: textbeeBatchId || null,

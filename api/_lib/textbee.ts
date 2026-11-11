@@ -1,4 +1,4 @@
-export type AppointmentSmsStatus = "confirmed" | "in_progress" | "completed";
+export type AppointmentSmsStatus = "confirmed" | "in_progress" | "completed" | "cancelled" | "rescheduled";
 
 export type TextbeeSendResult =
   | { kind: "accepted"; smsBatchId: string | null; warning?: string }
@@ -70,6 +70,15 @@ export const buildAppointmentStatusSms = (context: AppointmentSmsContext): strin
   const shop = cleanSmsText(context.shopName || "your shop", 40);
   const reference = cleanSmsText(context.bookingRef || "your booking", 24);
 
+  if (context.status === "cancelled") {
+    return `${greeting} your MotoLink booking ${reference} at ${shop} has been cancelled.`;
+  }
+  if (context.status === "rescheduled") {
+    const date = cleanSmsText(context.scheduledDate || "", 16);
+    const time = cleanSmsText(context.scheduledTime || "", 12);
+    const schedule = [date, time].filter(Boolean).join(" ");
+    return `${greeting} your MotoLink booking ${reference} at ${shop} has been rescheduled${schedule ? ` to ${schedule}` : ""}.`;
+  }
   if (context.status === "confirmed") {
     const date = cleanSmsText(context.scheduledDate || "", 16);
     const time = cleanSmsText(context.scheduledTime || "", 12);

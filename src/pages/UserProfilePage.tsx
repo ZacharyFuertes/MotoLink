@@ -53,7 +53,7 @@ import {
   updateVehicle,
   vehicleLabel,
 } from "../services/vehicleService";
-import { sendBookingCancelledEmail } from "../services/notificationService";
+import { sendAppointmentStatusSms, sendBookingCancelledEmail } from "../services/notificationService";
 import { getSavedShops, SavedShop, unsaveShop } from "../services/shopFavoritesService";
 import { todayKey } from "../utils/dateTime";
 
@@ -782,6 +782,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       await cancelCustomerAppointment(appointmentId);
 
       void sendBookingCancelledEmail(appointmentId);
+      void sendAppointmentStatusSms(appointmentId, "cancelled").then((sms) => {
+        if (!sms.success) console.warn("Appointment cancelled but SMS failed:", sms.error || sms.reason);
+      });
 
       setHistory((prev) =>
         prev.map((item) =>

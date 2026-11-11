@@ -24,6 +24,7 @@ import {
   sendBookingRequestReceivedEmail,
   sendOwnerBookingEmail,
   sendRescheduleNoticeToCustomer,
+  sendAppointmentStatusSms,
 } from "../services/notificationService";
 import {
   customerService,
@@ -872,9 +873,15 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       setConflictModalOpen(false);
       setPendingWalkIn(null);
       for (const appointmentId of result?.affected_appointment_ids || []) {
-        void sendRescheduleNoticeToCustomer(appointmentId, resolutions.find((item) => item.appointment_id === appointmentId)?.action === "reassign_online" ? "reassigned" : "rescheduled").then((notice) => {
+        const resolution = resolutions.find((item) => item.appointment_id === appointmentId);
+        void sendRescheduleNoticeToCustomer(appointmentId, resolution?.action === "reassign_online" ? "reassigned" : "rescheduled").then((notice) => {
           if (!notice.success && !notice.skipped && !notice.notConfigured) console.warn("Conflict was resolved but customer notification failed:", notice.error);
         });
+        if (resolution?.action === "reschedule_online") {
+          void sendAppointmentStatusSms(appointmentId, "rescheduled").then((sms) => {
+            if (!sms.success) console.warn("Conflict was resolved but reschedule SMS failed:", sms.error || sms.reason);
+          });
+        }
       }
       void sendOwnerBookingEmail(appointment.id).then((mail) => {
         if (!mail.success) console.warn("Could not send new-booking email to shop owner:", mail.error);

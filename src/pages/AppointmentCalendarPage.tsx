@@ -453,7 +453,7 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
 
         if (
           appointment.status !== newStatus &&
-          (newStatus === "confirmed" || newStatus === "in_progress" || newStatus === "completed")
+          (newStatus === "confirmed" || newStatus === "in_progress" || newStatus === "completed" || newStatus === "cancelled")
         ) {
           void sendAppointmentStatusSms(appointment.id, newStatus)
             .then((smsResult) => {

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
-import { sendBookingCancelledEmail } from "../services/notificationService";
+import { sendAppointmentStatusSms, sendBookingCancelledEmail } from "../services/notificationService";
 import { cancelCustomerAppointment } from "../services/appointmentService";
 import BookAppointmentModal from "./BookAppointmentModal";
 import { todayKey } from "../utils/dateTime";
@@ -178,6 +178,9 @@ const ViewAppointmentsModal: React.FC<ViewAppointmentsModalProps> = ({
       await cancelCustomerAppointment(appointmentId);
 
       void sendBookingCancelledEmail(appointmentId);
+      void sendAppointmentStatusSms(appointmentId, "cancelled").then((sms) => {
+        if (!sms.success) console.warn("Appointment cancelled but SMS failed:", sms.error || sms.reason);
+      });
 
       // Update locally
       setAppointments((prev) =>

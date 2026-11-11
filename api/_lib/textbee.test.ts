@@ -21,7 +21,7 @@ describe("Textbee appointment SMS helpers", () => {
     expect(normalizeSmsPhone(input)).toBe(expected);
   });
 
-  it("builds short, distinct messages for the allowed lifecycle statuses", () => {
+  it("builds short, distinct messages for appointment lifecycle events", () => {
     const base = {
       customerName: "Mina",
       shopName: "MotoLink Garage",
@@ -32,6 +32,8 @@ describe("Textbee appointment SMS helpers", () => {
     expect(buildAppointmentStatusSms({ ...base, status: "confirmed" })).toContain("is confirmed for 2026-11-12 09:00");
     expect(buildAppointmentStatusSms({ ...base, status: "in_progress" })).toContain("now in progress");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).toContain("ready for pickup");
+    expect(buildAppointmentStatusSms({ ...base, status: "cancelled" })).toContain("has been cancelled");
+    expect(buildAppointmentStatusSms({ ...base, status: "rescheduled" })).toContain("has been rescheduled to 2026-11-12 09:00");
     expect(buildAppointmentStatusSms({ ...base, status: "completed" })).not.toMatch(/[🏍️✅]/u);
   });
 
