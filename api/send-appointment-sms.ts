@@ -181,12 +181,18 @@ export default async function handler(req: any, res: any) {
 
     const skip = async (reasonCode: string) => {
       const claimed = await record("skipped", reasonCode);
+      const body: Record<string, unknown> = {
+        success: false,
+        skipped: true,
+        reason: reasonCode,
+        ...(claimed.duplicate ? { duplicate: true } : {}),
+      };
       // Map skip reasons to proper HTTP status codes so callers can distinguish
       // phone problems from a successful send.
       if (reasonCode === "phone_number_missing" || reasonCode === "phone_number_invalid") {
-        return reply(res, 400, { success: false, skipped: true, reason: reasonCode });
+        return reply(res, 400, body);
       }
-      return reply(res, 200, { success: true, skipped: true, ...(claimed.duplicate ? { duplicate: true } : {}), reason: reasonCode });
+      return reply(res, 200, body);
     };
 
     let consent = appointment.walk_in_sms_consent === true;
@@ -214,7 +220,7 @@ export default async function handler(req: any, res: any) {
         error: "Customer SMS was not sent because delivery logging is unavailable. Apply the Textbee SMS migrations and retry.",
       });
     }
-    if (claimed.duplicate) return reply(res, 200, { success: true, skipped: true, duplicate: true, reason: "status_sms_already_claimed" });
+    if (claimed.duplicate) return reply(res, 200, { success: false, skipped: true, duplicate: true, reason: "status_sms_already_claimed" });
 
     const message = buildAppointmentStatusSms({
       status: status as AppointmentSmsStatus,
