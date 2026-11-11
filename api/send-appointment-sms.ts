@@ -102,6 +102,15 @@ export default async function handler(req: any, res: any) {
       phone = customer?.phone || null;
       customerName = customer?.name || "";
       recipientId = customer?.id || appointment.customer_id;
+      if (!phone) {
+        const { data: customerProfile, error: customerProfileError } = await db
+          .from("customers")
+          .select("phone")
+          .eq("user_id", recipientId)
+          .maybeSingle();
+        if (customerProfileError) throw customerProfileError;
+        phone = customerProfile?.phone || null;
+      }
     } else {
       // Walk-in customer: use the walk-in phone captured at booking time.
       phone = appointment.walk_in_phone || null;
