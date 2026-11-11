@@ -9,6 +9,7 @@ import {
   AppointmentSmsStatus,
   buildAppointmentStatusSms,
   isSmsDeliveryLogUnavailable,
+  isSmsEventKeyUnavailable,
   normalizeSmsPhone,
   sendTextbeeSms,
 } from "./_lib/textbee.js";
@@ -108,17 +109,38 @@ export default async function handler(req: any, res: any) {
 
     const record = async (state: "sending" | "skipped" | "failed" | "unknown" | "accepted", reasonCode?: string, textbeeBatchId?: string | null) => {
       try {
-        const { data, error } = await db.from("appointment_sms_deliveries").insert({
+        const eventKey = status === "rescheduled"
+          ? `rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}`
+          : status;
+        const delivery = {
           appointment_id: appointment.id,
           target_status: status,
-          event_key: status === "rescheduled"
-            ? `rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}`
-            : status,
+          event_key: eventKey,
           state,
           reason_code: reasonCode || null,
           textbee_batch_id: textbeeBatchId || null,
           updated_at: new Date().toISOString(),
-        }).select("id").single();
+        };
+        let { data, error } = await db.from("appointment_sms_deliveries")
+          .insert(delivery)
+          .select("id")
+          .single();
+        if (error && isSmsEventKeyUnavailable(error)
+          && ["confirmed", "in_progress", "completed"].includes(status)) {
+          // Keep the original three status messages working while deployments
+          // are applying the event-key migration. New event types need it.
+          ({ data, error } = await db.from("appointment_sms_deliveries")
+            .insert({
+              appointment_id: appointment.id,
+              target_status: status,
+              state,
+              reason_code: reasonCode || null,
+              textbee_batch_id: textbeeBatchId || null,
+              updated_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single());
+        }
         if (error?.code === "23505") return { duplicate: true as const, id: null, unavailable: false as const };
         if (error || !data) throw error || new Error("Could not record SMS delivery state.");
         return { duplicate: false as const, id: data.id as string, unavailable: false as const };
@@ -176,11 +198,11 @@ export default async function handler(req: any, res: any) {
 
     const claimed = await record("sending");
     if (claimed.unavailable) {
-      return reply(res, 200, {
-        success: true,
+      return reply(res, 503, {
+        success: false,
         skipped: true,
         reason: "sms_delivery_log_unavailable",
-        warn: "SMS delivery logging is not enabled in this deployment yet; the appointment still completed successfully.",
+        error: "Customer SMS was not sent because delivery logging is unavailable. Apply the Textbee SMS migrations and retry.",
       });
     }
     if (claimed.duplicate) return reply(res, 200, { success: true, skipped: true, duplicate: true, reason: "status_sms_already_claimed" });

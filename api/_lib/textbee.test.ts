@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
+import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, isSmsEventKeyUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
 
 const jsonResponse = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status,
@@ -56,6 +56,15 @@ describe("Textbee appointment SMS helpers", () => {
     expect(isSmsDeliveryLogUnavailable({ code: "42P01", message: 'relation "public.appointment_sms_deliveries" does not exist' })).toBe(true);
     expect(isSmsDeliveryLogUnavailable({ code: "42703", message: 'column "updated_at" of relation "appointment_sms_deliveries" does not exist' })).toBe(true);
     expect(isSmsDeliveryLogUnavailable({ message: "Textbee rejected the message", code: "400" })).toBe(false);
+  });
+
+  it("recognizes PostgREST schema-cache errors for the event-key migration", () => {
+    expect(isSmsEventKeyUnavailable({
+      code: "PGRST204",
+      message: "Could not find the 'event_key' column of 'appointment_sms_deliveries' in the schema cache",
+    })).toBe(true);
+    expect(isSmsEventKeyUnavailable({ code: "42703", message: 'column "event_key" does not exist' })).toBe(true);
+    expect(isSmsEventKeyUnavailable({ code: "PGRST204", message: "Could not find the 'state' column" })).toBe(false);
   });
 
   it("posts the documented payload and returns the queued Textbee batch ID", async () => {

@@ -22,8 +22,12 @@ describe("Textbee appointment SMS source safeguards", () => {
     expect(page).toContain('newStatus === "cancelled"');
     expect(endpoint).toContain("isCustomerCancellation");
     expect(endpoint).toContain("rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}");
+    expect(endpoint).toContain("isSmsEventKeyUnavailable(error)");
+    expect(endpoint).toContain("Customer SMS was not sent because delivery logging is unavailable.");
     expect(eventMigration).toContain("UNIQUE (appointment_id, event_key)");
     expect(eventMigration).toContain("'cancelled', 'rescheduled'");
+    expect(eventMigration).toContain("ADD COLUMN IF NOT EXISTS event_key TEXT");
+    expect(eventMigration).toContain("DROP CONSTRAINT IF EXISTS appointment_sms_deliveries_appointment_id_event_key_key");
   });
 
   it("requires customer opt-in or explicit walk-in consent", () => {
@@ -64,6 +68,7 @@ describe("Textbee appointment SMS source safeguards", () => {
       .toBeLessThan(appointmentModal.indexOf('sendAppointmentStatusSms(appointmentId, "cancelled")'));
     expect(walkInModal.indexOf("if (rpcError) throw rpcError"))
       .toBeLessThan(walkInModal.indexOf('sendAppointmentStatusSms(appointmentId, "rescheduled")'));
+    expect(page).toContain('smsResult.reason === "sms_consent_missing"');
   });
 
   it("routes new appointment and low-stock SMS to the private owner phone", () => {

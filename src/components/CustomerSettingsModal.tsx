@@ -745,7 +745,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                           <span>
                             <span className="block text-sm font-bold text-slate-100">SMS appointment status updates</span>
                             <span className="mt-1 block text-xs leading-relaxed text-slate-400">
-                              Receive a text when your booking is confirmed, work starts, or service is completed. Messages go to the phone number on your profile. Standard carrier rates may apply. You can turn this off at any time.
+                              Receive a text when your booking is confirmed, work starts, is completed, cancelled, or rescheduled. Messages go to the phone number on your profile. Standard carrier rates may apply. You can turn this off at any time.
                             </span>
                           </span>
                         </label>

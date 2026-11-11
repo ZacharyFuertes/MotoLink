@@ -27,6 +27,8 @@ export const requestAppointmentStatusSms = async (
       const error = typeof body?.error === "string" ? body.error : `SMS request failed (${response.status}).`;
       return {
         success: false,
+        ...(body?.skipped ? { skipped: true } : {}),
+        ...(typeof body?.reason === "string" ? { reason: body.reason } : {}),
         error,
         ...(body?.notConfigured || /not configured/i.test(error) ? { notConfigured: true } : {}),
       };

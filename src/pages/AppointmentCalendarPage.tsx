@@ -461,7 +461,11 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
                 showToast("Appointment updated, but SMS delivery is not configured.", "info");
               } else if (smsResult.queued) {
                 showToast("Appointment updated. Customer status SMS queued.", "success");
-              } else if (!smsResult.skipped) {
+              } else if (smsResult.skipped && smsResult.reason === "sms_consent_missing") {
+                showToast("Appointment updated, but customer SMS is disabled or not consented to.", "info");
+              } else if (smsResult.skipped) {
+                showToast(`Appointment updated, but customer SMS was skipped: ${smsResult.reason || "delivery could not be recorded."}`, "error");
+              } else {
                 showToast(
                   smsResult.uncertain
                     ? "Appointment updated, but SMS delivery status is uncertain. It was not retried."

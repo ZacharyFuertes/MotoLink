@@ -104,6 +104,15 @@ export const isSmsDeliveryLogUnavailable = (error: any): boolean => {
   );
 };
 
+export const isSmsEventKeyUnavailable = (error: any): boolean => {
+  const message = typeof error?.message === "string" ? error.message : "";
+  const code = typeof error?.code === "string" ? error.code : "";
+  return (
+    (code === "PGRST204" || code === "42703") &&
+    /event_key/i.test(message)
+  );
+};
+
 const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export const sendTextbeeSms = async (options: {
