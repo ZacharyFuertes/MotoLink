@@ -1,5 +1,7 @@
 // User & Auth Types
 export type UserRole = "owner" | "mechanic" | "customer" | "admin";
+export type MotorcycleTransmission = "unknown" | "automatic" | "manual";
+export type TransmissionCompatibility = "both" | "automatic" | "manual";
 
 export interface User {
   id: string;
@@ -19,6 +21,7 @@ export interface Vehicle {
   customer_id: string;
   make: string;
   model: string;
+  transmission_type?: MotorcycleTransmission;
   created_at: string;
 }
 
@@ -37,6 +40,7 @@ export interface Part {
     | "filters"
     | "other";
   category_id?: string | null;
+  transmission_compatibility: TransmissionCompatibility;
   sku: string;
   unit_price: number;
   quantity_in_stock: number;

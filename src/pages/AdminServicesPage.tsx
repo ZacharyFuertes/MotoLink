@@ -15,6 +15,7 @@ interface ServicePricing {
   price: number;
   duration_minutes: number;
   is_active: boolean;
+  transmission_compatibility: "both" | "automatic" | "manual";
 }
 
 interface AdminServicesPageProps {
@@ -49,6 +50,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
   const hasUnsavedChanges = Boolean(editingId) && formSnapshot !== savedFormRef.current;
   const labelValue = editForm.label || "";
   const descriptionValue = editForm.description || "";
+  const transmissionCompatibility = editForm.transmission_compatibility || "both";
   const labelError = labelValue.trim().length === 0 ? "Service name is required." : labelValue.length > 100 ? "Use 100 characters or fewer." : "";
   const descriptionError = descriptionValue.length > 500 ? "Use 500 characters or fewer." : "";
   const durationValue = Number(editForm.duration_minutes ?? 60);
@@ -204,6 +206,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
       price: 0,
       duration_minutes: 60,
       is_active: true,
+      transmission_compatibility: "both" as const,
     };
     setIsAddingMode(true);
     setEditingId("new");
@@ -245,6 +248,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
       price: priceValue,
       duration_minutes: durationValue,
       is_active: editForm.is_active,
+      transmission_compatibility: transmissionCompatibility,
     };
     if (user?.role === "owner" && shopId) {
     payload.shop_id = shopId;
@@ -334,6 +338,24 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
     </div>
   );
 
+  const compatibilityField = (label: string) => (
+    <select
+      aria-label={`Motorcycle compatibility for ${label}`}
+      value={transmissionCompatibility}
+      onChange={(event) =>
+        setEditForm({
+          ...editForm,
+          transmission_compatibility: event.target.value as ServicePricing["transmission_compatibility"],
+        })
+      }
+      className={inputClass}
+    >
+      <option value="both">Automatic &amp; manual</option>
+      <option value="automatic">Automatic only</option>
+      <option value="manual">Manual only</option>
+    </select>
+  );
+
   const priceField = () => (
     <div>
       <div className="relative">
@@ -373,7 +395,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
   );
 
   const serviceActions = () => (
-    <div className="flex items-center justify-end gap-2">
+    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
       <button type="button" title="Save changes" aria-label="Save changes" onClick={() => void handleSave()} disabled={savingService || loadingMappingServiceId === editingId || !hasUnsavedChanges || !isFormValid} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-violet-600 px-3 text-xs font-semibold text-white transition hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-40">
         {savingService ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Save
       </button>
@@ -431,13 +453,13 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="hidden w-full table-fixed text-sm dashboard-table md:table">
-              <colgroup><col style={{ width: "22%" }} /><col style={{ width: "28%" }} /><col style={{ width: "22%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} /><col style={{ width: "8%" }} /></colgroup>
+            <table className="hidden min-w-[1280px] w-full table-fixed text-sm dashboard-table md:table">
+              <colgroup><col style={{ width: "20%" }} /><col style={{ width: "26%" }} /><col style={{ width: "20%" }} /><col style={{ width: "9%" }} /><col style={{ width: "12%" }} /><col style={{ width: "13%" }} /></colgroup>
               <thead className="text-xs tracking-wide text-gray-600">
                 <tr>
                   <th className="text-left">Service Name</th>
                   <th className="text-left">Description</th>
-                  <th className="text-left">Compatible part categories</th>
+                  <th className="text-left">Motorcycle &amp; part fitment</th>
                   <th className="text-right">Estimated time</th>
                   <th className="text-right">Price Rate</th>
                   <th className="text-right">Actions</th>
@@ -468,6 +490,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                     <td className={`align-top ${editingId === service.id ? "py-3" : ""}`}>
                       {editingId === service.id && !isAddingMode ? (
                         <div className="space-y-2">
+                          {compatibilityField(service.label)}
                           <ServiceCategoryMultiSelect
                             categories={categories}
                             selectedIds={selectedCategoryIds}
@@ -481,6 +504,14 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                           />
                         </div>
                       ) : (
+                        <div className="space-y-1.5">
+                        <span className="block text-[10px] font-semibold text-slate-400">
+                          {service.transmission_compatibility === "automatic"
+                            ? "Automatic only"
+                            : service.transmission_compatibility === "manual"
+                              ? "Manual only"
+                              : "Automatic & manual"}
+                        </span>
                         <div className="flex flex-wrap gap-1">
                           {categories.filter((category) => (serviceCategoryIds[service.id] || []).includes(category.id)).length > 0 ? (
                             <>
@@ -488,6 +519,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                               {categories.filter((category) => (serviceCategoryIds[service.id] || []).includes(category.id)).length > 2 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-800">+{categories.filter((category) => (serviceCategoryIds[service.id] || []).includes(category.id)).length - 2}</span>}
                             </>
                           ) : <span className="text-xs text-gray-500">—</span>}
+                        </div>
                         </div>
                       )}
                     </td>
@@ -505,7 +537,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                         `₱${Number(service.price).toLocaleString()}`
                       )}
                     </td>
-                    <td className={`align-top text-right ${editingId === service.id ? "py-3" : ""}`}>
+                    <td className={`align-top whitespace-nowrap text-right ${editingId === service.id ? "py-3" : ""}`}>
                       {editingId === service.id && !isAddingMode ? (
                         serviceActions()
                       ) : (
@@ -532,6 +564,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                       {descriptionField("new")}
                     </td>
                     <td>
+                      <div className="mb-2">{compatibilityField("new service")}</div>
                           <ServiceCategoryMultiSelect
                         categories={categories}
                         selectedIds={selectedCategoryIds}
@@ -548,7 +581,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                     <td className="text-right">
                       {durationField("new service")}
                     </td>
-                    <td className="text-right">
+                    <td className="whitespace-nowrap text-right">
                       {priceField()}
                     </td>
                     <td className="text-right">
@@ -576,6 +609,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                       <div className="space-y-3">
                         <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Service name</p>{nameField(service.label)}</div>
                         <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Description</p>{descriptionField(service.label)}</div>
+                        <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Motorcycle compatibility</p>{compatibilityField(service.label)}</div>
                         <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Compatible part categories</p><ServiceCategoryMultiSelect categories={categories} selectedIds={selectedCategoryIds} onChange={setSelectedCategoryIds} label={service.label} loading={categoryLoading} error={categoryError || undefined} onRetry={retryCategories} open={openCategoryServiceId === `${service.id}:mobile`} onOpenChange={(open) => setOpenCategoryServiceId(open ? `${service.id}:mobile` : null)} /></div>
                         <div className="grid grid-cols-2 gap-3">
                           <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Estimated time</p>{durationField(service.label)}</div>
@@ -596,6 +630,13 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                           <span className="font-semibold text-violet-700">₱{Number(service.price).toFixed(2)}</span>
                           <span className="text-slate-400">{Number(service.duration_minutes) || 60} min</span>
                         </div>
+                        <p className="mt-2 text-[10px] font-semibold text-slate-400">
+                          {service.transmission_compatibility === "automatic"
+                            ? "Automatic only"
+                            : service.transmission_compatibility === "manual"
+                              ? "Manual only"
+                              : "Automatic & manual"}
+                        </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {mapped.length ? mapped.slice(0, 2).map((category) => <span key={category.id} className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-800">{category.name.replace(/\b\w/g, (letter) => letter.toUpperCase())}</span>) : <span className="text-xs text-gray-500">—</span>}
                           {mapped.length > 2 && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-800">+{mapped.length - 2}</span>}
@@ -609,6 +650,7 @@ const AdminServicesPage: React.FC<AdminServicesPageProps> = ({ onNavigate }) => 
                 <article className="space-y-3 rounded-xl border border-violet-300 border-l-4 border-l-violet-600 bg-violet-50/40 p-3">
                   <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Service name</p>{nameField("new")}</div>
                   <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Description</p>{descriptionField("new")}</div>
+                  <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Motorcycle compatibility</p>{compatibilityField("new service")}</div>
                   <div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Compatible part categories</p><ServiceCategoryMultiSelect categories={categories} selectedIds={selectedCategoryIds} onChange={setSelectedCategoryIds} label="new service" loading={categoryLoading} error={categoryError || undefined} onRetry={retryCategories} open={openCategoryServiceId === "new:mobile"} onOpenChange={(open) => setOpenCategoryServiceId(open ? "new:mobile" : null)} /></div>
                   <div className="grid grid-cols-2 gap-3"><div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Estimated time</p>{durationField("new service")}</div><div><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-600">Price rate</p>{priceField()}</div></div>
                   {serviceActions()}

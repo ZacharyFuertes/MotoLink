@@ -370,6 +370,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           customer_id: data.user.id,
           make: vehicle.make,
           model: vehicle.model,
+          transmission_type: vehicle.transmission_type ?? "unknown",
         });
 
         if (vehicleError) throw vehicleError;

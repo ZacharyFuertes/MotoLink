@@ -1,4 +1,5 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { localDateKey } from "../utils/dateTime";
 
 interface DateStripProps {
@@ -39,6 +40,7 @@ const DateStrip: React.FC<DateStripProps> = ({
   isDateDisabled,
   isDateHidden,
 }) => {
+  const stripRef = useRef<HTMLDivElement>(null);
   const dates = useMemo(() => {
     const out: string[] = [];
     const cursor = new Date();
@@ -76,57 +78,75 @@ const DateStrip: React.FC<DateStripProps> = ({
         </p>
       )}
 
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2">
-        {visibleDates.map((dateKey) => {
-          const f = formatDate(dateKey);
-          const isActive = value === dateKey;
-          const isDisabled = isDateDisabled?.(dateKey) ?? false;
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              aria-pressed={isActive}
-              aria-disabled={isDisabled}
-              disabled={isDisabled}
-              title={isDisabled ? "No mechanic shift is scheduled for this date" : undefined}
-              onClick={() => {
-                if (!isDisabled) onChange(dateKey);
-              }}
-              className={`flex h-[86px] w-[68px] shrink-0 flex-col items-center justify-center
-                          rounded-2xl border py-2 transition-colors duration-200
-                          ${
-                            isDisabled
-                              ? "cursor-not-allowed border-moto-gray/50 bg-moto-darker/40 text-slate-600 opacity-45"
-                              : isActive
-                              ? "border-moto-accent bg-moto-accent/10 text-moto-accent shadow-lg shadow-moto-accent/10 ring-1 ring-moto-accent/40"
-                              : "border-moto-gray bg-moto-darker text-slate-400 hover:border-moto-accent/60"
-                          }`}
-            >
-              <span
-                className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
-                  isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
-                }`}
+      <div className="-mx-1 flex min-w-0 items-center gap-1">
+        <button
+          type="button"
+          aria-label="Show earlier dates"
+          onClick={() => stripRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+          className="date-strip-arrow flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-slate-400 transition hover:border-moto-accent hover:text-moto-accent focus:outline-none focus:ring-2 focus:ring-moto-accent/50"
+        >
+          <ChevronLeft size={16} aria-hidden="true" />
+        </button>
+        <div ref={stripRef} className="date-strip-track flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-2">
+          {visibleDates.map((dateKey) => {
+            const f = formatDate(dateKey);
+            const isActive = value === dateKey;
+            const isDisabled = isDateDisabled?.(dateKey) ?? false;
+            return (
+              <button
+                key={dateKey}
+                type="button"
+                aria-pressed={isActive}
+                aria-disabled={isDisabled}
+                disabled={isDisabled}
+                title={isDisabled ? "No mechanic shift is scheduled for this date" : undefined}
+                onClick={() => {
+                  if (!isDisabled) onChange(dateKey);
+                }}
+                className={`flex h-[86px] w-[68px] shrink-0 flex-col items-center justify-center
+                            rounded-2xl border py-2 transition-colors duration-200
+                            ${
+                              isDisabled
+                                ? "cursor-not-allowed border-moto-gray/50 bg-moto-darker/40 text-slate-600 opacity-45"
+                                : isActive
+                                ? "border-moto-accent bg-moto-accent/10 text-moto-accent shadow-lg shadow-moto-accent/10 ring-1 ring-moto-accent/40"
+                                : "border-moto-gray bg-moto-darker text-slate-400 hover:border-moto-accent/60"
+                            }`}
               >
-                {f.day}
-              </span>
-              <span className={`font-display my-0.5 text-2xl font-black leading-none ${isDisabled ? "text-slate-600" : "text-slate-100"}`}>
-                {f.date}
-              </span>
-              <span
-                className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
-                  isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
-                }`}
-              >
-                {f.month}
-              </span>
-              {f.isToday && (
-                  <span className={`mt-0.5 text-[8px] font-bold uppercase tracking-wider ${isDisabled ? "text-slate-600" : "text-moto-accent/80"}`}>
-                  Today
+                <span
+                  className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
+                    isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
+                  }`}
+                >
+                  {f.day}
                 </span>
-              )}
-            </button>
-          );
-        })}
+                <span className={`font-display my-0.5 text-2xl font-black leading-none ${isDisabled ? "text-slate-600" : "text-slate-100"}`}>
+                  {f.date}
+                </span>
+                <span
+                  className={`text-[10px] font-bold uppercase leading-none tracking-widest ${
+                    isDisabled ? "text-slate-600" : isActive ? "text-moto-accent" : "text-slate-400"
+                  }`}
+                >
+                  {f.month}
+                </span>
+                {f.isToday && (
+                  <span className={`mt-0.5 text-[8px] font-bold uppercase tracking-wider ${isDisabled ? "text-slate-600" : "text-moto-accent/80"}`}>
+                    Today
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          aria-label="Show later dates"
+          onClick={() => stripRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+          className="date-strip-arrow flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-moto-gray bg-moto-darker text-slate-400 transition hover:border-moto-accent hover:text-moto-accent focus:outline-none focus:ring-2 focus:ring-moto-accent/50"
+        >
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
       </div>
       {visibleDates.length === 0 && (
         <p className="mt-1 text-xs text-slate-400">No dates with scheduled mechanics are available.</p>

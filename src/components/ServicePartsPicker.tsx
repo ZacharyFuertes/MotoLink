@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Loader2, Package, Wrench } from "lucide-react";
 import { loadServicePartCatalog, ServicePart, ServicePartCatalog } from "../services/servicePartsService";
+import { MotorcycleTransmission } from "../types";
 
 export interface SelectedServicePart {
   id: string;
@@ -21,6 +22,7 @@ interface ServicePartsPickerProps {
   selectedParts: SelectedServicePart[];
   onChange: (parts: SelectedServicePart[]) => void;
   onAvailabilityChange?: (hasParts: boolean) => void;
+  transmission: MotorcycleTransmission;
   catalog?: ServicePartCatalog;
   requirePartsForServices?: boolean;
 }
@@ -31,6 +33,7 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
   selectedParts,
   onChange,
   onAvailabilityChange,
+  transmission,
   catalog: catalogProp,
   requirePartsForServices = false,
 }) => {
@@ -62,12 +65,22 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
       onAvailabilityChangeRef.current?.(false);
       return () => { active = false; };
     }
+    if (transmission === "unknown") {
+      setParts([]);
+      setCategoryNames(new Map());
+      setServiceCategories(new Map());
+      setLoading(false);
+      setError("Select the motorcycle transmission to see compatible parts.");
+      onChangeRef.current([]);
+      onAvailabilityChangeRef.current?.(false);
+      return () => { active = false; };
+    }
 
     setLoading(true);
     setError("");
     const catalogRequest = catalogProp
       ? Promise.resolve(catalogProp)
-      : loadServicePartCatalog(shopId, serviceIds);
+      : loadServicePartCatalog(shopId, serviceIds, transmission);
     void catalogRequest.then((catalog) => {
       if (!active) return;
       setParts(catalog.parts);
@@ -117,7 +130,7 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
     return () => { active = false; };
   // selected part/callback refs intentionally do not trigger catalog reloads.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, serviceIdsKey, catalogProp, requirePartsForServices]);
+  }, [shopId, serviceIdsKey, catalogProp, requirePartsForServices, transmission]);
 
   useEffect(() => { serviceIdsRef.current = serviceIds; }, [serviceIdsKey]);
 
@@ -217,6 +230,11 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-slate-100">{part.name}</p>
                         <p className="text-xs text-slate-400">{part.category_name}</p>
+                        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-moto-accent/80">
+                          {part.transmission_compatibility === "both"
+                            ? "Automatic & manual"
+                            : `${part.transmission_compatibility} only`}
+                        </p>
                         {outOfStock ? <span className="text-xs font-semibold text-rose-300">Out of stock</span> : <span className="text-xs text-emerald-300">{part.quantity_in_stock} available</span>}
                       </div>
                       <p className="font-mono text-sm font-bold text-slate-200">₱{part.unit_price.toLocaleString()}</p>

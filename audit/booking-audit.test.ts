@@ -3,10 +3,14 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/migrations/20261103_booking_concurrency_and_consent_guards.sql");
+const compatibilityMigration = read("../supabase/migrations/20261112000100_motorcycle_service_compatibility.sql");
 const conflictMigration = read("../supabase/migrations/20261101_handle_walk_in_booking_conflict.sql");
 const online = read("../src/components/BookAppointmentModal.tsx");
 const walkIn = read("../src/components/WalkInBookingModal.tsx");
 const conflictModal = read("../src/components/ConflictResolutionModal.tsx");
+const servicesPage = read("../src/pages/AdminServicesPage.tsx");
+const inventoryPage = read("../src/pages/InventoryPage.tsx");
+const customerSettings = read("../src/components/CustomerSettingsModal.tsx");
 
 describe("MotoLink booking audit safeguards (source-contract tests)", () => {
   it("keeps the active mechanic exclusion constraint as a half-open tsrange and omits unassigned rows", () => {
@@ -67,9 +71,24 @@ describe("MotoLink booking audit safeguards (source-contract tests)", () => {
   it("revalidates restored guest services, parts, shop hours, slot and mechanic before confirm", () => {
     expect(online).toContain("restoredDraftPending");
     expect(online).toContain("One or more saved services are no longer active at this shop.");
-    expect(online).toContain("validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts))");
+    expect(online).toContain("validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts), vehicleTransmission)");
     expect(online).toContain("get_booking_availability");
     expect(online).toContain("restoredDraftPending}");
+  });
+
+  it("requires a known motorcycle transmission and enforces service and part fitment", () => {
+    expect(compatibilityMigration).toContain("transmission_type TEXT NOT NULL DEFAULT 'unknown'");
+    expect(compatibilityMigration).toContain("transmission_compatibility TEXT NOT NULL DEFAULT 'both'");
+    expect(compatibilityMigration).toContain("validate_appointment_compatibility");
+    expect(compatibilityMigration).toContain("v_transmission IS NULL OR v_transmission NOT IN ('automatic', 'manual')");
+    expect(compatibilityMigration).toContain("svc.transmission_compatibility IN ('both', v_transmission)");
+    expect(compatibilityMigration).toContain("p.transmission_compatibility IN ('both', v_transmission)");
+    expect(compatibilityMigration).toContain("jsonb_typeof(NEW.parts) <> 'array'");
+    expect(online).toContain("vehicle_transmission: vehicleTransmission");
+    expect(walkIn).toContain("vehicle_transmission: formData.vehicle_transmission");
+    expect(servicesPage).toContain("transmission_compatibility");
+    expect(inventoryPage).toContain("transmission_compatibility");
+    expect(customerSettings).toContain("settings-vehicle-transmission");
   });
 
   it("guards the existing walk-in conflict RPC without dropping existing constraints or triggers", () => {

@@ -13,11 +13,16 @@ import {
   Users,
   RefreshCw,
   ArrowUpDown,
+  History,
+  Calendar,
+  Clock,
+  Wrench,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { customerService } from "../services/customerService";
 import { useAuth } from "../contexts/AuthContext";
 import { getShopByOwnerId } from "../services/shopService";
+import { getAppointmentStatus } from "../utils/appointmentStatus";
 import {
   reservationService,
   Reservation,
@@ -32,6 +37,18 @@ interface Customer {
   city?: string;
   total_spent?: number;
   created_at?: string;
+}
+
+interface CustomerHistoryRecord {
+  id: string;
+  booking_id?: string | null;
+  service_type: string;
+  description?: string | null;
+  scheduled_date: string;
+  scheduled_time: string;
+  status: string;
+  total_amount?: number | null;
+  estimated_price?: number | null;
 }
 
 interface CustomersListPageProps {
@@ -62,6 +79,10 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
   const [updatingReservation, setUpdatingReservation] = useState<string | null>(
     null,
   );
+  const [historyCustomer, setHistoryCustomer] = useState<Customer | null>(null);
+  const [customerHistory, setCustomerHistory] = useState<CustomerHistoryRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -202,6 +223,39 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
       alert("Error deleting customer");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleViewHistory = async (customer: Customer) => {
+    setHistoryCustomer(customer);
+    setCustomerHistory([]);
+    setHistoryError(null);
+    if (!resolvedShopId) {
+      setHistoryError("Shop information is unavailable. Please try again.");
+      return;
+    }
+
+    try {
+      setHistoryLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from("appointments")
+        .select(
+          "id, booking_id, service_type, description, scheduled_date, scheduled_time, status, total_amount, estimated_price",
+        )
+        .eq("shop_id", resolvedShopId)
+        .eq("customer_id", customer.id)
+        .order("scheduled_date", { ascending: false })
+        .order("scheduled_time", { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setCustomerHistory((data || []) as CustomerHistoryRecord[]);
+    } catch (err) {
+      console.error("Error fetching customer history:", err);
+      setHistoryError(
+        err instanceof Error ? err.message : "Failed to load customer history",
+      );
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -434,7 +488,7 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
       >
         {filteredCustomers.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] border-collapse text-left">
+            <table className="w-full min-w-[900px] border-collapse text-left">
               <thead className="bg-moto-dark/30 text-[10px] uppercase tracking-wider text-moto-muted">
                 <tr>
                   <th className="px-4 py-4 text-[11px] font-semibold">Customer</th>
@@ -494,6 +548,14 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                         : "N/A"}
                     </td>
                     <td className="px-4 py-4 text-right">
+                      <button
+                        onClick={() => void handleViewHistory(customer)}
+                        className="mr-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-moto-accent transition hover:bg-moto-accent/10"
+                        title={`View ${customer.name}'s history`}
+                      >
+                        <History size={15} />
+                        History
+                      </button>
                       <button
                         onClick={() => setDeleteConfirm(customer)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/15 transition"
@@ -582,6 +644,120 @@ const CustomersListPage: React.FC<CustomersListPageProps> = () => {
                 >
                   {deleting ? "Deleting..." : "Delete Customer"}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Customer Service History Modal */}
+      <AnimatePresence>
+        {historyCustomer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={() => setHistoryCustomer(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              onClick={(event) => event.stopPropagation()}
+              className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-moto-gray bg-moto-darker shadow-2xl"
+            >
+              <header className="flex items-start justify-between gap-4 border-b border-moto-gray p-5">
+                <div>
+                  <h2 className="text-lg font-bold text-moto-light">
+                    Service History
+                  </h2>
+                  <p className="mt-1 text-sm text-moto-muted">
+                    {historyCustomer.name} · {historyCustomer.email}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHistoryCustomer(null)}
+                  aria-label="Close customer history"
+                  className="rounded-lg p-2 text-moto-muted transition hover:bg-moto-gray/40 hover:text-moto-light"
+                >
+                  <X size={18} />
+                </button>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                {historyLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="animate-spin text-moto-accent" size={22} />
+                  </div>
+                ) : historyError ? (
+                  <p role="alert" className="rounded-lg bg-red-500/10 p-4 text-sm text-red-400">
+                    {historyError}
+                  </p>
+                ) : customerHistory.length === 0 ? (
+                  <div className="flex flex-col items-center py-12 text-center">
+                    <History className="mb-3 text-moto-muted" size={30} />
+                    <p className="text-sm font-semibold text-moto-light">
+                      No service history yet
+                    </p>
+                    <p className="mt-1 text-xs text-moto-muted">
+                      This customer has no appointments with your shop.
+                    </p>
+                  </div>
+                ) : (
+                  <ol className="space-y-3">
+                    {customerHistory.map((record) => {
+                      const status = getAppointmentStatus(record.status);
+                      const amount = record.total_amount ?? record.estimated_price;
+                      return (
+                        <li
+                          key={record.id}
+                          className="rounded-xl border border-moto-gray bg-moto-dark/60 p-4"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="flex items-center gap-2 text-sm font-semibold text-moto-light">
+                                <Wrench size={15} className="shrink-0 text-moto-accent" />
+                                {record.service_type || "Service"}
+                              </p>
+                              {record.description && (
+                                <p className="mt-1 pl-[23px] text-xs text-moto-muted">
+                                  {record.description}
+                                </p>
+                              )}
+                            </div>
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.pill}`}
+                            >
+                              {status.label}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-moto-gray/70 pt-3 text-xs text-moto-muted">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                              <span className="inline-flex items-center gap-1.5">
+                                <Calendar size={13} />
+                                {new Date(`${record.scheduled_date}T00:00:00`).toLocaleDateString()}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <Clock size={13} />
+                                {record.scheduled_time}
+                              </span>
+                              {record.booking_id && (
+                                <span>Booking {record.booking_id}</span>
+                              )}
+                            </div>
+                            {amount != null && (
+                              <span className="font-semibold tabular-nums text-moto-light">
+                                ₱{Number(amount).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
               </div>
             </motion.div>
           </motion.div>

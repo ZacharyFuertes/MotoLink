@@ -24,6 +24,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../services/supabaseClient";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
 import { hasServiceActivity } from "../services/vehicleService";
+import { MotorcycleTransmission } from "../types";
 
 interface VehicleData {
   id: string;
@@ -31,6 +32,7 @@ interface VehicleData {
   model: string;
   year: number | string;
   engine_number?: string;
+  transmission_type: MotorcycleTransmission;
 }
 
 interface CustomerSettingsModalProps {
@@ -87,6 +89,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
     model: "",
     year: "",
     engineNumber: "",
+    transmission_type: "unknown" as MotorcycleTransmission,
   });
 
   // UI state
@@ -146,7 +149,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
       setLoading(true);
       const { data, error } = await supabase
         .from("vehicles")
-        .select("id, make, model, year, engine_number")
+        .select("id, make, model, year, engine_number, transmission_type")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
       if (!error) setVehicles(data || []);
@@ -254,6 +257,10 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
       setError("Brand and Model are required.");
       return;
     }
+    if (newVehicle.transmission_type === "unknown") {
+      setError("Select whether this motorcycle is automatic or manual.");
+      return;
+    }
     const year = Number(newVehicle.year);
     if (newVehicle.year.trim() && (!year || year < 1900 || year > new Date().getFullYear() + 1)) {
       setError("Please enter a valid year.");
@@ -266,6 +273,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
         customer_id: user.id,
         make: newVehicle.make.trim(),
         model: newVehicle.model.trim(),
+        transmission_type: newVehicle.transmission_type,
         ...(newVehicle.year.trim() ? { year } : {}),
         ...(newVehicle.engineNumber.trim()
           ? { engine_number: newVehicle.engineNumber.trim() }
@@ -274,7 +282,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
 
       if (insertError) throw insertError;
 
-      setNewVehicle({ make: "", model: "", year: "", engineNumber: "" });
+      setNewVehicle({ make: "", model: "", year: "", engineNumber: "", transmission_type: "unknown" });
       setShowAddVehicle(false);
       setSuccess("Vehicle added successfully!");
       setTimeout(() => setSuccess(""), 3000);
@@ -597,6 +605,26 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                 className={inputClass}
                               />
                             </div>
+                            <div>
+                              <label htmlFor="settings-vehicle-transmission" className="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-2 block">
+                                Transmission
+                              </label>
+                              <select
+                                id="settings-vehicle-transmission"
+                                value={newVehicle.transmission_type}
+                                onChange={(event) =>
+                                  setNewVehicle((prev) => ({
+                                    ...prev,
+                                    transmission_type: event.target.value as MotorcycleTransmission,
+                                  }))
+                                }
+                                className={inputClass}
+                              >
+                                <option value="unknown">Select transmission</option>
+                                <option value="automatic">Automatic</option>
+                                <option value="manual">Manual</option>
+                              </select>
+                            </div>
                           </VehicleMakeModelFields>
                           <div className="flex gap-3 pt-2">
                             <button
@@ -619,6 +647,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                   model: "",
                                   year: "",
                                   engineNumber: "",
+                                  transmission_type: "unknown",
                                 });
                               }}
                               className={ghostBtnClass}
@@ -662,6 +691,7 @@ const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                                 </p>
                                 <p className="text-slate-400 text-[10px] font-bold tracking-widest uppercase">
                                   {vehicle.year}
+                                  {` · ${vehicle.transmission_type === "unknown" ? "Transmission needed" : vehicle.transmission_type}`}
                                   {vehicle.engine_number &&
                                     ` • Engine: ${vehicle.engine_number}`}
                                 </p>

@@ -21,7 +21,8 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { inventoryService } from "../services/inventoryService";
 import { imageService } from "../services/imageService";
-import { Part } from "../types";
+import { supabase } from "../services/supabaseClient";
+import { Part, TransmissionCompatibility } from "../types";
 
 const parseCSV = (text: string): string[][] => {
   const rows: string[][] = [];
@@ -133,9 +134,18 @@ type SortOption = "name" | "price-high" | "price-low" | "stock-low" | "popularit
 
 interface InventoryFilters {
   category?: string;
+  serviceId?: string;
+  transmission: "all" | "automatic" | "manual";
   searchTerm: string;
   showLowStock: boolean;
   sortBy: SortOption;
+}
+
+interface InventoryServiceOption {
+  id: string;
+  label: string;
+  transmission_compatibility: TransmissionCompatibility;
+  part_category_ids: string[];
 }
 
 interface InventoryPageProps {
@@ -151,15 +161,19 @@ interface PartFormData {
   quantity_in_stock: number;
   reorder_level: number;
   image_url: string;
+  transmission_compatibility: Part["transmission_compatibility"];
 }
 
 const InventoryPage: React.FC<InventoryPageProps> = () => {
   const { user, canManageInventory } = useAuth();
   const [parts, setParts] = useState<Part[]>([]);
+  const [inventoryServices, setInventoryServices] = useState<InventoryServiceOption[]>([]);
+  const [serviceFiltersError, setServiceFiltersError] = useState("");
   const [filters, setFilters] = useState<InventoryFilters>({
     searchTerm: "",
     showLowStock: false,
     sortBy: "name",
+    transmission: "all",
   });
 
   // Modal states
@@ -208,6 +222,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     quantity_in_stock: 0,
     reorder_level: 5,
     image_url: "",
+    transmission_compatibility: "both" as const,
   });
 
   // Fetch parts from database
@@ -215,6 +230,58 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     if (user?.shop_id) {
       fetchParts();
     }
+  }, [user?.shop_id]);
+
+  useEffect(() => {
+    let active = true;
+    const shopId = user?.shop_id;
+    if (!shopId) {
+      setInventoryServices([]);
+      setServiceFiltersError("");
+      return () => { active = false; };
+    }
+
+    void Promise.all([
+      supabase
+        .from("services_pricing")
+        .select("id, label, transmission_compatibility")
+        .eq("shop_id", shopId)
+        .eq("is_active", true)
+        .order("label"),
+      supabase
+        .from("service_part_categories")
+        .select("service_id, part_category_id")
+        .eq("shop_id", shopId),
+    ]).then(([servicesResult, mappingsResult]) => {
+      if (!active) return;
+      if (servicesResult.error) throw servicesResult.error;
+      if (mappingsResult.error) throw mappingsResult.error;
+
+      const categoriesByService = new Map<string, string[]>();
+      (mappingsResult.data ?? []).forEach((mapping) => {
+        const categoryIds = categoriesByService.get(mapping.service_id) ?? [];
+        categoryIds.push(mapping.part_category_id);
+        categoriesByService.set(mapping.service_id, categoryIds);
+      });
+      setInventoryServices(
+        (servicesResult.data ?? []).map((service) => ({
+          ...service,
+          transmission_compatibility:
+            service.transmission_compatibility ?? "both",
+          part_category_ids: categoriesByService.get(service.id) ?? [],
+        })),
+      );
+      setServiceFiltersError("");
+    }).catch((error: unknown) => {
+      if (!active) return;
+      console.error("Could not load service-linked inventory filters:", error);
+      setInventoryServices([]);
+      setServiceFiltersError(
+        "Service-linked part filters could not be loaded. Refresh and try again.",
+      );
+    });
+
+    return () => { active = false; };
   }, [user?.shop_id]);
 
   const fetchParts = async () => {
@@ -247,6 +314,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
         quantity_in_stock: formData.quantity_in_stock,
         reorder_level: formData.reorder_level,
         image_url: formData.image_url,
+        transmission_compatibility: formData.transmission_compatibility,
       });
       if (newPart) {
         setParts([...parts, newPart]);
@@ -288,6 +356,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
         quantity_in_stock: formData.quantity_in_stock,
         reorder_level: formData.reorder_level,
         image_url: formData.image_url,
+        transmission_compatibility: formData.transmission_compatibility,
       });
       if (updated) {
         setParts(parts.map((p) => (p.id === selectedPart.id ? updated : p)));
@@ -340,6 +409,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
       quantity_in_stock: part.quantity_in_stock,
       reorder_level: part.reorder_level,
       image_url: part.image_url || "",
+      transmission_compatibility: part.transmission_compatibility || "both",
     });
     setImagePreview(part.image_url || "");
     setShowEditForm(true);
@@ -382,6 +452,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
       quantity_in_stock: 0,
       reorder_level: 5,
       image_url: "",
+      transmission_compatibility: "both",
     });
     setImagePreview("");
   };
@@ -405,6 +476,9 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
   };
 
   const filteredParts = useMemo(() => {
+    const selectedService = inventoryServices.find(
+      (service) => service.id === filters.serviceId,
+    );
     const filtered = parts.filter((part) => {
       const matchesSearch =
         part.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
@@ -413,10 +487,41 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
       const matchesCategory =
         !filters.category || part.category === filters.category;
 
+      const matchesService =
+        !selectedService ||
+        (Boolean(part.category_id) &&
+          selectedService.part_category_ids.includes(part.category_id));
+
+      const supportedTransmissions =
+        selectedService?.transmission_compatibility === "automatic"
+          ? ["automatic"]
+          : selectedService?.transmission_compatibility === "manual"
+            ? ["manual"]
+            : ["automatic", "manual"];
+      const partTransmissions =
+        part.transmission_compatibility === "both"
+          ? ["automatic", "manual"]
+          : [part.transmission_compatibility];
+      const matchesTransmission =
+        filters.transmission === "all"
+          ? !selectedService ||
+            supportedTransmissions.some((transmission) =>
+              partTransmissions.includes(transmission),
+            )
+          : supportedTransmissions.includes(filters.transmission) &&
+            (part.transmission_compatibility === "both" ||
+              part.transmission_compatibility === filters.transmission);
+
       const matchesLowStock =
         !filters.showLowStock || part.quantity_in_stock <= part.reorder_level;
 
-      return matchesSearch && matchesCategory && matchesLowStock;
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesService &&
+        matchesTransmission &&
+        matchesLowStock
+      );
     });
 
     const sorted = [...filtered];
@@ -444,7 +549,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
     }
 
     return sorted;
-  }, [parts, filters]);
+  }, [parts, filters, inventoryServices]);
 
   const inventoryCategories = Array.from(new Set(parts.map((p) => p.category).filter(Boolean)));
   const isOwner = canManageInventory();
@@ -673,6 +778,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
         quantity_in_stock: p.quantity_in_stock,
         reorder_level: p.reorder_level,
         description: p.description || "",
+        transmission_compatibility: "both" as const,
       }));
       const created = await inventoryService.createPartsBulk(rows);
       const imported = created?.length ?? 0;
@@ -826,6 +932,28 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
       </div>
 
       {/* Quantity & Reorder */}
+      <div>
+        <label className={labelClass}>Motorcycle compatibility</label>
+        <select
+          value={formData.transmission_compatibility}
+          onChange={(event) =>
+            setFormData({
+              ...formData,
+              transmission_compatibility: event.target.value as Part["transmission_compatibility"],
+            })
+          }
+          className={inputClass}
+        >
+          <option value="both">Automatic &amp; manual</option>
+          <option value="automatic">Automatic only</option>
+          <option value="manual">Manual only</option>
+        </select>
+        <p className="mt-1 text-[11px] text-moto-muted">
+          Offered only when both the selected service and motorcycle support this part’s transmission.
+        </p>
+      </div>
+
+      {/* Quantity & Reorder */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>In Stock</label>
@@ -924,6 +1052,77 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2 border-b border-moto-gray px-4 py-3.5 sm:px-6">
+            <label htmlFor="inventory-service-filter" className="text-[11px] font-semibold text-moto-muted">
+              Service fitment
+            </label>
+            <select
+              id="inventory-service-filter"
+              value={filters.serviceId || ""}
+              onChange={(event) => {
+                const service = inventoryServices.find(
+                  (entry) => entry.id === event.target.value,
+                );
+                setFilters((current) => ({
+                  ...current,
+                  serviceId: event.target.value || undefined,
+                  transmission:
+                    service?.transmission_compatibility === "automatic"
+                      ? "automatic"
+                      : service?.transmission_compatibility === "manual"
+                        ? "manual"
+                        : current.transmission,
+                }));
+              }}
+              className="min-w-[220px] rounded-lg border border-moto-gray bg-moto-dark px-3 py-2 text-xs text-moto-light outline-none focus:border-moto-accent"
+            >
+              <option value="">All services</option>
+              {inventoryServices.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.label} · {service.transmission_compatibility === "both"
+                    ? "Automatic & manual"
+                    : `${service.transmission_compatibility} only`}
+                </option>
+              ))}
+            </select>
+            <span className="ml-1 text-[11px] font-semibold text-moto-muted">
+              Motorcycle
+            </span>
+            {(["all", "automatic", "manual"] as const).map((transmission) => {
+              const selectedService = inventoryServices.find(
+                (service) => service.id === filters.serviceId,
+              );
+              const disabled =
+                (transmission === "automatic" &&
+                  selectedService?.transmission_compatibility === "manual") ||
+                (transmission === "manual" &&
+                  selectedService?.transmission_compatibility === "automatic");
+              const active = filters.transmission === transmission;
+              return (
+                <button
+                  key={transmission}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    setFilters((current) => ({ ...current, transmission }))
+                  }
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold capitalize transition ${
+                    active
+                      ? "border-moto-accent bg-moto-accent text-slate-950"
+                      : "border-moto-gray text-moto-muted hover:border-moto-accent hover:text-moto-accent"
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {transmission === "all" ? "All fitments" : transmission}
+                </button>
+              );
+            })}
+            {serviceFiltersError && (
+              <p role="alert" className="w-full text-xs text-rose-400">
+                {serviceFiltersError}
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-2 overflow-x-auto border-b border-moto-gray px-4 py-3.5 sm:px-6">
             {["all", ...inventoryCategories].map((category) => {
               const active = category === "all" ? !filters.category : filters.category === category;
@@ -954,7 +1153,7 @@ const InventoryPage: React.FC<InventoryPageProps> = () => {
                           <div className="min-w-0"><p className="max-w-[260px] truncate text-[13px] font-semibold text-moto-light" title={part.name}>{part.name}</p><p className="mt-1 max-w-[260px] truncate text-[11px] text-moto-muted">{part.description || "Inventory item"}</p></div>
                         </div>
                       </td>
-                      <td className="px-3 py-4"><p className="text-xs text-moto-light">{part.sku || "—"}</p><p className="mt-1 text-[11px] capitalize text-moto-muted">{part.category || "Other"}</p></td>
+                      <td className="px-3 py-4"><p className="text-xs text-moto-light">{part.sku || "—"}</p><p className="mt-1 text-[11px] capitalize text-moto-muted">{part.category || "Other"}</p><span className="mt-1 inline-flex rounded-full border border-moto-gray px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-moto-accent">{part.transmission_compatibility === "both" ? "Automatic & manual" : `${part.transmission_compatibility} only`}</span></td>
                       <td className="px-3 py-4 text-[13px] font-semibold tabular-nums text-moto-light">₱{Number(part.unit_price).toLocaleString()}</td>
                       <td className="px-3 py-4"><p className="text-[13px] font-semibold tabular-nums text-moto-light">{part.quantity_in_stock}</p><p className="mt-1 text-[11px] text-moto-muted">Reorder at {part.reorder_level}</p></td>
                       <td className="px-3 py-4"><span className={`inline-flex rounded-full px-2.5 py-1.5 text-[11px] font-semibold ${statusClass}`}>{isOut ? "Out of stock" : isLow ? "Low stock" : "In stock"}</span></td>

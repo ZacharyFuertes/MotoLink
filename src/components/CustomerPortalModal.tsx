@@ -21,6 +21,7 @@ interface VehicleData {
   make: string;
   model: string;
   year: number;
+  transmission_type: "unknown" | "automatic" | "manual";
   engine_number?: string;
 }
 
@@ -73,7 +74,7 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
       // Fetch vehicles
       const { data: vehicleData, error: vehError } = await supabase
         .from("vehicles")
-        .select("id, make, model, year, engine_number")
+        .select("id, make, model, year, engine_number, transmission_type")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
       if (!vehError) setVehicles(vehicleData || []);
@@ -258,6 +259,7 @@ const CustomerPortalModal: React.FC<CustomerPortalModalProps> = ({ isOpen, onClo
                               </p>
                               <p className="text-slate-500 text-[10px] font-bold tracking-widest uppercase">
                                 {vehicle.year || "N/A"}
+                                {` • ${vehicle.transmission_type === "unknown" ? "TRANSMISSION NEEDED" : vehicle.transmission_type.toUpperCase()}`}
                                 {vehicle.engine_number && ` • ENGINE: ${vehicle.engine_number}`}
                               </p>
                             </div>

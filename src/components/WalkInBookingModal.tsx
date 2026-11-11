@@ -33,7 +33,7 @@ import {
   mapBookingError,
   SCHEMA_NOT_APPLIED_MESSAGE,
 } from "../services/appointmentService";
-import { Appointment } from "../types";
+import { Appointment, MotorcycleTransmission, TransmissionCompatibility } from "../types";
 import TimeSlotGrid from "./TimeSlotGrid";
 import DateStrip from "./DateStrip";
 import ServicePartsPicker, { SelectedServicePart } from "./ServicePartsPicker";
@@ -69,6 +69,7 @@ interface CatalogService {
   description: string | null;
   price: number;
   duration_minutes: number;
+  transmission_compatibility: TransmissionCompatibility;
 }
 
 interface ShopMechanic {
@@ -125,6 +126,7 @@ const emptyForm = {
   customer_email: "",
   vehicle_make: "",
   vehicle_model: "",
+  vehicle_transmission: "unknown" as MotorcycleTransmission,
 };
 
 const inputClass =
@@ -210,6 +212,30 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   // Re-evaluated each minute so a slot that has just passed stops being offered
   // while the modal is still open.
   const now = useMinuteClock();
+  const compatibleServices = services.filter((service) =>
+    formData.vehicle_transmission !== "unknown" &&
+    (service.transmission_compatibility === "both" ||
+      service.transmission_compatibility === formData.vehicle_transmission),
+  );
+
+  useEffect(() => {
+    const compatibleIds = new Set(
+      services
+        .filter((service) =>
+          formData.vehicle_transmission !== "unknown" &&
+          (service.transmission_compatibility === "both" ||
+            service.transmission_compatibility === formData.vehicle_transmission),
+        )
+        .map((service) => service.id),
+    );
+    setSelectedServiceIds((current) => {
+      const next = formData.vehicle_transmission === "unknown"
+        ? []
+        : current.filter((id) => compatibleIds.has(id));
+      if (next.length !== current.length) setSelectedParts([]);
+      return next;
+    });
+  }, [formData.vehicle_transmission, services]);
   const [confirmed, setConfirmed] = useState<{
     bookingId: string;
     bookingSlot?: string;
@@ -280,7 +306,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
 
         const { data, error: catalogError } = await supabase
           .from("services_pricing")
-          .select("id, label, description, price, duration_minutes")
+          .select("id, label, description, price, duration_minutes, transmission_compatibility")
           .eq("shop_id", shopId)
           .eq("is_active", true)
           .order("price", { ascending: true });
@@ -292,6 +318,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
               ...service,
               price: Number(service.price) || 0,
               duration_minutes: Number(service.duration_minutes) || 60,
+              transmission_compatibility: service.transmission_compatibility || "both",
             })),
           );
         }
@@ -911,8 +938,9 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       if (formData.customer_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customer_email.trim())) { setError("Enter a valid email address."); submitLockRef.current = false; return; }
     }
     if (!formData.vehicle_make.trim()) { setError("Enter the vehicle make."); submitLockRef.current = false; return; }
+    if (formData.vehicle_transmission === "unknown") { setError("Select whether the motorcycle is automatic or manual."); submitLockRef.current = false; return; }
     if (servicesLoading) { setError("Wait for the shop's service catalog to finish loading."); submitLockRef.current = false; return; }
-    const selectedServices = services.filter((service) => selectedServiceIds.includes(service.id));
+    const selectedServices = compatibleServices.filter((service) => selectedServiceIds.includes(service.id));
     if (!selectedServices.length) { setError("Choose at least one service from the shop's catalog."); submitLockRef.current = false; return; }
 
     setSaving(true);
@@ -920,7 +948,12 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
       const shopId = await resolveShopId();
       if (!shopId) throw new Error("No shop is linked to your account yet, so this booking cannot be saved.");
       setResolvedShopId(shopId);
-      await validateSelectedServiceParts(shopId, selectedServiceIds, selectedParts);
+      await validateSelectedServiceParts(
+        shopId,
+        selectedServiceIds,
+        selectedParts,
+        formData.vehicle_transmission,
+      );
       const vehicleDescription = [formData.vehicle_make.trim(), formData.vehicle_model.trim()].filter(Boolean).join(" ");
       const serviceDescription = selectedServices.map((service) => service.label).join(", ");
       const durationMinutes = selectedServices.reduce((total, service) => total + service.duration_minutes, 0);
@@ -934,6 +967,7 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         duration_minutes: durationMinutes,
         service_type: serviceDescription,
         description: `${vehicleDescription} - ${serviceDescription}`,
+        vehicle_transmission: formData.vehicle_transmission,
         status: "pending",
         estimated_price: selectedServices.reduce((total, service) => total + service.price, 0),
         walk_in_name: customerId ? null : name,
@@ -1426,6 +1460,27 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                 </div>
               </div>
 
+              <div>
+                <label htmlFor="walk-in-transmission" className="mb-1.5 block text-xs font-bold text-slate-200">
+                  Transmission
+                </label>
+                <select
+                  id="walk-in-transmission"
+                  value={formData.vehicle_transmission}
+                  onChange={(event) =>
+                    setFormData({
+                      ...formData,
+                      vehicle_transmission: event.target.value as MotorcycleTransmission,
+                    })
+                  }
+                  className={inputClass}
+                >
+                  <option value="unknown">Select transmission</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
+
               <fieldset>
                 <legend className="mb-3 block text-xs font-bold text-slate-200">
                   Service Type (Choose all that apply)
@@ -1444,9 +1499,13 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     No active services are listed. Add services in your shop's
                     service catalog before booking.
                   </p>
+                ) : formData.vehicle_transmission === "unknown" ? (
+                  <p className="text-xs text-amber-300">Select the motorcycle transmission to show compatible services.</p>
+                ) : compatibleServices.length === 0 ? (
+                  <p className="text-xs text-slate-400">No services are configured for this motorcycle transmission.</p>
                 ) : (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {services.map((service) => (
+                  {compatibleServices.map((service) => (
                     <label
                       key={service.id}
                       className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-moto-gray bg-moto-darker px-3.5 py-3 text-xs text-slate-200 transition-colors hover:border-moto-accent/50"
@@ -1490,11 +1549,12 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     <h4 className="mt-1 font-display text-xl font-black text-slate-100">Add compatible parts</h4>
                   </div>
                   <ServicePartsPicker
-                    key={`${resolvedShopId}:${[...selectedServiceIds].sort().join(",")}`}
+                    key={`${resolvedShopId}:${formData.vehicle_transmission}:${[...selectedServiceIds].sort().join(",")}`}
                     shopId={resolvedShopId}
                     services={services.filter((service) => selectedServiceIds.includes(service.id)).map((service) => ({ id: service.id, label: service.label }))}
                     selectedParts={selectedParts}
                     onChange={setSelectedParts}
+                    transmission={formData.vehicle_transmission}
                   />
                 </section>
               )}

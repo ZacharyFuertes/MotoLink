@@ -152,6 +152,7 @@ const emptyBikeForm = {
   model: "",
   year: "",
   engineNumber: "",
+  transmission_type: "unknown",
 };
 
 const UserProfilePage: React.FC<UserProfilePageProps> = ({
@@ -497,6 +498,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       setBikeError("Make and model are required.");
       return;
     }
+    if (bike.transmission_type === "unknown") {
+      setBikeError("Select whether this motorcycle is automatic or manual.");
+      return;
+    }
     const year = bike.year.trim() ? Number(bike.year) : null;
     if (year && (year < 1900 || year > new Date().getFullYear() + 1)) {
       setBikeError("Please enter a valid year.");
@@ -505,6 +510,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     const draft = {
       make: bike.make,
       model: bike.model,
+      transmission_type: bike.transmission_type as "automatic" | "manual",
       year,
       engine_number: bike.engineNumber,
     };
@@ -539,6 +545,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       model: vehicle.model ?? "",
       year: vehicle.year ? String(vehicle.year) : "",
       engineNumber: vehicle.engine_number ?? "",
+      transmission_type: vehicle.transmission_type ?? "unknown",
     });
     setEditError("");
   };
@@ -547,6 +554,10 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     if (!editingId) return;
     if (!editForm.make.trim() || !editForm.model.trim()) {
       setEditError("Make and model are required.");
+      return;
+    }
+    if (editForm.transmission_type === "unknown") {
+      setEditError("Select whether this motorcycle is automatic or manual.");
       return;
     }
     const year = editForm.year.trim() ? Number(editForm.year) : null;
@@ -560,6 +571,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       await updateVehicle(editingId, {
         make: editForm.make,
         model: editForm.model,
+        transmission_type: editForm.transmission_type as "automatic" | "manual",
         year,
         engine_number: editForm.engineNumber,
       });
@@ -1055,9 +1067,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                             {label}
                           </h3>
                           <p className="mt-0.5 text-xs text-slate-400">
-                            {v.year != null
-                              ? `Registered ${v.year}`
-                              : "Registered motorcycle"}
+                            {v.year != null ? `Registered ${v.year}` : "Registered motorcycle"}
+                            {` · ${v.transmission_type === "unknown" ? "Transmission needed" : v.transmission_type}`}
                           </p>
 
                           <div className="mt-4 flex items-center gap-2">
@@ -1884,6 +1895,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   />
                 </div>
               </div>
+              <div className="mt-3">
+                <label htmlFor="add-bike-transmission" className={labelClass}>Transmission</label>
+                <select
+                  id="add-bike-transmission"
+                  value={bike.transmission_type}
+                  onChange={(event) => setBike((p) => ({ ...p, transmission_type: event.target.value }))}
+                  className={fieldClass}
+                >
+                  <option value="unknown">Select transmission</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
             </VehicleMakeModelFields>
             {bikeWarning && (
               <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
@@ -1966,6 +1990,19 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   />
                 </div>
               </div>
+              <div className="mt-3">
+                <label htmlFor="edit-bike-transmission" className={labelClass}>Transmission</label>
+                <select
+                  id="edit-bike-transmission"
+                  value={editForm.transmission_type}
+                  onChange={(event) => setEditForm((p) => ({ ...p, transmission_type: event.target.value }))}
+                  className={fieldClass}
+                >
+                  <option value="unknown">Select transmission</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </div>
             </VehicleMakeModelFields>
             {editError && (
               <p className="mt-3 text-sm text-rose-400">{editError}</p>
@@ -2027,6 +2064,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                         <Calendar size={12} /> {detailVehicle.year}
                       </span>
                     )}
+                    <span className={detailVehicle.transmission_type === "unknown" ? "text-amber-300" : ""}>
+                      {detailVehicle.transmission_type === "unknown"
+                        ? "Transmission needed"
+                        : `${detailVehicle.transmission_type} transmission`}
+                    </span>
                     {detailVehicle.is_primary && (
                       <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
                         Primary

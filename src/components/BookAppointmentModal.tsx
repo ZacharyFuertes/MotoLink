@@ -38,7 +38,7 @@ import {
   OnlinePaymentError,
 } from "../services/paymentService";
 import OnlinePaymentModal from "./OnlinePaymentModal";
-import { OnlinePaymentMethod } from "../types";
+import { MotorcycleTransmission, OnlinePaymentMethod, TransmissionCompatibility } from "../types";
 import TermsCheckbox from "./TermsCheckbox";
 import TermsModal from "./TermsModal";
 import VehicleMakeModelFields from "./VehicleMakeModelFields";
@@ -54,6 +54,7 @@ interface VehicleData {
   make: string;
   model: string;
   year: number | string;
+  transmission_type: MotorcycleTransmission;
 }
 
 interface CatalogService {
@@ -63,6 +64,7 @@ interface CatalogService {
   icon?: string | null;
   price: number;
   duration_minutes?: number;
+  transmission_compatibility?: TransmissionCompatibility;
 }
 
 interface BookAppointmentModalProps {
@@ -129,7 +131,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const [mechanicScheduleDaysError, setMechanicScheduleDaysError] = useState("");
   const [mechanicAvailabilityRefreshKey, setMechanicAvailabilityRefreshKey] = useState(0);
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [transmissionChoice, setTransmissionChoice] = useState<MotorcycleTransmission>("unknown");
   const [vehicleInfo, setVehicleInfo] = useState("");
+  const [manualVehicle, setManualVehicle] = useState({ make: "", model: "" });
   const [notes, setNotes] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
@@ -168,6 +172,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     make: "",
     model: "",
     year: "",
+    transmission_type: "unknown" as MotorcycleTransmission,
   });
 
   // Online payments: the shop's own config (mirrors shops.online_payment_enabled
@@ -189,9 +194,21 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const receiptRef = useRef<any>(null);
 
   const onlinePaymentsAvailable = shopPaymentEnabled && providerReady === true;
+  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId);
+  const vehicleTransmission =
+    selectedVehicle && selectedVehicle.transmission_type !== "unknown"
+      ? selectedVehicle.transmission_type
+      : transmissionChoice;
+  const compatibleServices = dynamicServices.filter((service) =>
+    vehicleTransmission !== "unknown" &&
+    (service.transmission_compatibility === "both" ||
+      service.transmission_compatibility === vehicleTransmission),
+  );
   const selectedServicesKey = [...selectedServices].sort().join(",");
+  const partsLookupKey = `${selectedServicesKey}|${vehicleTransmission}`;
   const partsCatalogReady =
-    selectedServices.length > 0 && !loadingParts && !partsCatalogError && partsCatalogKey === selectedServicesKey;
+    selectedServices.length > 0 && vehicleTransmission !== "unknown" &&
+    !loadingParts && !partsCatalogError && partsCatalogKey === partsLookupKey;
   const servicesWithoutAvailableParts = selectedServices.filter((serviceId) =>
     !partsCatalog.parts.some((part) =>
       part.service_ids.includes(serviceId) && part.quantity_in_stock > 0,
@@ -240,6 +257,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         time: selectedTime,
         vehicleId: selectedVehicleId,
         vehicleInfo,
+        manualVehicle,
+        vehicleTransmission,
         notes,
         parts: selectedParts,
       };
@@ -271,9 +290,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setSelectedTime(snap.time || "");
       setSelectedVehicleId(snap.vehicleId || "");
       setVehicleInfo(snap.vehicleInfo || "");
+      setManualVehicle(
+        snap.manualVehicle || { make: snap.vehicleInfo || "", model: "" },
+      );
+      setTransmissionChoice(snap.vehicleTransmission || "unknown");
       setNotes(snap.notes || "");
       setSelectedParts(snap.parts || []);
-      setCurrentStep(3);
+      setCurrentStep(snap.vehicleTransmission ? 3 : 0);
       sessionStorage.removeItem(PENDING_BOOKING_KEY);
     } catch {
       sessionStorage.removeItem(PENDING_BOOKING_KEY);
@@ -311,6 +334,34 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     if (isOpen && initialVehicleId) applyInitialVehicle(vehicles);
   }, [isOpen, initialVehicleId, vehicles]);
 
+  useEffect(() => {
+    if (!dynamicServices.length) return;
+    const compatibleIds = new Set(
+      dynamicServices
+        .filter((service) =>
+          vehicleTransmission !== "unknown" &&
+          (service.transmission_compatibility === "both" ||
+            service.transmission_compatibility === vehicleTransmission),
+        )
+        .map((service) => service.id),
+    );
+    setSelectedServices((current) => {
+      const next = current.filter((id) => compatibleIds.has(id));
+      if (next.length !== current.length) {
+        setSelectedServicePrice(
+          next.reduce(
+            (total, id) =>
+              total +
+              (Number(dynamicServices.find((service) => service.id === id)?.price) || 0),
+            0,
+          ),
+        );
+        setSelectedParts([]);
+      }
+      return next;
+    });
+  }, [dynamicServices, vehicleTransmission]);
+
   // Services & parts depend on `defaultShopId`, which is resolved asynchronously
   // inside resolveDefaultShop() (a React state setter). Calling fetchServices() in the
   // same tick as resolveDefaultShop() reads the stale empty value, so on the first open
@@ -332,7 +383,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     if (!isOpen || selectedServices.length === 0) {
       if (isOpen && restoringGuestDraftRef.current) return () => { active = false; };
       setPartsCatalog({ parts: [], mappings: [], categories: [] });
-      setPartsCatalogKey([...selectedServices].sort().join(","));
+      setPartsCatalogKey(`${[...selectedServices].sort().join(",")}|${vehicleTransmission}`);
       setPartsCatalogError("");
       setLoadingParts(false);
       setSelectedParts([]);
@@ -361,10 +412,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
     setPartsCatalogKey("");
     setPartsCatalogError("");
     setErrorMsg("");
-    void loadServicePartCatalog(shopIdForParts, selectedServices).then((catalog) => {
+    void loadServicePartCatalog(shopIdForParts, selectedServices, vehicleTransmission).then((catalog) => {
       if (!active) return;
       setPartsCatalog(catalog);
-      setPartsCatalogKey([...selectedServices].sort().join(","));
+      setPartsCatalogKey(`${[...selectedServices].sort().join(",")}|${vehicleTransmission}`);
       const currentParts = new Map(catalog.parts.map((part) => [part.id, part]));
       setSelectedParts((current) => {
         const valid = current
@@ -408,7 +459,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (active) {
         setPartsCatalog({ parts: [], mappings: [], categories: [] });
         setSelectedParts([]);
-        setPartsCatalogKey([...selectedServices].sort().join(","));
+        setPartsCatalogKey(`${[...selectedServices].sort().join(",")}|${vehicleTransmission}`);
         const message = loadError instanceof Error ? loadError.message : "Could not load compatible parts.";
         setPartsCatalogError(message);
         setErrorMsg(message);
@@ -428,26 +479,26 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (active) setLoadingParts(false);
     });
     return () => { active = false; };
-  }, [isOpen, shopId, defaultShopId, selectedServices]);
+  }, [isOpen, shopId, defaultShopId, selectedServices, vehicleTransmission]);
 
   useEffect(() => {
     if (!isOpen || currentStep !== 3 || selectedParts.length === 0) return;
     let active = true;
     const resolvedShopId = shopId || defaultShopId;
     if (!resolvedShopId) return;
-    void validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts))
+    void validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts), vehicleTransmission)
       .then(() => { if (active) setErrorMsg(""); })
       .catch((validationError: unknown) => {
         if (active) setErrorMsg(validationError instanceof Error ? validationError.message : "A selected part is no longer available. Change it before confirming.");
       });
     return () => { active = false; };
-  }, [isOpen, currentStep, shopId, defaultShopId, selectedServices, selectedParts]);
+  }, [isOpen, currentStep, shopId, defaultShopId, selectedServices, selectedParts, vehicleTransmission]);
 
   useEffect(() => {
     if (!isOpen || !restoredDraftPending || currentStep !== 3) return;
     const resolvedShopId = shopId || defaultShopId;
     const servicesKey = [...selectedServices].sort().join(",");
-    if (!resolvedShopId || !selectedServices.length || loadingParts || partsCatalogKey !== servicesKey) return;
+    if (!resolvedShopId || !selectedServices.length || loadingParts || partsCatalogKey !== `${servicesKey}|${vehicleTransmission}`) return;
 
     let active = true;
     setRestoredDraftValidation("checking");
@@ -484,7 +535,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         );
         if (overlapsBlocked) throw new Error("The saved time now overlaps a shop blocked-hours window. Choose a new slot.");
 
-        await validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts));
+        await validateSelectedServiceParts(resolvedShopId, selectedServices, aggregateSelectedServiceParts(selectedParts), vehicleTransmission);
         const { data: availability, error: availabilityError } = await supabase.rpc("get_booking_availability", {
           p_shop_id: resolvedShopId,
           p_scheduled_date: selectedDate,
@@ -509,7 +560,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       }
     })();
     return () => { active = false; };
-  }, [isOpen, restoredDraftPending, currentStep, shopId, defaultShopId, selectedServices, selectedParts, selectedDate, selectedTime, selectedMechanicId, loadingParts, partsCatalogKey]);
+  }, [isOpen, restoredDraftPending, currentStep, shopId, defaultShopId, selectedServices, selectedParts, selectedDate, selectedTime, selectedMechanicId, loadingParts, partsCatalogKey, vehicleTransmission]);
 
   // Load weekdays on which at least one mechanic has an enabled shift that
   // overlaps the shop's opening hours. Dates remain visible in the strip but
@@ -657,7 +708,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setSelectedMechanicId(null);
         setMechanicConflictForSlot(null);
         setSelectedVehicleId("");
+        setTransmissionChoice("unknown");
         setVehicleInfo("");
+        setManualVehicle({ make: "", model: "" });
         setNotes("");
         setTermsAccepted(false);
         setSuccess(false);
@@ -670,7 +723,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setCopied(false);
         setAddingVehicle(false);
         setSavingVehicle(false);
-        setNewVehicle({ make: "", model: "", year: "" });
+        setNewVehicle({ make: "", model: "", year: "", transmission_type: "unknown" });
         setPaymentMethod("cash");
         setQrPayment(null);
         setQrModalOpen(false);
@@ -794,7 +847,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setLoadingVehicles(true);
       const { data, error } = await supabase
         .from("vehicles")
-        .select("id, make, model, year")
+        .select("id, make, model, year, transmission_type")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -829,6 +882,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       setVehicleSaveError("Make and model are required.");
       return;
     }
+    if (newVehicle.transmission_type === "unknown") {
+      setVehicleSaveError("Select whether this motorcycle is automatic or manual.");
+      return;
+    }
     setSavingVehicle(true);
     setVehicleSaveError("");
     try {
@@ -836,13 +893,15 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         (v) =>
           v.make.trim().toLowerCase() === make.toLowerCase() &&
           v.model.trim().toLowerCase() === model.toLowerCase() &&
-          (v.year ?? null) === (newVehicle.year ? Number(newVehicle.year) : null),
+          (v.year ?? null) === (newVehicle.year ? Number(newVehicle.year) : null) &&
+          v.transmission_type === newVehicle.transmission_type,
       );
       if (existing) {
         setSelectedVehicleId(existing.id);
+        setTransmissionChoice(existing.transmission_type);
         setVehicleInfo(displayVehicle(existing));
         setAddingVehicle(false);
-        setNewVehicle({ make: "", model: "", year: "" });
+        setNewVehicle({ make: "", model: "", year: "", transmission_type: "unknown" });
         return;
       }
       const insertRequest = supabase
@@ -852,8 +911,9 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           make,
           model,
           year: newVehicle.year ? Number(newVehicle.year) : null,
+          transmission_type: newVehicle.transmission_type,
         })
-        .select("id, make, model, year")
+        .select("id, make, model, year, transmission_type")
         .single();
       const timeout = new Promise<never>((_, reject) => {
         window.setTimeout(() => reject(new Error("The request timed out. Please check your connection and try again.")), 10000);
@@ -864,10 +924,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
       if (data) {
         setVehicles((prev) => [data, ...prev]);
         setSelectedVehicleId(data.id);
+        setTransmissionChoice(data.transmission_type);
         setVehicleInfo(displayVehicle(data));
         setAddingVehicle(false);
       }
-      setNewVehicle({ make: "", model: "", year: "" });
+      setNewVehicle({ make: "", model: "", year: "", transmission_type: "unknown" });
     } catch (err) {
       console.error("Error adding vehicle:", err);
       setVehicleSaveError(err instanceof Error ? err.message : "Failed to add motorcycle. Please try again.");
@@ -879,9 +940,55 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const displayVehicle = (v: VehicleData) =>
     `${[v.make, v.model].filter(Boolean).join(" ")}${v.year ? ` (${v.year})` : ""}`;
 
+  const handleManualMakeChange = (make: string) => {
+    setManualVehicle({ make, model: "" });
+    setVehicleInfo(make.trim());
+    setSelectedVehicleId("manual");
+  };
+
+  const handleManualModelChange = (model: string) => {
+    const next = { ...manualVehicle, model };
+    setManualVehicle(next);
+    setVehicleInfo([next.make, next.model].filter(Boolean).join(" ").trim());
+    setSelectedVehicleId("manual");
+  };
+
+  const clearManualVehicle = () => {
+    setManualVehicle({ make: "", model: "" });
+    setVehicleInfo("");
+  };
+
+  const hasManualVehicle = Boolean(
+    manualVehicle.make.trim() && manualVehicle.model.trim(),
+  );
+  const hasVehicleForBooking =
+    selectedVehicleId !== "manual" && selectedVehicleId
+      ? true
+      : hasManualVehicle;
+
+  const manualVehicleFields = (idPrefix: string) => (
+    <VehicleMakeModelFields
+      make={manualVehicle.make}
+      model={manualVehicle.model}
+      onMakeChange={handleManualMakeChange}
+      onModelChange={handleManualModelChange}
+      makeLabel="Motorcycle make"
+      modelLabel="Motorcycle model"
+      makePlaceholder="e.g. Honda"
+      modelPlaceholder="e.g. Click 125i"
+      inputClassName="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500"
+      labelClassName="mb-1.5 block text-xs font-semibold text-slate-300"
+      containerClassName="grid gap-3 sm:grid-cols-2"
+      idPrefix={idPrefix}
+      uppercaseOptions
+    />
+  );
+
   const pickVehicle = (v: VehicleData) => {
     setSelectedVehicleId(v.id);
+    setTransmissionChoice(v.transmission_type || "unknown");
     setVehicleInfo("");
+    setManualVehicle({ make: "", model: "" });
     setAddingVehicle(false);
   };
 
@@ -944,6 +1051,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           icon: iconMap[s.icon || ""] || Wrench,
           price: s.price,
           duration_minutes: s.duration_minutes || 60,
+          transmission_compatibility: s.transmission_compatibility || "both",
         }));
         setDynamicServices(mapped);
         return;
@@ -973,6 +1081,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
           icon: iconMap[s.icon] || Wrench,
           price: s.price,
           duration_minutes: s.duration_minutes || 60,
+          transmission_compatibility: s.transmission_compatibility || "both",
         }));
         setDynamicServices(mapped);
       } else {
@@ -1281,14 +1390,17 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
   const canGoNext = () => {
     switch (currentStep) {
       case 0:
-        return selectedServices.length > 0;
+        return selectedServices.length > 0 &&
+          vehicleTransmission !== "unknown" &&
+          hasVehicleForBooking;
       case 1:
         return partsSelectionComplete;
       case 2:
         return !!selectedDate && !!selectedTime && !!selectedMechanicId;
       case 3:
         return !!selectedDate && !!selectedTime && !!selectedMechanicId &&
-          !!(selectedVehicleId || vehicleInfo.trim()) && termsAccepted && partsSelectionComplete;
+          hasVehicleForBooking &&
+          vehicleTransmission !== "unknown" && termsAccepted && partsSelectionComplete;
       default:
         return false;
     }
@@ -1300,6 +1412,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
 
     if (!termsAccepted) {
       setErrorMsg("Please agree to the Terms & Conditions to continue.");
+      submitLockRef.current = false;
+      return;
+    }
+    if (vehicleTransmission === "unknown") {
+      setErrorMsg("Choose whether the motorcycle is automatic or manual before booking.");
       submitLockRef.current = false;
       return;
     }
@@ -1339,6 +1456,22 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         setErrorMsg("Choose at least one service before confirming.");
         submitLockRef.current = false;
         return;
+      }
+
+      if (selectedVehicle && selectedVehicle.transmission_type === "unknown") {
+        const { error: vehicleUpdateError } = await supabase
+          .from("vehicles")
+          .update({ transmission_type: vehicleTransmission })
+          .eq("id", selectedVehicle.id)
+          .eq("customer_id", user.id);
+        if (vehicleUpdateError) throw vehicleUpdateError;
+        setVehicles((current) =>
+          current.map((vehicle) =>
+            vehicle.id === selectedVehicle.id
+              ? { ...vehicle, transmission_type: vehicleTransmission }
+              : vehicle,
+          ),
+        );
       }
 
       // Build vehicle description
@@ -1384,7 +1517,12 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         throw new Error("The selected appointment slot or mechanic is no longer available. Choose another slot.");
       }
 
-      await validateSelectedServiceParts(shopIdToUse, selectedServices, aggregateSelectedServiceParts(selectedParts));
+      await validateSelectedServiceParts(
+        shopIdToUse,
+        selectedServices,
+        aggregateSelectedServiceParts(selectedParts),
+        vehicleTransmission,
+      );
 
       // Create a single appointment with all selected services
       const serviceLabels = selectedServices
@@ -1412,6 +1550,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         mechanic_preference: selectedMechanicId ? "specific" : "any",
         service_type: serviceLabels,
         description: `${vehicleDesc} - ${serviceLabels}`,
+        vehicle_transmission: vehicleTransmission,
         status: "pending",
         service_ids: selectedServices,
         notes: notes || null,
@@ -1655,9 +1794,151 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Services
                         </h3>
                         <p className="text-slate-400 text-sm mt-1.5">
-                          Pick one or more services.
+                          Choose your motorcycle first to see the services that fit it.
                         </p>
                       </div>
+                      <section className="mb-6 space-y-3 rounded-2xl border border-moto-gray bg-moto-darker/70 p-4" aria-label="Motorcycle and transmission">
+                        <label className="block text-xs font-bold uppercase tracking-wide text-slate-200" htmlFor="booking-motorcycle">
+                          Motorcycle
+                        </label>
+                        {user?.id ? (
+                          <select
+                            id="booking-motorcycle"
+                            value={selectedVehicleId}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (value === "manual") {
+                                setSelectedVehicleId("manual");
+                                setTransmissionChoice("unknown");
+                                clearManualVehicle();
+                                return;
+                              }
+                              const vehicle = vehicles.find((entry) => entry.id === value);
+                              if (vehicle) pickVehicle(vehicle);
+                              else {
+                                setSelectedVehicleId("");
+                                clearManualVehicle();
+                              }
+                            }}
+                            className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100"
+                          >
+                            <option value="">Select a saved motorcycle</option>
+                            {vehicles.map((vehicle) => (
+                              <option key={vehicle.id} value={vehicle.id}>
+                                {displayVehicle(vehicle)}{vehicle.transmission_type === "unknown" ? " · transmission needed" : ` · ${vehicle.transmission_type}`}
+                              </option>
+                            ))}
+                            <option value="manual">Enter motorcycle manually</option>
+                          </select>
+                        ) : (
+                          manualVehicleFields("booking-guest-motorcycle")
+                        )}
+
+                        {user?.id && selectedVehicleId === "manual" &&
+                          manualVehicleFields("booking-manual-motorcycle")}
+
+                        {selectedVehicle && selectedVehicle.transmission_type === "unknown" && (
+                          <p className="text-xs text-amber-300">
+                            This saved motorcycle needs its transmission recorded before booking.
+                          </p>
+                        )}
+
+                        {(selectedVehicle?.transmission_type === "unknown" || selectedVehicleId === "manual" || !user?.id) && (
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-slate-300" htmlFor="booking-transmission">
+                              Transmission
+                            </label>
+                            <select
+                              id="booking-transmission"
+                              value={vehicleTransmission}
+                              onChange={(event) => setTransmissionChoice(event.target.value as MotorcycleTransmission)}
+                              className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100"
+                            >
+                              <option value="unknown">Select transmission</option>
+                              <option value="automatic">Automatic</option>
+                              <option value="manual">Manual</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {user?.id && !addingVehicle && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAddingVehicle(true);
+                              setSelectedVehicleId("");
+                              clearManualVehicle();
+                              setVehicleSaveError("");
+                            }}
+                            className="text-xs font-semibold text-moto-accent hover:underline"
+                          >
+                            Add a motorcycle
+                          </button>
+                        )}
+                        {addingVehicle && (
+                          <div className="space-y-3">
+                            <VehicleMakeModelFields
+                              make={newVehicle.make}
+                              model={newVehicle.model}
+                              onMakeChange={(make) =>
+                                setNewVehicle((previous) => ({
+                                  ...previous,
+                                  make,
+                                  model: "",
+                                }))
+                              }
+                              onModelChange={(model) =>
+                                setNewVehicle((previous) => ({ ...previous, model }))
+                              }
+                              makeLabel="Motorcycle make"
+                              modelLabel="Motorcycle model"
+                              makePlaceholder="e.g. Honda"
+                              modelPlaceholder="e.g. Click 125i"
+                              inputClassName="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500"
+                              labelClassName="mb-1.5 block text-xs font-semibold text-slate-300"
+                              containerClassName="grid gap-3 sm:grid-cols-2"
+                              idPrefix="booking-add-motorcycle"
+                              uppercaseOptions
+                            />
+                            <input
+                              aria-label="New motorcycle year"
+                              inputMode="numeric"
+                              value={newVehicle.year}
+                              onChange={(event) => setNewVehicle({ ...newVehicle, year: event.target.value })}
+                              placeholder="Year (optional)"
+                              className="rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100"
+                            />
+                            <select
+                              aria-label="New motorcycle transmission"
+                              value={newVehicle.transmission_type}
+                              onChange={(event) => setNewVehicle({ ...newVehicle, transmission_type: event.target.value as MotorcycleTransmission })}
+                              className="rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100"
+                            >
+                              <option value="unknown">Select transmission</option>
+                              <option value="automatic">Automatic</option>
+                              <option value="manual">Manual</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => void handleAddVehicle()}
+                              disabled={savingVehicle}
+                              className="rounded-xl bg-moto-accent px-4 py-2 text-sm font-bold text-slate-950 disabled:opacity-50"
+                            >
+                              {savingVehicle ? "Saving..." : "Save motorcycle"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAddingVehicle(false)}
+                              className="rounded-xl border border-moto-gray px-4 py-2 text-sm font-semibold text-slate-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+                        {vehicleSaveError && (
+                          <p role="alert" className="text-xs text-rose-300">{vehicleSaveError}</p>
+                        )}
+                      </section>
                       {hasActiveAppointment && (
                         <motion.div
                           initial={{ opacity: 0, y: -10 }}
@@ -1686,14 +1967,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           <Loader2 size={15} className="animate-spin text-moto-accent" /> Checking your active bookings…
                         </div>
                       )}
-                      {dynamicServices.length === 0 ? (
+                      {vehicleTransmission === "unknown" ? (
+                        <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-darker/60 px-6 py-8 text-center">
+                          <Car size={24} className="mx-auto text-moto-accent" />
+                          <p className="mt-3 text-sm font-semibold text-slate-100">Select automatic or manual transmission</p>
+                          <p className="mt-1 text-xs text-slate-400">We need this to show compatible services and parts.</p>
+                        </div>
+                      ) : dynamicServices.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-darker/60 px-6 py-10 text-center">
                           <Wrench size={24} className="mx-auto text-moto-accent" />
                           <p className="mt-3 text-base font-semibold text-slate-100">Services aren’t available right now</p>
                           <p className="mt-1 text-sm text-slate-400">Please try again later or contact the shop.</p>
                         </div>
+                      ) : compatibleServices.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-moto-gray bg-moto-darker/60 px-6 py-8 text-center text-sm text-slate-400">
+                          No services are configured for this motorcycle transmission.
+                        </div>
                       ) : <div className="booking-service-list space-y-2">
-                        {dynamicServices.map((svc) => {
+                        {compatibleServices.map((svc) => {
                           const isActive = selectedServices.includes(svc.id);
                           return (
                             <motion.button
@@ -1821,14 +2112,14 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Choose at least one in-stock compatible part for each service that has parts available. Services without available parts continue without parts.
                         </p>
                       </div>
-                      {loadingParts || partsCatalogKey !== [...selectedServices].sort().join(",") ? (
+                      {loadingParts || partsCatalogKey !== partsLookupKey ? (
                         <div className="flex items-center justify-center py-12">
                           <div className="w-8 h-8 border-2 border-moto-accent/30 border-t-moto-accent rounded-full animate-spin" />
                         </div>
                       ) : (
                         <div className="space-y-4">
                           <ServicePartsPicker
-                            key={`${shopId || defaultShopId}:${[...selectedServices].sort().join(",")}`}
+                            key={`${shopId || defaultShopId}:${partsLookupKey}`}
                             shopId={shopId || defaultShopId}
                             services={selectedServices.map((serviceId) => ({
                               id: serviceId,
@@ -1836,10 +2127,11 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                             }))}
                             selectedParts={selectedParts}
                             onChange={setSelectedParts}
+                            transmission={vehicleTransmission}
                             catalog={partsCatalog}
                             requirePartsForServices
                           />
-                          {!loadingParts && partsCatalogKey === selectedServicesKey && partsCatalogError && (
+                          {!loadingParts && partsCatalogKey === partsLookupKey && partsCatalogError && (
                             <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
                               Compatible parts could not be loaded. Please close and reopen booking before continuing.
                             </p>
@@ -2410,6 +2702,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                         <span className="block text-[11px] text-slate-400 mt-0.5 uppercase tracking-wide">
                                           {v.make}
                                           {v.year ? ` · ${v.year}` : ""}
+                                          {` · ${v.transmission_type === "unknown" ? "Transmission needed" : v.transmission_type}`}
                                         </span>
                                       )}
                                     </span>
@@ -2441,7 +2734,8 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 setAddingVehicle(true);
                                 setVehicleSaveError("");
                                 setSelectedVehicleId("");
-                                setVehicleInfo("");
+                                setTransmissionChoice("unknown");
+                                clearManualVehicle();
                               }}
                               className="w-full rounded-2xl border border-dashed border-moto-gray bg-moto-darker/60 p-4 text-slate-400 hover:border-moto-accent hover:text-moto-accent hover:bg-moto-accent/5 transition-all duration-200 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
                             >
@@ -2456,12 +2750,13 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                 <p className="text-[11px] font-bold uppercase tracking-widest text-slate-300">
                                   Add a motorcycle
                                 </p>
-                                {/* Manual-entry mode toggles the free-text field */}
+                                {/* Manual-entry mode uses the registration make/model selector. */}
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setSelectedVehicleId("manual");
-                                    setVehicleInfo("");
+                                    setTransmissionChoice("unknown");
+                                    clearManualVehicle();
                                   }}
                                   className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg border transition-colors ${
                                     selectedVehicleId === "manual"
@@ -2474,13 +2769,24 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                               </div>
 
                               {selectedVehicleId === "manual" ? (
-                                <input
-                                  type="text"
-                                  value={vehicleInfo}
-                                  onChange={(e) => setVehicleInfo(e.target.value)}
-                                  placeholder="E.G. HONDA CLICK 150I"
-                                  className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
-                                />
+                                <>
+                                  {manualVehicleFields("booking-review-manual-motorcycle")}
+                                  <div>
+                                    <label className="mb-1.5 block text-xs font-semibold text-slate-300" htmlFor="booking-review-transmission">
+                                      Transmission
+                                    </label>
+                                    <select
+                                      id="booking-review-transmission"
+                                      value={vehicleTransmission}
+                                      onChange={(event) => setTransmissionChoice(event.target.value as MotorcycleTransmission)}
+                                      className="w-full rounded-xl border border-moto-gray bg-moto-dark px-3 py-2.5 text-sm text-slate-100"
+                                    >
+                                      <option value="unknown">Select transmission</option>
+                                      <option value="automatic">Automatic</option>
+                                      <option value="manual">Manual</option>
+                                    </select>
+                                  </div>
+                                </>
                               ) : (
                                 <>
                                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_80px] gap-2">
@@ -2520,6 +2826,16 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                         className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray focus:border-moto-accent focus:ring-2 focus:ring-moto-accent/25 focus:outline-none transition rounded-xl uppercase text-xs"
                                       />
                                     </VehicleMakeModelFields>
+                                    <select
+                                      aria-label="New motorcycle transmission"
+                                      value={newVehicle.transmission_type}
+                                      onChange={(e) => setNewVehicle({ ...newVehicle, transmission_type: e.target.value as MotorcycleTransmission })}
+                                      className="w-full bg-moto-darker text-slate-100 px-4 py-3 border border-moto-gray rounded-xl text-xs"
+                                    >
+                                      <option value="unknown">Select transmission</option>
+                                      <option value="automatic">Automatic</option>
+                                      <option value="manual">Manual</option>
+                                    </select>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <motion.button
@@ -2552,9 +2868,10 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                           make: "",
                                           model: "",
                                           year: "",
+                                          transmission_type: "unknown",
                                         });
                                         setSelectedVehicleId("");
-                                        setVehicleInfo("");
+                                        clearManualVehicle();
                                       }}
                                       className="px-4 py-3 border border-moto-gray text-slate-400 text-xs font-bold uppercase tracking-wider rounded-xl transition hover:text-white hover:bg-moto-gray/30"
                                     >
@@ -2676,7 +2993,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           ? !selectedDate ? "Choose a visit date." : !selectedTime ? "Choose a start time." : !selectedMechanicId ? "Choose an available mechanic." : "Your visit time is ready to review."
                           : !partsSelectionComplete
                             ? "Go back to Parts and choose a compatible part for every service that has parts available."
-                            : !selectedVehicleId && !vehicleInfo.trim()
+                            : !hasVehicleForBooking
                               ? "Add your motorcycle to continue."
                               : !termsAccepted
                                 ? "Accept the terms to send your request."

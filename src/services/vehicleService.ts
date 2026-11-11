@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { MotorcycleTransmission } from "../types";
 
 /**
  * Vehicle data access for the customer garage.
@@ -15,6 +16,7 @@ export interface VehicleRecord {
   customer_id: string;
   make: string;
   model: string;
+  transmission_type: MotorcycleTransmission;
   year: number | null;
   engine_number: string | null;
   created_at: string;
@@ -42,14 +44,15 @@ export const EMPTY_VEHICLE_STATS: VehicleStats = {
 export interface VehicleDraft {
   make: string;
   model: string;
+  transmission_type: Exclude<MotorcycleTransmission, "unknown">;
   year?: number | null;
   engine_number?: string | null;
 }
 
 const VEHICLE_COLUMNS =
-  "id, customer_id, make, model, year, engine_number, created_at, is_primary, edit_requested, edit_approved_at";
+  "id, customer_id, make, model, year, engine_number, transmission_type, created_at, is_primary, edit_requested, edit_approved_at";
 const VEHICLE_COLUMNS_LEGACY =
-  "id, customer_id, make, model, year, engine_number, created_at";
+  "id, customer_id, make, model, year, engine_number, transmission_type, created_at";
 
 /** Set once a read has been served by the legacy fallback in this session. */
 let editLockColumnsAvailable = true;
@@ -107,6 +110,7 @@ const hydrate = (rows: unknown[]): VehicleRecord[] =>
     is_primary: row.is_primary ?? false,
     edit_requested: row.edit_requested ?? false,
     edit_approved_at: row.edit_approved_at ?? null,
+    transmission_type: row.transmission_type ?? "unknown",
   }));
 
 const normalize = (value: string) => value.trim().toLowerCase();
@@ -147,6 +151,7 @@ export const addVehicle = async (
     customer_id: customerId,
     make: draft.make.trim(),
     model: draft.model.trim(),
+    transmission_type: draft.transmission_type,
   };
   if (draft.year) payload.year = draft.year;
   if (draft.engine_number?.trim())
@@ -171,6 +176,7 @@ export const updateVehicle = async (
   const payload: Record<string, unknown> = {
     make: draft.make.trim(),
     model: draft.model.trim(),
+    transmission_type: draft.transmission_type,
     year: draft.year ?? null,
     engine_number: draft.engine_number?.trim() || null,
   };
