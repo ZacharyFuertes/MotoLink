@@ -46,19 +46,6 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ success: false, error: "Server not configured." });
     }
 
-    const gmailReady = Boolean(GMAIL_USER && GMAIL_APP_PASS);
-    const sendgridReady = Boolean(SENDGRID_API_KEY && SENDGRID_FROM_EMAIL);
-    if (!gmailReady && !sendgridReady) {
-      console.error("No email transport configured for login verification");
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error:
-            "Email service not configured: set GMAIL_USER/GMAIL_APP_PASS or SENDGRID_API_KEY/SENDGRID_FROM_EMAIL on the server.",
-        });
-    }
-
     const { email, password, purpose = "login" } = req.body || {};
     if (!email || typeof email !== "string") {
       return res.status(400).json({ success: false, error: "Email is required." });
@@ -123,8 +110,34 @@ export default async function handler(req: any, res: any) {
         return res.status(403).json({ success: false, error: "Please use the sign-in portal for your account." });
       }
 
+      // Default to requiring OTP if the setting is missing or cannot be read.
+      // The service-role client keeps this server-enforced and independent of
+      // any client-side setting or cached dashboard state.
+      const { data: otpSetting, error: otpSettingError } = await db
+        .from("platform_settings")
+        .select("setting_value")
+        .eq("setting_key", "login_otp_enabled")
+        .maybeSingle();
+      if (otpSettingError) {
+        console.error("[send-login-otp] could not read login OTP setting; keeping OTP enabled:", otpSettingError);
+      }
+      const settingValue = otpSetting?.setting_value;
+      const otpEnabled = otpSettingError
+        ? true
+        : settingValue && typeof settingValue === "object" && "value" in settingValue
+          ? settingValue.value !== false
+          : settingValue !== false;
+
+      if (!otpEnabled && password === undefined) {
+        return res.status(409).json({
+          success: false,
+          otpDisabled: true,
+          error: "Email verification is disabled. Go back and enter your password to sign in.",
+        });
+      }
+
       // Password login uses a non-persistent server-side Supabase client to
-      // validate credentials. No browser session is created until OTP succeeds.
+      // validate credentials. Its session is only returned when OTP is disabled.
       if (password !== undefined) {
         if (typeof password !== "string" || !password) {
           return res.status(400).json({ success: false, error: "Email and password are required." });
@@ -144,7 +157,38 @@ export default async function handler(req: any, res: any) {
         if (authError || authData?.user?.id !== user.id) {
           return res.status(401).json({ success: false, error: "Invalid email or password." });
         }
+
+        if (!otpEnabled) {
+          if (!authData.session) {
+            return res.status(500).json({ success: false, error: "Could not create a sign-in session." });
+          }
+          return res.status(200).json({
+            success: true,
+            otpRequired: false,
+            session: {
+              access_token: authData.session.access_token,
+              refresh_token: authData.session.refresh_token,
+              expires_at: authData.session.expires_at,
+            },
+            user: {
+              id: user.id,
+              email: user.email,
+              role: user.role,
+            },
+          });
+        }
       }
+    }
+
+    const gmailReady = Boolean(GMAIL_USER && GMAIL_APP_PASS);
+    const sendgridReady = Boolean(SENDGRID_API_KEY && SENDGRID_FROM_EMAIL);
+    if (!gmailReady && !sendgridReady) {
+      console.error("No email transport configured for login verification");
+      return res.status(500).json({
+        success: false,
+        error:
+          "Email service not configured: set GMAIL_USER/GMAIL_APP_PASS or SENDGRID_API_KEY/SENDGRID_FROM_EMAIL on the server.",
+      });
     }
 
     // Testing override: temporarily skip the per-email request cap, but still

@@ -10,6 +10,12 @@ export interface OtpSendResult {
   message?: string;
   error?: string;
   existingAccount?: boolean;
+  otpDisabled?: boolean;
+  session?: {
+    access_token: string;
+    refresh_token: string;
+    expires_at?: number;
+  };
 }
 
 export interface OtpVerifyResult {
@@ -69,6 +75,10 @@ export const requestLoginCode = async (
       success: true,
       message: payload?.message || "Verification code sent to your email.",
       existingAccount: payload?.existingAccount === true,
+      otpDisabled: payload?.otpRequired === false,
+      session: payload?.session?.access_token
+        ? payload.session
+        : undefined,
     };
   } catch {
     return {

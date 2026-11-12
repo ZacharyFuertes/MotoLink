@@ -232,6 +232,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
   const clearLoginDraft = () =>
     localStorage.removeItem("moto_customer_login_draft");
 
+  const installLoginSession = async (
+    session: NonNullable<Awaited<ReturnType<typeof requestLoginCode>>["session"]>,
+  ) => {
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+    if (sessionError) throw sessionError;
+    setLoginAttempted(true);
+    setLoading(false);
+  };
+
   const handleBackFromLogin = () => {
     if (signupOtpPending) {
       localStorage.removeItem(SIGNUP_OTP_PENDING_KEY);
@@ -297,6 +309,11 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           if (!loginOtpResult.success) {
             throw new Error(loginOtpResult.error || "Could not send the verification code.");
           }
+          if (loginOtpResult.session) {
+            await installLoginSession(loginOtpResult.session);
+            setFormData((prev) => ({ ...prev, password: "" }));
+            return;
+          }
           localStorage.setItem(SIGNUP_OTP_PENDING_KEY, "existing");
           setSignupOtpIsNew(false);
           setSignupOtpPending(true);
@@ -355,6 +372,12 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
         if (!result.success) {
           setError(result.error || "Could not send the verification code.");
           setLoading(false);
+          return;
+        }
+
+        if (result.session) {
+          await installLoginSession(result.session);
+          setFormData((prev) => ({ ...prev, password: "" }));
           return;
         }
 
@@ -425,8 +448,18 @@ const LoginPage: React.FC<CustomerLoginPageProps> = ({
           : await requestLoginCode(formData.email.trim(), formData.password)
         : await requestLoginCode(formData.email.trim());
       if (!result.success) {
+        if (result.otpDisabled) {
+          setLoginMode("password");
+          setOtpSent(false);
+          setOtpCode("");
+        }
         setError(result.error || "Could not send the verification code.");
         setLoading(false);
+        return;
+      }
+      if (result.session) {
+        await installLoginSession(result.session);
+        setFormData((prev) => ({ ...prev, password: "" }));
         return;
       }
       setOtpSent(true);

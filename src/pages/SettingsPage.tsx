@@ -69,6 +69,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     type: "success" | "error";
   } | null>(null);
   const [lastSignInAt, setLastSignInAt] = useState<string | null>(null);
+  const [loginOtpEnabled, setLoginOtpEnabled] = useState(true);
+  const [savingLoginOtp, setSavingLoginOtp] = useState(false);
 
   useEffect(() => {
     setNewEmail(user?.email || "");
@@ -102,6 +104,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
         map[row.setting_key] =
           v && typeof v === "object" && "value" in v ? v.value : v;
       });
+      setLoginOtpEnabled(map.login_otp_enabled !== false);
     } catch (err: any) {
       console.error("Failed to load platform settings:", err);
       setSettingsStatus({
@@ -150,6 +153,53 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
 
   const handleOpenShopSettings = () => {
     if (onNavigate) onNavigate("shop-settings");
+  };
+
+  const handleToggleLoginOtp = async () => {
+    const nextEnabled = !loginOtpEnabled;
+    if (
+      !nextEnabled &&
+      !window.confirm(
+        "Disable email verification codes for password logins? Customers and shop owners will sign in with only their password. This reduces account security.",
+      )
+    ) {
+      return;
+    }
+
+    setSavingLoginOtp(true);
+    setSettingsStatus(null);
+    try {
+      const { error } = await supabase.from("platform_settings").upsert(
+        {
+          setting_key: "login_otp_enabled",
+          setting_value: { value: nextEnabled },
+          description: "Require email verification codes for password-based sign-ins",
+        },
+        { onConflict: "setting_key" },
+      );
+      if (error) throw error;
+
+      setLoginOtpEnabled(nextEnabled);
+      const { error: auditError } = await supabase.from("admin_audit_log").insert({
+        actor_id: user.id,
+        actor_email: user.email,
+        action: "login_otp_setting_changed",
+        target: nextEnabled ? "enabled" : "disabled",
+      });
+      if (auditError) console.warn("Could not record login OTP setting change:", auditError);
+
+      setSettingsStatus({
+        text: `Email OTP login ${nextEnabled ? "enabled" : "disabled"}.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      setSettingsStatus({
+        text: err?.message || "Could not update the login OTP setting.",
+        type: "error",
+      });
+    } finally {
+      setSavingLoginOtp(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -402,6 +452,42 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             </div>
           ) : (
             <>
+              <SectionCard
+                icon={KeyRound}
+                title="Login Security"
+                subtitle="Control email verification codes for password sign-ins."
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[13px] font-bold text-slate-200">Email OTP for customer and shop-owner logins</p>
+                    <p className="mt-1 text-xs text-slate-300">
+                      When disabled, valid passwords sign in directly without sending or entering an email code. Account signups still require email verification.
+                    </p>
+                    {!loginOtpEnabled && (
+                      <p className="mt-2 text-xs font-semibold text-amber-400">
+                        Warning: password-only sign-in is less secure.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={loginOtpEnabled}
+                    aria-label="Email OTP for customer and shop-owner logins"
+                    onClick={handleToggleLoginOtp}
+                    disabled={savingLoginOtp}
+                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:cursor-wait disabled:opacity-60 ${loginOtpEnabled ? "bg-emerald-500" : "bg-slate-600"}`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${loginOtpEnabled ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+                <p className="mt-3 text-xs font-semibold text-slate-300">
+                  {savingLoginOtp ? "Saving…" : loginOtpEnabled ? "OTP is required for password sign-in." : "OTP is off; users need only their password."}
+                </p>
+              </SectionCard>
+
               {/* 4. Session & Security */}
               <SectionCard
                 icon={Lock}
