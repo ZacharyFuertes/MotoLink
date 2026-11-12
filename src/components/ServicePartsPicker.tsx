@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Loader2, Package, Wrench } from "lucide-react";
+import { Loader2, Package, Wrench, X } from "lucide-react";
 import { loadServicePartCatalog, ServicePart, ServicePartCatalog } from "../services/servicePartsService";
 import { MotorcycleTransmission } from "../types";
 
@@ -140,6 +140,9 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
     () => new Map(selectedParts.map((part) => [selectionKey(part.id, part.service_id), part])),
     [selectedParts, requirePartsForServices],
   );
+  const clearSelection = (serviceId?: string) => {
+    onChange(selectedParts.filter((selected) => selected.service_id !== serviceId));
+  };
   const setQuantity = (part: ServicePart, quantity: number, serviceId?: string) => {
     if (requirePartsForServices) {
       if (!serviceId) return;
@@ -240,7 +243,18 @@ const ServicePartsPicker: React.FC<ServicePartsPickerProps> = ({
                       <p className="font-mono text-sm font-bold text-slate-200">₱{part.unit_price.toLocaleString()}</p>
                       {selected ? (
                         requirePartsForServices ? (
-                          <span className="shrink-0 rounded-full border border-moto-accent/40 bg-moto-accent/10 px-3 py-1.5 text-xs font-bold text-moto-accent">Chosen · 1 pc</span>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="rounded-full border border-moto-accent/40 bg-moto-accent/10 px-3 py-1.5 text-xs font-bold text-moto-accent">Chosen · 1 pc</span>
+                            <button
+                              type="button"
+                              onClick={() => clearSelection(service.id)}
+                              aria-label={`Remove ${part.name} from ${service.label}`}
+                              title="Remove part"
+                              className="rounded-lg border border-rose-400/50 p-1.5 text-rose-300 transition hover:bg-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <button type="button" aria-label={`Decrease ${part.name} quantity`} onClick={() => setQuantity(part, selected.quantity - 1)} className="rounded-lg border border-moto-accent/50 px-2.5 py-1 text-moto-accent">−</button>

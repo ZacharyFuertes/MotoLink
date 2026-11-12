@@ -2109,7 +2109,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                           Parts
                         </h3>
                         <p className="text-slate-400 text-sm mt-1.5">
-                          Choose at least one in-stock compatible part for each service that has parts available. Services without available parts continue without parts.
+                          Choose at least one in-stock compatible part for each service that has parts available. Services without available parts continue without parts. Pick another part to change a choice.
                         </p>
                       </div>
                       {loadingParts || partsCatalogKey !== partsLookupKey ? (
@@ -2157,12 +2157,33 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
                                     <span className="text-slate-300">
                                       {part.name} x{part.quantity}
                                     </span>
-                                    <span className="text-slate-100 font-mono font-bold">
-                                      ₱
-                                      {(
-                                        part.quantity * part.unit_price
-                                      ).toLocaleString()}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-slate-100 font-mono font-bold">
+                                        ₱
+                                        {(
+                                          part.quantity * part.unit_price
+                                        ).toLocaleString()}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        aria-label={`Remove ${part.name}`}
+                                        title="Remove part"
+                                        onClick={() =>
+                                          setSelectedParts((current) =>
+                                            current.filter(
+                                              (selected) =>
+                                                !(
+                                                  selected.id === part.id &&
+                                                  selected.service_id === part.service_id
+                                                ),
+                                            ),
+                                          )
+                                        }
+                                        className="rounded-lg border border-rose-400/50 p-1.5 text-rose-300 transition hover:bg-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/60"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
