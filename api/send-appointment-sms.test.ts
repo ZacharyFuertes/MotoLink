@@ -62,7 +62,7 @@ describe("customer appointment SMS endpoint", () => {
     dbState.from.mockImplementation((table: string) => {
       if (table === "users") {
         return {
-          select: vi.fn((cols: string) => ({
+          select: vi.fn((_cols: string) => ({
             eq: vi.fn((field: string, value: string) => ({
               maybeSingle: vi.fn().mockResolvedValue(
                 field === "id" && value === "customer-1"
