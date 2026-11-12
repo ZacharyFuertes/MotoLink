@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerAppointmentStatusSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, isSmsEventKeyUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
+import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerAppointmentStatusSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, isSmsEventKeyUnavailable, normalizeSmsPhone, sendTextbeeSms } from "../../server/textbee";
 
 const jsonResponse = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status,

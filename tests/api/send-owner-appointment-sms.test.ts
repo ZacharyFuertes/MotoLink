@@ -14,7 +14,7 @@ vi.mock("@supabase/supabase-js", () => ({
   })),
 }));
 
-vi.mock("./_lib/textbee.js", () => ({
+vi.mock("../../server/textbee.js", () => ({
   buildOwnerAppointmentSms: vi.fn(() => "New booking"),
   buildOwnerAppointmentStatusSms: mocks.buildOwnerAppointmentStatusSms,
   normalizeSmsPhone: vi.fn(() => "+639171234567"),
@@ -90,7 +90,7 @@ describe("owner appointment SMS endpoint", () => {
       throw new Error(`Unexpected table: ${table}`);
     });
 
-    ({ default: handler } = await import("./send-owner-appointment-sms"));
+    ({ default: handler } = await import("../../api/send-owner-appointment-sms"));
   });
 
   it("sends a status alert to the owning shop when the owner updates an appointment", async () => {

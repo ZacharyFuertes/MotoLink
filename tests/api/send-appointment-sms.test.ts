@@ -12,7 +12,7 @@ vi.mock("@supabase/supabase-js", () => ({
   })),
 }));
 
-vi.mock("./_lib/textbee.js", () => ({
+vi.mock("../../server/textbee.js", () => ({
   buildAppointmentStatusSms: vi.fn(() => "Status update text"),
   isSmsDeliveryLogUnavailable: vi.fn(() => false),
   isSmsEventKeyUnavailable: vi.fn(() => false),
@@ -34,7 +34,7 @@ describe("customer appointment SMS endpoint", () => {
       data: { user: { id: "user-1", role: "owner" } },
       error: null,
     });
-    ({ default: handler } = await import("./send-appointment-sms"));
+    ({ default: handler } = await import("../../api/send-appointment-sms"));
   });
 
   it("sends customer status SMS without checking an SMS consent setting", async () => {

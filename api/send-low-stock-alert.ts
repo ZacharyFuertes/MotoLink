@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
-import { buildOwnerLowStockSms, normalizeSmsPhone, sendTextbeeSms } from "./_lib/textbee.js";
+import { buildOwnerLowStockSms, normalizeSmsPhone, sendTextbeeSms } from "../server/textbee.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";

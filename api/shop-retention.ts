@@ -22,7 +22,7 @@ import {
   purgeDueCandidates,
   requireCron,
   sendHoldEmail,
-} from "./_lib/shop-retention.js";
+} from "../server/shop-retention.js";
 
 export default async function handler(req: any, res: any) {
   const gate = requireCron(req);

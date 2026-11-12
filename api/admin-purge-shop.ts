@@ -22,7 +22,7 @@ import {
   getRetentionDays,
   performPurge,
   isExportReady,
-} from "./_lib/shop-retention.js";
+} from "../server/shop-retention.js";
 
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
