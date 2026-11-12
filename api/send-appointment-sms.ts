@@ -58,7 +58,7 @@ export default async function handler(req: any, res: any) {
     const [{ data: caller, error: callerError }, { data: appointment, error: appointmentError }] = await Promise.all([
       db.from("users").select("id, role").eq("id", authData.user.id).maybeSingle(),
       db.from("appointments")
-        .select("id, booking_id, customer_id, walk_in_name, walk_in_phone, walk_in_sms_consent, walk_in_sms_consent_at, shop_id, status, scheduled_date, scheduled_time")
+        .select("id, booking_id, customer_id, walk_in_name, walk_in_phone, shop_id, status, scheduled_date, scheduled_time")
         .eq("id", appointmentId)
         .maybeSingle(),
     ]);
@@ -150,7 +150,29 @@ export default async function handler(req: any, res: any) {
             .select("id")
             .single());
         }
-        if (error?.code === "23505") return { duplicate: true as const, id: null, unavailable: false as const };
+        if (error?.code === "23505") {
+          const { data: existing, error: existingError } = await db.from("appointment_sms_deliveries")
+            .select("id, state")
+            .eq("appointment_id", appointment.id)
+            .eq("event_key", eventKey)
+            .maybeSingle();
+          if (existingError) throw existingError;
+          if (state === "sending" && existing && ["skipped", "failed"].includes(existing.state)) {
+            const { data: reclaimed, error: reclaimError } = await db.from("appointment_sms_deliveries")
+              .update({
+                state: "sending",
+                reason_code: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existing.id)
+              .eq("state", existing.state)
+              .select("id")
+              .maybeSingle();
+            if (reclaimError) throw reclaimError;
+            if (reclaimed) return { duplicate: false as const, id: reclaimed.id as string, unavailable: false as const };
+          }
+          return { duplicate: true as const, id: null, unavailable: false as const };
+        }
         if (error || !data) throw error || new Error("Could not record SMS delivery state.");
         return { duplicate: false as const, id: data.id as string, unavailable: false as const };
       } catch (error: any) {
@@ -194,18 +216,6 @@ export default async function handler(req: any, res: any) {
       }
       return reply(res, 200, body);
     };
-
-    let consent = appointment.walk_in_sms_consent === true;
-    if (appointment.customer_id) {
-      const { data: settings, error: settingsError } = await db
-        .from("customer_notification_settings")
-        .select("sms_notifications_enabled")
-        .eq("user_id", appointment.customer_id)
-        .maybeSingle();
-      if (settingsError) throw settingsError;
-      consent = settings?.sms_notifications_enabled === true;
-    }
-    if (!consent) return skip("sms_consent_missing");
 
     if (!phone) return skip("phone_number_missing");
     const recipient = normalizeSmsPhone(phone);

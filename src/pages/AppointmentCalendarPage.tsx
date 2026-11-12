@@ -457,21 +457,24 @@ const [appointments, setAppointments] = useState<Appointment[]>([]);
         ) {
           void sendAppointmentStatusSms(appointment.id, newStatus)
             .then((smsResult) => {
-              if (smsResult.notConfigured) {
-                showToast("Appointment updated, but SMS delivery is not configured.", "info");
-              } else if (smsResult.queued) {
-                showToast("Appointment updated. Customer status SMS queued.", "success");
-              } else if (smsResult.skipped && smsResult.reason === "sms_consent_missing") {
-                showToast("Appointment updated, but customer SMS is disabled or not consented to.", "info");
-              } else if (smsResult.skipped) {
-                showToast(`Appointment updated, but customer SMS was skipped: ${smsResult.reason || "delivery could not be recorded."}`, "error");
-              } else {
+              const customerAccepted = smsResult.queued === true;
+              const ownerAccepted = smsResult.ownerSms.queued === true;
+              if (customerAccepted && ownerAccepted) {
+                showToast("Customer and shop owner SMS accepted by Textbee; delivery is not confirmed.", "success");
+              } else if (customerAccepted || ownerAccepted) {
+                const ownerIssue = smsResult.ownerSms.error || smsResult.ownerSms.reason || "not accepted by Textbee";
+                const customerIssue = smsResult.error || smsResult.reason || "not accepted by Textbee";
                 showToast(
-                  smsResult.uncertain
-                    ? "Appointment updated, but SMS delivery status is uncertain. It was not retried."
-                    : `Appointment updated, but SMS was not sent: ${smsResult.error || "Unknown error."}`,
-                  "error",
+                  `SMS accepted for ${[customerAccepted && "customer", ownerAccepted && "shop owner"].filter(Boolean).join(" and ")}; ${[
+                    !customerAccepted && `customer SMS failed: ${customerIssue}`,
+                    !ownerAccepted && `owner SMS failed: ${ownerIssue}`,
+                  ].filter(Boolean).join("; ")}. Gateway acceptance does not confirm delivery.`,
+                  customerAccepted ? "success" : "error",
                 );
+              } else if (smsResult.notConfigured || smsResult.ownerSms.notConfigured) {
+                showToast("Appointment updated, but SMS delivery is not configured.", "info");
+              } else {
+                showToast(`Appointment updated, but SMS failed. Customer: ${smsResult.error || smsResult.reason || "unknown error"}; owner: ${smsResult.ownerSms.error || smsResult.ownerSms.reason || "unknown error"}.`, "error");
               }
             })
             .catch((smsError) => {

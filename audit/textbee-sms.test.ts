@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/migrations/20261110000100_textbee_sms_notifications.sql");
 const eventMigration = read("../supabase/migrations/20261112000200_appointment_cancellation_reschedule_sms.sql");
+const ownerStatusMigration = read("../supabase/migrations/20261112000300_owner_appointment_status_sms.sql");
 const endpoint = read("../api/send-appointment-sms.ts");
 const ownerEndpoint = read("../api/send-owner-appointment-sms.ts");
 const lowStockEndpoint = read("../api/send-low-stock-alert.ts");
@@ -11,7 +12,6 @@ const ownerMigration = read("../supabase/migrations/20261111000100_owner_sms_ale
 const page = read("../src/pages/AppointmentCalendarPage.tsx");
 const booking = read("../src/components/BookAppointmentModal.tsx");
 const shopSettings = read("../src/pages/ShopSettingsPage.tsx");
-const settings = read("../src/components/CustomerSettingsModal.tsx");
 const walkIn = read("../src/components/WalkInBookingModal.tsx");
 
 describe("Textbee appointment SMS source safeguards", () => {
@@ -32,13 +32,14 @@ describe("Textbee appointment SMS source safeguards", () => {
     expect(eventMigration).toContain("DROP CONSTRAINT IF EXISTS appointment_sms_deliveries_appointment_id_event_key_key");
   });
 
-  it("requires customer opt-in or explicit walk-in consent", () => {
-    expect(endpoint).toContain("sms_notifications_enabled");
-    expect(endpoint).toContain("appointment.walk_in_sms_consent === true");
-    expect(endpoint).toContain("if (!consent) return skip(");
-    expect(settings).toContain("SMS appointment status updates");
-    expect(settings).toContain("sms_notifications_enabled: smsEnabled");
-    expect(walkIn).toContain("walk_in_sms_consent: customerId ? false : walkInSmsConsent");
+  it("does not block appointment SMS on saved consent settings", () => {
+    expect(endpoint).not.toContain("sms_notifications_enabled");
+    expect(endpoint).not.toContain("walk_in_sms_consent");
+    const customerSettings = read("../src/components/CustomerSettingsModal.tsx");
+    expect(customerSettings).not.toContain("SMS appointment status updates");
+    expect(customerSettings).not.toContain("sms_notifications_enabled");
+    expect(walkIn).not.toContain("Allow SMS status updates");
+    expect(walkIn).not.toContain("walk_in_sms_consent");
     expect(migration).toContain("ADD COLUMN IF NOT EXISTS walk_in_sms_consent BOOLEAN NOT NULL DEFAULT false");
   });
 
@@ -70,12 +71,18 @@ describe("Textbee appointment SMS source safeguards", () => {
       .toBeLessThan(appointmentModal.indexOf('sendAppointmentStatusSms(appointmentId, "cancelled")'));
     expect(walkInModal.indexOf("if (rpcError) throw rpcError"))
       .toBeLessThan(walkInModal.indexOf('sendAppointmentStatusSms(appointmentId, "rescheduled")'));
-    expect(page).toContain('smsResult.reason === "sms_consent_missing"');
+    expect(page).toContain("smsResult.ownerSms");
   });
 
   it("routes new appointment and low-stock SMS to the private owner phone", () => {
     expect(booking).toContain("sendOwnerNewAppointmentSms(appointment.id)");
     expect(ownerEndpoint).toContain('.select("id, phone")');
+    expect(ownerEndpoint).toContain("appointment_status");
+    expect(ownerEndpoint).toContain("buildOwnerAppointmentStatusSms");
+    expect(ownerEndpoint).toContain('.eq("event_key", eventKey)');
+    expect(ownerStatusMigration).toContain("'appointment_status'");
+    expect(ownerStatusMigration).toContain("idx_owner_sms_appointment_event_once");
+    expect(lowStockEndpoint).toContain("event_key: `low_stock:${notification.data.id}`");
     expect(ownerEndpoint).toContain("normalizeSmsPhone(owner.phone)");
     expect(ownerEndpoint).toContain("process.env.TEXTBEE_API_KEY");
     expect(ownerEndpoint).not.toContain("VITE_TEXTBEE_API_KEY");

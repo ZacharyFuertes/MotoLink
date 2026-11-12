@@ -1620,7 +1620,7 @@ const BookAppointmentModal: React.FC<BookAppointmentModalProps> = ({
         sendBookingRequestReceivedEmail(appointment.id);
         sendOwnerBookingEmail(appointment.id);
         void sendOwnerNewAppointmentSms(appointment.id).then((sms) => {
-          if (!sms.success && !sms.skipped && !sms.notConfigured) {
+          if (!sms.success && !sms.duplicate) {
             console.warn("Could not send new-appointment SMS to shop owner:", sms.error);
           }
         });

@@ -100,23 +100,38 @@ export const sendBookingCancelledEmail = async (appointmentId: string) =>
 export const sendOwnerBookingEmail = async (appointmentId: string) =>
   sendEmailForAppointment("owner-booking", appointmentId);
 
-/** Send the shop owner an SMS when a customer appointment is persisted. */
-export const sendOwnerNewAppointmentSms = async (
-  appointmentId: string,
-): Promise<{ success: boolean; queued?: boolean; skipped?: boolean; notConfigured?: boolean; error?: string }> => {
+interface OwnerAppointmentSmsResult {
+  success: boolean;
+  queued?: boolean;
+  skipped?: boolean;
+  duplicate?: boolean;
+  notConfigured?: boolean;
+  uncertain?: boolean;
+  reason?: string;
+  smsBatchId?: string | null;
+  error?: string;
+}
+
+const requestOwnerAppointmentSms = async (
+  payload: { appointmentId: string; status?: AppointmentSmsStatus },
+): Promise<OwnerAppointmentSmsResult> => {
   try {
-    const request = await postAuthenticatedJson("/api/send-owner-appointment-sms", { appointmentId });
+    const request = await postAuthenticatedJson("/api/send-owner-appointment-sms", payload);
     if (!request.response) return { success: false, error: request.error };
     const { response, body } = request;
     if (!response.ok) {
       return {
         success: false,
         ...(body?.notConfigured ? { notConfigured: true } : {}),
+        ...(body?.uncertain ? { uncertain: true } : {}),
+        ...(body?.skipped ? { skipped: true } : {}),
+        ...(body?.duplicate ? { duplicate: true } : {}),
+        ...(typeof body?.reason === "string" ? { reason: body.reason } : {}),
         error: typeof body?.error === "string" ? body.error : `SMS request failed (${response.status}).`,
       };
     }
     return body && typeof body.success === "boolean"
-      ? body as { success: boolean; queued?: boolean; skipped?: boolean; notConfigured?: boolean; error?: string }
+      ? body as OwnerAppointmentSmsResult
       : { success: false, error: "SMS service returned an invalid response." };
   } catch (error) {
     console.warn("Could not request owner appointment SMS:", error);
@@ -124,11 +139,27 @@ export const sendOwnerNewAppointmentSms = async (
   }
 };
 
-/** Queue one consent-aware Textbee SMS for a persisted appointment status. */
+/** Send the shop owner an SMS when an appointment is persisted. */
+export const sendOwnerNewAppointmentSms = (appointmentId: string) =>
+  requestOwnerAppointmentSms({ appointmentId });
+
+const sendOwnerAppointmentStatusSms = (appointmentId: string, status: AppointmentSmsStatus) =>
+  requestOwnerAppointmentSms({ appointmentId, status });
+
+/** Request customer and owner status SMS independently after the status is persisted. */
 export const sendAppointmentStatusSms = async (
   appointmentId: string,
   status: AppointmentSmsStatus,
-) => requestAppointmentStatusSms(appointmentId, status);
+) => {
+  const [customer, owner] = await Promise.all([
+    requestAppointmentStatusSms(appointmentId, status),
+    sendOwnerAppointmentStatusSms(appointmentId, status),
+  ]);
+  if (!owner.success && !owner.skipped) {
+    console.warn("Appointment status changed, but owner SMS failed:", owner.error || owner.reason);
+  }
+  return { ...customer, ownerSms: owner };
+};
 
 // ─── Shop owner booking notification ──────────────────────────────────────────
 

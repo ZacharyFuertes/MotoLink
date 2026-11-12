@@ -162,6 +162,7 @@ export default async function handler(req: any, res: any) {
         .insert({
           notification_id: notification.data.id,
           notification_type: "low_stock",
+          event_key: `low_stock:${notification.data.id}`,
           state: "sending",
         })
         .select("id")

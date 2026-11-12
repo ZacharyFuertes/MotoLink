@@ -37,7 +37,7 @@ describe("customer appointment SMS endpoint", () => {
     ({ default: handler } = await import("./send-appointment-sms"));
   });
 
-  it("reports skipped customer SMS as unsuccessful instead of pretending it was sent", async () => {
+  it("sends customer status SMS without checking an SMS consent setting", async () => {
     const res = {
       status: vi.fn().mockImplementation(() => ({
         json: (body: any) => body,
@@ -51,8 +51,6 @@ describe("customer appointment SMS endpoint", () => {
         customer_id: "customer-1",
         walk_in_name: null,
         walk_in_phone: null,
-        walk_in_sms_consent: false,
-        walk_in_sms_consent_at: null,
         shop_id: "shop-1",
         status: "confirmed",
         scheduled_date: "2026-11-12",
@@ -61,7 +59,6 @@ describe("customer appointment SMS endpoint", () => {
       error: null,
     });
     const shopQuery = vi.fn().mockResolvedValue({ data: { id: "shop-1", name: "MotoLink Garage", owner_id: "user-1" }, error: null });
-    const settingsQuery = vi.fn().mockResolvedValue({ data: null, error: null });
     dbState.from.mockImplementation((table: string) => {
       if (table === "users") {
         return {
@@ -94,15 +91,6 @@ describe("customer appointment SMS endpoint", () => {
           })),
         };
       }
-      if (table === "customer_notification_settings") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              maybeSingle: settingsQuery,
-            })),
-          })),
-        };
-      }
       if (table === "appointment_sms_deliveries") {
         return {
           insert: vi.fn(() => ({
@@ -123,8 +111,7 @@ describe("customer appointment SMS endpoint", () => {
       body: { appointmentId: "appt-1", status: "confirmed", accessToken: "token-1" },
     }, res);
 
-    expect(result.success).toBe(false);
-    expect(result.skipped).toBe(true);
-    expect(result.reason).toBe("sms_consent_missing");
+    expect(result.success).toBe(true);
+    expect(result.queued).toBe(true);
   });
 });

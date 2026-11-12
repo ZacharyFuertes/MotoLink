@@ -1,10 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
-import { buildOwnerAppointmentSms, normalizeSmsPhone, sendTextbeeSms } from "./_lib/textbee.js";
+import {
+  AppointmentSmsStatus,
+  buildOwnerAppointmentSms,
+  buildOwnerAppointmentStatusSms,
+  normalizeSmsPhone,
+  sendTextbeeSms,
+} from "./_lib/textbee.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const TEXTBEE_API_KEY = process.env.TEXTBEE_API_KEY || "";
 const TEXTBEE_DEVICE_ID = process.env.TEXTBEE_DEVICE_ID || "";
+const ALLOWED_STATUSES = new Set<AppointmentSmsStatus>(["confirmed", "in_progress", "completed", "cancelled", "rescheduled"]);
 
 const reply = (res: any, status: number, body: Record<string, unknown>) => res.status(status).json(body);
 
@@ -14,9 +21,12 @@ export default async function handler(req: any, res: any) {
     return reply(res, 503, { success: false, notConfigured: true, error: "Owner SMS service is not configured." });
   }
 
-  const { appointmentId, accessToken } = req.body || {};
+  const { appointmentId, accessToken, status } = req.body || {};
   if (typeof appointmentId !== "string" || !appointmentId || typeof accessToken !== "string" || !accessToken) {
     return reply(res, 400, { success: false, error: "Appointment and session are required." });
+  }
+  if (status !== undefined && (typeof status !== "string" || !ALLOWED_STATUSES.has(status as AppointmentSmsStatus))) {
+    return reply(res, 400, { success: false, error: "Unsupported appointment SMS status." });
   }
 
   try {
@@ -31,7 +41,7 @@ export default async function handler(req: any, res: any) {
 
     const { data: appointment, error: appointmentError } = await db
       .from("appointments")
-      .select("id, booking_id, customer_id, walk_in_name, service_type, scheduled_date, scheduled_time, shop_id")
+      .select("id, booking_id, customer_id, walk_in_name, service_type, scheduled_date, scheduled_time, shop_id, status")
       .eq("id", appointmentId)
       .maybeSingle();
     if (appointmentError) throw appointmentError;
@@ -44,8 +54,27 @@ export default async function handler(req: any, res: any) {
     if (shopError) throw shopError;
     if (callerError) throw callerError;
     if (!shop) return reply(res, 404, { success: false, error: "Shop not found." });
-    if (!caller || (caller.role !== "admin" && (caller.role !== "customer" || appointment.customer_id !== caller.id))) {
+    if (!caller) {
       return reply(res, 403, { success: false, error: "Not authorized for this appointment." });
+    }
+    const isStaff = caller.role === "owner" || caller.role === "admin";
+    const isCustomerCancellation = status === "cancelled" && caller.role === "customer" && appointment.customer_id === caller.id;
+    if (status === undefined) {
+      const isCustomerBooking = caller.role === "customer" && appointment.customer_id === caller.id;
+      const isShopOwner = caller.role === "owner" && shop.owner_id === caller.id;
+      if (caller.role !== "admin" && !isCustomerBooking && !isShopOwner) {
+        return reply(res, 403, { success: false, error: "Not authorized for this appointment." });
+      }
+    } else if (!isStaff && !isCustomerCancellation) {
+      return reply(res, 403, { success: false, error: "Not authorized to request appointment SMS." });
+    }
+    if (status !== undefined && (status === "rescheduled"
+      ? (!isStaff || !["pending", "confirmed"].includes(appointment.status))
+      : appointment.status !== status)) {
+      return reply(res, 409, { success: false, error: "Appointment status has not reached the requested state." });
+    }
+    if (isStaff && caller.role !== "admin" && shop.owner_id !== caller.id) {
+      return reply(res, 403, { success: false, error: "Not authorized for this shop." });
     }
 
     const { data: owner, error: ownerError } = await db
@@ -55,49 +84,80 @@ export default async function handler(req: any, res: any) {
       .eq("role", "owner")
       .maybeSingle();
     if (ownerError) throw ownerError;
-    if (!owner?.phone) return reply(res, 200, { success: true, skipped: true, reason: "owner_phone_missing" });
+    if (!owner?.phone) return reply(res, 200, { success: false, skipped: true, reason: "owner_phone_missing" });
     const recipient = normalizeSmsPhone(owner.phone);
-    if (!recipient) return reply(res, 200, { success: true, skipped: true, reason: "owner_phone_invalid" });
+    if (!recipient) return reply(res, 200, { success: false, skipped: true, reason: "owner_phone_invalid" });
 
+    const eventKey = status === undefined
+      ? "new_appointment"
+      : status === "rescheduled"
+        ? `appointment_status:rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}`
+        : `appointment_status:${status}`;
+    const notificationType = status === undefined ? "new_appointment" : "appointment_status";
     const { data: existing, error: existingError } = await db
       .from("owner_sms_deliveries")
-      .select("id")
+      .select("id, state")
       .eq("appointment_id", appointment.id)
-      .eq("notification_type", "new_appointment")
+      .eq("event_key", eventKey)
       .maybeSingle();
     if (existingError) throw existingError;
-    if (existing) return reply(res, 200, { success: true, skipped: true, duplicate: true });
+    if (existing && existing.state !== "failed") {
+      return reply(res, 200, { success: false, skipped: true, duplicate: true, reason: "sms_event_already_claimed" });
+    }
 
-    const { data: delivery, error: deliveryError } = await db
-      .from("owner_sms_deliveries")
-      .insert({ appointment_id: appointment.id, notification_type: "new_appointment", state: "sending" })
-      .select("id")
-      .single();
-    if (deliveryError?.code === "23505") return reply(res, 200, { success: true, skipped: true, duplicate: true });
-    if (deliveryError || !delivery) throw deliveryError || new Error("Could not record SMS delivery.");
+    let deliveryId: string;
+    if (existing) {
+      const { data: delivery, error: retryError } = await db.from("owner_sms_deliveries")
+        .update({ state: "sending", reason_code: null, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .eq("state", "failed")
+        .select("id")
+        .maybeSingle();
+      if (retryError) throw retryError;
+      if (!delivery) return reply(res, 200, { success: false, skipped: true, duplicate: true, reason: "sms_event_already_claimed" });
+      deliveryId = delivery.id;
+    } else {
+      const { data: delivery, error: deliveryError } = await db
+        .from("owner_sms_deliveries")
+        .insert({ appointment_id: appointment.id, notification_type: notificationType, event_key: eventKey, state: "sending" })
+        .select("id")
+        .single();
+      if (deliveryError?.code === "23505") return reply(res, 200, { success: false, skipped: true, duplicate: true, reason: "sms_event_already_claimed" });
+      if (deliveryError || !delivery) throw deliveryError || new Error("Could not record SMS delivery.");
+      deliveryId = delivery.id;
+    }
 
-    const customerName = appointment.customer_id
-      ? (await db.from("users").select("name").eq("id", appointment.customer_id).maybeSingle()).data?.name
-      : appointment.walk_in_name;
+    const message = status === undefined
+      ? buildOwnerAppointmentSms({
+          shopName: shop.name,
+          customerName: appointment.customer_id
+            ? (await db.from("users").select("name").eq("id", appointment.customer_id).maybeSingle()).data?.name
+            : appointment.walk_in_name,
+          serviceType: appointment.service_type,
+          bookingRef: appointment.booking_id || appointment.id.slice(0, 8).toUpperCase(),
+          scheduledDate: appointment.scheduled_date,
+          scheduledTime: appointment.scheduled_time,
+        })
+      : buildOwnerAppointmentStatusSms({
+          status: status as AppointmentSmsStatus,
+          shopName: shop.name,
+          bookingRef: appointment.booking_id || appointment.id.slice(0, 8).toUpperCase(),
+          scheduledDate: appointment.scheduled_date,
+          scheduledTime: appointment.scheduled_time,
+        });
     const result = await sendTextbeeSms({
       apiKey: TEXTBEE_API_KEY,
       deviceId: TEXTBEE_DEVICE_ID || undefined,
       recipient,
-      message: buildOwnerAppointmentSms({
-        shopName: shop.name,
-        customerName,
-        serviceType: appointment.service_type,
-        bookingRef: appointment.booking_id || appointment.id.slice(0, 8).toUpperCase(),
-        scheduledDate: appointment.scheduled_date,
-        scheduledTime: appointment.scheduled_time,
-      }),
+      message,
     });
-    await db.from("owner_sms_deliveries").update({
+    const { error: updateError } = await db.from("owner_sms_deliveries").update({
       state: result.kind,
       reason_code: result.kind === "accepted" ? result.warning || null : result.reason,
       textbee_batch_id: result.kind === "accepted" ? result.smsBatchId : null,
       updated_at: new Date().toISOString(),
-    }).eq("id", delivery.id);
+    }).eq("id", deliveryId);
+    if (updateError) console.error("[owner-appointment-sms] Could not update delivery log state:", updateError.message);
 
     return result.kind === "accepted"
       ? reply(res, 200, { success: true, queued: true, smsBatchId: result.smsBatchId })

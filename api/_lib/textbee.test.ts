@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, isSmsEventKeyUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
+import { buildAppointmentStatusSms, buildOwnerAppointmentSms, buildOwnerAppointmentStatusSms, buildOwnerLowStockSms, isSmsDeliveryLogUnavailable, isSmsEventKeyUnavailable, normalizeSmsPhone, sendTextbeeSms } from "./textbee";
 
 const jsonResponse = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status,
@@ -52,6 +52,21 @@ describe("Textbee appointment SMS helpers", () => {
       .toContain("Brake Pads is out of stock");
   });
 
+  it("builds owner appointment status messages", () => {
+    expect(buildOwnerAppointmentStatusSms({
+      status: "completed",
+      shopName: "MotoLink Garage",
+      bookingRef: "MTL-123",
+    })).toBe("MotoLink: Appointment MTL-123 at MotoLink Garage is completed and ready for pickup.");
+    expect(buildOwnerAppointmentStatusSms({
+      status: "rescheduled",
+      shopName: "MotoLink Garage",
+      bookingRef: "MTL-123",
+      scheduledDate: "2026-11-12",
+      scheduledTime: "09:00",
+    })).toContain("is rescheduled to 2026-11-12 09:00.");
+  });
+
   it("flags missing delivery-table schema as a non-fatal runtime issue", () => {
     expect(isSmsDeliveryLogUnavailable({ code: "42P01", message: 'relation "public.appointment_sms_deliveries" does not exist' })).toBe(true);
     expect(isSmsDeliveryLogUnavailable({ code: "42703", message: 'column "updated_at" of relation "appointment_sms_deliveries" does not exist' })).toBe(true);
@@ -90,6 +105,19 @@ describe("Textbee appointment SMS helpers", () => {
       message: "Your booking is confirmed.",
       deviceId: "device-123",
     });
+  });
+
+  it("does not report a 2xx response as queued without an explicit gateway acceptance", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(200, { data: {} }));
+    const result = await sendTextbeeSms({
+      apiKey: "server-test-key",
+      recipient: "+639171234567",
+      message: "Your booking is confirmed.",
+      fetcher,
+      timeoutMs: 100,
+    });
+
+    expect(result).toEqual({ kind: "unknown", reason: "textbee_unconfirmed_response" });
   });
 
   it("retries one explicit 429, but does not retry an uncertain timeout", async () => {

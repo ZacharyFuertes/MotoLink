@@ -784,6 +784,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
       void sendBookingCancelledEmail(appointmentId);
       void sendAppointmentStatusSms(appointmentId, "cancelled").then((sms) => {
         if (!sms.success) console.warn("Appointment cancelled but SMS failed:", sms.error || sms.reason);
+        if (!sms.ownerSms.success && !sms.ownerSms.skipped) console.warn("Appointment cancelled but owner SMS failed:", sms.ownerSms.error || sms.ownerSms.reason);
       });
 
       setHistory((prev) =>

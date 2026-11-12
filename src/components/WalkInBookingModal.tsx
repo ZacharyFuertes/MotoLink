@@ -23,6 +23,7 @@ import { getShopByOwnerId, parseOperatingHoursString } from "../services/shopSer
 import {
   sendBookingRequestReceivedEmail,
   sendOwnerBookingEmail,
+  sendOwnerNewAppointmentSms,
   sendRescheduleNoticeToCustomer,
   sendAppointmentStatusSms,
 } from "../services/notificationService";
@@ -173,7 +174,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const [customersLoading, setCustomersLoading] = useState(false);
   const [customerQuery, setCustomerQuery] = useState("");
   const [_customerSearchError, setCustomerSearchError] = useState("");
-  const [walkInSmsConsent, setWalkInSmsConsent] = useState(false);
 
   const [formData, setFormData] = useState(emptyForm);
   const [services, setServices] = useState<CatalogService[]>([]);
@@ -263,7 +263,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
     if (!isOpen) return;
     setIdentityMode("walkin");
     setSelectedCustomer(null);
-    setWalkInSmsConsent(false);
     setCustomerQuery("");
     setCustomerSearchError("");
     setFormData(emptyForm);
@@ -699,7 +698,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
   const resetForm = () => {
     setFormData(emptyForm);
     setSelectedCustomer(null);
-    setWalkInSmsConsent(false);
     setCustomerQuery("");
     setCustomerSearchError("");
     setSelectedSlot("");
@@ -879,12 +877,18 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         });
         if (resolution?.action === "reschedule_online") {
           void sendAppointmentStatusSms(appointmentId, "rescheduled").then((sms) => {
-            if (!sms.success) console.warn("Conflict was resolved but reschedule SMS failed:", sms.error || sms.reason);
+            if (!sms.success) console.warn("Conflict was resolved but customer reschedule SMS failed:", sms.error || sms.reason);
+            if (!sms.ownerSms.success && !sms.ownerSms.skipped) {
+              console.warn("Conflict was resolved but owner reschedule SMS failed:", sms.ownerSms.error || sms.ownerSms.reason);
+            }
           });
         }
       }
       void sendOwnerBookingEmail(appointment.id).then((mail) => {
         if (!mail.success) console.warn("Could not send new-booking email to shop owner:", mail.error);
+      });
+      void sendOwnerNewAppointmentSms(appointment.id).then((sms) => {
+        if (!sms.success && !sms.duplicate) console.warn("Could not send new-appointment SMS to shop owner:", sms.error || sms.reason);
       });
       onBooked?.(appointment);
       if (appointment.customer_id || appointment.walk_in_email) {
@@ -980,7 +984,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
         walk_in_name: customerId ? null : name,
         walk_in_phone: customerId ? null : phone,
         walk_in_email: customerId ? null : formData.customer_email.trim() || null,
-        walk_in_sms_consent: customerId ? false : walkInSmsConsent,
       };
       const requestId = pendingWalkIn?.shopId === shopId && JSON.stringify(pendingWalkIn.payload) === JSON.stringify(payload)
         && JSON.stringify(pendingWalkIn.serviceIds) === JSON.stringify(selectedServiceIds)
@@ -1160,7 +1163,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     onClick={() => {
                       setIdentityMode(opt.key);
                       setSelectedCustomer(null);
-                      setWalkInSmsConsent(false);
                       setError("");
                     }}
                     className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-all ${
@@ -1314,20 +1316,6 @@ const WalkInBookingModal: React.FC<WalkInBookingModalProps> = ({
                     className={inputClass}
                   />
                 </div>
-                <label className="sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border border-moto-gray bg-moto-darker/50 p-3.5 text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={walkInSmsConsent}
-                    onChange={(event) => setWalkInSmsConsent(event.target.checked)}
-                    className="mt-0.5 accent-moto-accent"
-                  />
-                  <span>
-                    <span className="block font-semibold text-slate-100">Allow SMS status updates</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
-                      I have permission to receive appointment confirmation, work-in-progress, and completion text messages at this number. Standard carrier rates may apply.
-                    </span>
-                  </span>
-                </label>
               </div>
             )}
 

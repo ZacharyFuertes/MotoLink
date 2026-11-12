@@ -33,6 +33,22 @@ export const buildOwnerAppointmentSms = (context: {
   return `MotoLink: New appointment at ${shop}. ${customer} booked ${service}${schedule ? ` for ${schedule}` : ""}.${reference ? ` Ref: ${reference}.` : ""}`;
 };
 
+export const buildOwnerAppointmentStatusSms = (context: AppointmentSmsContext): string => {
+  const shop = cleanSmsText(context.shopName || "your shop", 40);
+  const reference = cleanSmsText(context.bookingRef || "an appointment", 24);
+  const date = cleanSmsText(context.scheduledDate || "", 16);
+  const time = cleanSmsText(context.scheduledTime || "", 12);
+  const schedule = [date, time].filter(Boolean).join(" ");
+  const labels: Record<AppointmentSmsStatus, string> = {
+    confirmed: "confirmed",
+    in_progress: "in progress",
+    completed: "completed and ready for pickup",
+    cancelled: "cancelled",
+    rescheduled: `rescheduled${schedule ? ` to ${schedule}` : ""}`,
+  };
+  return `MotoLink: Appointment ${reference} at ${shop} is ${labels[context.status]}.`;
+};
+
 export const buildOwnerLowStockSms = (context: {
   shopName?: string | null;
   partName: string;
@@ -170,8 +186,11 @@ export const sendTextbeeSms = async (options: {
     }
 
     const result = payload?.data ?? payload;
-    if (result?.success === false || (Number(result?.failureCount) > 0 && Number(result?.successCount || 0) === 0)) {
+    if (result?.success === false || Number(result?.failureCount) > 0) {
       return { kind: "failed", reason: "textbee_rejected_message" };
+    }
+    if (result?.success !== true) {
+      return { kind: "unknown", reason: "textbee_unconfirmed_response" };
     }
     return {
       kind: "accepted",

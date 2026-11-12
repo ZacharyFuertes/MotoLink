@@ -288,13 +288,11 @@ export interface EmailNotification {
   sent_at?: string;
 }
 
-// Customer notification opt-in/opt-out preferences
+// Customer email notification preferences
 export interface CustomerNotificationSettings {
   id?: string;
   user_id: string;
   email_notifications_enabled: boolean;
-  sms_notifications_enabled?: boolean;
-  sms_consent_updated_at?: string | null;
   updated_at?: string;
 }
 
