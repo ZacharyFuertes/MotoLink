@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sendTextbeeSms } from "../../server/textbee";
 
 const dbState = {
   from: vi.fn(),
 };
 const authGetUser = vi.fn();
+let customerProfile = { id: "customer-1", name: "Mina", phone: "09171234567", role: "customer" };
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
@@ -26,6 +28,7 @@ describe("customer appointment SMS endpoint", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    customerProfile = { id: "customer-1", name: "Mina", phone: "09171234567", role: "customer" };
     vi.stubEnv("SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key");
     vi.stubEnv("TEXTBEE_API_KEY", "textbee-key");
@@ -66,7 +69,7 @@ describe("customer appointment SMS endpoint", () => {
             eq: vi.fn((field: string, value: string) => ({
               maybeSingle: vi.fn().mockResolvedValue(
                 field === "id" && value === "customer-1"
-                  ? { data: { id: "customer-1", name: "Mina", phone: "09171234567" }, error: null }
+                  ? { data: customerProfile, error: null }
                   : { data: { id: "user-1", role: "owner" }, error: null },
               ),
             })),
@@ -113,5 +116,60 @@ describe("customer appointment SMS endpoint", () => {
 
     expect(result.success).toBe(true);
     expect(result.queued).toBe(true);
+    expect(vi.mocked(sendTextbeeSms)).toHaveBeenCalledWith(expect.objectContaining({
+      recipient: "+639171234567",
+      message: "Status update text",
+    }));
+    expect(vi.mocked(sendTextbeeSms).mock.calls[0][0].recipient).toBe("+639171234567");
+  });
+
+  it("fails closed if an appointment customer ID resolves to a non-customer account", async () => {
+    customerProfile = { id: "customer-1", name: "Mina", phone: "09171234567", role: "owner" };
+    const appointmentQuery = vi.fn().mockResolvedValue({
+      data: {
+        id: "appt-1",
+        booking_id: "BK-1",
+        customer_id: "customer-1",
+        walk_in_name: null,
+        walk_in_phone: null,
+        shop_id: "shop-1",
+        status: "confirmed",
+        scheduled_date: "2026-11-12",
+        scheduled_time: "09:00",
+      },
+      error: null,
+    });
+    dbState.from.mockImplementation((table: string) => {
+      if (table === "users") {
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn((field: string, value: string) => ({
+              maybeSingle: vi.fn().mockResolvedValue(
+                field === "id" && value === "customer-1"
+                  ? { data: customerProfile, error: null }
+                  : { data: { id: "user-1", role: "owner" }, error: null },
+              ),
+            })),
+          })),
+        };
+      }
+      if (table === "appointments") {
+        return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: appointmentQuery })) })) };
+      }
+      if (table === "shops") {
+        return { select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn().mockResolvedValue({ data: { id: "shop-1", name: "MotoLink Garage", owner_id: "user-1" }, error: null }) })) })) };
+      }
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const res = { status: vi.fn().mockImplementation(() => ({ json: (body: any) => body })) } as any;
+    const result = await handler({
+      method: "POST",
+      body: { appointmentId: "appt-1", status: "confirmed", accessToken: "token-1" },
+    }, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(result.reason).toBe("appointment_customer_profile_invalid");
+    expect(vi.mocked(sendTextbeeSms)).not.toHaveBeenCalled();
   });
 });

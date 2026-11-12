@@ -70,20 +70,26 @@ export default async function handler(req: any, res: any) {
       .select("id, name, owner_id")
       .eq("id", part.shop_id)
       .maybeSingle();
-    let { data: owner } = await db
-      .from("users")
-      .select("id, email, name, phone")
-      .eq("role", "owner")
-      .eq("shop_id", part.shop_id)
-      .maybeSingle();
-    if (!owner && shop?.owner_id) {
-      const { data: ownerById } = await db
+    let owner = null;
+    if (shop?.owner_id) {
+      const { data: ownerById, error: ownerByIdError } = await db
         .from("users")
         .select("id, email, name, phone")
         .eq("id", shop.owner_id)
         .eq("role", "owner")
         .maybeSingle();
+      if (ownerByIdError) throw ownerByIdError;
       owner = ownerById;
+    }
+    if (!owner) {
+      const { data: ownerByShop, error: ownerByShopError } = await db
+        .from("users")
+        .select("id, email, name, phone")
+        .eq("role", "owner")
+        .eq("shop_id", part.shop_id)
+        .maybeSingle();
+      if (ownerByShopError) throw ownerByShopError;
+      owner = ownerByShop;
     }
     const isOwner = caller?.role === "owner" &&
       (caller.shop_id === part.shop_id || shop?.owner_id === caller.id);
@@ -161,6 +167,7 @@ export default async function handler(req: any, res: any) {
         .from("owner_sms_deliveries")
         .insert({
           notification_id: notification.data.id,
+          recipient_user_id: owner.id,
           notification_type: "low_stock",
           event_key: `low_stock:${notification.data.id}`,
           state: "sending",

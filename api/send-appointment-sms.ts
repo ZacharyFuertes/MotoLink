@@ -95,22 +95,24 @@ export default async function handler(req: any, res: any) {
     if (appointment.customer_id) {
       const { data: customer, error: customerError } = await db
         .from("users")
-        .select("id, name, phone")
+        .select("id, name, phone, role")
         .eq("id", appointment.customer_id)
         .maybeSingle();
       if (customerError) throw customerError;
-      phone = customer?.phone || null;
+      if (!customer || customer.role !== "customer") {
+        return reply(res, 409, {
+          success: false,
+          skipped: true,
+          reason: "appointment_customer_profile_invalid",
+          error: "Customer SMS was not sent because the appointment is not linked to a customer account.",
+        });
+      }
+      // Use only the phone attached to this exact account. Do not fall back to
+      // a secondary customer record: if profile data is missing, fail closed
+      // rather than risk routing another account's number.
+      phone = customer.phone || null;
       customerName = customer?.name || "";
       recipientId = customer?.id || appointment.customer_id;
-      if (!phone) {
-        const { data: customerProfile, error: customerProfileError } = await db
-          .from("customers")
-          .select("phone")
-          .eq("user_id", recipientId)
-          .maybeSingle();
-        if (customerProfileError) throw customerProfileError;
-        phone = customerProfile?.phone || null;
-      }
     } else {
       // Walk-in customer: use the walk-in phone captured at booking time.
       phone = appointment.walk_in_phone || null;
@@ -123,6 +125,7 @@ export default async function handler(req: any, res: any) {
           : status;
         const delivery = {
           appointment_id: appointment.id,
+          recipient_user_id: recipientId,
           target_status: status,
           event_key: eventKey,
           state,
@@ -161,6 +164,7 @@ export default async function handler(req: any, res: any) {
             const { data: reclaimed, error: reclaimError } = await db.from("appointment_sms_deliveries")
               .update({
                 state: "sending",
+                recipient_user_id: recipientId,
                 reason_code: null,
                 updated_at: new Date().toISOString(),
               })

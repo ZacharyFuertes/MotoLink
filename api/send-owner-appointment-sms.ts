@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
     let deliveryId: string;
     if (existing) {
       const { data: delivery, error: retryError } = await db.from("owner_sms_deliveries")
-        .update({ state: "sending", reason_code: null, updated_at: new Date().toISOString() })
+        .update({ state: "sending", recipient_user_id: owner.id, reason_code: null, updated_at: new Date().toISOString() })
         .eq("id", existing.id)
         .eq("state", "failed")
         .select("id")
@@ -119,7 +119,7 @@ export default async function handler(req: any, res: any) {
     } else {
       const { data: delivery, error: deliveryError } = await db
         .from("owner_sms_deliveries")
-        .insert({ appointment_id: appointment.id, notification_type: notificationType, event_key: eventKey, state: "sending" })
+        .insert({ appointment_id: appointment.id, recipient_user_id: owner.id, notification_type: notificationType, event_key: eventKey, state: "sending" })
         .select("id")
         .single();
       if (deliveryError?.code === "23505") return reply(res, 200, { success: false, skipped: true, duplicate: true, reason: "sms_event_already_claimed" });

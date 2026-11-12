@@ -23,8 +23,9 @@ describe("Textbee appointment SMS source safeguards", () => {
     expect(endpoint).toContain("isCustomerCancellation");
     expect(endpoint).toContain("rescheduled:${appointment.scheduled_date}:${appointment.scheduled_time}");
     expect(endpoint).toContain("isSmsEventKeyUnavailable(error)");
-    expect(endpoint).toContain('.from("customers")');
-    expect(endpoint).toContain('.eq("user_id", recipientId)');
+    expect(endpoint).toContain('customer.role !== "customer"');
+    expect(endpoint).not.toContain('.from("customers")');
+    expect(endpoint).toContain("recipient_user_id: recipientId");
     expect(endpoint).toContain("Customer SMS was not sent because delivery logging is unavailable.");
     expect(eventMigration).toContain("UNIQUE (appointment_id, event_key)");
     expect(eventMigration).toContain("'cancelled', 'rescheduled'");
